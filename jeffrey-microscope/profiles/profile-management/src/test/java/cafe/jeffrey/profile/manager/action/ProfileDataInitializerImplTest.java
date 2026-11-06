@@ -127,7 +127,7 @@ class ProfileDataInitializerImplTest {
             when(ruleSet.apply(List.of(recording))).thenReturn(FINDINGS);
 
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), RecordingSources.of(recording))
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.JFR), RecordingSources.of(recording))
                     .get(5, TimeUnit.SECONDS);
 
             assertEquals(FINDINGS, results);
@@ -143,7 +143,7 @@ class ProfileDataInitializerImplTest {
             Path missing = directory.resolve("gone.jfr");
 
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), RecordingSources.of(missing))
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.JFR), RecordingSources.of(missing))
                     .get(5, TimeUnit.SECONDS);
 
             assertNull(results);
@@ -176,7 +176,7 @@ class ProfileDataInitializerImplTest {
             when(ruleSet.apply(List.of(recording))).thenThrow(new IllegalStateException("rules blew up"));
 
             List<AutoAnalysisResult> results = initializer()
-                    .startAutoAnalysis(profileInfo(RecordingEventSource.JDK), RecordingSources.of(recording))
+                    .startAutoAnalysis(profileInfo(RecordingEventSource.JFR), RecordingSources.of(recording))
                     .get(5, TimeUnit.SECONDS);
 
             assertNull(results);
@@ -191,7 +191,7 @@ class ProfileDataInitializerImplTest {
         @DisplayName("warms the cached views, stores the findings, and releases the lease")
         void warmsTheViewsAndReleasesTheLease() throws Exception {
             initializer()
-                    .initialize(profileManager(RecordingEventSource.JDK),
+                    .initialize(profileManager(RecordingEventSource.JFR),
                             CompletableFuture.completedFuture(FINDINGS))
                     .get(5, TimeUnit.SECONDS);
 
@@ -209,7 +209,7 @@ class ProfileDataInitializerImplTest {
         @DisplayName("stores the run it was handed rather than starting another")
         void storesRatherThanGenerating() throws Exception {
             initializer()
-                    .initialize(profileManager(RecordingEventSource.JDK),
+                    .initialize(profileManager(RecordingEventSource.JFR),
                             CompletableFuture.completedFuture(FINDINGS))
                     .get(5, TimeUnit.SECONDS);
 
@@ -224,7 +224,7 @@ class ProfileDataInitializerImplTest {
         @DisplayName("caches nothing when the analysis produced nothing")
         void cachesNothingWithoutFindings() throws Exception {
             initializer()
-                    .initialize(profileManager(RecordingEventSource.JDK),
+                    .initialize(profileManager(RecordingEventSource.JFR),
                             CompletableFuture.completedFuture(null))
                     .get(5, TimeUnit.SECONDS);
 
@@ -254,7 +254,7 @@ class ProfileDataInitializerImplTest {
                         new ProfileDataInitializerImpl(databaseManager(), executor, ruleSet);
 
                 CompletableFuture<Void> warming = initializer.initialize(
-                        profileManager(RecordingEventSource.JDK),
+                        profileManager(RecordingEventSource.JFR),
                         CompletableFuture.completedFuture(FINDINGS));
 
                 assertTrue(warmStarted.await(2, TimeUnit.SECONDS));
@@ -281,7 +281,7 @@ class ProfileDataInitializerImplTest {
             when(threadManager.threadRows()).thenThrow(new IllegalStateException("warm blew up"));
 
             initializer()
-                    .initialize(profileManager(RecordingEventSource.JDK),
+                    .initialize(profileManager(RecordingEventSource.JFR),
                             CompletableFuture.completedFuture(FINDINGS))
                     .get(5, TimeUnit.SECONDS);
 
@@ -299,7 +299,7 @@ class ProfileDataInitializerImplTest {
                     .when(autoAnalysisManager).store(any());
 
             initializer()
-                    .initialize(profileManager(RecordingEventSource.JDK),
+                    .initialize(profileManager(RecordingEventSource.JFR),
                             CompletableFuture.completedFuture(FINDINGS))
                     .get(5, TimeUnit.SECONDS);
 

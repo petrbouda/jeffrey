@@ -312,7 +312,7 @@ class HeapComputeMcpToolsTest {
         @Test
         void refusesAJfrProfilePointingAtItsBundlesHeapDump() {
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JDK,
+                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
 
             IllegalArgumentException e =

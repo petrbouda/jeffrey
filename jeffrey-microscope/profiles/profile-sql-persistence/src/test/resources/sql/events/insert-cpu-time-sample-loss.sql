@@ -18,11 +18,11 @@
 -- jdk.CPUTimeSamplesLost events that account for the ones the queue dropped. One loss event
 -- normally stands for SEVERAL lost samples, which is the whole point of the lostSamples field.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.CPUTimeSample', 'CPU Time Sample', 1, 'CPU time sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL),
-    ('jdk.CPUTimeSamplesLost', 'CPU Time Samples Lost', 2, 'Lost CPU time samples', '["Profiling"]', '1', NULL, false, NULL, NULL, NULL),
-    ('jdk.ExecutionSample', 'Execution Sample', 3, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL);
+    ('jdk.CPUTimeSample', 'CPU Time Sample', 1, 'CPU time sample', '["Profiling"]', NULL, true, NULL, NULL, NULL),
+    ('jdk.CPUTimeSamplesLost', 'CPU Time Samples Lost', 2, 'Lost CPU time samples', '["Profiling"]', NULL, false, NULL, NULL, NULL),
+    ('jdk.ExecutionSample', 'Execution Sample', 3, 'CPU execution sample', '["Profiling"]', NULL, true, NULL, NULL, NULL);
 
 -- 4 captured samples, 3 loss events carrying 2 + 5 + 1 = 8 lost samples.
 INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

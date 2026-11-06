@@ -17,10 +17,10 @@
 -- Inserts jdk.SafepointBegin events with varying durations (including nulls)
 -- plus a few jdk.ExecutionSample events to confirm the query filters by type.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.SafepointBegin', 'Safepoint Begin', 1, 'Safepoint begin event', '["JVM"]', '1', NULL, false, NULL, NULL, NULL),
-    ('jdk.ExecutionSample', 'Execution Sample', 2, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL);
+    ('jdk.SafepointBegin', 'Safepoint Begin', 1, 'Safepoint begin event', '["JVM"]', NULL, false, NULL, NULL, NULL),
+    ('jdk.ExecutionSample', 'Execution Sample', 2, 'CPU execution sample', '["Profiling"]', NULL, true, NULL, NULL, NULL);
 
 -- Durations in nanoseconds. Deliberately asymmetric so p99 != max and != mean.
 -- Target data set: 10 non-null safepoint durations (1ms, 2ms, 3ms, 4ms, 5ms, 6ms, 7ms, 8ms, 9ms, 500ms)

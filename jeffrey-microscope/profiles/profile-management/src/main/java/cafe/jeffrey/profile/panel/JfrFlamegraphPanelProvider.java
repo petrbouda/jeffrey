@@ -95,7 +95,7 @@ public final class JfrFlamegraphPanelProvider implements FlamegraphPanelProvider
         String code = section.placeholderCode();
         String label = section.placeholderLabel();
         EventSummaryResult.SingleResult primary =
-                new EventSummaryResult.SingleResult(code, label, null, null, 0L, 0L, false, Map.of());
+                new EventSummaryResult.SingleResult(code, label, null, 0L, 0L, false, Map.of());
         return new EventSummaryResult(code, label, primary, null);
     }
 }

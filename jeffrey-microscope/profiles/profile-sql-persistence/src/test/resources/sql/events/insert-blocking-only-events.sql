@@ -27,13 +27,13 @@ INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES
     (4001, 'pool-2-thread-1', 61, 31, false);
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.SocketRead', 'Socket Read', 30, 'socket read', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.SocketRead', 'Socket Read', 30, 'socket read', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"host","header":"Remote Host"},{"field":"bytesRead","header":"Bytes Read"}]'),
-    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 33, 'monitor', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 33, 'monitor', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"monitorClass","header":"Monitor Class"}]'),
-    ('jdk.ExecutionSample', 'Execution Sample', 40, 'sample', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.ExecutionSample', 'Execution Sample', 40, 'sample', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"state","header":"Thread State"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

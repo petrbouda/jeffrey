@@ -92,7 +92,7 @@ class JfrParserRealisticRecordingTest {
         assertEquals(recording.recordingFinishedAt(), information.recordingFinishedAt());
         Duration span = Duration.between(information.recordingStartedAt(), information.recordingFinishedAt());
         assertTrue(added.compareTo(span.plus(span.dividedBy(2))) > 0, () -> span + " against " + added);
-        assertEquals(RecordingEventSource.ASYNC_PROFILER, information.eventSource());
+        assertEquals(RecordingEventSource.JFR, information.eventSource());
     }
 
     /** The profiler's types, the JDK's and the service's own, from the two chains' own metadata. */
@@ -165,7 +165,7 @@ class JfrParserRealisticRecordingTest {
             assertEquals(Files.size(file), chunks.getFirst().sizeInBytes());
             assertEquals(recording.recordingStartedAt(), information.recordingStartedAt());
             assertEquals(recording.recordingFinishedAt(), information.recordingFinishedAt());
-            assertEquals(RecordingEventSource.JDK, information.eventSource());
+            assertEquals(RecordingEventSource.JFR, information.eventSource());
             assertTrue(JfrParser.eventTypes(file).containsAll(Set.of(
                     CheckoutRecording.HTTP_SERVER_EXCHANGE, CheckoutRecording.TRACE_SPAN,
                     CheckoutRecording.EXECUTION_SAMPLE, CheckoutRecording.EXCEPTION_THROW)));

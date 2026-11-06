@@ -89,7 +89,7 @@ class MicroscopeProfileCleanupTest {
                 new MicroscopeProfileCleanup(jeffreyDirs, repositories, contextInvalidator);
 
         cleanup.onRecordingDeleted(new Recording(
-                RECORDING_ID, "app.jfr", null, RecordingEventSource.JDK, NOW, NOW, NOW,
+                RECORDING_ID, "app.jfr", null, RecordingEventSource.JFR, NOW, NOW, NOW,
                 true, "p-2", "app.jfr #2", List.of()));
 
         verify(profileRepository).delete();
@@ -97,7 +97,7 @@ class MicroscopeProfileCleanupTest {
     }
 
     private static ProfileInfo profile(String profileId) {
-        return new ProfileInfo(profileId, null, null, "app.jfr", RecordingEventSource.JDK,
+        return new ProfileInfo(profileId, null, null, "app.jfr", RecordingEventSource.JFR,
                 NOW, NOW, NOW, true, false, RECORDING_ID);
     }
 }

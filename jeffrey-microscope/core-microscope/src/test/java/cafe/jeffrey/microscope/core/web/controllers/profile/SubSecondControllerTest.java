@@ -57,7 +57,7 @@ class SubSecondControllerTest {
         ObjectNode node = JsonNodeFactory.instance.objectNode().put("ok", true);
         when(resolver.resolve("p-1")).thenReturn(profileManager);
         when(profileManager.info()).thenReturn(new cafe.jeffrey.microscope.model.ProfileInfo(
-                "p-1", "project-1", "ws-1", "Demo", RecordingEventSource.JDK,
+                "p-1", "project-1", "ws-1", "Demo", RecordingEventSource.JFR,
                 Instant.parse("2026-04-01T10:00:00Z"),
                 Instant.parse("2026-04-01T10:05:00Z"),
                 Instant.parse("2026-04-01T10:10:00Z"),

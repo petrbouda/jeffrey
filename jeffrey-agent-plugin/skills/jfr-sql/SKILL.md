@@ -31,7 +31,7 @@ Call `jfr_describeTable('events')` first. In particular the duration column is `
   `start_timestamp_from_beginning` (BIGINT millis since recording start — sargable, prefer it for
   relative time filters), `duration`, `samples`, `weight`, `weight_entity`, `stacktrace_hash`,
   `thread_hash`, `fields` (JSON).
-- **`event_types`** — `name`, `label`, `description`, `categories`, `source`, `subtype`,
+- **`event_types`** — `name`, `label`, `description`, `categories`, `subtype`,
   `has_stacktrace`, `extras`, plus two columns worth knowing about because `jfr_listEventTypes`
   does not return them:
   - **`columns`** — a JSON array of `{field, header, type, description}`: the *declared fields* of

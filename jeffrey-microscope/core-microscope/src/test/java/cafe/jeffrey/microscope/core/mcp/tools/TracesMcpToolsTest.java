@@ -130,7 +130,7 @@ class TracesMcpToolsTest {
         when(flamegraphManager.generateAiExport(any())).thenReturn(MARKDOWN);
         recorded(CPU);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 Instant.ofEpochMilli(RECORDING_START_MS), Instant.ofEpochMilli(RECORDING_START_MS).plusSeconds(600),
                 Instant.EPOCH, true, false, "recording-1"));
     }
@@ -156,7 +156,7 @@ class TracesMcpToolsTest {
     private void recorded(String... eventTypes) {
         when(flamegraphManager.eventSummaries()).thenReturn(Arrays.stream(eventTypes)
                 .map(code -> new EventSummaryResult(new EventSummary(
-                        code, code, null, null, 1, 0, true, false, List.of(), null, null)))
+                        code, code, null, 1, 0, true, false, List.of(), null, null)))
                 .toList());
     }
 

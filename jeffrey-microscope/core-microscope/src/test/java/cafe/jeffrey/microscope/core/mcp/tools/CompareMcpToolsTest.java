@@ -164,7 +164,7 @@ class CompareMcpToolsTest {
 
     private static ProfileInfo info(String id, String name, Instant start, long seconds) {
         return new ProfileInfo(
-                id, "project-1", "workspace-1", name, RecordingEventSource.JDK,
+                id, "project-1", "workspace-1", name, RecordingEventSource.JFR,
                 start, start.plusSeconds(seconds), start,
                 true, false, "recording-" + id);
     }
@@ -172,7 +172,7 @@ class CompareMcpToolsTest {
     /** A profile whose recording carries no window at all -- an import, or a parse that never reached the end. */
     private static ProfileInfo infoWithoutTimestamps(String id, String name) {
         return new ProfileInfo(
-                id, "project-1", "workspace-1", name, RecordingEventSource.JDK,
+                id, "project-1", "workspace-1", name, RecordingEventSource.JFR,
                 null, null, Instant.EPOCH, true, false, "recording-" + id);
     }
 
@@ -196,15 +196,15 @@ class CompareMcpToolsTest {
         return new EventSummaryResult(
                 code, code,
                 new EventSummaryResult.SingleResult(
-                        code, code, null, null, primarySamples, weight, false, Map.of()),
+                        code, code, null, primarySamples, weight, false, Map.of()),
                 new EventSummaryResult.SingleResult(
-                        code, code, null, null, baselineSamples, weight, false, Map.of()));
+                        code, code, null, baselineSamples, weight, false, Map.of()));
     }
 
     private static EventSummaryResult exclusive(String code, long samples) {
         return new EventSummaryResult(
                 code, code,
-                new EventSummaryResult.SingleResult(code, code, null, null, samples, 0, false, Map.of()),
+                new EventSummaryResult.SingleResult(code, code, null, samples, 0, false, Map.of()),
                 null);
     }
 

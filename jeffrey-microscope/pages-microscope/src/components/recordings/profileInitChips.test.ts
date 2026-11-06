@@ -97,7 +97,7 @@ describe('HEAP_DUMP_INIT_CHIPS', () => {
 
   it('is what a heap dump gets, and only a heap dump', () => {
     expect(recordingKindOf('HEAP_DUMP').chips).toBe(HEAP_DUMP_INIT_CHIPS);
-    expect(recordingKindOf('JDK').chips).toBe(PROFILE_INIT_CHIPS);
+    expect(recordingKindOf('JFR').chips).toBe(PROFILE_INIT_CHIPS);
     expect(recordingKindOf(undefined).chips).toBe(PROFILE_INIT_CHIPS);
   });
 

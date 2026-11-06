@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.model.settings;
 
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.EventSubtype;
 import cafe.jeffrey.microscope.model.Type;
 
@@ -40,39 +39,12 @@ public class ActiveSettings {
                 .collect(Collectors.toMap(ActiveSetting::event, Function.identity()));
     }
 
-    public Optional<RecordingEventSource> allocationSupportedBy() {
-        return findFirstByType(Type.OBJECT_ALLOCATION_IN_NEW_TLAB)
-                .filter(ActiveSetting::enabled)
-                .map(setting -> setting.getParam("alloc").isPresent() ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK);
-    }
-
-    public Optional<RecordingEventSource> monitorEnterSupportedBy() {
-        return findFirstByType(Type.JAVA_MONITOR_ENTER)
-                .filter(ActiveSetting::enabled)
-                .map(setting -> setting.getParam("lock").isPresent() ? RecordingEventSource.ASYNC_PROFILER : RecordingEventSource.JDK);
-    }
-
-    public Optional<RecordingEventSource> threadParkSupportedBy() {
-        Optional<ActiveSetting> settingOpt = findFirstByType(Type.THREAD_PARK);
-        if (settingOpt.isEmpty() || !settingOpt.get().enabled()) {
-            return Optional.empty();
-        }
-
-        // Async-Profiler always enables ThreadPark and MonitorEnter together
-        Optional<RecordingEventSource> eventSource = monitorEnterSupportedBy();
-        if (eventSource.isPresent() && eventSource.get() == RecordingEventSource.ASYNC_PROFILER) {
-            return Optional.of(RecordingEventSource.ASYNC_PROFILER);
-        } else {
-            return Optional.of(RecordingEventSource.JDK);
-        }
-    }
-
     /**
-     * Resolves the active Execution Sample type. It makes difference between the Async-profiler and JDK recordings.
-     * It does not have to be only CPU profiling, but also other types of profiling like ITIMER, CTIMER, WALL,
-     * Method tracing etc.
+     * Resolves the active Execution Sample type. An async-profiler recording names its
+     * profiling mode in the {@code event} parameter of {@code jdk.ActiveRecording} (CPU, ITIMER, CTIMER,
+     * WALL, method tracing, …); without it the samples are the JDK's own method profiling samples.
      *
-     * @return the active Execution Sample type (JDK or Async-profiler)
+     * @return the active Execution Sample type
      */
     public Optional<EventSubtype> executionSampleType() {
         Optional<String> eventType = findFirstByType(Type.ACTIVE_RECORDING)

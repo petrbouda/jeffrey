@@ -16,10 +16,10 @@
 -- Fixture for JdbcSpanRepositoryTest
 -- Inserts profiler.Span events on two threads, plus a non-span event to verify type filtering.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('profiler.Span', 'Span', 1, 'async-profiler span', '["Profiler"]', '1', NULL, false, NULL, NULL, NULL),
-    ('jdk.ExecutionSample', 'Execution Sample', 2, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL);
+    ('profiler.Span', 'Span', 1, 'async-profiler span', '["Profiler"]', NULL, false, NULL, NULL, NULL),
+    ('jdk.ExecutionSample', 'Execution Sample', 2, 'CPU execution sample', '["Profiling"]', NULL, true, NULL, NULL, NULL);
 
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES

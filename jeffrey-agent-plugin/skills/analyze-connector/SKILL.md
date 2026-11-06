@@ -203,7 +203,7 @@ the parser reads them as independent inputs. Each heap dump (`.hprof`, `.hprof.g
 perf-counters file are **recordings of their own**, and the logs and crash file are download-only
 files of the bundle. Each answers `status: DOWNLOADED` with the JFR recording's `recordingId`, the
 `bundleId`, and `items` — every item that is analysed on its own, the session's recording first, each
-with its `recordingId`, `eventSource` (`JDK` or `ASYNC_PROFILER` for the recording, `HEAP_DUMP`,
+with its `recordingId`, `eventSource` (`JFR` for the recording, `HEAP_DUMP`,
 `PERF_COUNTERS`), `name` and `profileId` once it has one; when there are heap dumps the answer's
 guidance names them. `coveredStartEpochMs` / `coveredEndEpochMs` are the span the recording holds,
 read from its own data once it is here — a last chunk cut short ends where its data does, not one

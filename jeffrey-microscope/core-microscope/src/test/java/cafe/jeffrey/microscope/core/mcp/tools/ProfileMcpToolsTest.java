@@ -156,7 +156,7 @@ class ProfileMcpToolsTest {
 
     private static EventSummaryResult recorded(String eventType, long samples) {
         return new EventSummaryResult(new EventSummary(
-                eventType, eventType, null, null, samples, 0, true, false, List.of(), null, null));
+                eventType, eventType, null, samples, 0, true, false, List.of(), null, null));
     }
 
     private static AutoAnalysisResult rule(String rule, AnalysisResult.Severity severity, String topic) {
@@ -168,7 +168,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void returnsTheProfilesIdentityAndSize() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(profileManager.sizeInBytes()).thenReturn(4096L);
 
             String result = tools().get().text();
@@ -183,7 +183,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void reportsTheRecordingsCommitWhenItWasTagged() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(recordingCommitResolver.revision(eq("rec-1"), any())).thenReturn(Optional.of(
                     new SourceRevision("abc1234", SourceRevision.Source.SYSTEM_PROPERTY, true, "main")));
 
@@ -200,9 +200,9 @@ class ProfileMcpToolsTest {
          */
         @Test
         void answersForAProfileWithoutTimestamps() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-1", "proj-1", "ws-1", "Checkout run", RecordingEventSource.JDK,
+                    "p-1", "proj-1", "ws-1", "Checkout run", RecordingEventSource.JFR,
                     null, null, null, true, false, "rec-1"));
 
             String result = tools().get().text();
@@ -216,7 +216,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void reportsAnUnknownCommitAsNullRatherThanOmittingIt() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             assertTrue(tools().get().text().contains("\"recordingCommit\":null"));
         }
@@ -227,10 +227,10 @@ class ProfileMcpToolsTest {
 
         @Test
         void reportsTheEventTypesTheProfileRecorded() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(flamegraphManager.allEventSummaries()).thenReturn(List.of(
                     new EventSummaryResult(new EventSummary(
-                            "jdk.ExecutionSample", "Execution Sample", null, null,
+                            "jdk.ExecutionSample", "Execution Sample", null,
                             1200, 0, true, false, List.of(), null, null))));
 
             String result = tools().features().text();
@@ -245,7 +245,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void marksHeapDumpUnavailableWhenThereIsNoIndex() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(false);
 
             assertTrue(tools().features().text().contains(FeatureType.HEAP_DUMP.name()));
@@ -269,7 +269,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void carriesTheCapabilityGapsBesideTheDisabledFeatures() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(featuresManager.getDisabledFeatures()).thenReturn(List.of(FeatureType.TRACES));
@@ -292,7 +292,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void namesTheFlamegraphGroupsTheProfilerNeverRecorded() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(flamegraphManager.eventSummaries()).thenReturn(List.of(
@@ -308,7 +308,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void namesTheJvmSectionsWithNoEventsBehindThem() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(flamegraphManager.allEventSummaries()).thenReturn(List.of(
@@ -327,7 +327,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void saysOnceWhenTwoSectionsAreGatedOnTheSameEvents() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
@@ -339,7 +339,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void pointsARecordingAtItsBundlesHeapDump() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             String result = tools().summary().text();
             assertTrue(result.contains("A recording holds no heap dump"), result);
@@ -363,7 +363,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void reportsTheSamplesTheKernelDroppedAsAFactAboutEveryCpuShare() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(samplerHealthManager.cpuTimeSampleLoss()).thenReturn(new CpuTimeSampleLoss(900, 100, 3));
@@ -376,7 +376,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void saysWhenTheRulesHaveNotRunRatherThanLettingAnEmptyListPassAsClean() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(autoAnalysisManager.isComputed()).thenReturn(false);
@@ -395,7 +395,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void doesNotClaimTheRulesAreMissingWhenTheyRan() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
 
@@ -457,7 +457,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void leadsWithTheRulesThatFlaggedSomethingAndLeavesThePassesToTheFullTool() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
             when(autoAnalysisManager.analysisResults()).thenReturn(List.of(
@@ -491,7 +491,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void getCarriesTimeAsEpochMillisecondsAndNamesTheSummary() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             JsonNode detail = conforming("get", tools().get());
 
@@ -508,9 +508,9 @@ class ProfileMcpToolsTest {
 
         @Test
         void getOfAProfileWithoutTimestampsStillConforms() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-1", null, null, null, RecordingEventSource.JDK, null, null, null, true, false, "rec-1"));
+                    "p-1", null, null, null, RecordingEventSource.JFR, null, null, null, true, false, "rec-1"));
 
             JsonNode detail = conforming("get", tools().get());
 
@@ -519,7 +519,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void featuresLinkTheEventTypesPage() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             JsonNode features = conforming("features", tools().features());
 
@@ -529,7 +529,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void samplerHealthReportsTheCountsWithStatusReported() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(samplerHealthManager.cpuTimeSampleLoss()).thenReturn(new CpuTimeSampleLoss(900, 100, 3));
 
             JsonNode health = conforming("samplerHealth", tools().samplerHealth());
@@ -546,7 +546,7 @@ class ProfileMcpToolsTest {
         /** No loss evidence is a status with a reason, not a sentence in place of the record. */
         @Test
         void samplerHealthWithoutLossEvidenceIsAStatusNotText() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             JsonNode health = conforming("samplerHealth", tools().samplerHealth());
 
@@ -561,7 +561,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void summaryOfAnAnalysedProfileSaysTheRulesRan() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             JsonNode summary = conforming("summary", tools().summary());
 
@@ -577,7 +577,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void summaryOfAnUnanalysedProfileNamesTheCallThatRunsTheRules() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(autoAnalysisManager.isComputed()).thenReturn(false);
             when(autoAnalysisManager.canGenerate()).thenReturn(true);
 
@@ -599,7 +599,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void summaryCarriesTheInvestigationMenu() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(flamegraphManager.eventSummaries()).thenReturn(List.of(recorded("jdk.ExecutionSample", 1_000)));
             when(flamegraphManager.allEventSummaries()).thenReturn(List.of(recorded("jdk.ExecutionSample", 1_000)));
 
@@ -637,7 +637,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void summaryListsTheFlamegraphsNoAreaOpens() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             List<EventSummaryResult> recorded = List.of(
                     recorded("jdk.ExecutionSample", 1_000), recorded("jdk.CPUTimeSample", 400));
             when(flamegraphManager.eventSummaries()).thenReturn(recorded);
@@ -720,7 +720,7 @@ class ProfileMcpToolsTest {
         /** A finding's call to a family this installation withholds is dropped; the finding stays. */
         @Test
         void summaryDropsAFindingsCallToAFamilyThatIsNotServed() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
             when(autoAnalysisManager.analysisResults()).thenReturn(List.of(
                     rule("Long GC Pauses", AnalysisResult.Severity.WARNING, "garbage_collection")));
             ProfileMcpTools withoutJvm = new ProfileMcpTools(profileManager, recordingCommitResolver,
@@ -735,7 +735,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void linkAnswersWithTheProfilesPage() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             JsonNode link = conforming("link", tools().link());
 
@@ -744,7 +744,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void viewLinkEchoesTheViewAndTheObjectItPreselects() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             JsonNode link = conforming("viewLink", tools().viewLink("heap-dump/gc-root-path", " 18446744073709551615 "));
 
@@ -756,7 +756,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void viewLinkRefusesAnObjectIdThatIsNotADecimalHeapId() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class,
                     () -> tools().viewLink("heap-dump/gc-root-path", "0x2a"));
@@ -782,7 +782,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void buildsALinkToTheNamedView() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             assertTrue(viewLink("garbage-collection", null)
                     .endsWith("/profiles/p-1/garbage-collection"));
@@ -790,7 +790,7 @@ class ProfileMcpToolsTest {
 
         @Test
         void keepsAMultiSegmentViewIntact() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             assertTrue(viewLink("heap-dump/leak-suspects", null)
                     .endsWith("/profiles/p-1/heap-dump/leak-suspects"));
@@ -802,7 +802,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void passesAnObjectIdOnlyToTheGcRootPathView() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             assertTrue(viewLink("heap-dump/gc-root-path", "42").endsWith("?objectId=42"));
             assertFalse(viewLink("garbage-collection", "42").contains("objectId"));
@@ -842,7 +842,7 @@ class ProfileMcpToolsTest {
         /** The schema enum and the check inside the tool are one list, so neither accepts what the other refuses. */
         @Test
         void acceptsEveryViewTheSchemaAdvertises() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             for (String view : viewEnum()) {
                 assertTrue(viewLink(view, null).endsWith("/profiles/p-1/" + view), view);
@@ -872,7 +872,7 @@ class ProfileMcpToolsTest {
          */
         @Test
         void refusesAnUnknownViewAndNamesTheValidOnes() {
-            stubProfile(RecordingEventSource.JDK);
+            stubProfile(RecordingEventSource.JFR);
 
             IllegalArgumentException thrown = assertThrows(
                     IllegalArgumentException.class, () -> viewLink("gc", null));

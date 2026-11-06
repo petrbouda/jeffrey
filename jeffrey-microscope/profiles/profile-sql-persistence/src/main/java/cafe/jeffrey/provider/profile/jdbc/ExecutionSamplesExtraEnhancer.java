@@ -50,8 +50,7 @@ public class ExecutionSamplesExtraEnhancer implements EventTypeEnhancer {
         Optional<EventSubtype> executionSampleType = settings.executionSampleType();
         if (executionSampleType.isPresent()) {
             EventSubtype exec = executionSampleType.get();
-            builder.withSource(exec.getSource())
-                    .withSubtype(exec.name());
+            builder.withSubtype(exec.name());
 
             if (exec == EventSubtype.METHOD) {
                 Map<String, String> entries = new HashMap<>();
@@ -61,7 +60,7 @@ public class ExecutionSamplesExtraEnhancer implements EventTypeEnhancer {
                 builder.putExtras(entries);
             }
         } else {
-            LOG.warn("The event source is not set for the Execution Samples");
+            LOG.warn("The execution sample type is not set for the Execution Samples");
         }
 
         return builder;

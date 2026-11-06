@@ -88,7 +88,7 @@ final class ProfileEvidence {
             Type type = Type.fromCode(summary.code());
             weightUnit = type == Type.CPU_TIME_SAMPLE ? "nanoseconds" : WeightContext.of(type).weightUnit();
         }
-        return new EventEvidence(summary.code(), summary.label(), single.source(), single.samples(), SAMPLES,
+        return new EventEvidence(summary.code(), summary.label(), single.samples(), SAMPLES,
                 weightUnit == null ? null : single.weight(), weightUnit, single.calculated(),
                 "All recorded events of this type; not a filtered call-tree denominator",
                 single.settings(), extras);
@@ -186,8 +186,6 @@ final class ProfileEvidence {
             String eventType,
             @McpNullable
             String label,
-            @McpNullable
-            String source,
             @McpMinimum(0)
             long samples,
             String unit,

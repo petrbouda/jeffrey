@@ -65,8 +65,6 @@ public class ProfileEvidenceMcpTools {
             String eventType,
             @McpNullable
             String label,
-            @McpNullable
-            String source,
             @McpMinimum(0)
             long samples,
             @McpNullable
@@ -78,7 +76,7 @@ public class ProfileEvidenceMcpTools {
             Map<String, String> extras) {
 
         static EvidenceEvent of(ProfileEvidence.EventEvidence event) {
-            return new EvidenceEvent(event.eventType(), event.label(), event.source(), event.samples(),
+            return new EvidenceEvent(event.eventType(), event.label(), event.samples(),
                     event.weight(), event.weightUnit(), event.calculated(), event.settings(), event.extras());
         }
     }

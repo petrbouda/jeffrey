@@ -23,7 +23,6 @@ import java.util.Map;
 public record EventSummary(
         String name,
         String label,
-        RecordingEventSource source,
         EventSubtype subtype,
         long samples,
         long weight,

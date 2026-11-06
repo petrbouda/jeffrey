@@ -85,7 +85,7 @@ class CodeSurfaceMcpToolsTest {
     void bindRequest() {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
         when(manager.info()).thenReturn(new ProfileInfo("profile", "project", "workspace", "name",
-                RecordingEventSource.JDK, START, START.plusSeconds(60), START, true, false, "recording"));
+                RecordingEventSource.JFR, START, START.plusSeconds(60), START, true, false, "recording"));
         when(manager.flamegraphManager()).thenReturn(flamegraphs);
         when(manager.traceManager()).thenReturn(traces);
         when(manager.traceAttributesManager()).thenReturn(attributes);
@@ -101,7 +101,7 @@ class CodeSurfaceMcpToolsTest {
 
     private static EventSummaryResult summary(String code) {
         return new EventSummaryResult(code, code,
-                new EventSummaryResult.SingleResult(code, code, null, null, 100, 1000, false, Map.of()), null);
+                new EventSummaryResult.SingleResult(code, code, null, 100, 1000, false, Map.of()), null);
     }
 
     private CodeSurfaceMcpTools tools() {

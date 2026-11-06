@@ -100,7 +100,7 @@ class TraceAttributesMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.traceAttributesManager()).thenReturn(traceAttributesManager);
     }

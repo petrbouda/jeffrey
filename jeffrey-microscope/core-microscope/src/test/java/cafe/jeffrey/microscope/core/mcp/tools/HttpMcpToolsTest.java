@@ -100,7 +100,7 @@ class HttpMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.custom()).thenReturn(customManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);
@@ -114,7 +114,7 @@ class HttpMcpToolsTest {
     private void recorded(String... eventTypes) {
         when(flamegraphManager.eventSummaries()).thenReturn(Arrays.stream(eventTypes)
                 .map(code -> new EventSummaryResult(new EventSummary(
-                        code, code, null, null, 1, 0, true, false, List.of(), null, null)))
+                        code, code, null, 1, 0, true, false, List.of(), null, null)))
                 .toList());
     }
 

@@ -55,8 +55,6 @@ public class DuckDBEventTypeWriter extends DuckDBBatchingWriter<EnhancedEventTyp
                 nullableAppend(appender, eventType.description());
                 // categories - VARCHAR (nullable) - JSON array
                 nullableAppend(appender, eventType.categories() != null ? Json.toString(eventType.categories()) : null);
-                // source - VARCHAR NOT NULL
-                appender.append(String.valueOf(entity.source().getId()));
                 // subtype - VARCHAR (nullable)
                 nullableAppend(appender, entity.subtype());
                 // has_stacktrace - BOOLEAN NOT NULL

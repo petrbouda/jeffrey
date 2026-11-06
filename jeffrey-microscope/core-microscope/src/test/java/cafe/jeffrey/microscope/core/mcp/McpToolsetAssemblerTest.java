@@ -401,7 +401,7 @@ class McpToolsetAssemblerTest {
 
         @Test
         void refusesOqlOnAJfrProfilePointingAtItsBundlesHeapDump() {
-            Exception refusal = oqlOn(RecordingEventSource.JDK, false);
+            Exception refusal = oqlOn(RecordingEventSource.JFR, false);
 
             assertTrue(refusal.getMessage().contains("is not a heap dump"), refusal.getMessage());
             assertTrue(refusal.getMessage().contains("connector_download"), refusal.getMessage());
@@ -1291,7 +1291,7 @@ class McpToolsetAssemblerTest {
             lenient().when(lease.dataSource()).thenReturn(dataSource);
             lenient().when(contextCache.acquire(PROFILE_ID)).thenReturn(lease);
             lenient().when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                    PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(600), Instant.EPOCH, true, false, "recording-1"));
 
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
@@ -1347,7 +1347,7 @@ class McpToolsetAssemblerTest {
             lenient().when(contextCache.acquire(BASELINE_PROFILE_ID)).thenReturn(baselineLease);
             // The answer names the baseline it compared against, and links the pair's page with it.
             lenient().when(baselineManager.info()).thenReturn(new ProfileInfo(
-                    BASELINE_PROFILE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.JDK,
+                    BASELINE_PROFILE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plus(RECORDING_LENGTH), Instant.EPOCH, true, false, "recording-0"));
 
             DifferentialFlamegraphManager diffManager = mock(DifferentialFlamegraphManager.class);
@@ -1723,7 +1723,7 @@ class McpToolsetAssemblerTest {
             McpProfileContextCache.Lease lease = mock(McpProfileContextCache.Lease.class);
             when(lease.profileManager()).thenReturn(profileManager);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             when(flamegraphManager.eventSummaries()).thenReturn(List.of(executionSamples()));
@@ -1785,7 +1785,7 @@ class McpToolsetAssemblerTest {
     /** A recording that holds execution samples, so an export of them draws a tree. */
     private static EventSummaryResult executionSamples() {
         EventSummaryResult.SingleResult primary = new EventSummaryResult.SingleResult(
-                "jdk.ExecutionSample", "jdk.ExecutionSample", null, null, 1_000L, 0L, false, Map.of());
+                "jdk.ExecutionSample", "jdk.ExecutionSample", null, 1_000L, 0L, false, Map.of());
         return new EventSummaryResult("jdk.ExecutionSample", "jdk.ExecutionSample", primary, null);
     }
 }

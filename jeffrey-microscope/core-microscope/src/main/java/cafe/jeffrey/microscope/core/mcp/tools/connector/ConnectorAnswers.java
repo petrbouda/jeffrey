@@ -340,7 +340,7 @@ public final class ConnectorAnswers {
      */
     public record BundleItem(
             String recordingId,
-            @McpDescription("What the item is: JDK or ASYNC_PROFILER for the session's recording, HEAP_DUMP for "
+            @McpDescription("What the item is: JFR for the session's recording, HEAP_DUMP for "
                     + "a heap dump, PERF_COUNTERS for the perf counters")
             RecordingEventSource eventSource,
             String name,

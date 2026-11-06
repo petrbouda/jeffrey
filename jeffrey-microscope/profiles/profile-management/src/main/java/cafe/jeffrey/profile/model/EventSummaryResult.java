@@ -37,7 +37,6 @@ public record EventSummaryResult(
     public record SingleResult(
             String code,
             String label,
-            String source,
             String subtype,
             long samples,
             long weight,
@@ -64,15 +63,14 @@ public record EventSummaryResult(
             return Map.copyOf(valued);
         }
 
-        public SingleResult(String code, String label, String source, String subtype, long samples,
+        public SingleResult(String code, String label, String subtype, long samples,
                             long weight, boolean calculated, Map<String, String> extras) {
-            this(code, label, source, subtype, samples, weight, calculated, extras, Map.of());
+            this(code, label, subtype, samples, weight, calculated, extras, Map.of());
         }
 
         public SingleResult(EventSummary eventSummary) {
             this(eventSummary.name(),
                     eventSummary.label(),
-                    eventSummary.source() != null ? eventSummary.source().getLabel() : null,
                     eventSummary.subtype() != null ? eventSummary.subtype().getLabel() : null,
                     eventSummary.samples(),
                     eventSummary.weight(),

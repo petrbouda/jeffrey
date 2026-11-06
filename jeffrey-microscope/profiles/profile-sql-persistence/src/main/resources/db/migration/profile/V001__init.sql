@@ -40,7 +40,6 @@ CREATE TABLE IF NOT EXISTS event_types
     type_id         BIGINT,
     description     VARCHAR,
     categories      VARCHAR,
-    source          VARCHAR NOT NULL,
     subtype         VARCHAR,
     has_stacktrace  BOOLEAN NOT NULL,
     extras          VARCHAR,

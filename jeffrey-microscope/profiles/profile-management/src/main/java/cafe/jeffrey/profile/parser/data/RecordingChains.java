@@ -19,8 +19,7 @@ package cafe.jeffrey.profile.parser.data;
 
 import cafe.jeffrey.jfrparser.raw.JfrChunk;
 import cafe.jeffrey.jfrparser.raw.JfrParser;
-import cafe.jeffrey.microscope.model.EventSourceResolver;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -44,6 +43,16 @@ import java.util.Map;
  */
 final class RecordingChains {
 
+    /**
+     * Who wrote a chain of chunks. Declared in the order the chains are loaded in: the JDK's own
+     * first, because some JMC rules take the first recording's facts they meet (its start, its length)
+     * and were written against the JVM's own recording.
+     */
+    enum Producer {
+        JDK,
+        ASYNC_PROFILER
+    }
+
     private static final String FILE_DIRECTORY = "file-";
 
     private RecordingChains() {
@@ -52,18 +61,18 @@ final class RecordingChains {
     /**
      * @param recordings the recording's files
      * @param scratch    where a file holding more than one chain is cut into its chunks
-     * @return each producer's files, in {@link RecordingEventSource} order; one entry when one
+     * @return each producer's files, in {@link Producer} order (the JDK's first); one entry when one
      *         profiler wrote every chunk
      */
-    static Map<RecordingEventSource, List<Path>> of(List<Path> recordings, Path scratch) {
-        Map<RecordingEventSource, List<Path>> chains = new EnumMap<>(RecordingEventSource.class);
+    static Map<Producer, List<Path>> of(List<Path> recordings, Path scratch) {
+        Map<Producer, List<Path>> chains = new EnumMap<>(Producer.class);
         for (int i = 0; i < recordings.size(); i++) {
             Path file = recordings.get(i);
-            List<RecordingEventSource> producers = JfrParser.collectChunks(file).stream()
+            List<Producer> producers = JfrParser.collectChunks(file).stream()
                     .map(RecordingChains::producerOf)
                     .toList();
             if (producers.stream().distinct().count() <= 1) {
-                RecordingEventSource producer = producers.isEmpty() ? RecordingEventSource.JDK : producers.getFirst();
+                Producer producer = producers.isEmpty() ? Producer.JDK : producers.getFirst();
                 chains.computeIfAbsent(producer, _ -> new ArrayList<>()).add(file);
                 continue;
             }
@@ -76,7 +85,9 @@ final class RecordingChains {
     }
 
     /** async-profiler declares its own {@code profiler.} event types in every chunk it writes; the JDK none. */
-    private static RecordingEventSource producerOf(JfrChunk chunk) {
-        return EventSourceResolver.fromEventTypeNames(chunk.eventTypes());
+    private static Producer producerOf(JfrChunk chunk) {
+        boolean asyncProfiler = chunk.eventTypes().stream()
+                .anyMatch(name -> name.startsWith(EventTypeName.ASYNC_PROFILER_NAMESPACE));
+        return asyncProfiler ? Producer.ASYNC_PROFILER : Producer.JDK;
     }
 }

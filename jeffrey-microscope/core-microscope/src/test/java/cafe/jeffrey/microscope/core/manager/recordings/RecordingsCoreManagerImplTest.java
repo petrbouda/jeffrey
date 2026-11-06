@@ -114,7 +114,7 @@ class RecordingsCoreManagerImplTest {
         @Test
         void ingestsJfrAsUngroupedRecording() throws Exception {
             Path jfr = Files.writeString(sourceDir.resolve("recording.jfr"), "jfr-bytes");
-            RecordingMetadata info = new RecordingMetadata(RecordingEventSource.JDK, NOW, NOW.plusSeconds(60));
+            RecordingMetadata info = new RecordingMetadata(NOW, NOW.plusSeconds(60));
             when(recordingMetadataParser.parse(anyList())).thenReturn(Optional.of(info));
 
             String recordingId = manager.importRecordingFromPath(jfr);
@@ -262,7 +262,7 @@ class RecordingsCoreManagerImplTest {
         @Test
         void delegatesToByIdLookup() {
             Recording stored = new Recording(
-                    "rec-1", "recording.jfr", null, RecordingEventSource.JDK,
+                    "rec-1", "recording.jfr", null, RecordingEventSource.JFR,
                     NOW, NOW, NOW.plusSeconds(60), false, null, null, List.of());
             when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(stored));
 

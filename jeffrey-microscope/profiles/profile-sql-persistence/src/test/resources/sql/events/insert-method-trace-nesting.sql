@@ -30,10 +30,10 @@
 -- H is a park inside A. It is not a method trace, so it must neither lose its own weight nor be
 -- subtracted from A's -- a traced method that waits still spent that time.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.MethodTrace', 'Method Trace', 1, 'Traced method invocation', '["Java Application"]', '1', NULL, true, NULL, NULL, NULL),
-    ('jdk.ThreadPark', 'Thread Park', 2, 'Thread park', '["Java Application"]', '1', NULL, true, NULL, NULL, NULL);
+    ('jdk.MethodTrace', 'Method Trace', 1, 'Traced method invocation', '["Java Application"]', NULL, true, NULL, NULL, NULL),
+    ('jdk.ThreadPark', 'Thread Park', 2, 'Thread park', '["Java Application"]', NULL, true, NULL, NULL, NULL);
 
 INSERT INTO events_raw (event_type, start_timestamp, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)
 VALUES

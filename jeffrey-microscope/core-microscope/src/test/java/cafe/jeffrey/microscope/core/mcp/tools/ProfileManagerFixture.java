@@ -45,7 +45,7 @@ public final class ProfileManagerFixture {
     }
 
     public static ProfileManager jfrProfile(String profileId) {
-        return profile(profileId, RecordingEventSource.JDK);
+        return profile(profileId, RecordingEventSource.JFR);
     }
 
     /** The same profile, imported from another source: a pprof or OTLP sample set, a heap dump. */

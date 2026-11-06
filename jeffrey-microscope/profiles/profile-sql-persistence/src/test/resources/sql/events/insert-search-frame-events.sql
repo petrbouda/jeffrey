@@ -32,8 +32,8 @@ INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES (3001, 'worker-1', 22345, 1, false);
 
 -- Event type: an allocation-style, weight-carrying, stack-based type.
-INSERT INTO event_types (name, label, type_id, description, categories, source, has_stacktrace, columns)
-VALUES ('alloc', 'alloc', 1, 'Allocation samples', '[]', '4', true, '[]');
+INSERT INTO event_types (name, label, type_id, description, categories, has_stacktrace, columns)
+VALUES ('alloc', 'alloc', 1, 'Allocation samples', '[]', true, '[]');
 
 -- Stacktraces
 INSERT INTO stacktraces (stacktrace_hash, type_id, frame_hashes, tag_ids)

@@ -16,9 +16,7 @@
  */
 
 enum RecordingEventSource {
-  JDK = 'JDK',
-  ASYNC_PROFILER = 'ASYNC_PROFILER',
-  UNKNOWN = 'UNKNOWN',
+  JFR = 'JFR',
   HEAP_DUMP = 'HEAP_DUMP',
   PPROF = 'PPROF',
   OPEN_TELEMETRY = 'OPEN_TELEMETRY',

@@ -63,13 +63,20 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
 
     private final ProfileEventTypeRepository eventTypeRepository;
     private final DbBasedFlamegraphGenerator generator;
+    private final boolean flamegraphOnlyImport;
 
+    /**
+     * @param flamegraphOnlyImport whether the profile is an imported stack-sample format (pprof, OTLP),
+     *                             whose flamegraphs are built only by the sample's weight unit
+     */
     public PrimaryFlamegraphManager(
             ProfileEventTypeRepository eventTypeRepository,
-            DbBasedFlamegraphGenerator generator) {
+            DbBasedFlamegraphGenerator generator,
+            boolean flamegraphOnlyImport) {
 
         this.eventTypeRepository = eventTypeRepository;
         this.generator = generator;
+        this.flamegraphOnlyImport = flamegraphOnlyImport;
     }
 
     @Override
@@ -139,15 +146,12 @@ public class PrimaryFlamegraphManager implements FlamegraphManager {
     }
 
     private GraphParameters adjustParams(GraphParameters params) {
-        // Resolve, from the single event summary: the sample weight unit (pprof/OTLP store it as `type/unit`
-        // in extras; JFR has none) and whether this is a flamegraph-only import. The generator then picks the
+        // Resolve, from the single event summary, the sample weight unit (pprof/OTLP store it as `type/unit`
+        // in extras; JFR has none); whether this is a flamegraph-only import is the profile's. The generator then picks the
         // builder/frame-processor by unit — and, for imports, ONLY by unit (never the event-code predicates) —
         // and defaults useWeight from that when not explicitly set.
         EventSummary summary = eventTypeRepository.eventSummaries(params.eventType()).orElse(null);
         WeightUnit weightUnit = resolveWeightUnit(summary);
-        boolean flamegraphOnlyImport = summary != null
-                && summary.source() != null
-                && summary.source().isFlamegraphOnlyImport();
         return params.toBuilder()
                 .withWeightUnit(weightUnit)
                 .withFlamegraphOnlyImport(flamegraphOnlyImport)

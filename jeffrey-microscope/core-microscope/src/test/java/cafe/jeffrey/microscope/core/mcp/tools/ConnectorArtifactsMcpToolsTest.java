@@ -176,7 +176,7 @@ class ConnectorArtifactsMcpToolsTest {
     }
 
     private void sessionAlreadyDownloadedAs(String recordingId, String profileId, RecordingFile... files) {
-        Recording recording = new Recording(recordingId, recordingId, null, RecordingEventSource.JDK, NOW, NOW, NOW,
+        Recording recording = new Recording(recordingId, recordingId, null, RecordingEventSource.JFR, NOW, NOW, NOW,
                 profileId != null, profileId, profileId, List.of(files));
         when(recordingsManager.listRecordings()).thenReturn(List.of(recording));
         when(recordingsManager.findRecording(recordingId)).thenReturn(Optional.of(recording));
@@ -186,7 +186,7 @@ class ConnectorArtifactsMcpToolsTest {
                 new RecordingTag("origin.projectId", PROJECT_ID),
                 new RecordingTag("origin.recordingId", SESSION_ID))));
         if (profileId != null) {
-            ProfileInfo info = new ProfileInfo(profileId, null, null, profileId, RecordingEventSource.JDK,
+            ProfileInfo info = new ProfileInfo(profileId, null, null, profileId, RecordingEventSource.JFR,
                     PROFILE_START, PROFILE_START.plusSeconds(60), NOW, true, false, recordingId);
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(info);
@@ -355,7 +355,7 @@ class ConnectorArtifactsMcpToolsTest {
                     finished("f-jfr", "profile-1.jfr", ManagedFile.JFR),
                     finished("f-log", "service-app.log", ManagedFile.APP_LOG)));
             RecordingFile chunk = new RecordingFile("rf-1", "rec-1", "profile-1.jfr", ManagedFile.JFR, NOW, 4096L);
-            Recording bundled = new Recording("rec-1", "rec-1", null, RecordingEventSource.JDK, NOW, NOW, NOW,
+            Recording bundled = new Recording("rec-1", "rec-1", null, RecordingEventSource.JFR, NOW, NOW, NOW,
                     false, null, null, List.of(chunk), "bundle-1");
             sessionAlreadyDownloadedAs("rec-1", null, chunk);
             when(recordingsManager.listRecordings()).thenReturn(List.of(bundled));
@@ -441,7 +441,7 @@ class ConnectorArtifactsMcpToolsTest {
         void aProfileWithNoStartInstantDoesNotPrintANullZeroPoint() {
             connectorHolds(session(finished("f-jfr", "profile-1.jfr", ManagedFile.JFR)));
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
-            ProfileInfo noStart = new ProfileInfo("prof-1", null, null, "prof-1", RecordingEventSource.JDK,
+            ProfileInfo noStart = new ProfileInfo("prof-1", null, null, "prof-1", RecordingEventSource.JFR,
                     null, null, NOW, true, false, "rec-1");
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(noStart);

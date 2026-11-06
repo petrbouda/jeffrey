@@ -29,7 +29,6 @@ import cafe.jeffrey.provider.profile.jdbc.SQLEventWriter;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 import cafe.jeffrey.test.DuckDBTest;
 
@@ -102,9 +101,8 @@ class PprofRecordingRoundTripTest {
         assertCount(dataSource,
                 "SELECT MIN(start_timestamp_from_beginning) FROM events WHERE event_type = 'cpu'", 0);
 
-        // both event types resolve their source to pprof (persisted as the source id)
-        String pprofSourceId = String.valueOf(RecordingEventSource.PPROF.getId());
-        assertCount(dataSource, "SELECT COUNT(*) FROM event_types WHERE source = '" + pprofSourceId + "'", 2);
+        // one event type per sample dimension
+        assertCount(dataSource, "SELECT COUNT(*) FROM event_types", 2);
 
         // one deduplicated stacktrace shared across the two dimensions, two frames root-first;
         // pprof carries no frame-type info so every frame is emitted as Unknown

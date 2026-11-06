@@ -176,9 +176,9 @@ class ProfileSchemaReaderTest {
     private static void seedEvents(DataSource dataSource) throws SQLException {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
-            stmt.execute("INSERT INTO event_types (name, label, description, source, has_stacktrace) VALUES "
-                    + "('jdk.ObjectAllocationSample', 'Allocation', 'A sampled allocation', 'JDK', true), "
-                    + "('jdk.GCPhasePause', 'GC Pause', NULL, 'JDK', false)");
+            stmt.execute("INSERT INTO event_types (name, label, description, has_stacktrace) VALUES "
+                    + "('jdk.ObjectAllocationSample', 'Allocation', 'A sampled allocation', true), "
+                    + "('jdk.GCPhasePause', 'GC Pause', NULL, false)");
             stmt.execute("INSERT INTO events_raw (event_type, start_timestamp, samples, fields) VALUES "
                     + "('jdk.ObjectAllocationSample', TIMESTAMPTZ '2026-01-01 00:00:00+00', 1, '{}'), "
                     + "('jdk.ObjectAllocationSample', TIMESTAMPTZ '2026-01-01 00:00:01+00', 2, '{}')");

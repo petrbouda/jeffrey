@@ -73,7 +73,7 @@ class InvestigationMenuTest {
 
     /** A recording with every kind of data, built up and narrowed by each test. */
     private static final class Facts {
-        private RecordingEventSource source = RecordingEventSource.ASYNC_PROFILER;
+        private RecordingEventSource source = RecordingEventSource.JFR;
         private final Set<FeatureType> disabled = new HashSet<>();
         private final Set<String> eventTypes = new HashSet<>(Set.of(
                 "jdk.SocketRead", "jdk.FileWrite", "jdk.OldObjectSample"));

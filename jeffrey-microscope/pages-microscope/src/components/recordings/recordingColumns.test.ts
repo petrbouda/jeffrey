@@ -89,8 +89,8 @@ const keys = (items: (RecordingItem | ProfileItem)[]): string[] => items.map(ite
 
 describe('splitColumns', () => {
   it('keeps every recording on the left, initialized or not', () => {
-    const fresh = recording('fresh', 'JDK', { uploadedAt: 2 });
-    const done = initialized('done', 'JDK', profile('p-done', 100));
+    const fresh = recording('fresh', 'JFR', { uploadedAt: 2 });
+    const done = initialized('done', 'JFR', profile('p-done', 100));
 
     const columns = splitColumns({
       recordings: [fresh, done],
@@ -103,7 +103,7 @@ describe('splitColumns', () => {
   });
 
   it('lists every profile of a recording initialized more than once, newest first', () => {
-    const twice = initialized('twice', 'JDK', profile('p-new', 300), profile('p-old', 100));
+    const twice = initialized('twice', 'JFR', profile('p-new', 300), profile('p-old', 100));
     const other = initialized('other', 'PPROF', profile('p-other', 200));
 
     const columns = splitColumns({
@@ -117,7 +117,7 @@ describe('splitColumns', () => {
   });
 
   it('lists every item of a bundle, and its profiles as rows of their own', () => {
-    const jfr = initialized('jfr', 'JDK', profile('p-jfr', 300));
+    const jfr = initialized('jfr', 'JFR', profile('p-jfr', 300));
     const perf = recording('perf', 'PERF_COUNTERS');
 
     const columns = splitColumns({
@@ -133,10 +133,10 @@ describe('splitColumns', () => {
   });
 
   it('keeps a profile that is still initializing, or failed, off the right', () => {
-    const running = initialized('running', 'JDK', profile('p-running', 300, 'running'));
+    const running = initialized('running', 'JFR', profile('p-running', 300, 'running'));
     const failed = initialized(
       'failed',
-      'JDK',
+      'JFR',
       profile('p-failed', 200, 'failed'),
       profile('p-ok', 100)
     );
@@ -153,15 +153,15 @@ describe('splitColumns', () => {
 
   it('applies the type filter to items, and drops a bundle that only has files left', () => {
     const heap = recording('heap', 'HEAP_DUMP');
-    const jfr = initialized('jfr', 'JDK', profile('p-jfr', 1));
+    const jfr = initialized('jfr', 'JFR', profile('p-jfr', 1));
 
     const columns = splitColumns({
-      recordings: [recording('solo', 'JDK')],
+      recordings: [recording('solo', 'JFR')],
       bundles: [
         { bundle: bundle('b1', 0, 1), members: [jfr, heap] },
         {
           bundle: bundle('b2', 0, 1),
-          members: [initialized('other', 'JDK', profile('p-other', 2))]
+          members: [initialized('other', 'JFR', profile('p-other', 2))]
         }
       ],
       shows: member => member.eventSource === 'HEAP_DUMP'
@@ -184,7 +184,7 @@ describe('splitColumns', () => {
   });
 
   it('keeps a connector download of a single item and no files in its bundle', () => {
-    const jfr = recording('jfr', 'JDK', { bundleId: 'single', uploadedAt: 5 });
+    const jfr = recording('jfr', 'JFR', { bundleId: 'single', uploadedAt: 5 });
 
     const columns = splitColumns({
       recordings: [],
@@ -200,7 +200,7 @@ describe('splitColumns', () => {
   it('keeps the bundle around a single item that came with download-only files', () => {
     const columns = splitColumns({
       recordings: [],
-      bundles: [{ bundle: bundle('with-logs', 0, 2), members: [recording('jfr', 'JDK')] }],
+      bundles: [{ bundle: bundle('with-logs', 0, 2), members: [recording('jfr', 'JFR')] }],
       shows: null
     });
 
@@ -210,7 +210,7 @@ describe('splitColumns', () => {
   it('drops a single-item bundle the type filter hides', () => {
     const columns = splitColumns({
       recordings: [],
-      bundles: [{ bundle: bundle('single', 0), members: [recording('jfr', 'JDK')] }],
+      bundles: [{ bundle: bundle('single', 0), members: [recording('jfr', 'JFR')] }],
       shows: member => member.eventSource === 'HEAP_DUMP'
     });
 
@@ -220,11 +220,11 @@ describe('splitColumns', () => {
   it('puts the newest upload first on the left', () => {
     const columns = splitColumns({
       recordings: [
-        recording('old', 'JDK', { uploadedAt: 1 }),
-        recording('new', 'JDK', { uploadedAt: 3 })
+        recording('old', 'JFR', { uploadedAt: 1 }),
+        recording('new', 'JFR', { uploadedAt: 3 })
       ],
       bundles: [
-        { bundle: bundle('b1', 2), members: [recording('m', 'JDK'), recording('h', 'HEAP_DUMP')] }
+        { bundle: bundle('b1', 2), members: [recording('m', 'JFR'), recording('h', 'HEAP_DUMP')] }
       ],
       shows: null
     });
@@ -237,7 +237,7 @@ describe('builtProfiles', () => {
   it('counts only the profiles that can be opened', () => {
     const rec = initialized(
       'rec',
-      'JDK',
+      'JFR',
       profile('p-running', 3, 'running'),
       profile('p-ok', 2),
       profile('p-failed', 1, 'failed')

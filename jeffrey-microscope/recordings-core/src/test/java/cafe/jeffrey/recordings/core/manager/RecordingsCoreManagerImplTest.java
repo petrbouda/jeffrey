@@ -108,7 +108,7 @@ class RecordingsCoreManagerImplTest {
     class DownloadedArtifacts {
 
         private void existingBundle(List<BundleFile> files) {
-            Recording primary = new Recording("rec-1", "checkout", null, RecordingEventSource.JDK,
+            Recording primary = new Recording("rec-1", "checkout", null, RecordingEventSource.JFR,
                     CLOCK.instant(), null, null, true, "profile-1", "checkout", List.of(), "bundle-1");
             when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(primary));
             when(recordingRepository.findBundle("bundle-1")).thenReturn(Optional.of(
@@ -117,7 +117,7 @@ class RecordingsCoreManagerImplTest {
 
         @Test
         void givesAStandaloneCopyABundleWhenItRecoversAnArtifact() throws IOException {
-            Recording standalone = new Recording("rec-1", "checkout", "incident", RecordingEventSource.JDK,
+            Recording standalone = new Recording("rec-1", "checkout", "incident", RecordingEventSource.JFR,
                     CLOCK.instant(), null, null, true, "profile-1", "checkout", List.of());
             when(recordingRepository.findRecording("rec-1")).thenReturn(Optional.of(standalone));
 
@@ -166,7 +166,7 @@ class RecordingsCoreManagerImplTest {
 
         @Test
         void asksTheStoreForTheRecordingOfThatNameAndSize() {
-            Recording existing = new Recording("rec-1", "app.jfr", null, RecordingEventSource.JDK,
+            Recording existing = new Recording("rec-1", "app.jfr", null, RecordingEventSource.JFR,
                     CLOCK.instant(), null, null, false, null, null, List.of());
             when(recordingRepository.findByFileNameAndSize("app.jfr", CONTENT.length()))
                     .thenReturn(Optional.of(existing));

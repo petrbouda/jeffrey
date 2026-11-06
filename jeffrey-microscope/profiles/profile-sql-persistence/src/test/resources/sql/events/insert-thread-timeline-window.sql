@@ -24,9 +24,9 @@
 -- The pool mixes both kinds of identity: two workers carry a Java id, one never got one and reports
 -- -1, which is how a native thread appears. A collapsed lane has to match both.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.SocketRead', 'Socket Read', 3, 'Reading data from a socket', '["Java Application"]', '1', NULL, false, NULL, NULL, NULL);
+    ('jdk.SocketRead', 'Socket Read', 3, 'Reading data from a socket', '["Java Application"]', NULL, false, NULL, NULL, NULL);
 
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES

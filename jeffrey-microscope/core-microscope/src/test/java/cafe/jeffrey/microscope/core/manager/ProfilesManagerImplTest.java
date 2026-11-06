@@ -72,7 +72,7 @@ class ProfilesManagerImplTest {
         void mapsProfilesToManagers_viaFactory() {
             ProfileInfo profile = new ProfileInfo(
                     "p-1", "proj-1", "ws-1", "Profile 1",
-                    RecordingEventSource.JDK, NOW, NOW, NOW, true, false, "rec-1");
+                    RecordingEventSource.JFR, NOW, NOW, NOW, true, false, "rec-1");
             ProfileManager mockManager = mock(ProfileManager.class);
 
             when(localCoreRepositories.findAllProfilesByProject("proj-1")).thenReturn(List.of(profile));
@@ -92,7 +92,7 @@ class ProfilesManagerImplTest {
         void returnsProfileManager_whenProfileExists() {
             ProfileInfo profile = new ProfileInfo(
                     "p-1", "proj-1", "ws-1", "Profile 1",
-                    RecordingEventSource.JDK, NOW, NOW, NOW, true, false, "rec-1");
+                    RecordingEventSource.JFR, NOW, NOW, NOW, true, false, "rec-1");
             ProfileRepository profileRepo = mock(ProfileRepository.class);
             ProfileManager mockManager = mock(ProfileManager.class);
 

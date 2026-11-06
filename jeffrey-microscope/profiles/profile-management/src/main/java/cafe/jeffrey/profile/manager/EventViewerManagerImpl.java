@@ -54,7 +54,6 @@ public class EventViewerManagerImpl implements EventViewerManager {
                     eventSummary.label(),
                     eventSummary.name(),
                     eventSummary.samples(),
-                    eventSummary.source().getLabel(),
                     eventSummary.hasStacktrace());
             tree.add(data);
         }
@@ -70,7 +69,6 @@ public class EventViewerManagerImpl implements EventViewerManager {
                         summary.label(),
                         summary.name(),
                         summary.samples(),
-                        summary.source().getLabel(),
                         summary.hasStacktrace())
                 ).toList();
     }

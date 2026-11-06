@@ -862,7 +862,7 @@ public class RecordingsMcpTools {
 
     private static String eventSourceOf(Recording recording) {
         RecordingEventSource eventSource = recording.eventSource();
-        return eventSource == null ? RecordingEventSource.UNKNOWN.name() : eventSource.name();
+        return eventSource == null ? null : eventSource.name();
     }
 
     /** Where the analysis of one recording stands. */

@@ -78,7 +78,7 @@ class TracesControllerTest {
             }
             """;
     private static final ProfileInfo PROFILE_INFO = new ProfileInfo(
-            PROFILE, "proj-1", "ws-1", "profile", RecordingEventSource.JDK,
+            PROFILE, "proj-1", "ws-1", "profile", RecordingEventSource.JFR,
             Instant.parse("2025-01-15T10:00:00Z"), Instant.parse("2025-01-15T10:01:00Z"),
             Instant.parse("2025-01-15T10:02:00Z"), true, false, "rec-1");
 

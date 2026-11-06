@@ -27,19 +27,19 @@
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES (3003, 'VM Thread', 91, NULL, false);
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.GCPhasePause', 'GC Phase Pause', 20, 'gc pause', '["Java Virtual Machine","GC"]', '1', NULL, false, NULL, NULL,
+    ('jdk.GCPhasePause', 'GC Phase Pause', 20, 'gc pause', '["Java Virtual Machine","GC"]', NULL, false, NULL, NULL,
      '[{"field":"name","header":"Name"},{"field":"gcId","header":"GC Identifier"}]'),
-    ('jdk.ExecuteVMOperation', 'VM Operation', 21, 'vm op', '["Java Virtual Machine","Runtime"]', '1', NULL, false, NULL, NULL,
+    ('jdk.ExecuteVMOperation', 'VM Operation', 21, 'vm op', '["Java Virtual Machine","Runtime"]', NULL, false, NULL, NULL,
      '[{"field":"operation","header":"Operation"},{"field":"safepoint","header":"At Safepoint"}]'),
-    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 22, 'monitor', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 22, 'monitor', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"monitorClass","header":"Monitor Class"},{"field":"previousOwner","header":"Previous Owner"}]'),
-    ('jdk.ThreadPark', 'Thread Park', 23, 'park', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.ThreadPark', 'Thread Park', 23, 'park', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"parkedClass","header":"Class Parked On"}]'),
-    ('jdk.GCPhasePauseLevel1', 'GC Phase Pause Level 1', 24, 'gc pause phase', '["Java Virtual Machine","GC"]', '1', NULL, false, NULL, NULL,
+    ('jdk.GCPhasePauseLevel1', 'GC Phase Pause Level 1', 24, 'gc pause phase', '["Java Virtual Machine","GC"]', NULL, false, NULL, NULL,
      '[{"field":"name","header":"Name"},{"field":"gcId","header":"GC Identifier"}]'),
-    ('jdk.AllocationRequiringGC', 'Allocation Requiring GC', 25, 'allocation forced a collection', '["Java Virtual Machine","GC"]', '1', NULL, true, NULL, NULL,
+    ('jdk.AllocationRequiringGC', 'Allocation Requiring GC', 25, 'allocation forced a collection', '["Java Virtual Machine","GC"]', NULL, true, NULL, NULL,
      '[{"field":"gcId","header":"GC Identifier"},{"field":"size","header":"Allocation Size"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

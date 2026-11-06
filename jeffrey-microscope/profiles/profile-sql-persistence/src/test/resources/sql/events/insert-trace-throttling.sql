@@ -29,9 +29,9 @@
 --
 -- The thread is irrelevant and deliberately so: this is a periodic JVM-wide sample, and the query
 -- has no thread predicate at all.
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.ContainerCPUThrottling', 'Container CPU Throttling', 30, 'cgroup cpu.stat', '["Operating System","Container"]', '1', NULL, false, NULL, NULL,
+    ('jdk.ContainerCPUThrottling', 'Container CPU Throttling', 30, 'cgroup cpu.stat', '["Operating System","Container"]', NULL, false, NULL, NULL,
      '[{"field":"cpuElapsedSlices","header":"CFS Periods Elapsed"},{"field":"cpuThrottledSlices","header":"CFS Periods Throttled"},{"field":"cpuThrottledTime","header":"Throttled Time"}]');
 
 INSERT INTO events_raw (event_type, start_timestamp, start_timestamp_from_beginning, duration, samples, weight, weight_entity, stacktrace_hash, thread_hash, fields)

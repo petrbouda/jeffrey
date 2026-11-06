@@ -129,7 +129,7 @@ class TimelineMcpToolsTest {
 
     private void recordingLasting(Duration length) {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JDK,
+                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
                 START, START.plus(length), START, true, false, "recording-1"));
     }
 

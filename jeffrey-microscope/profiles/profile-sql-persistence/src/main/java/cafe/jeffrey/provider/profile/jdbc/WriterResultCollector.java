@@ -19,8 +19,6 @@ package cafe.jeffrey.provider.profile.jdbc;
 
 import cafe.jeffrey.provider.profile.api.*;
 
-import cafe.jeffrey.microscope.model.EventSourceResolver;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.settings.ActiveSetting;
 import cafe.jeffrey.microscope.model.settings.ActiveSettings;
@@ -106,35 +104,12 @@ public class WriterResultCollector {
                 // Complex enhancers with unique logic
                 new ExecutionSamplesExtraEnhancer(settings),
                 new WallClockSamplesWeightEnhancer(settings),
-                new ExecutionSamplesWeightEnhancer(settings),
-
-                // Settings-based source enhancers (parameterized)
-                new SettingsBasedSourceEnhancer(
-                        Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
-                        ActiveSettings::allocationSupportedBy,
-                        settings),
-                new SettingsBasedSourceEnhancer(
-                        Type.JAVA_MONITOR_ENTER,
-                        ActiveSettings::monitorEnterSupportedBy,
-                        settings),
-                new SettingsBasedSourceEnhancer(
-                        Type.THREAD_PARK,
-                        ActiveSettings::threadParkSupportedBy,
-                        settings)
+                new ExecutionSamplesWeightEnhancer(settings)
         );
     }
 
     private static void applyEnhancers(List<EventTypeEnhancer> enhancers, EventTypeBuilder builder) {
         Type type = Type.fromCode(builder.getEventType().name());
-
-        // Source: use the one the reader set explicitly (pprof / OTLP, whose raw codes carry no namespace
-        // to infer it from); otherwise derive it from the code namespace (JFR: profiler.* -> async-profiler,
-        // else JDK). The subtype/settings enhancers below run afterwards and override it where needed
-        // (e.g. the jdk.ExecutionSample subtype, allocation/monitor events captured by async-profiler).
-        RecordingEventSource explicitSource = builder.getEventType().source();
-        builder.withSource(explicitSource != null
-                ? explicitSource
-                : EventSourceResolver.fromEventTypeName(type.code()));
 
         if (enhancers != null) {
             for (EventTypeEnhancer enhancer : enhancers) {

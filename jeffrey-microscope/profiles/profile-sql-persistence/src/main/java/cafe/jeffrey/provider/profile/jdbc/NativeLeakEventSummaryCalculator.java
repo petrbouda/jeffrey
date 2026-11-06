@@ -24,7 +24,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.provider.profile.api.FieldDescription;
 import cafe.jeffrey.shared.persistence.GroupLabel;
@@ -81,7 +80,6 @@ public class NativeLeakEventSummaryCalculator implements EventSummaryCalculator 
         return new EventSummary(
                 Type.NATIVE_LEAK.code(),
                 "Native Leak",
-                RecordingEventSource.ASYNC_PROFILER,
                 null,
                 samplesAndWeight.samples,
                 samplesAndWeight.weight,

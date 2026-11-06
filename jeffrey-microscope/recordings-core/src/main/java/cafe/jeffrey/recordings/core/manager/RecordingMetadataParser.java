@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.recordings.core.manager;
 
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -26,9 +25,9 @@ import java.util.Optional;
 
 /**
  * Optional SPI that enriches a freshly ingested recording with metadata parsed from the file
- * (event source, profiling start/end). Implementations that depend on the profile parsing stack
+ * (its profiling start/end). Implementations that depend on the profile parsing stack
  * live in the deployment module; the {@link #NOOP} default keeps {@code recordings-core} free of
- * any profile coupling, falling back to filename-based event-source detection.
+ * any profile coupling; the recording's format is always read off its filename.
  */
 @FunctionalInterface
 public interface RecordingMetadataParser {
@@ -41,7 +40,6 @@ public interface RecordingMetadataParser {
     Optional<RecordingMetadata> parse(List<Path> recordingFiles);
 
     record RecordingMetadata(
-            RecordingEventSource eventSource,
             Instant recordingStartedAt,
             Instant recordingFinishedAt) {
     }

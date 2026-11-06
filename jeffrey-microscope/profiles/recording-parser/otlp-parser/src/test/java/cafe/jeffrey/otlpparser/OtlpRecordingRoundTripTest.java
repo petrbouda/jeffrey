@@ -27,7 +27,6 @@ import cafe.jeffrey.provider.profile.jdbc.DuckDBEventWriters;
 import cafe.jeffrey.provider.profile.jdbc.SQLEventWriter;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.test.DuckDBTest;
 
 import javax.sql.DataSource;
@@ -115,10 +114,8 @@ class OtlpRecordingRoundTripTest {
         assertEquals(0, count(dataSource,
                 "SELECT MIN(start_timestamp_from_beginning) FROM events WHERE event_type = 'cpu'"));
 
-        // both event types resolve their source to OpenTelemetry (persisted as the source id)
-        String openTelemetrySourceId = String.valueOf(RecordingEventSource.OPEN_TELEMETRY.getId());
-        assertEquals(2, count(dataSource,
-                "SELECT COUNT(*) FROM event_types WHERE source = '" + openTelemetrySourceId + "'"));
+        // one event type per sample dimension
+        assertEquals(2, count(dataSource, "SELECT COUNT(*) FROM event_types"));
 
         // one deduplicated stacktrace with two frames, root-first native -> jvm
         assertEquals(1, count(dataSource, "SELECT COUNT(*) FROM stacktraces"));

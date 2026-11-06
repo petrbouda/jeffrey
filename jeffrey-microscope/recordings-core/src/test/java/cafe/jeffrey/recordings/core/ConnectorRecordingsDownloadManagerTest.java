@@ -578,7 +578,7 @@ class ConnectorRecordingsDownloadManagerTest {
                     .map(name -> new RecordingFile(name, EXISTING_ID, name, ManagedFile.JFR, CREATED_AT, 1024L))
                     .toList();
             Recording existing = new Recording(EXISTING_ID, "checkout_2026-03-01T12-00-00Z_part", null,
-                    RecordingEventSource.JDK, CREATED_AT, CREATED_AT, CREATED_AT.plusSeconds(60), true, "profile-1",
+                    RecordingEventSource.JFR, CREATED_AT, CREATED_AT, CREATED_AT.plusSeconds(60), true, "profile-1",
                     "checkout", files, "bundle-existing");
             when(recordingsManager.findRecording(EXISTING_ID)).thenReturn(Optional.of(existing));
             when(recordingsManager.findBundle("bundle-existing")).thenReturn(Optional.of(

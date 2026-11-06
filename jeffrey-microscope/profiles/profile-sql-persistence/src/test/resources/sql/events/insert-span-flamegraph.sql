@@ -21,9 +21,9 @@
 --   span A: thread 2001, [10:00:00.000 .. 10:00:00.300]
 --   span B: thread 2002, [10:00:02.000 .. 10:00:02.200]
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.ExecutionSample', 'Execution Sample', 2, 'CPU execution sample', '["Profiling"]', '1', NULL, true, NULL, NULL, NULL);
+    ('jdk.ExecutionSample', 'Execution Sample', 2, 'CPU execution sample', '["Profiling"]', NULL, true, NULL, NULL, NULL);
 
 INSERT INTO threads (thread_hash, name, os_id, java_id, is_virtual)
 VALUES

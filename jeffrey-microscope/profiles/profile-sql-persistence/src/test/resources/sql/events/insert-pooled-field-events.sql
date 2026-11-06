@@ -25,9 +25,9 @@
 -- The second is the one that regressed: its payload hashed to a trace_span_payloads row nobody
 -- wrote, so the waterfall drew the wait with none of its detail.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 40, 'monitor', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 40, 'monitor', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"monitorClass","header":"Monitor Class"},{"field":"previousOwner","header":"Previous Owner"}]');
 
 -- The pooled texts. The hashes are arbitrary here -- the parser computes them from content, and

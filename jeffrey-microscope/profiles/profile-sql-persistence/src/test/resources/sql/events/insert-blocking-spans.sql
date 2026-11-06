@@ -30,17 +30,17 @@
 -- and one jdk.Deoptimization -- a context category that is NOT promoted -- proves the span-context
 -- query attributes innermost too, and that the drill-down exclusion is selective.
 
-INSERT INTO event_types (name, label, type_id, description, categories, source, subtype, has_stacktrace, extras, settings, columns)
+INSERT INTO event_types (name, label, type_id, description, categories, subtype, has_stacktrace, extras, settings, columns)
 VALUES
-    ('jdk.SocketRead', 'Socket Read', 30, 'socket read', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.SocketRead', 'Socket Read', 30, 'socket read', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"host","header":"Remote Host"},{"field":"address","header":"Remote Address"},{"field":"port","header":"Remote Port"},{"field":"timeout","header":"Timeout Value"},{"field":"bytesRead","header":"Bytes Read"},{"field":"endOfStream","header":"End of Stream"}]'),
-    ('jdk.FileRead', 'File Read', 31, 'file read', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.FileRead', 'File Read', 31, 'file read', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"path","header":"Path"},{"field":"bytesRead","header":"Bytes Read"},{"field":"endOfFile","header":"End of File"}]'),
-    ('jdk.ThreadPark', 'Thread Park', 32, 'park', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.ThreadPark', 'Thread Park', 32, 'park', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"parkedClass","header":"Class Parked On"}]'),
-    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 33, 'monitor', '["Java Application"]', '1', NULL, true, NULL, NULL,
+    ('jdk.JavaMonitorEnter', 'Java Monitor Blocked', 33, 'monitor', '["Java Application"]', NULL, true, NULL, NULL,
      '[{"field":"monitorClass","header":"Monitor Class"},{"field":"previousOwner","header":"Previous Owner"}]'),
-    ('jdk.Deoptimization', 'Deoptimization', 34, 'deopt', '["Java Virtual Machine","Compiler"]', '1', NULL, true, NULL, NULL,
+    ('jdk.Deoptimization', 'Deoptimization', 34, 'deopt', '["Java Virtual Machine","Compiler"]', NULL, true, NULL, NULL,
      '[{"field":"reason","header":"Reason"}]');
 
 -- Stacks for the two class-loading probes below. ROOT-FIRST, like every stacktrace in this schema,
