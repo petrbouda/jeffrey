@@ -350,6 +350,17 @@ class RelayTest(RecorderSandbox):
         recorder.write_mocks(tools, recorded)
         return recorded
 
+    def test_each_statement_a_grouped_answer_lists_is_asked_about_on_its_own(self):
+        arguments = {'profileId': 'pd', 'eventType': 'jeffrey.JdbcQuery'}
+        answer = {'groupBy': 'name', 'sites': [{'groupValue': 'count_query'}, {'groupValue': 'find_by_id'},
+                                               {'groupValue': 'count_query'}]}
+        self.assertEqual([('code_callSites', {**arguments, 'filterField': 'name', 'filterValue': value})
+                          for value in ('count_query', 'find_by_id')],
+                         recorder.statement_calls('code_callSites', arguments, answer))
+        filtered = {**arguments, 'filterField': 'name', 'filterValue': 'count_query'}
+        self.assertEqual([], recorder.statement_calls('code_callSites', filtered, answer))
+        self.assertEqual([], recorder.statement_calls('code_callSites', arguments, {**answer, 'groupBy': 'sql'}))
+
     def test_the_first_slowest_traces_of_an_operation_are_each_exported(self):
         # The answer offers its slowest trace's export; a model often reads the second or third instead.
         traces = [{'traceId': f't{i}'} for i in range(5)]

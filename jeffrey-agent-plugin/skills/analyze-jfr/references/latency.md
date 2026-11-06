@@ -34,10 +34,12 @@ technology families below. With traces, they answer it request by request:
    shows the time as `OWN_WORK` with nothing under it, and the line beneath it says how little of it
    the threads were seen running. Look process-wide — the export's `CPU_THROTTLED` lines and
    `jvm_container` (a container held to its CPU quota stalls every thread), `jvm_gc` and
-   `jvm_safepoints` for pauses at those instants, `jvm_system` for the host — and rule the
-   statements and the pool out by their own figures (`jdbc_overview`'s percentiles, `jdbc_pools`'
-   waiting threads) before naming either. Medians near a millisecond with a tail like this are a
-   stalled process, never "every request is slow".
+   `jvm_safepoints` for pauses at those instants, `jvm_system` for the host. Then rule out, by their
+   own figures, the two things every request shares besides the CPU — the statements (`jdbc_overview`'s
+   percentiles) and the pool (`jdbc_pools`' waiting threads): a stall every endpoint shows can as well
+   be a pool they all wait on, and the answer names both checks with their figures. Say only what a
+   figure shows — which endpoint "blows the quota" is not something the throttling counters measure.
+   Medians near a millisecond with a tail like this are a stalled process, never "every request is slow".
 
 ## The edges of the application: `http_`, `jdbc_`, `grpc_`, `methodtracing_`
 

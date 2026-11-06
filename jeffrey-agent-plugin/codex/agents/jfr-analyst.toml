@@ -114,7 +114,7 @@ operations starting within milliseconds of each other and lasting about as long 
 whole process, not of an endpoint: the export shows the time as `OWN_WORK` the threads were not seen
 running, and the cause is process-wide — its `CPU_THROTTLED` lines and `jvm_container`, `jvm_gc`,
 `jvm_safepoints` — once `jdbc_overview` and `jdbc_pools` rule the statements and the pool out by their
-figures. One population slow and the rest fine: `traces_attributeKeys` →
+figures, both named with them in what you return. One population slow and the rest fine: `traces_attributeKeys` →
 `traces_attributeValues` → `traces_attributeSearch`. Without traces, `http_overview` and
 `jdbc_overview` answer in aggregate; statements all fast while requests are slow is `jdbc_pools`.
 

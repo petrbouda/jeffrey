@@ -1,1 +1,0 @@
-{"profileId":"01a1af91-2b12-7ac4-aa2a-8c5966c2b11f","view":"jit-compilation","objectId":null,"uiLink":"http://localhost:8585/profiles/01a1af91-2b12-7ac4-aa2a-8c5966c2b11f/jit-compilation"}

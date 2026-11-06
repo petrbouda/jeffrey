@@ -713,6 +713,7 @@ def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]
                     add_variant(recorded.variants[tool][key], arguments, answer)
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
         queue.extend(row_calls(tool, arguments, answer.get("structuredContent") or {}))
+        queue.extend(statement_calls(tool, arguments, answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
 
 
@@ -737,6 +738,22 @@ def row_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, d
             subject = {name: row[name] for name in expansion.fields}
             calls += [(each, {**profile, **subject}) for each in expansion.tools]
     return calls
+
+
+# A model narrows a statement's call sites to the one it is about (filterField name, filterValue count_query): every
+# statement a grouped answer lists is asked about once more on its own, a variant its relay answers.
+MAX_FILTERED_STATEMENTS = 10
+FILTER_FIELD, FILTER_VALUE = "filterField", "filterValue"
+
+
+def statement_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, dict]]:
+    """For a code_callSites answer grouped by statement name, the same call narrowed to each statement it lists."""
+    if tool != "code_callSites" or FILTER_FIELD in arguments or structured.get("groupBy") != STATEMENT_NAME_FIELD:
+        return []
+    values = list(dict.fromkeys(site.get("groupValue") for site in structured.get("sites") or []
+                                if isinstance(site.get("groupValue"), str)))
+    return [(tool, {**arguments, FILTER_FIELD: STATEMENT_NAME_FIELD, FILTER_VALUE: value})
+            for value in values[:MAX_FILTERED_STATEMENTS]]
 
 
 def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | None:
