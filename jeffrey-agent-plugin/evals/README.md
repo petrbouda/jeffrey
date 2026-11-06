@@ -1413,20 +1413,33 @@ map now keeps, and what each took:
   shared *Implement fixes* section now checks the close names **Implement fixes** word for word, and the
   unreadable-export fallback `Glob`s for the classes the offer needs.
 - **`slow-endpoints`: one run read only the dashboards.** The traces route covers any question about slow
-  requests, the dashboards beside a slow trace and never instead of one.
+  requests, the dashboards beside a slow trace and never instead of one. A later run explained the shared
+  stall but never checked the statements or the pool: ruling both out by their figures (`jdbc_overview`,
+  `jdbc_pools`) is now a step of its own, both named in the answer.
+- **Links with a tool's name as their text.** Every unmarked link of these passes was `` [`jvm_threads`](…) ``
+  or the like, and the rule's own example showed one. Link text is now the page's name, the tool in
+  backticks beside it.
+- **`write-report`: a user's figure measured with a flamegraph `search`**, which no fixture holds. The
+  `report` skill names the call that measures each kind of figure (a statement's count or time from
+  `jdbc_overview` and `jdbc_statementGroup`, a step from `traces_operationExport`, allocation from
+  `memory_allocations` or `compare_movements`). The next run narrowed the call sites to the one statement
+  (`filterField: name`), which the recordings did not hold either: the recorder now asks a grouped
+  call-sites answer again for each statement it lists, and the call-sites relay answers them.
 
-Measured on the final mocks (1,921 fixtures): a full pass, then the cases routed through a skill changed after
-it, three runs each.
+Measured on the final mocks (1,925 fixtures): a full pass, then `what-runs` again after its skill took the
+export `traces_slowestTraces` offers (a run had read the ninth-slowest trace, past the three recorded), three
+runs each.
 
 | | 1.0.31 | 1.0.32 |
 |---|---|---|
-| Runs passed | — | **73 of 75** |
-| Cases at 3 of 3 | — | **23 of 25** |
+| Runs passed | — | **74 of 75** |
+| Cases at 3 of 3 | — | **24 of 25** |
 | `fix-it` | 1 of 3 (0.73) | 3 of 3 |
-| `slow-endpoints` | 1 of 3 (0.87) | 2 of 3 (0.93): one judge split 1–2 on a reply that named the throttling, the shared stall and the off-CPU residual |
-| `write-report` | 0 of 3 | 2 of 3 (0.94): `flamegraph_export` of `jeffrey.JdbcQuery` with a `search`, which no fixture holds |
+| `slow-endpoints` | 1 of 3 (0.87) | 3 of 3 |
+| `write-report` | 0 of 3 | 3 of 3 |
+| `lock-contention` | — | 2 of 3 (0.95): a page under **Not assessed** linked without ↗ |
 | `gc-pauses`, `what-runs`, `exception-sites`, `open-question`, heap cases | — | 3 of 3 each |
 
-Spend for this round: $81.44 — four full passes ($17.00, the first on a mock recorded at the wrong dump path;
-$15.89; $16.97; $17.53 on the final mocks) and $14.05 of case re-runs. The live suite (`evals-live/`) was not
-run on 1.0.32: its cases keep their earlier replays on the Agent Plugin page.
+Spend for this round: $103.40 — five full passes ($17.00, the first on a mock recorded at the wrong dump path;
+$15.89; $16.97; $17.53; $17.36 on the final mocks) and $18.65 of case re-runs. The live suite (`evals-live/`)
+was not run on 1.0.32: its cases keep their earlier replays on the Agent Plugin page.
