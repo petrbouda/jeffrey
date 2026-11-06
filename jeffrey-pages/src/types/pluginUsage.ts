@@ -36,6 +36,8 @@ export interface ReplayStep {
 export interface GraderResult {
   name: string;
   passed: boolean | null;
+  /** Why the grader decided as it did: the judge's reason, or what a rule matched. Absent when it gave none. */
+  explanation?: string;
 }
 
 export interface ReplayRun {
@@ -46,6 +48,10 @@ export interface ReplayRun {
   costUsd: number | null;
   durationSeconds: number | null;
   graders: GraderResult[];
+  /** The run's last reply in the main conversation, cut for the page; absent on runs recorded before it was kept. */
+  reply?: string | null;
+  /** The reply's full length, in characters. */
+  replyChars?: number;
   /** Lane id → 'main' or the agent's name. */
   lanes: Record<string, string>;
   steps: ReplayStep[];

@@ -26,7 +26,8 @@ Two sources go into one JSON:
   Agent and tool call becomes an ordered step in its lane: the main conversation, or the agent whose
   call spawned it. Each Jeffrey call is charged to the skill active in its lane, or to that agent.
 
-The JSON keeps every run's totals and, for each eval case, the latest results' runs step by step. It
+The JSON keeps every run's totals and, for each eval case, the latest results' runs step by step, each with
+its final reply and every grader's reason, so a failed run can still be read once its trace is gone. It
 is written into jeffrey-pages, whose Agent Plugin page (`/agent-plugin`) replays the runs over a map
 of the wiring. Traces live in temporary directories, so a run whose trace is gone is skipped.
 Full generation requires `--recorded-version`: every ingested trace must come from that plugin
@@ -65,6 +66,11 @@ IGNORED_TOOLS = {"ToolSearch"}
 DEFAULT_AGENT = "general-purpose"
 MAIN_LANE = "main"
 INPUT_CHARS = 160
+# What a run kept to be read after the trace is gone: the reply the graders read, and each grader's reason (the
+# judge's explanation, or what a deterministic grader matched). Cut so the page stays light; the full lengths
+# are kept beside them.
+REPLY_CHARS = 6000
+EXPLANATION_CHARS = 1500
 KIND_PREFIX = {"skill": "s:", "agent": "a:", "jeffrey": "t:"}
 AGENT_ALIASES = {"profile-analyst": "jfr-analyst", "heap-triage": "heap-analyst"}
 
@@ -195,7 +201,38 @@ def agents_of(plugin: Path, tool_names: set[str], skill_names: list[str], agent_
 
 def short(value) -> str:
     text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-    return text if len(text) <= INPUT_CHARS else text[:INPUT_CHARS - 1] + "…"
+    return cut(text, INPUT_CHARS)
+
+
+def cut(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[:limit - 1] + "…"
+
+
+def reply_of(lines) -> str | None:
+    """The run's last reply in the main conversation — what a `last_message` grader reads: the text of the last
+    assistant message there that holds any. None when the run never wrote one."""
+    reply = None
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if event.get("type") != "assistant" or event.get("parent_tool_use_id"):
+            continue
+        texts = [block.get("text", "") for block in event.get("message", {}).get("content", [])
+                 if block.get("type") == "text" and block.get("text", "").strip()]
+        if texts:
+            reply = "\n\n".join(texts)
+    return reply
+
+
+def grader_of(grader: dict) -> dict:
+    """A grader's verdict and, when it gave one, its reason, cut to EXPLANATION_CHARS."""
+    explanation = grader.get("explanation")
+    if not isinstance(explanation, str) or not explanation.strip():
+        return {"name": grader["name"], "passed": grader.get("passed")}
+    return {"name": grader["name"], "passed": grader.get("passed"),
+            "explanation": cut(explanation.strip(), EXPLANATION_CHARS)}
 
 
 def without_namespace(name: str) -> str:
@@ -304,13 +341,15 @@ def usage_of(plugin: Path, recorded_version: str | None = None, earlier: dict | 
                     if not trace.is_file():
                         missing += 1
                         continue
-                    with trace.open() as lines:
-                        steps, lanes = steps_of(lines)
+                    lines = trace.read_text().splitlines()
+                    steps, lanes = steps_of(lines)
+                    reply = reply_of(lines)
                     replays.append({"run": number, "score": run.get("score"), "passed": run.get("passed"),
                                     "turns": run.get("turns"), "costUsd": run.get("costUsd"),
                                     "durationSeconds": run.get("durationSeconds"),
-                                    "graders": [{"name": g["name"], "passed": g.get("passed")}
-                                                for g in run.get("graders", [])],
+                                    "graders": [grader_of(g) for g in run.get("graders", [])],
+                                    "reply": cut(reply, REPLY_CHARS) if reply is not None else None,
+                                    "replyChars": len(reply) if reply is not None else 0,
                                     "lanes": lanes, "steps": steps})
                 if replays:
                     latest[(label, case["name"])] = ({"suite": label, "case": case["name"],

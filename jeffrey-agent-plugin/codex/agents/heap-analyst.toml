@@ -54,6 +54,11 @@ recording rather than a heap dump, say that and stop.
    which you are claiming, and when it matters, that a second dump would settle it — `heap_diff`
    compares them, with the earlier one as the baseline.
 
+An answer your client saved to a file instead of showing you — it says so, names the file and shows a
+few lines — is an answer, not an error. If you cannot read files, ask once for the same thing smaller
+(a lower `limit` or `topN`); if that is saved too, stop calling: return each file under **Saved, not
+read** with the call that produced it, so the caller reads it, and claim nothing about what is in it.
+
 ## The heap handbook
 
 What the `analyze-heap` skill says about a dump, cut to what working one takes.

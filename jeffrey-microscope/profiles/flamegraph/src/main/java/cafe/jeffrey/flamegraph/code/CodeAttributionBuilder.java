@@ -177,6 +177,22 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
         } else {
             accumulator.addDelegated(steps.get(deepestOwn + 1).key(), value);
         }
+        nearestOwnOfAnotherClass(steps, deepestOwn).ifPresent(caller -> accumulator.addCalledFrom(caller, value));
+    }
+
+    /**
+     * The nearest own frame above {@code index} whose class is not the frame's own: past the method's own
+     * lambdas and helpers, the code that called into its class.
+     */
+    private Optional<MethodKey> nearestOwnOfAnotherClass(List<Step> steps, int index) {
+        String className = steps.get(index).key().className();
+        for (int i = index - 1; i >= 0; i--) {
+            Step step = steps.get(i);
+            if (step.java() && scope.isOwn(step.key().className()) && !className.equals(step.key().className())) {
+                return Optional.of(step.key());
+            }
+        }
+        return Optional.empty();
     }
 
     /** Each distinct Java method of the stack with its deepest occurrence, root first. */
@@ -254,6 +270,7 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
         private final MethodKey method;
         private final Map<Integer, Long> chargedLines = new HashMap<>();
         private final Map<MethodKey, Long> delegatedTo = new HashMap<>();
+        private final Map<MethodKey, Long> calledFrom = new HashMap<>();
         private final Map<FrameType, Long> tiers = new EnumMap<>(FrameType.class);
         private long inclusive;
         private long self;
@@ -281,9 +298,13 @@ public final class CodeAttributionBuilder implements RecordBuilder<FlamegraphRec
             delegatedTo.merge(callee, value, Long::sum);
         }
 
+        private void addCalledFrom(MethodKey caller, long value) {
+            calledFrom.merge(caller, value, Long::sum);
+        }
+
         private MethodCost toCost() {
             return new MethodCost(method, inclusive, self, charged, sortedLines(chargedLines),
-                    sortedValues(delegatedTo), sortedTiers(tiers));
+                    sortedValues(delegatedTo), sortedValues(calledFrom), sortedTiers(tiers));
         }
     }
 

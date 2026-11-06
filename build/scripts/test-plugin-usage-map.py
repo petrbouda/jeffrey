@@ -245,6 +245,37 @@ class LatestRuns(unittest.TestCase):
             self.assertEqual(2, usage["usage"]["runs"])
             self.assertEqual({"help": 2}, usage["usage"]["skill"])
 
+    def test_keeps_each_runs_reply_and_every_graders_reason(self):
+        # A failed run is read after its trace is gone: the reply a last-message judge read, and why each grader
+        # decided as it did; a grader that gave no reason keeps none.
+        def said(text, parent=None):
+            return json.dumps({"type": "assistant", "parent_tool_use_id": parent,
+                               "message": {"content": [{"type": "text", "text": text}]}})
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin = Path(tmp)
+            case = plugin / "evals/cases/judged"
+            case.mkdir(parents=True)
+            (case / "prompt.md").write_text("---\nname: judged\ntags: [routing]\n---\n\nJudge it.\n")
+            trace = plugin / "trace.jsonl"
+            trace.write_text("\n".join([said("Looking."), assistant("2026-11-05T10:00:00Z", ("k1", "Skill", {"skill": "help"})),
+                                        said("The analyst's own words.", parent="k1"),
+                                        said("x" * (usage_map.REPLY_CHARS + 50))]) + "\n")
+            result = plugin / "evals/results/a/aggregate-result.json"
+            result.parent.mkdir(parents=True)
+            result.write_text(json.dumps({"startedAt": "a", "cases": [{"name": "judged", "arms": {"with": [
+                {"tracePath": str(trace), "passed": False, "graders": [
+                    {"name": "offers-implement-fixes", "passed": False, "explanation": "  No offer by that name.  "},
+                    {"name": "no-edit", "passed": True, "explanation": ""}]}]}}]}))
+            run = usage_map.usage_of(plugin)["replays"][0]["runs"][0]
+            self.assertEqual(usage_map.REPLY_CHARS, len(run["reply"]))
+            self.assertTrue(run["reply"].startswith("xxx") and run["reply"].endswith("…"))
+            self.assertEqual(usage_map.REPLY_CHARS + 50, run["replyChars"])
+            self.assertEqual([{"name": "offers-implement-fixes", "passed": False, "explanation": "No offer by that name."},
+                              {"name": "no-edit", "passed": True}], run["graders"])
+
+    def test_a_run_that_wrote_no_reply_keeps_none(self):
+        self.assertIsNone(usage_map.reply_of(TRACE))
+
     def test_keeps_an_earlier_replay_of_a_current_case_with_no_runs_on_disk(self):
         with tempfile.TemporaryDirectory() as tmp:
             plugin = Path(tmp)

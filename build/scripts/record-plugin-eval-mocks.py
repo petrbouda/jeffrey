@@ -123,6 +123,8 @@ FIXTURES = MOCKS / "fixtures"
 RECORDED_PROFILES = PLUGIN_DIR / "evals/fixtures/recorded-profiles.json"
 GZIP_SUFFIX = ".gz"
 MOCKED_CASES = PLUGIN_DIR / "evals/cases"
+# The repository the relative paths above are read against when the recorder is run from elsewhere (its tests).
+REPOSITORY = Path(__file__).resolve().parents[2]
 # Run with --mocks off, so they have no mock_calls to grade and get no call-contract grader.
 LIVE_CASES = PLUGIN_DIR / "evals-live/cases"
 CASES = (MOCKED_CASES, LIVE_CASES)
@@ -237,10 +239,10 @@ PERSONS_OPERATIONS = ("GET /persons/{count}", "GET /persons")
 # The persons runs' event types a code case groups by call site: its statements and its monitors.
 PERSONS_CALL_SITE_EVENT_TYPES = (JDBC_QUERY, "jdk.JavaMonitorEnter")
 # A tool asked about more subjects than MAX_FIXTURES_PER_TOOL keeps: each workload's method, on both of its recordings;
-# each traced operation and HTTP endpoint of every profile (`ROW_CALLS`), and the slowest trace each operation names
-# with its span frames.
+# each traced operation and HTTP endpoint of every profile (`ROW_CALLS`), and the slowest traces each operation names.
 MAX_OPERATION_FIXTURES = 64
-MAX_TRACE_FIXTURES = 32
+# The first SLOWEST_EXPORTED traces of every operation a profile's listing names, with their span frames.
+MAX_TRACE_FIXTURES = 64
 MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_METHODS)) + MAX_FIXTURES_PER_TOOL,
                    "traces_slowestTraces": MAX_OPERATION_FIXTURES, "traces_operationExport": MAX_OPERATION_FIXTURES,
                    "traces_traceExport": MAX_TRACE_FIXTURES, "traces_spanFlamegraphExport": MAX_TRACE_FIXTURES,
@@ -249,16 +251,22 @@ MAX_FIXTURES_OF = {"code_method": 2 * max(len(WORKLOAD_METHODS), len(PERSONS_MET
 
 @dataclass(frozen=True)
 class RowCalls:
-    """The calls each row of an answer stands for: `tools`, called with the answer's profile and the row's `fields`."""
+    """The calls each row of an answer stands for: `tools`, called with the answer's profile and the row's `fields`;
+    with `first`, only for that many rows from the top."""
     rows: str
     tools: tuple[str, ...]
     fields: tuple[str, ...]
+    first: int | None = None
 
 
 # An answer that lists subjects offers its follow-ups for the first one only, and a model asks about the one its
 # question is about: every operation's slowest traces and export, and every endpoint's dashboard, are recorded.
+# A slowest-traces answer offers the export of its slowest trace, and a model often reads the next one or two
+# instead — the export of each of the first SLOWEST_EXPORTED traces is recorded, so the one it picks is answered.
+SLOWEST_EXPORTED = 3
 ROW_CALLS = {"traces_operations": RowCalls("operations", ("traces_slowestTraces", "traces_operationExport"),
                                            ("name", "kind", "eventType")),
+             "traces_slowestTraces": RowCalls("traces", ("traces_traceExport",), ("traceId",), SLOWEST_EXPORTED),
              "http_overview": RowCalls("endpoints", ("http_endpoint",), ("uri",))}
 # The arguments a relay's fixture is chosen by, where a tool takes them: its answers are kept one file per profile.
 RELAY_FILE_ARGUMENTS = (PROFILE_ID, BASELINE_PROFILE_ID)
@@ -705,6 +713,7 @@ def crawl_from(jeffrey: Jeffrey, tools: list[dict], seeds: list[tuple[str, dict]
                     add_variant(recorded.variants[tool][key], arguments, answer)
         queue.extend(offered_calls(answer.get("structuredContent") or {}))
         queue.extend(row_calls(tool, arguments, answer.get("structuredContent") or {}))
+        queue.extend(statement_calls(tool, arguments, answer.get("structuredContent") or {}))
     print(f"recorded from {calls} calls", file=sys.stderr)
 
 
@@ -724,11 +733,27 @@ def row_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, d
         return []
     profile = {name: arguments[name] for name in RELAY_FILE_ARGUMENTS if name in arguments}
     calls = []
-    for row in structured.get(expansion.rows) or []:
+    for row in (structured.get(expansion.rows) or [])[:expansion.first]:
         if all(isinstance(row.get(name), str) for name in expansion.fields):
             subject = {name: row[name] for name in expansion.fields}
             calls += [(each, {**profile, **subject}) for each in expansion.tools]
     return calls
+
+
+# A model narrows a statement's call sites to the one it is about (filterField name, filterValue count_query): every
+# statement a grouped answer lists is asked about once more on its own, a variant its relay answers.
+MAX_FILTERED_STATEMENTS = 10
+FILTER_FIELD, FILTER_VALUE = "filterField", "filterValue"
+
+
+def statement_calls(tool: str, arguments: dict, structured: dict) -> list[tuple[str, dict]]:
+    """For a code_callSites answer grouped by statement name, the same call narrowed to each statement it lists."""
+    if tool != "code_callSites" or FILTER_FIELD in arguments or structured.get("groupBy") != STATEMENT_NAME_FIELD:
+        return []
+    values = list(dict.fromkeys(site.get("groupValue") for site in structured.get("sites") or []
+                                if isinstance(site.get("groupValue"), str)))
+    return [(tool, {**arguments, FILTER_FIELD: STATEMENT_NAME_FIELD, FILTER_VALUE: value})
+            for value in values[:MAX_FILTERED_STATEMENTS]]
 
 
 def addressed(required: list[str], answers: dict[tuple, str]) -> list[str] | None:
@@ -1036,12 +1061,24 @@ SEMANTIC_OPTIONS = {"useWeight", "startEpochMs", "endEpochMs", "excludeIdle", "e
 # A search elsewhere selects rows; on a flamegraph it adds the matches and their share.
 SEMANTIC_OPTIONS_OF = {"flamegraph_export": {"search"},
                        # How the events are grouped, and which are counted, are what a call site's figures are.
-                       "code_callSites": {"groupBy", "filterField", "filterValue"}}
+                       "code_callSites": {"groupBy", "filterField", "filterValue"},
+                       # One sample kind, or every kind the profile recorded: a method's figures per kind.
+                       "code_method": {"eventType"}}
+# An answer-changing option a recorded call may leave out to be answered for every value at once, where the answer
+# lists the values it covers: code_method without an event type reads each recorded sample kind, so a call naming
+# one of the kinds its answer lists gets the same figures from that fixture. Each entry is the option, the list in
+# the answer, and the field of a list item that names the value.
+COVERED_BY_ANSWER = {"code_method": ("eventType", "kinds", "eventType")}
 WEIGHT_DEFAULTS = {"jdk.ExecutionSample": False, "jdk.ObjectAllocationSample": True,
                    "jdk.JavaMonitorEnter": True}
 WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements", "code_hotspots",
                         "compare_methods"}
 FALSE_DEFAULTS = {"excludeIdle", "excludeNonJava", "threadMode", "includeJvmInternal", "compute", "retry", "errorsOnly"}
+# code_callSites groups a JDBC statement's call sites by its statement name when no groupBy is given (CodeSurfaceMcpTools'
+# JDBC_TYPES and STATEMENT_NAME_FIELD), so a call naming that field asks for the recorded answer.
+JDBC_EVENT_TYPES = {"jeffrey.JdbcQuery", "jeffrey.JdbcInsert", "jeffrey.JdbcUpdate", "jeffrey.JdbcDelete",
+                    "jeffrey.JdbcExecute", "jeffrey.JdbcStream"}
+STATEMENT_NAME_FIELD = "name"
 NO_DEFAULT = object()
 
 
@@ -1080,6 +1117,8 @@ def server_default(tool: str, name: str, prop: dict, arguments: dict):
         return WEIGHT_DEFAULTS.get(arguments.get("eventType"), NO_DEFAULT)
     if name == "useWeight" and tool == "timeline_hotWindows":
         return False
+    if name == "groupBy" and tool == "code_callSites":
+        return STATEMENT_NAME_FIELD if arguments.get("eventType") in JDBC_EVENT_TYPES else NO_DEFAULT
     if name in FALSE_DEFAULTS:
         return False
     return prop["default"] if "default" in prop else NO_DEFAULT
@@ -1091,13 +1130,19 @@ def server_default(tool: str, name: str, prop: dict, arguments: dict):
 SAME_OBJECT = r'(?:[^{}"\n]|"(?:[^"\\\n]|\\.)*")*'
 
 
-def input_pattern(tool: str, schema: dict, arguments: dict) -> str:
+def input_pattern(tool: str, schema: dict, arguments: dict, covered: tuple = ()) -> str:
     """A regex for the input objects the recorded call answers: each answer-changing option holds the
-    recorded value, or is left out where that value is the server's default; anything else is free."""
-    # The required arguments name the fixture, and decide defaults such as an event type's weighting,
-    # so an option is held to the recorded call with the same ones.
-    checks = [r'(?=' + SAME_OBJECT + r'"' + re.escape(name) + r'"\s*:\s*' + json_pattern(arguments[name]) + r"(?=\s*[,}]))"
-              for name in sorted(set(schema.get("required", [])) & set(arguments))]
+    recorded value, or is left out where that value is the server's default; anything else is free.
+    `covered` are the values of the tool's COVERED_BY_ANSWER option the recorded answer holds, where the
+    recorded call left that option out."""
+    # The arguments that name the fixture — the required ones and the tool's addressing options — decide defaults
+    # such as an event type's weighting, so an option is held to the recorded call with the same ones. An addressing
+    # option the recorded call left out is left out by the call too: its fixture answers only the call without it.
+    checks = []
+    for name in addressing(tool, schema):
+        key = SAME_OBJECT + r'"' + re.escape(name) + r'"\s*:'
+        checks.append("(?=" + key + r"\s*" + json_pattern(arguments[name]) + r"(?=\s*[,}]))" if name in arguments
+                      else "(?!" + key + ")")
     for name in semantic_options(tool, schema):
         prop = schema["properties"][name]
         key = SAME_OBJECT + r'"' + re.escape(name) + r'"\s*:'
@@ -1105,11 +1150,33 @@ def input_pattern(tool: str, schema: dict, arguments: dict) -> str:
         default = server_default(tool, name, prop, arguments)
         value = arguments.get(name, default)
         if value is NO_DEFAULT:
-            checks.append(absent)
+            values = covered if name not in arguments and COVERED_BY_ANSWER.get(tool, (None,))[0] == name else ()
+            checks.append("(?:" + "|".join([absent] + ["(?=" + key + r"\s*" + json_pattern(each) + r"(?=\s*[,}]))"
+                                                       for each in values]) + ")" if values else absent)
             continue
         present = "(?=" + key + r"\s*" + json_pattern(value) + r"(?=\s*[,}]))"
         checks.append("(?:" + absent + "|" + present + ")" if value == default else present)
     return r"\{" + "".join(checks) + r"[^\n]*\}"
+
+
+def covered_values(tool: str, schema: dict, arguments: dict) -> tuple:
+    """The values of the tool's COVERED_BY_ANSWER option a recorded call's fixed fixture answers for, when the call
+    left that option out: read off the fixture, so only values the answer holds figures for. Empty otherwise."""
+    if tool not in COVERED_BY_ANSWER:
+        return ()
+    option, rows, field = COVERED_BY_ANSWER[tool]
+    names = addressing(tool, schema)
+    if option in arguments or not all(name in arguments for name in names):
+        return ()
+    fixtures = FIXTURES if FIXTURES.is_absolute() else REPOSITORY / FIXTURES
+    fixture = fixtures / (f"{tool}-" + "-".join(str(arguments[name]) for name in names) + ".txt")
+    if not fixture.exists():
+        return ()
+    try:
+        answer = json.loads(fixture.read_text())
+    except json.JSONDecodeError:
+        return ()
+    return tuple(sorted({row[field] for row in answer.get(rows) or [] if isinstance(row, dict) and field in row}))
 
 
 def write_contract_graders(tools: list[dict], inputs: list[dict]) -> None:
@@ -1125,7 +1192,8 @@ def write_contract_graders(tools: list[dict], inputs: list[dict]) -> None:
         # Its path is guarded in the responder; name/force do not model a new import in this suite.
         if name == "recordings_analyzeFile":
             continue
-        accepted = "|".join(input_pattern(name, schema, args) for args in by_tool[name]) or r"(?!)"
+        accepted = "|".join(input_pattern(name, schema, args, covered_values(name, schema, args))
+                            for args in by_tool[name]) or r"(?!)"
         rejected.append(r'^\{"tool"\s*:\s*"mcp__[^"\n]*__' + re.escape(name)
                         + r'"\s*,\s*"input"\s*:(?!\s*(?:' + accepted + r'))')
     pattern = "|".join(rejected) or r"(?!)"

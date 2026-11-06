@@ -1,0 +1,6 @@
+Left out, an argument has the value: {"excludeIdle": false}; one not named here has none.
+
+Recorded call 1, arguments: {"endEpochMs": "unset", "excludeIdle": false, "framePrefixes": "unset", "startEpochMs": "unset", "useWeight": false}
+<answer>
+{"status":"NOT_SEEN","reason":"No sample's stack held a frame under []. The prefixes may not match the classes as the JVM names them; suggestedFramePrefixes lists the busiest packages this profile did sample.","profileId":"01a1afdf-6dac-7f18-b34e-a3299464408d","eventType":"jdk.JavaErrorThrow","window":null,"weighted":false,"excludeIdle":false,"unit":"SAMPLES","framePrefixes":[],"framePrefixesSource":"SUGGESTED","suggestedFramePrefixes":[],"total":0,"chargedToOwnCode":0,"ownSharePct":0.0,"methods":[],"omittedMethods":0,"followUp":{"nextTools":[],"guidance":[]},"uiLink":"http://localhost:8585/profiles/01a1afdf-6dac-7f18-b34e-a3299464408d/flamegraph-view?eventType=jdk.JavaErrorThrow&graphMode=PRIMARY&startEpochMs=1793803323745&endEpochMs=1793803344551"}
+</answer>

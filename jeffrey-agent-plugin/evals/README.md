@@ -26,7 +26,7 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 ## Seeing the runs
 
 ```bash
-python3 build/scripts/plugin-usage-map.py --recorded-version 1.0.31
+python3 build/scripts/plugin-usage-map.py --recorded-version 1.0.32
 ```
 
 This reads the traces `--keep-temp` left behind, through every `results/*/aggregate-result.json` in
@@ -323,6 +323,14 @@ fails none: the first version, which rejected every unrecorded optional argument
 that called Jeffrey — `profiles_list` with `search`, the heap tools with `topN` or `limit`, and
 `flamegraph_export` with `detail: "SUMMARY"`, which the tools page recommends.
 
+The addressing options are held like the required arguments: a `code_method` call names a recorded
+method, or the grader fails it (the fixed mock answers a missing fixture with a tool error, and a run
+that called `lambda$queryLong$0` or a Spring class had gone off the recording). Its `eventType` is
+graded too, because a method's figures are per sample kind: a call is accepted with a fixture recorded
+for that kind, or with one recorded without an event type — Jeffrey then reads every recorded kind — when
+that answer's `kinds` hold it. Before, a CPU call on `ServerApplication.main` was
+accepted with the only recorded answer, an allocation one.
+
 Two rules came with the code tools. An optional argument that picks what the answer is about can
 address a fixture beside the required ones (the recorder's addressing options: `code_method`'s `methodName`, one
 fixture per method of a class). And a call that differs from a recorded one only in how the own
@@ -340,6 +348,19 @@ collide. It still captures only a bounded subset of calls; it is not a general s
 second import). A slow future import retains its initial operation answer and records the terminal
 `operations_status` for that operation, so the model can poll to the same profile. No synthetic
 operation answer has been added to the current synchronous-import fixtures.
+
+**A long answer reaches the eval child as a file.** `claude plugin eval` reads `_tools.json` for each
+tool's name, description and input schema only, so the `_meta` of the recorded `tools/list` —
+`anthropic/maxResultSizeChars: 120000` on the exports — never reaches the child, and every tool is held
+to the client's default limit (`MAX_MCP_OUTPUT_TOKENS`, 25,000 tokens). Nothing restores it: a case's
+`execution.env` takes `EVAL_*` keys only, and the child drops `MAX_MCP_OUTPUT_TOKENS` from the
+operator's environment whenever a mock is an agent (a relay). So an export past the default — the
+persons CPU flamegraph at 55,230 characters, and every fixture `test-plugin-eval-mocks.py`'s
+`EvalHostLimitTest` lists — is saved to a file in an eval and arrives inline from a real Jeffrey. The
+main conversation reads such a file; an analyst has no file tools. Before the analysts returned these
+under **Saved, not read**, a blind `jfr-analyst` re-asked for the same export with other options (the
+fixed mock gives the same document for any `detail` or `thresholdPct`) and then for frames one method
+at a time, and the variants failed `recorded-call-semantics` — two of three `fix-it` runs on 1.0.31.
 
 The comparison uses an `honest-verdict` semantic judge again. “Confidence” or “comparable” alone
 cannot establish honest limits; the rubric rejects invented end-to-end slowdowns and unqualified
@@ -1320,3 +1341,105 @@ On the mocks re-recorded with the relays, three runs each:
 | `dom-regression`, `what-runs`, `what-to-change`, `why-slow`, `pool-latency` | — | 3 of 3 each (1.00) | — |
 
 Spend: $7.41.
+
+## Plugin 1.0.32: why fix-it and slow-endpoints still missed, and what changed
+
+Read off the 1.0.31 replays (the traces were gone; the map kept the calls and the graders' verdicts):
+
+- **`fix-it`: the analyst could not read its export.** The eval host drops the declared result size (see
+  *A long answer reaches the eval child as a file* above), so the persons CPU flamegraph (55,230 characters)
+  was saved to a file, and `jfr-analyst` has no file tools. It asked again with `detail`, `thresholdPct` and
+  `excludeIdle` — the fixed mock answers each with the same document — and then for frames one method at a
+  time, by their runtime names. The `excludeIdle` call failed `recorded-call-semantics` in run 1, and run 2's
+  other calls (a `code_method` without `framePrefixes`, or an `excludeNonJava` variant: its arguments were cut
+  in the replay) did in run 2. The analysts now ask once for the same thing smaller and otherwise return the file
+  under **Saved, not read**, which the skill that delegated reads.
+- **`fix-it`: the top hotspot was the wrapper.** `code_hotspots` charges the driver's work to
+  `DatabaseClient#lambda$queryLong$0` (636 of 5,097 samples), and `PersonRepository.count`, which the judge
+  wants the offer to name, is charged 7; only a second call found it. Each row now carries `calledFrom`: the
+  nearest own frame of another class above it on the stacks charged to it — for that row
+  `PersonRepository#count` — and the code skills say to name both, the fix landing in the caller.
+- **`slow-endpoints`: nothing said the tail was the whole process's.** The slowest requests of every endpoint
+  start at the same instants (four endpoints at 130.4–130.6 ms from one millisecond on), and their exports
+  showed 100 % `OWN_WORK`, described as "the code running". `latency.md` and the analyst's handbook now
+  compare the slowest requests across operations and send a shared stall to `jvm_container`, `jvm_gc` and
+  `jvm_safepoints`, with the statements and the pool ruled out by their figures. `traces_traceExport` lists
+  the container's CPU-throttling windows that overlap the trace (`CPU_THROTTLED`, beside the pauses, never in
+  the ranking), and splits `OWN_WORK` by the on-CPU samples on the trace's threads inside its window into time
+  on CPU and time not seen running.
+- **The grader passed calls it should not have.** `code_method`'s `methodName` and `eventType` are now graded
+  (above). Against every recorded step of the 1.0.31 replays the regenerated grader changes no verdict.
+- **A failed run can be read after its trace is gone.** `plugin-usage-map.py` keeps each run's final reply
+  (up to 6,000 characters, its full length beside it) and each grader's `explanation`; the Agent Plugin page
+  shows the failed graders' reasons and the reply under the replay.
+
+The mocks were re-recorded from a Jeffrey with these changes (`--reuse`, work dir `/tmp/jeffrey-eval`, the
+path the heap cases name: 102 tools, 1,533 fixtures), so `code_hotspots` carries `calledFrom` and 215 of the
+217 `traces_traceExport` fixtures split the residual — the slowest `GET /persons/{count}` reads "on CPU: under
+10ms … not seen running: at least ~161ms (94% of the residual)", and twelve of the persons dom traces name the
+container's throttling (118 of 301 CFS periods).
+
+**A saved answer nobody can read.** The first run on the new mocks showed one more difference from a real
+client: this harness also refuses the main conversation's read of the file a long answer was saved to ("File
+is in a directory that is denied by your permission settings"). With neither side able to open the CPU export,
+`fix-it` failed all three runs — one stopped to ask, one found `PersonRepository.count` in the source but
+closed with "If you'd like, I can look at…". `analyze-jfr` now answers a code question from `code_hotspots`
+with the checkout's `framePrefixes` when no one here can open the export, and closes with **Implement fixes**
+by that name whatever it could answer.
+
+The first pass on these mocks (plugin 1.0.32, three runs each) put 20 of 25 cases at the threshold (overall
+0.96): `fix-it` 3 of 3, both heap cases 3 of 3, `slow-endpoints` 2 of 3. Its misses, read from the replies the
+map now keeps, and what each took:
+
+- **`write-report`: two runs never reached the `report` skill.** Its description said "once analyze-jfr … has
+  done the reading"; the case brings findings from an earlier analysis. The description now covers that, the
+  figures read back before they are written. The third run failed `recorded-call-semantics` on
+  `code_callSites` with `groupBy: name`, the server's own default for a JDBC statement: the recorder now knows
+  that default, so the grader and the relay accept it.
+- **`gc-pauses`: a run proposed `-XX:MetaspaceSize`** at 0.33% overhead, and two left a tool's name linked to the
+  profile's page without ↗. `jvm_gc`'s guidance now says, below 1% of the recording, that GC is not what holds the
+  application back and that no collector, heap or metaspace setting follows (the skill rule alone did not
+  hold); a tool not called is named in backticks and never linked.
+- **`what-runs`: the steps came from the source.** The recorder exported only the slowest trace of an
+  operation, and a run that read the second-slowest got an error: it now exports the first three
+  (trace fixtures 217 → 411), and `code-insight` takes a request's steps in order from one
+  trace's span tree.
+- **`open-question`: ★ rows above Traces.** The skill now checks the Pages table's first row before sending.
+- **`exception-sites`: the grader missed the right fix.** "Check first whether the string is all digits"
+  matched none of `checks-before-parsing`'s phrasings; two were added (a check first … digits/format, "without a
+  throw"), and catching or rewriting the input still fail it. The skill names the behaviour-preserving check
+  and puts a rewrite second.
+- **`fix-it` and the heap cases: the offer without its name** ("Fix `count()`: I can propose changes"). The
+  shared *Implement fixes* section now checks the close names **Implement fixes** word for word, and the
+  unreadable-export fallback `Glob`s for the classes the offer needs.
+- **`slow-endpoints`: one run read only the dashboards.** The traces route covers any question about slow
+  requests, the dashboards beside a slow trace and never instead of one. A later run explained the shared
+  stall but never checked the statements or the pool: ruling both out by their figures (`jdbc_overview`,
+  `jdbc_pools`) is now a step of its own, both named in the answer.
+- **Links with a tool's name as their text.** Every unmarked link of these passes was `` [`jvm_threads`](…) ``
+  or the like, and the rule's own example showed one. Link text is now the page's name, the tool in
+  backticks beside it.
+- **`write-report`: a user's figure measured with a flamegraph `search`**, which no fixture holds. The
+  `report` skill names the call that measures each kind of figure (a statement's count or time from
+  `jdbc_overview` and `jdbc_statementGroup`, a step from `traces_operationExport`, allocation from
+  `memory_allocations` or `compare_movements`). The next run narrowed the call sites to the one statement
+  (`filterField: name`), which the recordings did not hold either: the recorder now asks a grouped
+  call-sites answer again for each statement it lists, and the call-sites relay answers them.
+
+Measured on the final mocks (1,925 fixtures): a full pass, then `what-runs` again after its skill took the
+export `traces_slowestTraces` offers (a run had read the ninth-slowest trace, past the three recorded), three
+runs each.
+
+| | 1.0.31 | 1.0.32 |
+|---|---|---|
+| Runs passed | — | **74 of 75** |
+| Cases at 3 of 3 | — | **24 of 25** |
+| `fix-it` | 1 of 3 (0.73) | 3 of 3 |
+| `slow-endpoints` | 1 of 3 (0.87) | 3 of 3 |
+| `write-report` | 0 of 3 | 3 of 3 |
+| `lock-contention` | — | 2 of 3 (0.95): a page under **Not assessed** linked without ↗ |
+| `gc-pauses`, `what-runs`, `exception-sites`, `open-question`, heap cases | — | 3 of 3 each |
+
+Spend for this round: $103.40 — five full passes ($17.00, the first on a mock recorded at the wrong dump path;
+$15.89; $16.97; $17.53; $17.36 on the final mocks) and $18.65 of case re-runs. The live suite (`evals-live/`)
+was not run on 1.0.32: its cases keep their earlier replays on the Agent Plugin page.

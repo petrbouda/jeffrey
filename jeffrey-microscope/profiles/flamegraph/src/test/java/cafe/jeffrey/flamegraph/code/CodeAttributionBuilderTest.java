@@ -122,6 +122,25 @@ class CodeAttributionBuilderTest {
         }
 
         @Test
+        void aWrappersChargedCostNamesTheCodeOfAnotherClassThatCalledIt() {
+            // A database client's lambda is charged the driver's work; past its own class the code that asked is
+            // the repository, and a stack entering the client directly has no caller to name.
+            JfrStackFrame repository = frame("com.acme.Repository", "count", 30);
+            JfrStackFrame client = frame("com.acme.db.Client", "queryLong", 181);
+            JfrStackFrame clientLambda = frame("com.acme.db.Client", "lambda$queryLong$0", 182);
+            CodeAttribution wrapped = read(CodeQuery.of(OWN, List.of()), false,
+                    stack(60, THREAD_RUN, HANDLE, repository, client, PROXY, clientLambda, JDBC),
+                    stack(15, THREAD_RUN, HANDLE, client, clientLambda, JDBC),
+                    stack(5, THREAD_RUN, client, clientLambda, JDBC));
+
+            MethodCost lambda = own(wrapped, "com.acme.db.Client", "lambda$queryLong$0");
+            assertEquals(80, lambda.charged());
+            assertEquals(List.of(new MethodValue(new MethodKey("com.acme.Repository", "count"), 60),
+                            new MethodValue(new MethodKey("com.acme.web.Controller", "handle"), 15)),
+                    lambda.calledFrom());
+        }
+
+        @Test
         void anOwnCallerAboveIsInclusiveButNotCharged() {
             MethodCost handle = own(attribution, "com.acme.web.Controller", "handle");
             assertEquals(0, handle.charged());

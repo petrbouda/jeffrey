@@ -135,8 +135,9 @@ for the user's follow-up questions. Several picked groups: send each to a **`jfr
 agent — `microscope:jfr-analyst` from the Claude Code plugin, or the Codex custom agent from
 `codex/agents/jfr-analyst.toml` — one delegation per group, all in a single message so they run
 at once. Each returns the hot frames with their shares; several raw exports would otherwise crowd
-out the source reading that step 4 depends on. Without an agent, export the picked groups here one
-after another. A group the user did not pick is not exported, and is not delegated either.
+out the source reading that step 4 depends on. An export the client saved to a file the analyst cannot
+open comes back under **Saved, not read**, with its call: read those files here. Without an agent, export
+the picked groups here one after another. A group the user did not pick is not exported, and is not delegated either.
 
 When the recommendation is written, offer at most two further areas the evidence points at — each
 with its tag — rather than analysing them.
@@ -265,7 +266,11 @@ source, a Kotlin top-level function lives on `FileKt`, a Kotlin lambda or corout
 after its function (`Outer$method$1`). `code_method` takes the source spelling and lists every runtime
 name it merged in `matchedFrames` — read them before you name a line of source for a figure. A row of
 `code_hotspots` or `code_callSites`, and each of `compare_methods`' `unlistedMovers`, carries its
-`reference` in that spelling: pass it on as it is. A method `compare_methods` answers `NOT_SEEN` lists
+`reference` in that spelling: pass it on as it is, never the row's runtime `methodName`. A hotspot that
+is your own wrapper — a database client, an HTTP helper, a generic executor — is charged everything
+below it, so the change is rarely in it: its `calledFrom` names the code of yours in another class that
+asked for the cost (the repository method behind a query, the service behind a call), and that is where
+a fix lands. Name both. A method `compare_methods` answers `NOT_SEEN` lists
 `nearestReferences` — most often the same method with its nested class or package spelled out
 (`com.acme.Checkout.PriceCalculator#formatLine` for `Checkout#formatLine`). A `NOT_SEEN` method has
 no figures: if the answer's first `nextTools` entry is `compare_methods`, make that call before you
@@ -283,7 +288,7 @@ differential, a catalogue row, a ledger entry — make the name a Markdown link 
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
 a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
-leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+leads**, and a figure's source given as the page it was read off (`[slowest traces ↗](<its uiLink>)`) — the
 links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
@@ -299,6 +304,10 @@ it: every `](` closes a link text that holds `↗`.**
   hand opens the wrong page or none.
 - An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
   query — has none; say so rather than inventing one.
+- A tool's name is never link text. The link is the page, by its name — `[GC page ↗](<its uiLink>)` — and
+  a tool stays in backticks beside it, plain. A tool you did not call — a follow-up on offer, a check under
+  **Not assessed** — is named that way and not linked at all: `` `jvm_safepoints` `` alone, never
+  `` [`jvm_safepoints`](<a link>) `` and never the profile's own link in place of a page you have no link for.
 
 ## When something is missing
 

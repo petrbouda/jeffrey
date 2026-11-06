@@ -1,6 +1,6 @@
 ---
 name: report
-description: The shape and the evidence rules for any performance finding drawn from a Jeffrey Microscope profile — what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, what caps a claim at medium confidence, and how the questions a recording cannot answer are reported apart from the findings. Use whenever writing up an analysis, summarising an investigation, answering "what did you find", or handing conclusions to another person or agent — once analyze-jfr, analyze-heap, compare-jfr, regression-check or optimize-code has done the reading.
+description: The shape and the evidence rules for any performance finding drawn from a Jeffrey Microscope profile — what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, what caps a claim at medium confidence, and how the questions a recording cannot answer are reported apart from the findings. Use whenever writing up an analysis, summarising an investigation, answering "what did you find", or handing conclusions to another person or agent — after analyze-jfr, analyze-heap, compare-jfr, regression-check or optimize-code has done the reading, and just as much when the user brings findings from an earlier analysis and asks for them written up ("write that up for my team"), whose figures are read back from Jeffrey before they go into the report.
 ---
 
 # Reporting a finding
@@ -57,7 +57,19 @@ If you cannot name the call, you cannot make the claim. Delete it, or go and mea
 That holds for a figure the user hands you too — "most of the CPU is in X", "it blocks for about 80
 seconds". It is the question the report answers, not its evidence: when the profile is in Jeffrey,
 read each figure back with the call that measures it before writing it down, and report what that
-call said, even where it disagrees.
+call said, even where it disagrees. The call that measures it, by kind of figure:
+
+| The figure | Read back with |
+|---|---|
+| A statement's count or time ("an extra COUNT query costs 1.2 s") | `jdbc_overview`, then `jdbc_statementGroup` for its group; `code_callSites` for who issues it |
+| A request step's time | `traces_operationExport` of the operation, which totals each span across its requests |
+| An endpoint's latency | `traces_operations` (`sort: P95`) |
+| Allocation, or "more than before" | `memory_allocations`; `compare_movements` against the baseline for a change |
+| Where the CPU goes | `code_hotspots` with the repository's packages, or the CPU `flamegraph_export` |
+| Lock or GC time | `blocking_monitors`; `jvm_gc` |
+
+A count or a duration a dashboard holds is quoted from that dashboard: a flamegraph searched for a frame
+shows where it ran, not the figure the user named.
 
 A claim drawn from a file rather than a tool — an application log, a GC log or a crash file that
 `connector_fetchFile` put on this machine — names the file and the line instead, so the reader can open

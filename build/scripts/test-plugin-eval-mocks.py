@@ -231,6 +231,37 @@ class CodeToolsTest(RecorderSandbox):
         self.assertEqual(['code_method-com.acme.Checkout.Cache-busyWait-b.txt',
                           'code_method-com.acme.Checkout.Cache-touch-b.txt'], fixtures)
 
+    def test_a_method_the_recording_did_not_ask_about_is_rejected(self):
+        # The fixed mock answers a missing fixture with a tool error; the grader says the call was off the recording.
+        recorded = {'profileId': 'b', 'className': 'com.acme.Db', 'methodName': 'query', 'framePrefixes': ['com.acme.']}
+        _, pattern = self.record('code_method', self.METHOD_SCHEMA, [recorded],
+                                 lambda args: {'kinds': [{'eventType': 'jdk.ExecutionSample'}]})
+        self.assertFalse(self.violates(pattern, 'code_method', recorded))
+        for change in ({'methodName': 'lambda$query$0'}, {'className': 'org.lib.Template'}):
+            with self.subTest(change=change):
+                self.assertTrue(self.violates(pattern, 'code_method', {**recorded, **change}))
+        whole_class = {key: value for key, value in recorded.items() if key != 'methodName'}
+        self.assertTrue(self.violates(pattern, 'code_method', whole_class))
+
+    def test_an_event_type_is_answered_only_by_a_fixture_holding_that_kind(self):
+        # One recorded with a kind answers only that kind; one recorded with every kind answers each kind it lists.
+        own = {'framePrefixes': ['com.acme.']}
+        one_kind = {'profileId': 'b', 'className': 'com.acme.App', 'methodName': 'main',
+                    'eventType': 'jdk.ObjectAllocationSample', **own}
+        every_kind = {'profileId': 'b', 'className': 'com.acme.Db', 'methodName': 'count', **own}
+        kinds = {'main': ['jdk.ObjectAllocationSample'], 'count': ['jdk.ExecutionSample', 'profiler.WallClockSample']}
+        _, pattern = self.record('code_method', self.METHOD_SCHEMA, [one_kind, every_kind],
+                                 lambda args: {'kinds': [{'eventType': kind} for kind in kinds[args['methodName']]]})
+        self.assertFalse(self.violates(pattern, 'code_method', one_kind))
+        self.assertTrue(self.violates(pattern, 'code_method', {**one_kind, 'eventType': 'jdk.ExecutionSample'}))
+        self.assertTrue(self.violates(pattern, 'code_method',
+                                      {key: value for key, value in one_kind.items() if key != 'eventType'}))
+        self.assertFalse(self.violates(pattern, 'code_method', every_kind))
+        for kind in kinds['count']:
+            with self.subTest(kind=kind):
+                self.assertFalse(self.violates(pattern, 'code_method', {**every_kind, 'eventType': kind}))
+        self.assertTrue(self.violates(pattern, 'code_method', {**every_kind, 'eventType': 'jdk.JavaMonitorEnter'}))
+
     def test_suggested_prefixes_with_the_same_figures_are_accepted(self):
         given = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample', 'framePrefixes': ['com.acme.checkout.']}
         suggested = {'profileId': 'b', 'eventType': 'jdk.ExecutionSample'}
@@ -318,6 +349,24 @@ class RelayTest(RecorderSandbox):
             recorder.probe_unmatched(Server(), tools, recorded)
         recorder.write_mocks(tools, recorded)
         return recorded
+
+    def test_each_statement_a_grouped_answer_lists_is_asked_about_on_its_own(self):
+        arguments = {'profileId': 'pd', 'eventType': 'jeffrey.JdbcQuery'}
+        answer = {'groupBy': 'name', 'sites': [{'groupValue': 'count_query'}, {'groupValue': 'find_by_id'},
+                                               {'groupValue': 'count_query'}]}
+        self.assertEqual([('code_callSites', {**arguments, 'filterField': 'name', 'filterValue': value})
+                          for value in ('count_query', 'find_by_id')],
+                         recorder.statement_calls('code_callSites', arguments, answer))
+        filtered = {**arguments, 'filterField': 'name', 'filterValue': 'count_query'}
+        self.assertEqual([], recorder.statement_calls('code_callSites', filtered, answer))
+        self.assertEqual([], recorder.statement_calls('code_callSites', arguments, {**answer, 'groupBy': 'sql'}))
+
+    def test_the_first_slowest_traces_of_an_operation_are_each_exported(self):
+        # The answer offers its slowest trace's export; a model often reads the second or third instead.
+        traces = [{'traceId': f't{i}'} for i in range(5)]
+        calls = recorder.row_calls('traces_slowestTraces', {'profileId': 'pd', 'name': 'GET /x'}, {'traces': traces})
+        self.assertEqual([('traces_traceExport', {'profileId': 'pd', 'traceId': f't{i}'})
+                          for i in range(recorder.SLOWEST_EXPORTED)], calls)
 
     def test_every_operation_a_listing_names_is_recorded(self):
         recorded = self.record()
@@ -479,6 +528,20 @@ class CheckedInContractTest(unittest.TestCase):
             with self.subTest(call=item['call']):
                 self.assertEqual(item['fails'], failed)
 
+    def test_a_statements_call_sites_group_by_its_name_when_none_is_given(self):
+        # The server groups JDBC call sites by the statement's name by default, so naming it asks for the same
+        # answer; another field, or a grouping of a type with no default, is other figures.
+        schema = {'required': ['eventType', 'profileId'], 'properties': {
+            'profileId': {'type': 'string'}, 'eventType': {'type': 'string'}, 'groupBy': {'type': 'string'}}}
+        statements = recorder.input_pattern('code_callSites', schema, {'profileId': 'p', 'eventType': 'jeffrey.JdbcQuery'})
+        for given in ('{"profileId":"p","eventType":"jeffrey.JdbcQuery"}',
+                      '{"profileId":"p","eventType":"jeffrey.JdbcQuery","groupBy":"name"}'):
+            with self.subTest(given=given):
+                self.assertIsNotNone(re.fullmatch(statements, given))
+        self.assertIsNone(re.fullmatch(statements, '{"profileId":"p","eventType":"jeffrey.JdbcQuery","groupBy":"sql"}'))
+        monitors = recorder.input_pattern('code_callSites', schema, {'profileId': 'p', 'eventType': 'jdk.JavaMonitorEnter'})
+        self.assertIsNone(re.fullmatch(monitors, '{"profileId":"p","eventType":"jdk.JavaMonitorEnter","groupBy":"name"}'))
+
     def test_timeline_defaults_remain_counted(self):
         schema = {'required': ['eventType'], 'properties': {'eventType': {'type': 'string'}, 'useWeight': {'type': 'boolean'}}}
         pattern = recorder.input_pattern('timeline_hotWindows', schema, {'eventType': 'jdk.ObjectAllocationSample'})
@@ -516,6 +579,63 @@ class AnswerSizeTest(unittest.TestCase):
                 if len(each) > self.UNDECLARED_MAX_CHARS:
                     oversized.append(f'{fixture.name}: {len(each)}')
         self.assertEqual([], oversized)
+
+
+class EvalHostLimitTest(unittest.TestCase):
+    """`claude plugin eval` serves a mocked tool by its name, description and input schema only: the declared
+    `anthropic/maxResultSizeChars` of the recorded tools/list never reaches the eval child, which holds every
+    answer to the client's default limit and saves a longer one to a file. A real Jeffrey's answer arrives
+    inline. These are the recorded answers a run gets as a file only in an eval — each tool's fixture named
+    with the profile's name in place of its id — so a re-recording that moves one across shows here."""
+
+    CLIENT_DEFAULT_CHARS = AnswerSizeTest.UNDECLARED_MAX_CHARS
+    SAVED_ONLY_IN_AN_EVAL = [
+        'flamegraph_export-jdk.Deoptimization-baseline',
+        'flamegraph_export-jdk.Deoptimization-orders',
+        'flamegraph_export-jdk.ExecutionSample-personsDom',
+        'flamegraph_export-jdk.JavaErrorThrow-orders',
+        'flamegraph_export-jdk.JavaErrorThrow-personsDirect',
+        'flamegraph_export-jdk.JavaErrorThrow-personsDom',
+        'flamegraph_export-jdk.JavaExceptionThrow-orders',
+        'flamegraph_export-jdk.JavaExceptionThrow-personsDirect',
+        'flamegraph_export-jdk.JavaExceptionThrow-personsDom',
+        'flamegraph_export-jdk.ObjectAllocationInNewTLAB-personsDirect',
+        'flamegraph_export-jdk.ObjectAllocationSample-personsLock',
+        'flamegraph_export-jdk.ObjectAllocationSample-personsNPlusOne',
+        'flamegraph_export-jdk.ObjectAllocationSample-personsExceptions',
+        'flamegraph_export-jdk.ThreadPark-personsDom',
+        'flamegraph_export-jdk.ThreadStart-personsDirect',
+        'flamegraph_export-jdk.ThreadStart-personsDom',
+        'traces_operationFlamegraphExport-jeffrey.HttpServerExchange-jdk.ExecutionSample-SERVER-personsExceptions',
+        'traces_operationFlamegraphExport-jeffrey.HttpServerExchange-jdk.ExecutionSample-SERVER-personsLock',
+        'traces_operationFlamegraphExport-jeffrey.HttpServerExchange-jdk.ExecutionSample-SERVER-personsNPlusOne',
+        'traces_spanFlamegraphExport-jdk.ExecutionSample-personsExceptions-9276e062abbee2e6-4356d9e2df041f15',
+        'traces_spanFlamegraphExport-jdk.ExecutionSample-personsExceptions-afc1ab65beef0b91-dca36679f7f4e0b6',
+    ]
+
+    def test_the_eval_host_keeps_no_tool_meta(self):
+        # What the host reads of a saved tools/list; the recorded file keeps the rest for the next host that reads it.
+        mocks = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
+        tools = json.loads((mocks / '_tools.json').read_text())['tools']
+        declared = [tool['name'] for tool in tools if (tool.get('_meta') or {}).get('anthropic/maxResultSizeChars')]
+        self.assertIn('flamegraph_export', declared)
+
+    def test_the_answers_saved_to_a_file_only_in_an_eval(self):
+        mocks = ROOT / PLUGIN_DIR / 'evals/mocks/jeffrey'
+        tools = json.loads((mocks / '_tools.json').read_text())['tools']
+        declared = {tool['name'] for tool in tools if (tool.get('_meta') or {}).get('anthropic/maxResultSizeChars')}
+        recorded = json.loads((ROOT / PLUGIN_DIR / 'evals/fixtures/recorded-profiles.json').read_text())
+        names = {value: kind for kind, value in recorded.items() if isinstance(value, str)}
+        saved = []
+        for fixture in sorted((mocks / 'fixtures').glob('*.txt')):
+            tool = next((name for name in declared if fixture.name.startswith(name + '-')), None)
+            if tool is None or len(fixture.read_text()) <= self.CLIENT_DEFAULT_CHARS:
+                continue
+            stem = fixture.stem
+            for profile_id, kind in names.items():
+                stem = stem.replace(profile_id, kind)
+            saved.append(stem)
+        self.assertEqual(sorted(self.SAVED_ONLY_IN_AN_EVAL), sorted(saved))
 
 
 class ScaffoldTest(unittest.TestCase):

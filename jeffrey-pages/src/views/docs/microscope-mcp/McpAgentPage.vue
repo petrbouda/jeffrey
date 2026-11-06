@@ -81,6 +81,8 @@ lock:       jdk.JavaMonitorEnter, useWeight`;
       </table>
       <p>Both return findings only, about forty lines at most, and stop when handed no <code>profileId</code> or the other kind of profile.</p>
 
+      <p>An agent has no file tools, so an answer its client saved to a file instead of showing it &mdash; Claude Code does that past its output limit &mdash; is one it cannot open. It asks once for the same thing smaller (a flamegraph&rsquo;s <code>detail: SUMMARY</code>, a lower <code>limit</code>), never for a filter that changes the figures, and otherwise returns the file under <strong>Saved, not read</strong> with the call behind it; the skill that delegated reads it in your conversation.</p>
+
       <h2 id="installing">Installing</h2>
       <ul>
         <li><strong><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link></strong> &mdash; installed with the plugin, as <code>microscope:jfr-analyst</code> and <code>microscope:heap-analyst</code>.</li>

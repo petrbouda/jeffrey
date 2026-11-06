@@ -67,7 +67,9 @@ import cafe.jeffrey.profile.mcp.McpToolRequirement;
 import cafe.jeffrey.profile.mcp.ToolParamBounds;
 import cafe.jeffrey.profile.mcp.ToolParamValues;
 import cafe.jeffrey.profile.resources.request.GenerateTraceSpanFlamegraphRequest;
+import cafe.jeffrey.profile.model.EventSummaryResult;
 import cafe.jeffrey.profile.trace.export.TraceAiMarkdownBuilder;
+import cafe.jeffrey.profile.trace.export.TraceOnCpu;
 import cafe.jeffrey.profile.trace.export.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
 import cafe.jeffrey.provider.profile.api.TraceOperationId;
@@ -78,6 +80,7 @@ import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -174,6 +177,11 @@ public class TracesMcpTools {
     private static final String WHOLE_SPAN_WHY = "the whole span, children included";
     private static final String NO_PLATFORM_SPAN =
             "No span of this trace ran on a platform thread, so no profiler sample can be attributed to it.";
+    private static final String SPAN_ID_ARGUMENT = "spanId";
+    private static final String NO_ON_CPU_SAMPLES = "the profile recorded no on-CPU samples";
+    private static final String ONLY_VIRTUAL_THREADS =
+            "the trace ran only on virtual threads, whose samples the profiler files under their carriers";
+    private static final String NO_ROOT_WINDOW = "the trace's root span has no window to count samples in";
 
     private final ProfileManager profileManager;
     private final AdvertisedFamilies advertised;
@@ -482,12 +490,12 @@ public class TracesMcpTools {
         TraceExportSource source = traceManager().export(id)
                 .orElseThrow(() -> new ToolExecutionException(NO_SUCH_TRACE.formatted(traceId)));
         TraceDetail detail = source.detail();
-        String export = new TraceAiMarkdownBuilder(source).build();
 
         // A sample is matched to a span by thread and window, and the profiler files it under the
         // carrier: a trace that never left its virtual threads has nothing to draw, as the UI says.
         boolean reachable = detail.trace().hasPlatformSpan();
         Optional<String> onCpu = FollowUpCalls.recordedOnCpuEvent(profileManager);
+        String export = new TraceAiMarkdownBuilder(source, onCpuOf(id, detail, reachable, onCpu)).build();
         Optional<TraceSpanRow> busiest = detail.spans().stream()
                 .max(Comparator.comparingLong(TraceSpanRow::selfDurationNanos));
         NextSteps.Builder steps = NextSteps.builder(advertised);
@@ -511,6 +519,47 @@ public class TracesMcpTools {
         LinkedOutput.Footed text = LinkedOutput.footed(export, followUp, uiLink, null);
         return McpToolResult.of(text.text(), McpToolOutput.withDocument(export, (document, cut) -> new TraceExport(
                 profileId(), traceId.trim(), export.length(), document, cut || text.truncated(), followUp, uiLink)));
+    }
+
+    /**
+     * The on-CPU samples taken on the trace's threads inside its windows — the root span's own window and
+     * those of its descendants on other threads, as the span's inclusive flamegraph scopes them — which
+     * tell the export's residual running apart from not running.
+     */
+    private TraceOnCpu onCpuOf(long traceId, TraceDetail detail, boolean reachable, Optional<String> onCpuType) {
+        if (onCpuType.isEmpty()) {
+            return new TraceOnCpu.NotMeasured(NO_ON_CPU_SAMPLES);
+        }
+        if (!reachable) {
+            return new TraceOnCpu.NotMeasured(ONLY_VIRTUAL_THREADS);
+        }
+        Optional<TraceSpanRow> root = detail.spans().stream()
+                .filter(span -> span.parentSpanId() == null)
+                .findFirst();
+        List<SpanInterval> windows = root
+                .map(span -> traceManager().spanIntervals(traceId, parseId(span.spanId(), SPAN_ID_ARGUMENT), false))
+                .orElse(List.of());
+        if (windows.isEmpty()) {
+            return new TraceOnCpu.NotMeasured(NO_ROOT_WINDOW);
+        }
+        String type = onCpuType.get();
+        int threads = (int) windows.stream().mapToLong(SpanInterval::threadHash).distinct().count();
+        Optional<EventSummaryResult.SingleResult> counted = primaryOf(
+                profileManager.flamegraphManager().eventSummaries(SpanScope.of(windows)), type);
+        // A type with no sample inside the windows is left out of the scoped summaries, its sampling interval
+        // with it: the interval is the profile's, read from its own summary.
+        Map<String, String> extras = primaryOf(profileManager.flamegraphManager().eventSummaries(), type)
+                .map(EventSummaryResult.SingleResult::extras)
+                .orElse(Map.of());
+        return TraceOnCpu.Measured.of(type, counted.map(EventSummaryResult.SingleResult::samples).orElse(0L),
+                counted.map(EventSummaryResult.SingleResult::weight).orElse(0L), extras, threads);
+    }
+
+    private static Optional<EventSummaryResult.SingleResult> primaryOf(List<EventSummaryResult> summaries, String type) {
+        return summaries.stream()
+                .filter(summary -> type.equals(summary.code()))
+                .map(EventSummaryResult::primary)
+                .findFirst();
     }
 
     @Tool(description = "Exports, as a Markdown flamegraph, the samples taken while one span was open. "
@@ -540,7 +589,7 @@ public class TracesMcpTools {
             Boolean useWeight) {
 
         long trace = parseId(traceId, "traceId");
-        long span = parseId(spanId, "spanId");
+        long span = parseId(spanId, SPAN_ID_ARGUMENT);
         Type type = FlamegraphMcpTools.requireEventType(eventType);
         boolean self = Boolean.TRUE.equals(selfOnly);
         boolean perThread = Boolean.TRUE.equals(threadMode);

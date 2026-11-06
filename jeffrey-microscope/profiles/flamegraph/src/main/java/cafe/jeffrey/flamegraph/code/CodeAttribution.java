@@ -82,6 +82,10 @@ public record CodeAttribution(
      *                     ran below it, or the line itself when it was on top
      * @param delegatedTo  the frames directly below it that its charged cost went into, highest first;
      *                     what is left of {@code charged} is its {@code self}
+     * @param calledFrom   on the stacks charged to it, the nearest own frame above it in another class,
+     *                     highest first: for a wrapper (a database client, a helper) the code that asked
+     *                     for the cost. A stack on which it is the outermost own class gives none, so the
+     *                     values add up to at most {@code charged}
      */
     public record MethodCost(
             MethodKey method,
@@ -90,11 +94,13 @@ public record CodeAttribution(
             long charged,
             List<LineValue> chargedLines,
             List<MethodValue> delegatedTo,
+            List<MethodValue> calledFrom,
             List<TierValue> tiers) {
 
         public MethodCost {
             chargedLines = List.copyOf(chargedLines);
             delegatedTo = List.copyOf(delegatedTo);
+            calledFrom = List.copyOf(calledFrom);
             tiers = List.copyOf(tiers);
         }
     }

@@ -99,6 +99,9 @@ analysed. One row per area with data (`AVAILABLE` or `NEEDS_PREPARATION`), in th
 2. the suggested ones, marked ★;
 3. the rest.
 
+**Before you send it, check the first row: when the profile has traces it is Traces, and a ★ row
+comes second at the earliest.** The ★ is evidence; it never moves a row above Traces.
+
 Each row has its `title`, what its page shows in a few words, and `[↗ open](<its uiLink>)` — for a
 profile with traces and a suggested lock area, it starts:
 
@@ -174,10 +177,10 @@ from the menu, read three things from it and route:
 |---|---|
 | `capabilityGaps` names something the question needs | Say so first; a question the recording cannot answer is reported as **not assessed**, never as a negative result — the `report` skill has the shape |
 | `topFindings` carries a rule that fired | The finding's `nextTool` — a ready call, `{tool, arguments, why}` — for the figures behind the rule; a fired rule is a lead, not a diagnosis |
-| The question is "this endpoint is slow" and `TRACES` is not in `disabledFeatures` | `traces_operations`, then `traces_slowestTraces` → `traces_traceExport` of a slow request before any dashboard — `references/latency.md`; `http_overview` and `jdbc_overview` when traces are disabled |
+| The question is about slow requests — "this endpoint is slow", "which requests are slower than the rest", "why do some calls take so long" — and `TRACES` is not in `disabledFeatures` | `traces_operations`, then `traces_slowestTraces` → `traces_traceExport` of a slow request before any dashboard — `references/latency.md`. The dashboards (`http_overview`, `jdbc_overview`, `blocking_overview`) rule a cause in or out beside a slow trace, never instead of one, and are the route only when traces are disabled |
 | Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
 | Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
-| Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
+| Allocation samples are large, or GC is in `topFindings`, or the question is whether GC hurts | `jvm_gc` for whether it hurts, measured against the recording; a fraction of a percent is the answer, with no flag or setting to change — not even an optional one. Then the allocation flamegraph for why, when it does hurt |
 | A memory warning is in `topFindings` (usage near 100%, a container limit) | `jvm_configuration` (`GC_HEAP_CONFIGURATION`) and `jvm_container` before reading it — a pre-touched heap reads as full; `references/jvm.md` |
 | `jdk.OldObjectSample` is recorded, or the heap grows across the recording | `memory_leakCandidates`; a heap dump and `analyze-heap` for what retains it |
 | Two profiles of the same workload | `compare-jfr` |
@@ -247,6 +250,20 @@ the conversation never saw.
 Whatever it reports, keep here: mapping frames onto the checkout, the recommendation, and every
 question to the user. The analyst has no file tools and never proposes changes.
 
+A client may save an answer too long for it to a file rather than show it. The analyst cannot open
+one: it returns such files under **Saved, not read**, with the call behind each. Read each of them
+here with your own file tools before you write the answer — the one case an export is read in this
+conversation beside an analyst's — and never take the analyst's silence about one as a finding.
+
+When nobody here can open it — your read of the saved file is refused as well — the question is not
+lost, and you do not stop to ask. A question about where the application's code spends its time, with
+its repository checked out here, is answered by `code_hotspots` with the checkout's `framePrefixes` (see
+the `code-insight` skill): a small answer that ranks your methods by the cost charged to them, and whose
+`calledFrom` names the code behind a wrapper. Answer from it, say the graph itself was not read, and link
+it. Then `Glob` for the files of the classes it names — the check *Implement fixes* below needs — and
+close the same way whatever you could answer: when a finding names code this repository holds, offer
+**Implement fixes** by that name, never "I can read it and suggest changes".
+
 ## Grounding claims
 
 The exports carry call paths and figures. A frame may also carry a line, as `Class.method:214`, and
@@ -283,6 +300,9 @@ can become a change to its code. When it can, offer that as an option labelled e
 answer. In Claude Code close with `AskUserQuestion` whenever this option is on offer, a named area's
 answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
 starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
+Before you send a reply whose findings name code this repository holds, check its close: the option
+reads **Implement fixes**, word for word. "Fix `count()`: I can propose changes" is the same offer
+without its name, and the user cannot pick it.
 
 Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
 no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before
@@ -325,7 +345,7 @@ differential, a catalogue row, a ledger entry — make the name a Markdown link 
 `[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
 Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
 a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
-leads**, and a figure's source given as a link (`` [`traces_slowestTraces` ↗](<its uiLink>) ``) — the
+leads**, and a figure's source given as the page it was read off (`[slowest traces ↗](<its uiLink>)`) — the
 links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
 user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
 and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
@@ -341,6 +361,10 @@ it: every `](` closes a link text that holds `↗`.**
   hand opens the wrong page or none.
 - An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
   query — has none; say so rather than inventing one.
+- A tool's name is never link text. The link is the page, by its name — `[GC page ↗](<its uiLink>)` — and
+  a tool stays in backticks beside it, plain. A tool you did not call — a follow-up on offer, a check under
+  **Not assessed** — is named that way and not linked at all: `` `jvm_safepoints` `` alone, never
+  `` [`jvm_safepoints`](<a link>) `` and never the profile's own link in place of a page you have no link for.
 
 ## When something fails
 
