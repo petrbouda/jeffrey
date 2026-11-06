@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import ReplayPlayer from '@/components/plugin/ReplayPlayer.vue';
+import ReplayReply from '@/components/plugin/ReplayReply.vue';
 import ReplayRoute from '@/components/plugin/ReplayRoute.vue';
 import ReplayStepCard from '@/components/plugin/ReplayStepCard.vue';
 import ReplayTimeline from '@/components/plugin/ReplayTimeline.vue';
@@ -72,9 +73,6 @@ const failedReasons = computed(() =>
   run.value.graders.filter(grader => grader.passed === false && grader.explanation)
 );
 const reply = computed(() => run.value.reply ?? null);
-const replyCut = computed(() =>
-  reply.value !== null && (run.value.replyChars ?? 0) > reply.value.length
-);
 
 function graderTitle(passed: boolean | null, explanation?: string): string {
   const verdict = passed ? 'passed' : 'failed';
@@ -165,10 +163,7 @@ function runMark(passed: boolean | null): string {
 
       <template v-if="reply !== null">
         <div class="replay-prompt-label">The reply</div>
-        <p class="replay-prompt replay-reply">{{ reply }}</p>
-        <p v-if="replyCut" class="replay-note">
-          The first {{ reply.length }} of its {{ run.replyChars }} characters.
-        </p>
+        <ReplayReply :reply="reply" :reply-chars="run.replyChars ?? null" />
       </template>
     </section>
 
@@ -368,11 +363,6 @@ function runMark(passed: boolean | null): string {
 
 .replay-reasons li + li {
   margin-top: 4px;
-}
-
-.replay-reply {
-  max-height: 420px;
-  overflow-y: auto;
 }
 
 .replay-card {
