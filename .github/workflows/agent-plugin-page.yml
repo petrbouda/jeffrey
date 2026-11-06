@@ -5,7 +5,7 @@
 # agents, routing, case files or mocks it ran on have changed since (`plugin-usage-map.py --stale`), and every case is
 # when the server's main sources or the recorder changed since the mocks were recorded. Refresh with
 # /refresh-agent-plugin-page (`.claude/commands/refresh-agent-plugin-page.md`).
-name: Agent Plugin Page Freshness
+name: Validate Agent Plugin Page
 
 on:
   pull_request:

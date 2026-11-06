@@ -43,7 +43,7 @@ directory the heap cases name, runs the planned cases with `--keep-temp --no-pub
 regenerates the map with the version in `identity.json` straight after the runs — refusing when the plugin changed
 while they ran, since the digests would then describe files the runs never saw — prints each case's failed graders
 with their reasons, and removes the harness's run directories. It covers the mocked suite; the live cases stay
-stale until they are run against a loaded Jeffrey (below). On a pull request the **Agent Plugin Page Freshness**
+stale until they are run against a loaded Jeffrey (below). On a pull request the **Validate Agent Plugin Page**
 workflow posts the same plan as warnings, never a failure, since the runs cost model time.
 
 ## Seeing the runs
