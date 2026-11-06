@@ -3579,7 +3579,7 @@
   {
    "name": "code_hotspots",
    "title": "Code: Hotspots",
-   "description": "Ranks the application's own methods by the cost charged to them: each sample is charged to the deepest frame of your code on its stack, so the library, JDK and JVM work below it lands on the method of yours that asked for it - the method you can change. Each row has its charged, self and inclusive figures, the lines of the method the cost was taken on, the frames below it the cost went into (delegatedTo) and a uiLink to the graph with the method searched. framePrefixes are your source tree's root packages; omitted, the profile's busiest non-library packages are used and the answer says so. Not a call tree (flamegraph_export) and not a comparison (compare_methods). status NOT_RECORDED: no samples of eventType; NOT_SEEN: no stack held a frame under framePrefixes.",
+   "description": "Ranks the application's own methods by the cost charged to them: each sample is charged to the deepest frame of your code on its stack, so the library, JDK and JVM work below it lands on the method of yours that asked for it - the method you can change. Each row has its charged, self and inclusive figures, the lines of the method the cost was taken on, the frames below it the cost went into (delegatedTo), the code of yours in another class that called it (calledFrom: for a wrapper, the code that asked) and a uiLink to the graph with the method searched. framePrefixes are your source tree's root packages; omitted, the profile's busiest non-library packages are used and the answer says so. Not a call tree (flamegraph_export) and not a comparison (compare_methods). status NOT_RECORDED: no samples of eventType; NOT_SEEN: no stack held a frame under framePrefixes.",
    "inputSchema": {
     "type": "object",
     "properties": {
@@ -3814,6 +3814,32 @@
          },
          "description": "The frames directly below this method its charged cost went into, highest first; share of charged. What is left is self"
         },
+        "calledFrom": {
+         "type": "array",
+         "items": {
+          "type": "object",
+          "properties": {
+           "frame": {
+            "type": "string",
+            "description": "The frame, as Class#method for Java and the bare symbol for native code"
+           },
+           "value": {
+            "type": "integer"
+           },
+           "sharePct": {
+            "type": "number",
+            "description": "Its share of the method's own figure this row is part of, in percent"
+           }
+          },
+          "required": [
+           "frame",
+           "value",
+           "sharePct"
+          ],
+          "additionalProperties": false
+         },
+         "description": "The nearest frame of your code in another class above this method on the stacks charged to it, highest first; share of charged. For a wrapper - a database client, a helper - the code that asked for the cost. Empty where your code was entered here"
+        },
         "tiers": {
          "type": "array",
          "items": {
@@ -3853,6 +3879,7 @@
         "inclusivePct",
         "lines",
         "delegatedTo",
+        "calledFrom",
         "tiers",
         "uiLink"
        ],

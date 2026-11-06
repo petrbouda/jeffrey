@@ -26,7 +26,7 @@ The explicit `--threshold 1` requires every scored check to pass, including the 
 ## Seeing the runs
 
 ```bash
-python3 build/scripts/plugin-usage-map.py --recorded-version 1.0.31
+python3 build/scripts/plugin-usage-map.py --recorded-version 1.0.32
 ```
 
 This reads the traces `--keep-temp` left behind, through every `results/*/aggregate-result.json` in
@@ -1342,7 +1342,7 @@ On the mocks re-recorded with the relays, three runs each:
 
 Spend: $7.41.
 
-## Why fix-it and slow-endpoints still missed, and what changed
+## Plugin 1.0.32: why fix-it and slow-endpoints still missed, and what changed
 
 Read off the 1.0.31 replays (the traces were gone; the map kept the calls and the graders' verdicts):
 
@@ -1373,7 +1373,31 @@ Read off the 1.0.31 replays (the traces were gone; the map kept the calls and th
   (up to 6,000 characters, its full length beside it) and each grader's `explanation`; the Agent Plugin page
   shows the failed graders' reasons and the reply under the replay.
 
-These changes are not measured yet. The mocks predate `calledFrom` and the split residual: the
-`code_hotspots` and `traces_traceExport` fixtures hold the answers recorded before them, so a re-recording
-(`record-plugin-eval-mocks.py`) has to come before a paid run of `fix-it` and `slow-endpoints` can say what
-they changed.
+The mocks were re-recorded from a Jeffrey with these changes (`--reuse`, work dir `/tmp/jeffrey-eval`, the
+path the heap cases name: 102 tools, 1,533 fixtures), so `code_hotspots` carries `calledFrom` and 215 of the
+217 `traces_traceExport` fixtures split the residual — the slowest `GET /persons/{count}` reads "on CPU: under
+10ms … not seen running: at least ~161ms (94% of the residual)", and twelve of the persons dom traces name the
+container's throttling (118 of 301 CFS periods).
+
+**A saved answer nobody can read.** The first run on the new mocks showed one more difference from a real
+client: this harness also refuses the main conversation's read of the file a long answer was saved to ("File
+is in a directory that is denied by your permission settings"). With neither side able to open the CPU export,
+`fix-it` failed all three runs — one stopped to ask, one found `PersonRepository.count` in the source but
+closed with "If you'd like, I can look at…". `analyze-jfr` now answers a code question from `code_hotspots`
+with the checkout's `framePrefixes` when no one here can open the export, and closes with **Implement fixes**
+by that name whatever it could answer.
+
+One full mocked pass on plugin 1.0.32, three runs each: **20 of 25 cases at the threshold, overall 0.96,
+$15.89**.
+
+| Case | 1.0.31 | 1.0.32 | What missed |
+|---|---|---|---|
+| `fix-it` | 1 of 3 (0.73) | 3 of 3 (1.00) | — |
+| `slow-endpoints` | 1 of 3 (0.87) | 2 of 3 (0.87) | one run read only the dashboards, no slow trace, and blamed the lock |
+| `heap-dump-what-holds-memory`, `heap-offers-implement-fixes` | — | 3 of 3 each | — |
+| `write-report` | 0 of 3 | 0 of 3 (0.39) | two runs wrote the report from the prompt, reaching no skill and no tool; one called `code_callSites` grouped by name, which no recording holds |
+| `gc-pauses` | 3 of 3 | 0 of 3 (0.83) | two runs left a link unmarked, one failed the proportion judge |
+| `exception-sites`, `what-runs` | — | 2 of 3 each (0.96, 0.92) | the check before parsing not named; a reply not tied to the code |
+
+The live suite (`evals-live/`) was not run on 1.0.32: its cases keep their earlier replays on the Agent Plugin
+page.

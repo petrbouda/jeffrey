@@ -1,1 +1,0 @@
-{"profileId":"01a1ad46-e1f0-731f-8a80-ea9a15d81aac","view":"dashboard","objectId":null,"uiLink":"http://localhost:8586/profiles/01a1ad46-e1f0-731f-8a80-ea9a15d81aac/dashboard"}

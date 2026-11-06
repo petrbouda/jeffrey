@@ -252,6 +252,14 @@ one: it returns such files under **Saved, not read**, with the call behind each.
 here with your own file tools before you write the answer — the one case an export is read in this
 conversation beside an analyst's — and never take the analyst's silence about one as a finding.
 
+When nobody here can open it — your read of the saved file is refused as well — the question is not
+lost, and you do not stop to ask. A question about where the application's code spends its time, with
+its repository checked out here, is answered by `code_hotspots` with the checkout's `framePrefixes` (see
+the `code-insight` skill): a small answer that ranks your methods by the cost charged to them, and whose
+`calledFrom` names the code behind a wrapper. Answer from it, say the graph itself was not read, and link
+it. Whatever you could answer, the close is the same: when a finding names code this repository holds,
+offer **Implement fixes** by that name (see *Implement fixes* below), never "I can look into it".
+
 ## Grounding claims
 
 The exports carry call paths and figures. A frame may also carry a line, as `Class.method:214`, and

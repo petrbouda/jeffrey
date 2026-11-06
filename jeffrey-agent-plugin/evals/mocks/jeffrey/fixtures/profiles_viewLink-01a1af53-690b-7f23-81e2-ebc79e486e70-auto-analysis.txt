@@ -1,0 +1,1 @@
+{"profileId":"01a1af53-690b-7f23-81e2-ebc79e486e70","view":"auto-analysis","objectId":null,"uiLink":"http://localhost:8585/profiles/01a1af53-690b-7f23-81e2-ebc79e486e70/auto-analysis"}
