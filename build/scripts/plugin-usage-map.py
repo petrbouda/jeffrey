@@ -38,11 +38,16 @@ at `--out`, keeping the recorded `plugin` version and runs. `agentAliases` links
 names to current wiring without changing the recorded names. `test-plugin-usage-map.py` fails until
 the wiring is refreshed after a skill, agent or tool change.
 
+Each replay keeps a digest of what its runs depended on (`INPUT_GROUPS`); `--stale` lists the cases whose inputs
+have moved since, which `refresh-plugin-evals.py` runs again.
+
 Usage:
     python3 build/scripts/plugin-usage-map.py --recorded-version VERSION [--out …]
     python3 build/scripts/plugin-usage-map.py --wiring-only [--out …]
+    python3 build/scripts/plugin-usage-map.py --stale [--github] [--strict]
 """
 import argparse
+import hashlib
 import importlib.util
 import json
 import re
@@ -108,6 +113,15 @@ WORKLOADS = [
                "(one problem planted each) recorded with JFR under the testapp's own client."},
 ]
 NO_RECORDING = {"record-exceptions-next-time"}
+
+# What a replay's runs depended on, by group, so a later change to any of them marks the replay stale (`--stale`):
+# the skills the runs reached and the plugin agents they handed work to, every skill's description (which skill a
+# prompt reaches at all), the case's own files (prompt, scaffold, graders), and the answers the runs were given —
+# the recorded mocks for the mocked suite, the tools snapshot of the live Jeffrey for the live one.
+INPUT_GROUPS = ("skills", "agents", "routing", "case", "answers")
+SUITE_DIRS = {label: suite for suite, label in SUITES.items()}
+MOCKS_DIR = "mocks"
+FINGERPRINT_CHARS = 16
 
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.S)
 TAG_LIST = re.compile(r"^\[(.*)\]$")
@@ -294,6 +308,67 @@ def steps_of(lines) -> tuple[list[dict], dict[str, str]]:
     return steps, {MAIN_LANE: MAIN_LANE} | client_lanes | agent_lanes
 
 
+def digest(parts: list[tuple[str, bytes]]) -> str:
+    """One short sha256 over named byte strings, in name order: the same inputs always give the same digest."""
+    hashed = hashlib.sha256()
+    for name, data in sorted(parts):
+        hashed.update(name.encode() + b"\0" + hashlib.sha256(data).digest())
+    return hashed.hexdigest()[:FINGERPRINT_CHARS]
+
+
+def tree(root: Path, base: Path) -> list[tuple[str, bytes]]:
+    """Every file under `root`, named relative to `base`, leaving out dot entries (a harness's caches); a missing root
+    is one named marker, so a skill or agent that is gone changes the digest too."""
+    if not root.exists():
+        return [(f"missing:{root.relative_to(base)}", b"")]
+    if root.is_file():
+        return [(str(root.relative_to(base)), root.read_bytes())]
+    return [(str(path.relative_to(base)), path.read_bytes()) for path in sorted(root.rglob("*"))
+            if path.is_file() and not any(part.startswith(".") for part in path.relative_to(root).parts)]
+
+
+def reached(runs: list[dict]) -> tuple[set[str], set[str]]:
+    """The skills and the plugin agents a replay's runs reached, agents under their current names."""
+    skills = {step["name"] for run in runs for step in run["steps"] if step["kind"] == "skill"}
+    agents = {AGENT_ALIASES.get(step["name"], step["name"]) for run in runs for step in run["steps"]
+              if step["kind"] == "agent"}
+    return skills, agents
+
+
+def case_inputs(plugin: Path, suite: str, case: str, runs: list[dict]) -> dict[str, str]:
+    """The digest of each group of inputs a case's runs depended on (`INPUT_GROUPS`)."""
+    skills, agents = reached(runs)
+    suite_dir = plugin / SUITE_DIRS[suite]
+    descriptions = [(path.parent.name, (field(frontmatter(path.read_text()), "description") or "").encode())
+                    for path in sorted((plugin / "skills").glob("*/SKILL.md"))]
+    answers = tree(suite_dir / MOCKS_DIR, plugin) if suite == "mocked" else tree(ROOT / references.TOOLS_SNAPSHOT, ROOT)
+    return {"skills": digest([part for skill in skills for part in tree(plugin / "skills" / skill, plugin)]),
+            "agents": digest([part for agent in agents for part in tree(plugin / "agents" / f"{agent}.md", plugin)]),
+            "routing": digest(descriptions),
+            "case": digest(tree(suite_dir / "cases" / case, plugin)),
+            "answers": digest(answers)}
+
+
+def stale_replays(plugin: Path, data: dict) -> list[dict]:
+    """Every current case whose replay was recorded on other inputs than the plugin holds now, with the groups that
+    changed — or `None` for a replay recorded before inputs were kept — and the cases with no replay at all."""
+    current = {(label, prompt.parent.name) for suite, label in SUITES.items()
+               for prompt in (plugin / suite / "cases").glob("*/prompt.md")}
+    replays = {(replay["suite"], replay["case"]): replay for replay in data.get("replays", [])}
+    stale = []
+    for suite, case in sorted(current):
+        replay = replays.get((suite, case))
+        if replay is None:
+            stale.append({"suite": suite, "case": case, "changed": ["no replay"]})
+            continue
+        recorded = replay.get("inputs")
+        now = case_inputs(plugin, suite, case, replay["runs"])
+        changed = None if recorded is None else [group for group in INPUT_GROUPS if recorded.get(group) != now[group]]
+        if changed is None or changed:
+            stale.append({"suite": suite, "case": case, "changed": changed})
+    return stale
+
+
 def node_of(by: list[str]) -> str:
     return KIND_PREFIX[by[0]] + by[1]
 
@@ -355,6 +430,7 @@ def usage_of(plugin: Path, recorded_version: str | None = None, earlier: dict | 
                     latest[(label, case["name"])] = ({"suite": label, "case": case["name"],
                                                       "prompt": case.get("promptMarkdown", ""),
                                                       "at": report.get("startedAt"), "plugin": recorded_version,
+                                                      "inputs": case_inputs(plugin, label, case["name"], replays),
                                                       "runs": replays}, missing)
     for replay in (earlier or {}).get("replays", []):
         key = (replay["suite"], replay["case"])
@@ -399,6 +475,23 @@ def to_json(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
 
 
+def report_stale(out: Path, github: bool, strict: bool) -> int:
+    """`--stale`: each case whose replay no longer describes the plugin, and the inputs that moved under it."""
+    if not out.is_file():
+        print(f"No map at {out}.", file=sys.stderr)
+        return 1
+    stale = stale_replays(PLUGIN, json.loads(out.read_text()))
+    for entry in stale:
+        why = "recorded before inputs were kept" if entry["changed"] is None else "changed: " + ", ".join(entry["changed"])
+        line = f"{entry['suite']} case {entry['case']}: its Agent Plugin page replay is stale ({why})"
+        print(f"::warning file={out.relative_to(ROOT)}::{line}" if github else line)
+    if not stale:
+        print("Every case's replay was recorded on the inputs the plugin holds now.")
+    else:
+        print(f"{len(stale)} case(s) to run again: python3 build/scripts/refresh-plugin-evals.py", file=sys.stderr)
+    return 1 if stale and strict else 0
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT, help="the JSON to write")
@@ -407,7 +500,14 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--recorded-version", help="the plugin version used for every ingested trace; required for full generation")
     parser.add_argument("--drop-earlier", action="store_true",
                         help="keep no replay from the existing map: a case with no runs on disk leaves the page")
+    parser.add_argument("--stale", action="store_true",
+                        help="write nothing: list the cases whose replays were recorded on other inputs than the plugin "
+                             "holds now, and what changed")
+    parser.add_argument("--github", action="store_true", help="with --stale: one GitHub Actions warning per case")
+    parser.add_argument("--strict", action="store_true", help="with --stale: exit 1 when a case is stale")
     args = parser.parse_args(argv)
+    if args.stale:
+        return report_stale(args.out, args.github, args.strict)
     if args.wiring_only and args.recorded_version is not None:
         parser.error("--recorded-version cannot be combined with --wiring-only; the recorded version stays unchanged")
     if not args.wiring_only and not args.recorded_version:

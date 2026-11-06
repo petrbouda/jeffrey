@@ -1,0 +1,40 @@
+# Whether the docs site's Agent Plugin page still describes the plugin and the server.
+#
+# Free and offline: it plans what `build/scripts/refresh-plugin-evals.py --run` would run and posts it as warnings,
+# never as a failure, because bringing the page up to date costs model time. A replay is stale when the skills,
+# agents, routing, case files or mocks it ran on have changed since (`plugin-usage-map.py --stale`), and every case is
+# when the server's main sources or the recorder changed since the mocks were recorded. Refresh with
+# /refresh-agent-plugin-page (`.claude/commands/refresh-agent-plugin-page.md`).
+name: Validate Agent Plugin Page
+
+on:
+  pull_request:
+    paths:
+      - 'jeffrey-agent-plugin/**'
+      - 'build/plugin/**'
+      - 'build/mcp/tools-list.snapshot.json'
+      - 'build/scripts/record-plugin-eval-mocks.py'
+      - 'build/scripts/plugin-usage-map.py'
+      - 'build/scripts/refresh-plugin-evals.py'
+      - 'jeffrey-pages/src/data/plugin-usage.json'
+      - 'jeffrey-microscope/**/src/main/java/**'
+      - 'shared/**/src/main/java/**'
+      - '.github/workflows/agent-plugin-page.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  freshness:
+    name: Agent Plugin page freshness
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+    # The whole history: whether the server changed is read from the commit that last recorded the mocks.
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+
+    # The runner's own python3: the plan reads only the standard library.
+    - name: Report what the Agent Plugin page no longer describes
+      run: python3 build/scripts/refresh-plugin-evals.py --github

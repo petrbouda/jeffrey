@@ -273,6 +273,81 @@ class LatestRuns(unittest.TestCase):
             self.assertEqual([{"name": "offers-implement-fixes", "passed": False, "explanation": "No offer by that name."},
                               {"name": "no-edit", "passed": True}], run["graders"])
 
+    def _plugin_with_one_run(self, tmp):
+        """A plugin with two skills, one agent, one case and a mock, and one run of the case that reached one skill
+        and the agent."""
+        plugin = Path(tmp)
+        for name, description in (("first", "Reads profiles."), ("second", "Writes reports.")):
+            (plugin / "skills" / name / "references").mkdir(parents=True)
+            (plugin / "skills" / name / "SKILL.md").write_text(f"---\nname: {name}\ndescription: {description}\n---\n\nBody.\n")
+            (plugin / "skills" / name / "references" / "more.md").write_text("More.\n")
+        (plugin / "agents").mkdir()
+        (plugin / "agents" / "jfr-analyst.md").write_text("---\nname: jfr-analyst\n---\n\nReads.\n")
+        case = plugin / "evals/cases/kept"
+        (case / "graders").mkdir(parents=True)
+        (case / "prompt.md").write_text("---\nname: kept\ntags: [routing]\n---\n\nKeep it.\n")
+        (case / "graders" / "judge.md").write_text("---\ntype: llm\n---\n\nJudge it.\n")
+        (plugin / "evals/mocks/jeffrey").mkdir(parents=True)
+        (plugin / "evals/mocks/jeffrey/profiles_list.md").write_text("---\ntype: fixed\n---\n\n{}\n")
+        trace = plugin / "trace.jsonl"
+        trace.write_text("\n".join([
+            assistant("2026-11-05T10:00:00Z", ("k1", "Skill", {"skill": "microscope:first"})),
+            assistant("2026-11-05T10:00:01Z", ("k2", "Agent", {"subagent_type": "microscope:profile-analyst",
+                                                               "description": "Read"}))]) + "\n")
+        result = plugin / "evals/results/a/aggregate-result.json"
+        result.parent.mkdir(parents=True)
+        result.write_text(json.dumps({"startedAt": "a", "cases": [
+            {"name": "kept", "arms": {"with": [{"tracePath": str(trace), "passed": True}]}}]}))
+        return plugin, usage_map.usage_of(plugin, "1.0.0")
+
+    def test_stamps_each_replay_with_the_inputs_its_runs_depended_on(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin, usage = self._plugin_with_one_run(tmp)
+            inputs = usage["replays"][0]["inputs"]
+            self.assertEqual(set(usage_map.INPUT_GROUPS), set(inputs))
+            self.assertEqual([], usage_map.stale_replays(plugin, usage))
+
+    def test_a_change_under_a_replay_names_the_group_it_moved(self):
+        # The skill its runs reached (a reference too), the agent under its historical name, every skill's
+        # description, the case's graders, the recorded answers; a skill the runs never reached is not one of them.
+        changes = {"skills": ("skills/first/references/more.md", "Changed.\n"),
+                   "agents": ("agents/jfr-analyst.md", "---\nname: jfr-analyst\n---\n\nReads more.\n"),
+                   "routing": ("skills/second/SKILL.md", "---\nname: second\ndescription: Writes reports, now.\n---\n\nBody.\n"),
+                   "case": ("evals/cases/kept/graders/judge.md", "---\ntype: llm\n---\n\nJudge it harder.\n"),
+                   "answers": ("evals/mocks/jeffrey/profiles_list.md", "---\ntype: fixed\n---\n\n{\"profiles\": []}\n")}
+        for group, (path, text) in changes.items():
+            with self.subTest(group=group), tempfile.TemporaryDirectory() as tmp:
+                plugin, usage = self._plugin_with_one_run(tmp)
+                (plugin / path).write_text(text)
+                self.assertEqual([{"suite": "mocked", "case": "kept", "changed": [group]}],
+                                 usage_map.stale_replays(plugin, usage))
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin, usage = self._plugin_with_one_run(tmp)
+            (plugin / "skills/second/references/more.md").write_text("Not reached.\n")
+            self.assertEqual([], usage_map.stale_replays(plugin, usage))
+
+    def test_a_replay_recorded_before_inputs_were_kept_or_missing_is_stale(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plugin, usage = self._plugin_with_one_run(tmp)
+            without = {**usage, "replays": [{key: value for key, value in usage["replays"][0].items() if key != "inputs"}]}
+            self.assertEqual([{"suite": "mocked", "case": "kept", "changed": None}],
+                             usage_map.stale_replays(plugin, without))
+            self.assertEqual([{"suite": "mocked", "case": "kept", "changed": ["no replay"]}],
+                             usage_map.stale_replays(plugin, {**usage, "replays": []}))
+
+    def test_the_stale_report_warns_and_fails_only_when_asked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "map.json"
+            out.write_text(json.dumps({"replays": []}))
+            stale = [{"suite": "mocked", "case": "kept", "changed": ["skills"]}]
+            with patch.object(usage_map, "stale_replays", return_value=stale), \
+                    patch.object(usage_map, "ROOT", Path(tmp)), \
+                    contextlib.redirect_stdout(io.StringIO()) as printed, contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(0, usage_map.report_stale(out, github=True, strict=False))
+                self.assertEqual(1, usage_map.report_stale(out, github=False, strict=True))
+            self.assertIn("::warning file=map.json::mocked case kept", printed.getvalue())
+            self.assertIn("changed: skills", printed.getvalue())
+
     def test_a_run_that_wrote_no_reply_keeps_none(self):
         self.assertIsNone(usage_map.reply_of(TRACE))
 
