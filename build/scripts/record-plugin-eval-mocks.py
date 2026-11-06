@@ -1051,6 +1051,11 @@ WEIGHT_DEFAULTS = {"jdk.ExecutionSample": False, "jdk.ObjectAllocationSample": T
 WEIGHT_DEFAULT_TOOLS = {"flamegraph_export", "compare_flamegraph", "compare_movements", "code_hotspots",
                         "compare_methods"}
 FALSE_DEFAULTS = {"excludeIdle", "excludeNonJava", "threadMode", "includeJvmInternal", "compute", "retry", "errorsOnly"}
+# code_callSites groups a JDBC statement's call sites by its statement name when no groupBy is given (CodeSurfaceMcpTools'
+# JDBC_TYPES and STATEMENT_NAME_FIELD), so a call naming that field asks for the recorded answer.
+JDBC_EVENT_TYPES = {"jeffrey.JdbcQuery", "jeffrey.JdbcInsert", "jeffrey.JdbcUpdate", "jeffrey.JdbcDelete",
+                    "jeffrey.JdbcExecute", "jeffrey.JdbcStream"}
+STATEMENT_NAME_FIELD = "name"
 NO_DEFAULT = object()
 
 
@@ -1089,6 +1094,8 @@ def server_default(tool: str, name: str, prop: dict, arguments: dict):
         return WEIGHT_DEFAULTS.get(arguments.get("eventType"), NO_DEFAULT)
     if name == "useWeight" and tool == "timeline_hotWindows":
         return False
+    if name == "groupBy" and tool == "code_callSites":
+        return STATEMENT_NAME_FIELD if arguments.get("eventType") in JDBC_EVENT_TYPES else NO_DEFAULT
     if name in FALSE_DEFAULTS:
         return False
     return prop["default"] if "default" in prop else NO_DEFAULT

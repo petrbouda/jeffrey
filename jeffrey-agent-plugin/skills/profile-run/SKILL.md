@@ -124,6 +124,9 @@ it: every `](` closes a link text that holds `↗`.**
   hand opens the wrong page or none.
 - An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
   query — has none; say so rather than inventing one.
+- A tool you did not call — a follow-up on offer, a check under **Not assessed** — is named in backticks
+  and never linked, and never given the profile's own link in place of a page you have no link for:
+  `` `jvm_safepoints` `` alone, not `` [`jvm_safepoints`](<the profile's link>) ``.
 
 ## What this skill will not do
 

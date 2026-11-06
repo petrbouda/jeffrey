@@ -143,7 +143,7 @@ Each site gets exactly one of these, decided from the source you read:
 
 | Kind | What it looks like | Typical fix |
 |---|---|---|
-| **Control flow** | A high count, one or two messages, caught right away: `NumberFormatException` from parsing input, a "not found" exception turned into `Optional.empty()`, a loop broken by a throw | Check first (`tryParse`, `containsKey`, a validation method), or return a value instead of throwing |
+| **Control flow** | A high count, one or two messages, caught right away: `NumberFormatException` from parsing input, a "not found" exception turned into `Optional.empty()`, a loop broken by a throw | Check before parsing (`tryParse`, a format or digits check, `containsKey`, a validation method), so the same inputs take the same branch with no throw, or return a value instead of throwing. Rewriting the input first — stripping or reformatting it — changes what the method does: a second option at most, said as such |
 | **Swallowed** | Caught and ignored, or logged and continued, at a count that says it happens on every call | Fix the cause, or stop constructing it — a pre-allocated or stackless exception if the type is your own |
 | **Retry / timeout storm** | A library throw (`SocketTimeoutException`, `ConnectException`, a pool timeout) with your client call as `ownFrame`, many threads, bursts | A configuration finding (timeout, pool size, retry policy with backoff) or a dependency's problem — the code change is at the call site: fewer calls, a circuit breaker, a cache |
 | **Real failure** | An `Error`, or a rare class with varied messages that escapes to the caller | Fix the bug the message describes; `traces_operations` sorted by `ERRORS` says which requests it failed, when the profile has traces |

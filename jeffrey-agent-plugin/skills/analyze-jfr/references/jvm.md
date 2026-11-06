@@ -46,6 +46,11 @@ What the tools know and a hand-written query does not:
   produced the garbage. Once `jvm_gc` shows the budget matters, the allocation flamegraph —
   `jdk.ObjectAllocationSample`, `useWeight: true` — is what names the call paths. A heap dump
   answers the other half, what is *retained* rather than churned; that is `analyze-heap`.
+- **A GC that costs a fraction of a percent of the recording is the answer, not a lead.** Measure it
+  against the recording — the pause total against its length, or `jvm_gc`'s throughput — say GC is not
+  what hurts, and recommend nothing: no flag, not even an "optional" one. A collection cause such as
+  `Metadata GC Threshold` during warm-up is worth a line of context, not a setting; advice to change one
+  needs a problem behind it and `jvm_flags` read first (below).
 - **"GC looks fine and we still have pauses"** is `jvm_safepoints`. Every VM operation stops the
   application the same way a collection does, and a thread slow to yield holds all the others
   there — `_thread_in_Java` means a loop the JIT stripped the safepoint poll out of,

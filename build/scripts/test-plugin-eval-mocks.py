@@ -510,6 +510,20 @@ class CheckedInContractTest(unittest.TestCase):
             with self.subTest(call=item['call']):
                 self.assertEqual(item['fails'], failed)
 
+    def test_a_statements_call_sites_group_by_its_name_when_none_is_given(self):
+        # The server groups JDBC call sites by the statement's name by default, so naming it asks for the same
+        # answer; another field, or a grouping of a type with no default, is other figures.
+        schema = {'required': ['eventType', 'profileId'], 'properties': {
+            'profileId': {'type': 'string'}, 'eventType': {'type': 'string'}, 'groupBy': {'type': 'string'}}}
+        statements = recorder.input_pattern('code_callSites', schema, {'profileId': 'p', 'eventType': 'jeffrey.JdbcQuery'})
+        for given in ('{"profileId":"p","eventType":"jeffrey.JdbcQuery"}',
+                      '{"profileId":"p","eventType":"jeffrey.JdbcQuery","groupBy":"name"}'):
+            with self.subTest(given=given):
+                self.assertIsNotNone(re.fullmatch(statements, given))
+        self.assertIsNone(re.fullmatch(statements, '{"profileId":"p","eventType":"jeffrey.JdbcQuery","groupBy":"sql"}'))
+        monitors = recorder.input_pattern('code_callSites', schema, {'profileId': 'p', 'eventType': 'jdk.JavaMonitorEnter'})
+        self.assertIsNone(re.fullmatch(monitors, '{"profileId":"p","eventType":"jdk.JavaMonitorEnter","groupBy":"name"}'))
+
     def test_timeline_defaults_remain_counted(self):
         schema = {'required': ['eventType'], 'properties': {'eventType': {'type': 'string'}, 'useWeight': {'type': 'boolean'}}}
         pattern = recorder.input_pattern('timeline_hotWindows', schema, {'eventType': 'jdk.ObjectAllocationSample'})

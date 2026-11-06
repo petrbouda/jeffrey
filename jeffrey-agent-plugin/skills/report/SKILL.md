@@ -1,6 +1,6 @@
 ---
 name: report
-description: The shape and the evidence rules for any performance finding drawn from a Jeffrey Microscope profile — what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, what caps a claim at medium confidence, and how the questions a recording cannot answer are reported apart from the findings. Use whenever writing up an analysis, summarising an investigation, answering "what did you find", or handing conclusions to another person or agent — once analyze-jfr, analyze-heap, compare-jfr, regression-check or optimize-code has done the reading.
+description: The shape and the evidence rules for any performance finding drawn from a Jeffrey Microscope profile — what a finding must carry before it is worth writing down, how a figure is quoted and against what denominator, what caps a claim at medium confidence, and how the questions a recording cannot answer are reported apart from the findings. Use whenever writing up an analysis, summarising an investigation, answering "what did you find", or handing conclusions to another person or agent — after analyze-jfr, analyze-heap, compare-jfr, regression-check or optimize-code has done the reading, and just as much when the user brings findings from an earlier analysis and asks for them written up ("write that up for my team"), whose figures are read back from Jeffrey before they go into the report.
 ---
 
 # Reporting a finding

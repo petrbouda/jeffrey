@@ -133,7 +133,10 @@ exercised in this recording, an operation with no attribute of its own is one th
 describes, a custom event recorded without stacks cannot name its caller. Read `entryBasis` before
 naming a handler: `EVENT_STACK` is recorded (the stacks of the statements the requests issued),
 `SAMPLED_SPANS` is inferred from where samples landed — read `ownSamples`, two samples place an
-operation loosely — and say which.
+operation loosely — and say which. When the question is what one request runs step by step, its steps
+and their order come from the profile, not from reading the handler: `traces_operationExport` lists
+the operation's spans, each with its share of the operation's time. Name each step as the profile records it
+(the span's name) beside the code that runs it, and mark anything taken from the source alone as such.
 
 **Who issues a statement or a call** — "which line runs this query", "where is the N+1" —
 `code_callSites` with the event type (`jeffrey.JdbcQuery` and its siblings; `jdk.SocketRead`,
@@ -187,3 +190,6 @@ it: every `](` closes a link text that holds `↗`.**
   hand opens the wrong page or none.
 - An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
   query — has none; say so rather than inventing one.
+- A tool you did not call — a follow-up on offer, a check under **Not assessed** — is named in backticks
+  and never linked, and never given the profile's own link in place of a page you have no link for:
+  `` `jvm_safepoints` `` alone, not `` [`jvm_safepoints`](<the profile's link>) ``.

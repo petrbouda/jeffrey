@@ -174,7 +174,7 @@ from the menu, read three things from it and route:
 |---|---|
 | `capabilityGaps` names something the question needs | Say so first; a question the recording cannot answer is reported as **not assessed**, never as a negative result — the `report` skill has the shape |
 | `topFindings` carries a rule that fired | The finding's `nextTool` — a ready call, `{tool, arguments, why}` — for the figures behind the rule; a fired rule is a lead, not a diagnosis |
-| The question is "this endpoint is slow" and `TRACES` is not in `disabledFeatures` | `traces_operations`, then `traces_slowestTraces` → `traces_traceExport` of a slow request before any dashboard — `references/latency.md`; `http_overview` and `jdbc_overview` when traces are disabled |
+| The question is about slow requests — "this endpoint is slow", "which requests are slower than the rest", "why do some calls take so long" — and `TRACES` is not in `disabledFeatures` | `traces_operations`, then `traces_slowestTraces` → `traces_traceExport` of a slow request before any dashboard — `references/latency.md`. The dashboards (`http_overview`, `jdbc_overview`, `blocking_overview`) rule a cause in or out beside a slow trace, never instead of one, and are the route only when traces are disabled |
 | Execution or CPU-time samples dominate `eventTypes` | `flamegraph_export` of that type, after `timeline_hotWindows` when the shape over time matters |
 | Threads spent the time waiting rather than running | `blocking_` and `io_` — the waiting a CPU graph cannot see |
 | Allocation samples are large, or GC is in `topFindings` | `jvm_gc` for whether it hurts, then the allocation flamegraph for why |
@@ -354,6 +354,9 @@ it: every `](` closes a link text that holds `↗`.**
   hand opens the wrong page or none.
 - An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
   query — has none; say so rather than inventing one.
+- A tool you did not call — a follow-up on offer, a check under **Not assessed** — is named in backticks
+  and never linked, and never given the profile's own link in place of a page you have no link for:
+  `` `jvm_safepoints` `` alone, not `` [`jvm_safepoints`](<the profile's link>) ``.
 
 ## When something fails
 

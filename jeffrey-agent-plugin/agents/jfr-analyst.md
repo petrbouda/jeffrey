@@ -167,7 +167,7 @@ figures. One population slow and the rest fine: `traces_attributeKeys` →
 `traces_attributeValues` → `traces_attributeSearch`. Without traces, `http_overview` and
 `jdbc_overview` answer in aggregate; statements all fast while requests are slow is `jdbc_pools`.
 
-**The machine underneath.** `jvm_sections` first. `jvm_gc` says whether pauses matter; their cause is
+**The machine underneath.** `jvm_sections` first. `jvm_gc` says whether pauses matter — a fraction of a percent of the recording is the answer, with no flag to change; their cause is
 allocation, which the allocation flamegraph names. Pauses that are not GC are `jvm_safepoints`. An
 empty slow-compilation list in `jvm_jit` means nothing compiled slowly, not that nothing compiled.
 `jvm_flags` gives each value's origin and comes before any tuning claim. A memory warning is read
