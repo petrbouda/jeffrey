@@ -134,14 +134,22 @@ final class ProjectRetentionPass {
                 session.id(), session.name(), session.instanceId(), session.createdAt(), session.newest(), kept));
     }
 
-    /** Deletes an instance's directory; a failure is logged and the next pass tries again. */
-    void deleteInstance(String instanceId) {
+    /**
+     * Deletes an instance's directory unless it holds a session or cannot be listed; a failure is
+     * logged and the next pass tries again.
+     *
+     * @return whether it was deleted
+     */
+    boolean deleteInstance(String instanceId) {
         try {
-            storage.deleteInstanceDirectory(instanceId);
-            instancesDeleted++;
+            if (storage.deleteInstanceDirectory(instanceId)) {
+                instancesDeleted++;
+                return true;
+            }
         } catch (RuntimeException e) {
             LOG.warn("Failed to delete instance directory: instance_id={}", instanceId, e);
         }
+        return false;
     }
 
     Outcome outcome() {

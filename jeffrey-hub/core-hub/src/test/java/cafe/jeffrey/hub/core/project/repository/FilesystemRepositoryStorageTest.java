@@ -473,4 +473,45 @@ class FilesystemRepositoryStorageTest {
             assertTrue(Files.exists(outside), "an id is matched against the session's files, not resolved to a path");
         }
     }
+
+    /**
+     * The stale-instance rule's delete: the instance goes with everything in it, so it is looked at
+     * once more first, and a session found there keeps it.
+     */
+    @Nested
+    class DeleteInstanceDirectory {
+
+        @TempDir
+        Path workspacesDir;
+
+        private FilesystemRepositoryStorage storage() {
+            return TestVolume.storage(PROJECT_INFO, workspacesDir, projectDir(workspacesDir));
+        }
+
+        @Test
+        void deletesAnInstanceThatHoldsNoSession() throws IOException {
+            Path instance = TestVolume.instance(projectDir(workspacesDir), "abandoned");
+            Files.createDirectories(instance.resolve("not-a-session"));
+
+            assertTrue(storage().deleteInstanceDirectory("abandoned"));
+            assertFalse(Files.exists(instance));
+        }
+
+        /** A session laid down after the rule listed the instance as empty keeps it. */
+        @Test
+        void keepsAnInstanceThatHoldsASession() {
+            Path instance = TestVolume.instance(projectDir(workspacesDir), "pod-a");
+            Path session = TestVolume.session(instance, T0);
+
+            assertFalse(storage().deleteInstanceDirectory("pod-a"));
+            assertTrue(Files.isDirectory(session));
+        }
+
+        @Test
+        void deletesNothingForAnInstanceThatIsNotThere() {
+            projectDir(workspacesDir);
+
+            assertFalse(storage().deleteInstanceDirectory("missing"));
+        }
+    }
 }

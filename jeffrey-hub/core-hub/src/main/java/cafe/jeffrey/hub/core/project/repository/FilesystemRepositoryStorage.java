@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
@@ -198,14 +197,25 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         return deletion;
     }
 
+    /**
+     * Looks at the instance once more before deleting it with everything in it: a session the
+     * provisioner laid down since it was listed keeps it, and so does a listing that fails, which
+     * would otherwise read as no session at all.
+     */
     @Override
-    public void deleteInstanceDirectory(String instanceId) {
-        Optional<VolumePath> instanceDir = tree.instance(instanceId).map(InstanceDirectory::path);
-        if (instanceDir.isEmpty()) {
-            return;
+    public boolean deleteInstanceDirectory(String instanceId) {
+        Optional<InstanceDirectory> instance = tree.instance(instanceId);
+        if (instance.isEmpty()) {
+            return false;
         }
-        volume.delete(instanceDir.get());
-        LOG.info("Deleted instance directory: instance_path={}", instanceDir.get());
+        if (tree.holdsAnySession(instance.get())) {
+            LOG.warn("Kept an instance directory that holds a session or cannot be listed: instance_path={}",
+                    instance.get().path());
+            return false;
+        }
+        volume.delete(instance.get().path());
+        LOG.info("Deleted instance directory: instance_path={}", instance.get().path());
+        return true;
     }
 
     // ========== Session Compression ==========

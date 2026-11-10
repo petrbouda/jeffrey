@@ -124,10 +124,27 @@ public final class ProjectTree {
 
     /**
      * Whether any directory is left in an instance: one the provisioner has created but whose
-     * profiler has not written yet is a session about to start.
+     * profiler has not written yet is a session about to start. Asked before the instance is
+     * deleted with everything in it, so an instance that cannot be listed holds everything: read
+     * as empty, one failed listing would delete the instance's other sessions, its live one too.
      */
     boolean holdsAnyDirectory(VolumePath instanceDir) {
-        return !VolumeDirectories.childDirectories(volume, instanceDir).isEmpty();
+        return VolumeDirectories.childDirectoryEntriesIfListed(volume, instanceDir)
+                .map(directories -> !directories.isEmpty())
+                .orElse(true);
+    }
+
+    /**
+     * Whether an instance holds any session, asked before it is deleted with everything in it: an
+     * instance that cannot be listed holds them all, for the same reason as
+     * {@link #holdsAnyDirectory}.
+     */
+    public boolean holdsAnySession(InstanceDirectory instance) {
+        return VolumeDirectories.childDirectoryEntriesIfListed(volume, instance.path())
+                .map(directories -> directories.stream()
+                        .map(VolumeEntry::path)
+                        .anyMatch(directory -> sessionDirectory(directory).isPresent()))
+                .orElse(true);
     }
 
     // ========== Sessions ==========
@@ -140,14 +157,21 @@ public final class ProjectTree {
      */
     public List<SessionHeader> sessionsNewestFirst(InstanceDirectory instance) {
         List<SessionDirectory> newestFirst = VolumeDirectories.childDirectories(volume, instance.path()).stream()
-                .flatMap(dir -> IDGenerator.timestampOf(dir.name())
-                        .map(start -> new SessionDirectory(dir, start))
-                        .stream())
+                .flatMap(dir -> sessionDirectory(dir).stream())
                 .sorted(NEWEST_FIRST)
                 .toList();
         return newestFirst.stream()
                 .map(session -> new SessionHeader(session, session.equals(newestFirst.getFirst())))
                 .toList();
+    }
+
+    /**
+     * The one test of whether a directory under an instance is a session: a name that is a
+     * time-ordered id (a UUIDv7), which also says when it started. Nothing is read to tell.
+     */
+    private static Optional<SessionDirectory> sessionDirectory(VolumePath directory) {
+        return IDGenerator.timestampOf(directory.name())
+                .map(start -> new SessionDirectory(directory, start));
     }
 
     /**

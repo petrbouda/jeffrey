@@ -18,7 +18,9 @@
 package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.volume.FilesystemVolume;
+import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
+import cafe.jeffrey.shared.volume.WritableVolume;
 import cafe.jeffrey.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -108,6 +111,82 @@ class VolumeChangesTest {
         @Test
         void isNotFoundForASessionTheProjectDoesNotHold() {
             assertEquals(SessionDeletion.NOT_FOUND, VolumeChanges.deleteSession(volume, project(), "missing"));
+        }
+    }
+
+    /**
+     * The instance goes with its last session only when one listing says nothing is left. A
+     * listing that fails says nothing about what is there: read as empty, it would delete the
+     * instance with every other session in it, the live one too.
+     */
+    @Nested
+    class WhenTheInstanceCannotBeListedAfterTheDelete {
+
+        @Test
+        void keepsTheInstanceAndItsOtherSessions() {
+            Path instance = VolumeWriter.instance(projectDir, "pod-a");
+            String older = VolumeWriter.session(instance, T0).getFileName().toString();
+            Path live = VolumeWriter.session(instance, T0.plusSeconds(600));
+            FailsToListAfterADelete flaky = new FailsToListAfterADelete(volume, instancePath("pod-a"));
+
+            assertEquals(SessionDeletion.SESSION_DELETED, VolumeChanges.deleteSession(flaky, project(flaky), older));
+            assertFalse(Files.exists(instance.resolve(older)));
+            assertTrue(Files.isDirectory(live), "the live session must survive a listing that failed");
+        }
+
+        @Test
+        void keepsTheInstanceEvenAfterItsLastSession() {
+            Path instance = VolumeWriter.instance(projectDir, "pod-a");
+            String last = VolumeWriter.session(instance, T0).getFileName().toString();
+            FailsToListAfterADelete flaky = new FailsToListAfterADelete(volume, instancePath("pod-a"));
+
+            assertEquals(SessionDeletion.SESSION_DELETED, VolumeChanges.deleteSession(flaky, project(flaky), last));
+            assertTrue(Files.isDirectory(instance), "an instance that cannot be listed is kept for a later pass");
+        }
+
+        private VolumePath instancePath(String instanceId) {
+            return WORKSPACE.resolve(projectDir.getFileName().toString()).resolve(instanceId);
+        }
+
+        private ProjectTree project(WritableVolume over) {
+            return ProjectTree.at(over, WORKSPACE.resolve(projectDir.getFileName().toString())).orElseThrow();
+        }
+    }
+
+    /** The volume, except that one directory cannot be listed once anything has been deleted. */
+    private static final class FailsToListAfterADelete implements WritableVolume {
+
+        private final WritableVolume delegate;
+        private final VolumePath unlistable;
+        private boolean deleted;
+
+        private FailsToListAfterADelete(WritableVolume delegate, VolumePath unlistable) {
+            this.delegate = delegate;
+            this.unlistable = unlistable;
+        }
+
+        @Override
+        public List<VolumeEntry> list(VolumePath directory) {
+            if (deleted && directory.equals(unlistable)) {
+                throw new UncheckedIOException(new IOException("Stale file handle: " + directory));
+            }
+            return delegate.list(directory);
+        }
+
+        @Override
+        public Optional<VolumeEntry> stat(VolumePath path) {
+            return delegate.stat(path);
+        }
+
+        @Override
+        public Optional<OpenedFile> open(VolumePath file) {
+            return delegate.open(file);
+        }
+
+        @Override
+        public void delete(VolumePath path) {
+            delegate.delete(path);
+            deleted = true;
         }
     }
 }

@@ -32,7 +32,8 @@ import java.util.Optional;
  * What a level of the volume is: the visible directories one listing of its parent names, and
  * whether one directory is there. Dot-directories are the volume's own bookkeeping. A listing or a
  * look that fails reads as nothing there, logged, so one unreadable directory leaves only its own
- * subtree out.
+ * subtree out. A deletion must never read a failure that way — nothing there is what lets it
+ * delete — so it asks {@link #childDirectoryEntriesIfListed}, which tells the two apart.
  */
 public final class VolumeDirectories {
 
@@ -45,15 +46,23 @@ public final class VolumeDirectories {
 
     /** The visible child directories as one listing names them, sorted by name; none when unlistable. */
     public static List<VolumeEntry> childDirectoryEntries(VolumeAccess volume, VolumePath parent) {
+        return childDirectoryEntriesIfListed(volume, parent).orElseGet(List::of);
+    }
+
+    /**
+     * The visible child directories as one listing names them, sorted by name, or empty when the
+     * listing failed, so a caller can tell an unreadable directory from one with nothing in it.
+     */
+    public static Optional<List<VolumeEntry>> childDirectoryEntriesIfListed(VolumeAccess volume, VolumePath parent) {
         try {
-            return volume.list(parent).stream()
+            return Optional.of(volume.list(parent).stream()
                     .filter(VolumeEntry::isDirectory)
                     .filter(entry -> !entry.path().isHidden())
                     .sorted(BY_NAME)
-                    .toList();
+                    .toList());
         } catch (UncheckedIOException e) {
             LOG.warn("Cannot list directory: path={}", parent, e);
-            return List.of();
+            return Optional.empty();
         }
     }
 
