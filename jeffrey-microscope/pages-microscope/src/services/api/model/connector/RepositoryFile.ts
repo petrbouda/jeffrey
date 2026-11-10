@@ -29,6 +29,12 @@ export default class RepositoryFile {
      * and it may still be on its way onto the volume.
      */
     public newestRecording: boolean,
-    public isRecording: boolean
+    public isRecording: boolean,
+    /**
+     * The file number async-profiler wrote into a recording's name, or null for a name without one
+     * and for any other file. A session's chunks are ordered by it, not by `createdAt`: the time
+     * in a name goes back an hour when daylight saving ends, the number never does.
+     */
+    public sequence: number | null = null
   ) {}
 }

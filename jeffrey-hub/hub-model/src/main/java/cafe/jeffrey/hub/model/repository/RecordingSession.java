@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.hub.model.repository;
 
+import cafe.jeffrey.shared.common.JeffreyLayout;
+
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
@@ -37,12 +39,14 @@ public record RecordingSession(
         boolean newest,
         List<RepositoryFile> files) {
 
+    /** The order of a session's chunks: the one rule both sides keep, in {@link JeffreyLayout}. */
+    private static final Comparator<RepositoryFile> RECORDING_ORDER =
+            JeffreyLayout.recordingOrder(RepositoryFile::id, RepositoryFile::createdAt);
+
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
      * below can ask it about its files without first asking whether it has any.
      */
-    private static final Comparator<RepositoryFile> BY_START = Comparator.comparing(RepositoryFile::createdAt);
-
     public RecordingSession {
         files = files == null ? List.of() : files;
     }
@@ -66,11 +70,13 @@ public record RecordingSession(
      * newest recording of the instance's newest session. A session with a newer one after it holds
      * none, and neither does a newest session that has written no recording yet.
      *
-     * <p>Newest by {@link RepositoryFile#createdAt()} — the timestamp the profiler put in the
-     * file's own name — and emphatically not by position in a listing, which is sorted for
-     * presentation, nor by the file being uncompressed, which only says the hub has not reached
-     * it yet. Every other reader of these files orders them by that timestamp, and a second
-     * notion of "newest" in the same tree is what let the two disagree.
+     * <p>Newest in {@link JeffreyLayout#recordingOrder} — by the file number the profiler put in
+     * the file's own name, else by the timestamp there — and emphatically not by position in a
+     * listing, which is sorted for presentation, nor by the file being uncompressed, which only
+     * says the hub has not reached it yet. Not by the timestamp alone either: it goes back an hour
+     * when daylight saving ends, and the chunk being written would read older than the one before.
+     * Every other reader of these files orders them the same way, and a second notion of "newest"
+     * in the same tree is what let the two disagree.
      *
      * <p>Load-bearing: the compression job refuses to touch this file and both retention rules
      * that trim files refuse to delete it. Only meaningful when the session was loaded WITH files.
@@ -79,7 +85,7 @@ public record RecordingSession(
         if (!newest) {
             return Optional.empty();
         }
-        return recordings().max(BY_START);
+        return recordings().max(RECORDING_ORDER);
     }
 
     /**
@@ -91,7 +97,7 @@ public record RecordingSession(
         Optional<RepositoryFile> open = openRecording();
         return recordings()
                 .filter(file -> open.filter(file::equals).isEmpty())
-                .sorted(BY_START)
+                .sorted(RECORDING_ORDER)
                 .toList();
     }
 

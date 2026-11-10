@@ -241,6 +241,19 @@ class ProjectTreeTest {
                     "a nested directory is no file of the session");
         }
 
+        /** A chunk named through today's template: its id keeps the file number, its start is the name's. */
+        @Test
+        void readsAChunkNamedWithItsFileNumber() {
+            String name = VolumeWriter.recordingName(T0, ZoneOffset.ofHours(1), 3);
+            VolumeWriter.file(session, name, "chunk");
+
+            SessionFile chunk = tree.files(sessionPath).getFirst();
+            assertEquals("rec-20260220-130000+0100_3.jfr", chunk.name());
+            assertEquals("rec-20260220-130000+0100_3", chunk.id());
+            assertEquals(T0, chunk.createdAt());
+            assertTrue(chunk.recording());
+        }
+
         /**
          * async-profiler deletes its cache file as soon as it flushes a chunk, so a name the
          * listing has just read can be gone before its size is asked for. The next listing will

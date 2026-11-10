@@ -54,8 +54,8 @@ const layoutExample = `/tmp/jeffrey/workspaces/          <- local.path
     orders/                         project
       pod-a/                        instance
         019c7b8e-...-8000.../       session (UUIDv7: its start time)
-          rec-20260220-121000+0000.jfr
-          rec-20260220-121500+0000.jfr
+          rec-20260220-121000+0000_0.jfr
+          rec-20260220-121500+0000_1.jfr
           gc.log`;
 
 const localLoopExample = `# One home directory shared by all three
