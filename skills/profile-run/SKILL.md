@@ -1,0 +1,147 @@
+---
+name: profile-run
+description: "Runs this project under a profiler and analyses what comes out — a benchmark, a test, a load script or the application itself, recorded with JFR or async-profiler, imported into a running Jeffrey Microscope and handed to analyze-jfr. Use whenever the user wants to profile something that is not recorded yet: \"profile this benchmark\", \"record a JFR while the tests run\", \"why is this slow\" with no recording in hand, or when a hotspot needs measuring rather than guessing — and when they ask how to record what a recording lacks: which JFR settings or async-profiler events capture exception types, locks, allocation or wall-clock time, per JDK version (\"how do I record the exception types next time\")."
+allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__* Bash(git rev-parse *) Bash(git status *)
+argument-hint: "[what to run] [cpu|wall|alloc|lock]"
+---
+
+# Recording a profile, then reading it
+
+Every other skill here starts from a recording that already exists. This one starts from a command
+that does not have a recording yet, and ends where `analyze-jfr` begins.
+
+Requested scope: `$ARGUMENTS` — what to run, and optionally what to look for. Empty means ask, or
+infer from the repository if a benchmark or a test is the obvious thing to profile.
+
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase.
+
+## 1. Decide what to run, and say so before running it
+
+Profiling costs minutes and, for a load test, may touch things outside this machine. Name the
+command and the recording it will produce, then run it.
+
+Look for the target in this order: a benchmark the user named; a JMH harness (`jmh-tests`,
+`*Benchmark.java`); the test task; an entry point with a `main`. If none is obvious, ask — profiling
+the wrong workload produces a real recording of an irrelevant thing, which is worse than no recording
+because it looks like an answer.
+
+## 2. Record
+
+**JFR is the default**, because it needs nothing installed and every `jvm_` tool reads it:
+
+```
+-XX:StartFlightRecording=settings=profile,filename=/absolute/path/run.jfr,dumponexit=true
+```
+
+`settings=profile` rather than `default`: it samples allocations twice as often (300/s against 150/s)
+and records lock waits from 10 ms rather than 20 ms (compilations from 100 ms rather than 1 s), so
+short waits that `default` drops show up. Socket and file waits follow the lock thresholds on JDK 21;
+JDK 25 records them from 1 ms under both, throttled to 300/s under `profile` against 100/s. Pass the flag through whatever the build uses — Maven's
+`-DargLine=`, Gradle's `jvmArgs`, JMH's `-jvmArgsAppend`, or `JAVA_TOOL_OPTIONS` for an application
+started by a script.
+
+Add these when the question calls for them:
+
+- **Allocation** — already in `settings=profile`. `jdk.ObjectAllocationSample` is what
+  `flamegraph_export` graphs with `useWeight: true`.
+- **Wall-clock, or off-CPU time** — JFR does not sample it. That needs async-profiler:
+  `-agentpath:/path/libasyncProfiler.so=start,event=wall,jfr,file=/absolute/path/run.jfr`.
+- **Locks** — `jdk.JavaMonitorEnter` and `jdk.ThreadPark` are in `settings=profile`, but
+  threshold-gated at 10 ms. Lower it with a custom `.jfc` when contention is short and frequent.
+- **Exceptions** — on JDK 21 `jdk.JavaExceptionThrow` is off in both `default` and `profile`, and
+  a recording counts throwables but cannot name them. JDK 25 turns it on but throttles it (300/s under
+  `profile`, 100/s under `default`), so the throws it names are a sample. When the question is about
+  what was thrown, add `jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off` to the
+  `-XX:StartFlightRecording` options: it records every throw on either (JDK 17 or later; a JDK
+  without the throttle, such as 21, warns that `throttle` does not exist and ignores it). Between the
+  two, the JDK's own `lib/jfr/profile.jfc` says which applies.
+- **How long one method takes per call** — sampling cannot say: it measures a method's share, never one
+  invocation. JDK 25 times it exactly (JEP 520): add `jdk.MethodTiming#filter=com.example.Repository::count`
+  to the `-XX:StartFlightRecording` options — invocation count and average, minimum and maximum duration
+  per method — or `jdk.MethodTrace#filter=…` for every invocation with its stack. The filter names a class
+  and method (`Class::method`), a whole class, or an annotation (`@jakarta.ws.rs.GET`); keep it to the
+  methods asked about, since every call is instrumented.
+- **A JMH run** — profile the benchmark, not the harness: `-prof jfr` gives one recording per
+  benchmark rather than one for the whole fork.
+
+**Record long enough to be worth reading.** A run of a few seconds produces a few hundred samples,
+and a flamegraph of a few hundred samples is noise with a shape. Aim for a minute of steady state,
+after warm-up. For a JIT-sensitive benchmark, discard the first iterations rather than profiling them
+— they measure the interpreter.
+
+The file has to land where **Jeffrey** can open it, not merely where you can: same machine, absolute
+path. If Jeffrey runs in a container, write into a mounted directory.
+
+**Say which source ran.** Add `-Dgit.commit=$(git rev-parse HEAD)` to the same JVM options, so the
+recording names its commit wherever it is read later, and note whether `git status --porcelain`
+printed anything — a build of uncommitted changes is not the commit it names.
+
+## 3. Import and analyse
+
+```
+recordings_analyzeFile(path="/absolute/path/run.jfr", force=true, commit="<git rev-parse HEAD>", dirty=<true when git status --porcelain printed anything>)
+```
+
+`force=true` because this file was just written: a run recorded to the same path as an earlier one
+often has the same name and a size Jeffrey already knows, and without it the import hands back the
+old profile instead of this run. `commit` and `dirty` go with it so `profiles_get` can tell every
+later reader whether their checkout is the code that ran.
+
+A small recording comes back with a `profileId`. A large one comes back with a status of `RUNNING`
+and an `operationId` — no `recordingId` yet, because the copy may still be in flight — and
+`operations_status(operationId)` follows it until the `profileId` appears. Poll that rather than
+calling again. `operations_cancel(operationId)` stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
+
+Then hand off: the **analyze-jfr** skill has the families, the entry sequence and the flamegraph
+choice per question. Start with `profiles_summary` — it reports what the recording actually captured,
+which is the first thing to check after a run you configured yourself. An empty `jdk.ObjectAllocationSample`
+means the settings did not take, and that is a fact about step 2 rather than about the application.
+
+## 4. Re-profiling after a change
+
+The point of recording rather than reading an old profile is that you can do it twice. After a change,
+record again the same way and use **compare-jfr**: it weighs the two against each other and, first of
+all, says whether they are comparable. Two runs of different lengths, or one warm and one cold, are
+not — and a comparison that ignores that reports a regression that is really a difference in method.
+
+Keep the profiles named so the pair is obvious later: pass `name` to `recordings_analyzeFile`.
+
+## Link what you name
+
+Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
+trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as the page it was read off (`[slowest traces ↗](<its uiLink>)`) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
+and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
+a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
+it: every `](` closes a link text that holds `↗`.**
+
+- Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
+  operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that
+  shows the row. Quote the `uiLinkNote` beside it when there is one.
+- No link in hand for one of the profile's pages (GC, JIT, threads, the heap views, …) →
+  `profiles_viewLink`, one cheap call; the profile itself → `profiles_link`.
+- Never build, edit or guess a URL, and never fetch one: the link is for the user, and one typed by
+  hand opens the wrong page or none.
+- An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
+  query — has none; say so rather than inventing one.
+- A tool's name is never link text. The link is the page, by its name — `[GC page ↗](<its uiLink>)` — and
+  a tool stays in backticks beside it, plain. A tool you did not call — a follow-up on offer, a check under
+  **Not assessed** — is named that way and not linked at all: `` `jvm_safepoints` `` alone, never
+  `` [`jvm_safepoints`](<a link>) `` and never the profile's own link in place of a page you have no link for.
+
+## What this skill will not do
+
+- **It will not profile production.** Attaching a profiler to something a user did not name as theirs
+  to profile is not this skill's decision. Recording a deployed application is the provisioner's business;
+  the **analyze-connector** skill fetches what production already recorded.
+- **It will not choose the workload silently.** A benchmark that does not represent the problem
+  produces a profile that answers the wrong question convincingly.
+
+Related skills: `analyze-jfr` for reading what this produced, `compare-jfr` for before and after,
+`optimize-code` to turn a hotspot into a change in this repository.

@@ -1,0 +1,292 @@
+---
+name: analyze-heap
+description: Analyses a heap dump held by a running Jeffrey Microscope — what is holding the memory, what is leaking, which class loader survived a redeploy, where the waste is — starting from the catalogue or from a .hprof file Jeffrey has not seen yet. Use whenever the user asks what is holding memory, why the heap keeps growing, why the JVM ran out of memory, what is leaking, or mentions retained size, a dominator tree, GC roots, a heap dump or an .hprof file.
+allowed-tools: mcp__plugin_microscope_jeffrey__heap_* mcp__plugin_microscope_jeffrey__profiles_* mcp__plugin_microscope_jeffrey__recordings_* mcp__plugin_microscope_jeffrey__operations_* mcp__jeffrey__heap_* mcp__jeffrey__profiles_* mcp__jeffrey__recordings_* mcp__jeffrey__operations_*
+---
+
+# Analysing a heap dump
+
+A parsed heap dump is a profile like any other, but it answers a different question from a JFR
+recording: a recording says where the time went, a dump says what was alive at one instant and
+what kept it alive. Every tool here reads; none changes the dump.
+
+Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `heap_getLeakSuspects`, not `heap_get_leak_suspects`.
+
+## 1. Get a `profileId`
+
+**The user named a file** (`heap.hprof`, `dump.hprof.gz`) — call `recordings_analyzeFile` with the
+**absolute** path; `recordings_analyzeFile` returns the existing profile for a file with the same
+name and size as one already imported; after re-recording to the same path, pass `force=true`.
+The Jeffrey process opens that path, so the file has to be on the machine Jeffrey runs on. A
+small dump is parsed inside the call and comes back with its `profileId`. A large one comes back
+with a status of `RUNNING` and an `operationId` — and no `recordingId`, because the copy may not
+have finished — and `operations_status(operationId)` follows the copy and the parse until the
+`profileId` appears. Poll that rather than calling `recordings_analyzeFile` again.
+`operations_cancel(operationId)`
+stops an import started by mistake; the ids live for an hour in Jeffrey's memory.
+
+**The dump is on the connector** — the user asked about a deployed application rather than a file. Switch to
+the **analyze-connector** skill. A downloaded session is a bundle, and its heap dump is an item of its own,
+never part of the JFR profile: take the heap item's `recordingId` from `connector_download`'s `items`
+(`eventSource: HEAP_DUMP`; the answer's guidance names them too), build it with
+`recordings_analyzeRecording(recordingId)`, and come back here with *that* `profileId`.
+
+**Otherwise** — `profiles_list`, where the `event source` column reads `HEAP_DUMP` for the profiles
+this skill applies to. `profiles_features` lists `HEAP_DUMP` under `disabledFeatures` when the
+profile is not a heap dump or its index is not ready yet. A `heap_` tool called on a JFR profile is
+refused with a pointer to the bundle's heap item rather than answering — follow the pointer, do not
+retry on the JFR profile.
+
+## 2. Orient before analysing
+
+- `heap_getHeapSummary` — one call: live bytes and instances, class count, GC-root count, the parser's
+  `warningCount` and `truncated`, and which stored reports are built (`reportsBuilt`) or not
+  (`reportsNotBuilt`). A non-zero `warningCount` means the parser skipped or truncated records, so every
+  total below is a lower bound; read the `parse_warning` table (the `heap-sql` skill) before concluding
+  anything from odd numbers. Call `heap_prepare` only when `reportsNotBuilt` names a report the
+  question needs.
+- `heap_getDumpMetadata` — the parser's details (HPROF version, id size, compressed-oops flag, record
+  count), when they matter.
+
+## 3. Shallow is not retained
+
+- **Shallow size** is the object itself: header and fields, nothing it points at.
+- **Retained size** is everything that would be freed if the object were collected.
+
+"What is holding this memory" is always a retained question. A histogram ranked by shallow size
+answers a different one — what there is a lot of, not who is responsible for it.
+
+## 4. Two kinds of heap tools
+
+**Computed on demand.** The first call does the work and later calls reuse it: `heap_getHeapSummary`,
+`heap_getClassHistogram`, `heap_getDominatorTreeRoots` / `heap_getDominatorTreeChildren`,
+`heap_getPathToGCRoot`, `heap_getReferrers`, `heap_browseClassInstances`, `heap_getInstanceDetail`,
+`heap_getThreads`, `heap_getGCRootSummary`, and the SQL tools.
+
+Retained sizes and the dominator tree are built lazily by **`heap_getDominatorTreeRoots`**, or
+explicitly by `heap_prepare` with report `DOMINATOR`. Until one of them has run, the `dominator` and
+`retained_size` tables are empty and every retained figure is *missing*, not zero. Do it once, early,
+before anything that ranks by retained size — skipping it is the usual reason a heap session stalls
+on empty results.
+
+**Cached reports, which the caller or heap-analyst can build.** These are computed once and stored.
+Until something computes one it answers `status: NOT_RUN_YET`, and its `followUp.nextTools` carries
+the `heap_prepare` call that computes it, with this mapping:
+
+| Tool | `heap_prepare` report |
+|---|---|
+| `heap_getLeakSuspects` | `LEAKS` |
+| `heap_getBiggestObjects` | `BIGGEST` |
+| `heap_getClassLoaderLeakChains` | `CLASSLOADERS` |
+| `heap_getTopConsumers` | `CONSUMERS` |
+| `heap_getStringAnalysis` | `STRINGS` |
+| `heap_getCollectionAnalysis` | `COLLECTIONS` |
+
+`heap_prepare` with no argument builds everything — the index, the dominator tree and all of the
+above — which is the right call for a dump nobody has opened yet. Pass one report name to compute
+just that one on a dump that is already indexed. It returns immediately with an `operationId`;
+`heap_status` reports a `state` (`IDLE`, `RUNNING`, `COMPLETED`, `FAILED`) and the stages, each with
+the `report` it computes, as they complete, `operations_status(operationId)` reports the same
+attempt with its result and retry instructions, and each answer becomes readable as its stage
+finishes rather than at the end. A dominator build over a multi-gigabyte heap takes minutes, so do
+something else meanwhile rather than polling tightly. A build that failed or was cancelled stays
+that way until `heap_prepare` is called with `retry=true`; without it the tool reports the retained
+outcome rather than starting again. A finished build is never offered for rebuilding as a next call.
+
+**Reading the answers.** An `objectId` is a decimal **string** (`"27908898928"`) — HPROF ids are
+64-bit addresses — in every answer and every argument; pass it back as it came. An id the dump does
+not hold is a tool error naming it. The paged tools (`heap_browseClassInstances`,
+`heap_getDominatorTreeChildren`, `heap_getReferrers`, `heap_oql`) return `hasMore` and `nextCursor`;
+pass `nextCursor` back as `cursor`. A ranked report keeps its largest rows and counts the rest in an
+`omitted…` field — null when it cannot know. `heap_getPathToGCRoot` answers `IS_GC_ROOT` (with
+`targetRootKind`) when the object is itself a root and `NO_PATH` when no chain was found within its
+depth. Every answer carries a `uiLink` to the same page in Microscope: give it to the user.
+
+## 5. Pick the route
+
+**The question is open** — "analyse this dump", "what is wrong with the heap" — call
+`profiles_summary` and put its `investigationAreas` to the user, then stop and wait for the choice.
+A heap dump's menu is Jeffrey's, not assembled here: the groups `HEAP_CONTENTS`, `HEAP_RETENTION`
+and `HEAP_WASTE`, each area with a `title`, the `question` it answers, its `weight` and its
+`availability`. In Claude Code put it as `AskUserQuestion`: one multi-select question per group
+(headers Contents, Retention, Waste), the `title` as each option's label and `weight · question` as
+its description; a group with a single area joins another group's question. Without a structured
+question tool, a table grouped the same way. Above the question, a Pages table: one row per area
+with data, its `title`, what its page shows in a few words, and `[↗ open](<its uiLink>)` — a page
+whose report is not built yet says so when it opens.
+
+- **`AVAILABLE`** — its `nextTools` read the area now; send them unchanged when it is chosen.
+- **`NEEDS_PREPARATION`** — offer it with "needs heap_prepare (slow)" and its `gap`. Its `nextTools`
+  are the preparation: the whole pipeline for a dump with no index yet, the one report otherwise.
+  Run it only when the area is chosen, follow it with `heap_status` (or its `operationId`), then read
+  the area with the reader the table below names.
+- **`NOT_RECORDED`** — the profile has lost its dump; say so with the `remedy`.
+
+A question that names its area goes straight to the table below, without the menu.
+
+| Question | Sequence | Without the report |
+|---|---|---|
+| What is using the heap at all | `heap_getClassHistogram`, then `heap_getTopConsumers` for the same picture by package and class loader | The histogram alone |
+| What is leaking | `heap_getLeakSuspects` — each suspect carries its `gcRootPath`, its `accumulationPoint` and the `topContributors` it holds; `heap_getPathToGCRoot` only for a suspect whose `gcRootPath` is null, `heap_getReferrers` to walk outwards | `heap_getDominatorTreeRoots` → `heap_getPathToGCRoot` on the largest roots |
+| Which single objects are the biggest | `heap_getBiggestObjects` for the flat ranking; `heap_getDominatorTreeRoots` → `heap_getDominatorTreeChildren` to walk into one | The dominator tree already is the ranking |
+| Redeploys leak, or classes look duplicated | `heap_getClassLoaderLeakChains` — names the loader, the GC-root path keeping it alive and the pattern that matched (ThreadLocal, JDBC driver, JNI global, ServiceLoader, static logger, context class loader) | `heap_browseClassInstances` on the loader class → `heap_getPathToGCRoot` |
+| Where the waste is | `heap_getStringAnalysis` (duplicate and oversized strings), `heap_getCollectionAnalysis` (empty, singleton and oversized collections with fill ratios) | Histogram by `COUNT`, then `heap_browseClassInstances` |
+| What is in one particular class | `heap_browseClassInstances` → `heap_getInstanceDetail` → `heap_getPathToGCRoot` | — |
+| Who is rooting all this | `heap_getGCRootSummary`; `heap_getThreads` when a thread is the suspect | — |
+
+A GC-root path turns an observation into a cause: the histogram says a class is large, the path
+says *why those instances are still reachable*. Do not report a leak without one. A leak suspect
+already carries it (`gcRootPath`: the path, or, for a suspect that is itself a root, its
+`rootType`, `threadName` and `stackFrame`), so read it there instead of asking again;
+`heap_getPathToGCRoot` is for any other object. The paths
+skip weak and soft references, so an object reachable only through a `WeakHashMap` or a soft cache
+shows no path — that is the answer, not an error.
+
+## Hand the reading to an agent
+
+The **`heap-analyst`** agent takes a heap route and returns only the findings — class, retained
+bytes, GC-root path — with everything it read left in its own context. It carries a handbook cut from
+this skill and `heap-sql`, and it runs `heap_prepare` when a report or a retained size is missing
+rather than reporting an empty result. It is the plugin's one heap agent; the JFR one never reads a
+dump. The Claude Code plugin ships it as `microscope:heap-analyst`; in Codex it
+is the custom agent from `codex/agents/heap-analyst.toml`. Without one, read here. An answer the client
+saved to a file the agent cannot open comes back under **Saved, not read**, with its call: read those
+files here before answering.
+
+Delegate only with a `profileId` in hand. The agent may not import, so a dump the user named as a
+file is imported here first — `recordings_analyzeFile` with its absolute path, followed to the
+`profileId` as step 1 describes. An agent handed a path or a name instead looks a profile up in
+the catalogue, which can be another dump of the same name rather than the file the user meant.
+Then delegate a whole route from step 5 — give it the `profileId` and the user's question as asked,
+and let it pick the route: a brief that lists reports to cover ("the histogram, the consumers, the
+class loaders, the strings…") makes it read every one of them whether the question needs it or not.
+Send independent questions in one message so they run at once.
+
+Work here instead when a single tool answers the question, or when the user is walking the
+dominator tree with you object by object. Reading the real source behind a retaining field, and
+every question to the user, stays here either way.
+
+## 6. Grounding claims
+
+- Cite the **class name, the retained bytes and the GC-root path** together; the three are what
+  makes a claim checkable.
+- Object ids are stable within one dump and meaningless across dumps. Carry the class name and
+  the path between dumps, never an id.
+- A dump shows a state, not a trend. One dump cannot distinguish a leak from a large working set;
+  say which of the two you are claiming, and ask for a second dump taken later when it matters.
+- **Two dumps settle it.** `heap_diff` compares this dump against an earlier one class by class,
+  ranked by growth: it is the one tool that separates a leak from a large working set, which no
+  single-dump report can do. Pass the earlier dump as the baseline — backwards, every growth reads
+  as a shrink. Both dumps have to be indexed first, and the tool says which one is not.
+- If the repository is open alongside, read the real source of the retaining field before naming
+  a cause. Do not infer a code path from a class name.
+- Write it up in the `report` skill's shape: class name, retained bytes and the GC-root path
+  together as the evidence, the `heap_` call that produced each figure, and a **Not assessed**
+  section for every report that was not computed rather than an empty ranking passed off as
+  "nothing retains memory".
+
+## Implement fixes
+
+You are usually running inside the repository of the application that was profiled, so a finding
+can become a change to its code. When it can, offer that as an option labelled exactly
+**Implement fixes** — not "I can propose a change" in passing — beside the follow-ups that close the
+answer. In Claude Code close with `AskUserQuestion` whenever this option is on offer, a named area's
+answer included: the follow-ups, **Implement fixes**, and "Stop here". Elsewhere, one line that
+starts "Implement fixes:". Offer it, never take it: nothing is edited until the user picks it.
+Before you send a reply whose findings name code this repository holds, check its close: the option
+reads **Implement fixes**, word for word. "Fix `count()`: I can propose changes" is the same offer
+without its name, and the user cannot pick it.
+
+Offer it only when both hold, or it is noise — and when they do not, leave it out without a word:
+no "Implement fixes: not on offer", no sentence on why there is nothing to fix. Run both checks before
+you write the offer: one that says it has not yet checked whether the class is here is not offered.
+
+- the working directory is a repository — a `.git` there (`Glob`), or `git rev-parse
+  --show-toplevel` answering;
+- at least one finding names something that repository holds — the class of the hot frame, the
+  throw site, a leak suspect's class or the field that holds its accumulation point (its
+  `gcRootPath` names the field, or the thread and `stackFrame` that hold it), the configuration file
+  (`logback.xml`, `application.yml`, a pool's settings): `Grep` or `Glob` for it finds a file there,
+  not only JDK, framework or library code.
+
+Then say how the code relates to the profile in the option's description: `profiles_get`'s
+`recordingCommit` against `git rev-parse HEAD` — "profiled at abc1234, HEAD is def5678" when they
+differ, "commit not recorded" when `recordingCommit` is null (a heap dump carries none). That
+qualifies the offer; it never removes it.
+
+The option's description names what it would change, at most two findings by place
+(say, logback.xml's caller data, the pricing class's line formatter, or the audit log's unbounded
+list). When the user asks what else there
+is, or the analysis winds down, the ledger's **Covered** findings that pass the same check become
+one multi-select **Implement fixes for:** question.
+
+Picked, it hands over to the `optimize-code` skill with what this conversation already established —
+the profile id, each finding's frame or setting, its figures and its link — so it starts at reading
+the source rather than choosing evidence again, and keeps its own gate: the proposed change per
+finding first, then which to apply, and only the accepted ones are edited. A setting (a JVM flag, a
+pool size) is proposed as a value to change, not as an edit to code. After the build and the tests,
+offer **Re-profile and compare** — `profile-run` records the changed code, `compare-jfr` puts it
+against this profile — so the fix is measured rather than assumed. A heap finding is measured by a
+second dump taken under the same load and put against this one with `heap_diff`, the earlier dump as
+the baseline.
+
+## Link what you name
+
+Whenever a reply names something Microscope can open — the profile, a flamegraph, an operation, a
+trace, an endpoint, a statement group, a GC, JIT or thread page, a heap class or object, a
+differential, a catalogue row, a ledger entry — make the name a Markdown link marked with `↗`:
+`[trace 7e34c5994dc96208 ↗](<its uiLink>)`, and in a table a column of `[↗ open](<its uiLink>)`.
+Every link carries the mark — every profile named too, the analysed one and its baseline alike, and
+a page named in passing ("the exceptions page"), a profile named under **Not assessed** or **Open
+leads**, and a figure's source given as the page it was read off (`[slowest traces ↗](<its uiLink>)`) — the
+links most often left bare: `[checkout candidate ↗](<its uiLink>)` — and never the bare URL. The `↗` is what makes it a link the
+user sees: a terminal that renders links shows the text alone, clickable, with the URL behind it,
+and an unmarked name reads as plain words. That holds in every reply, not only in a written report:
+a finding, a ranked list, a follow-up offer, a sentence in passing. **Before you send a reply, check
+it: every `](` closes a link text that holds `↗`.**
+
+- Take the link from the answer the thing came from. A row with its own `uiLink` — a trace, an
+  operation, an exemplar — links with that one; otherwise the answer's `uiLink` is the page that
+  shows the row. Quote the `uiLinkNote` beside it when there is one.
+- No link in hand for one of the profile's pages (GC, JIT, threads, the heap views, …) →
+  `profiles_viewLink`, one cheap call; the profile itself → `profiles_link`.
+- Never build, edit or guess a URL, and never fetch one: the link is for the user, and one typed by
+  hand opens the wrong page or none.
+- An area not yet analysed is not a thing and needs no link, and a result no page shows — a raw SQL
+  query — has none; say so rather than inventing one.
+- A tool's name is never link text. The link is the page, by its name — `[GC page ↗](<its uiLink>)` — and
+  a tool stays in backticks beside it, plain. A tool you did not call — a follow-up on offer, a check under
+  **Not assessed** — is named that way and not linked at all: `` `jvm_safepoints` `` alone, never
+  `` [`jvm_safepoints`](<a link>) `` and never the profile's own link in place of a page you have no link for.
+
+## When something fails
+
+- `Profile … is not a heap dump` → it is a JFR recording (or another kind); the `analyze-jfr` skill
+  applies to it. When the session also took a dump, that dump is another item of the same bundle:
+  `connector_download` lists it in `items`, and `recordings_analyzeRecording` on its `recordingId` builds
+  the heap-dump profile this skill reads.
+- `Heap dump profile … has lost its copy of the dump` → `recordings_analyzeRecording` on its
+  recording builds the profile again from the stored dump.
+- `The heap dump of profile … is not indexed yet` → check `heap_status` for the named profile. If
+  indexing has not started, call `heap_prepare`; retry once ready. `heap_diff` answers the same as a
+  status — `NOT_INDEXED` or `BASELINE_NOT_INDEXED` (and `NO_HEAP_DUMP` / `BASELINE_NO_HEAP_DUMP`) —
+  naming which side; both profiles must be ready.
+- Retained sizes come back empty → the dominator tree has not been built; `heap_prepare` with report
+  `DOMINATOR`, or step 4.
+- `status: NOT_RUN_YET` → a cached report; `heap_prepare` with the report name from the table in
+  step 4 — the answer's `followUp` already names it.
+- No `recordings_` tool advertised → the installation trimmed the tool list with
+  `jeffrey.microscope.mcp.families`; upload the dump in the UI and work from `profiles_list`.
+- Every call fails to connect → Jeffrey is not running at the configured address. Point the client
+  at the real `…/api/mcp` endpoint: in Claude Code, `/plugin` → `microscope` → **Jeffrey MCP
+  endpoint**; in Codex, the `[mcp_servers.jeffrey]` block in `~/.codex/config.toml`.
+
+For a question none of the tools above cover there are two languages, and they are not
+interchangeable. `heap_executeQuery` runs **SQL** against the index as it is stored — join `instance`
+to `class`, group by loader, correlate two tables, read what the strings say. Load the **heap-sql**
+skill before the first query: it has the schema, and the traps the column names do not show (the
+`string` table is the HPROF name pool, not the `String` instances; `outbound_ref.field_id` counts the
+object's whole field layout). `heap_oql`
+runs **OQL** against the object graph the index implies — every instance of a type including its
+subclasses, the retained set of a selection, a filter over an object's own fields. The retained-set
+and `INSTANCEOF` forms have no SQL spelling at all.

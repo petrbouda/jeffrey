@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'root=\"$CLAUDE_PLUGIN_ROOT\"; [ -n \"$root\" ] || root=\"${extensionPath}\"; script=\"$root/hooks/jeffrey-status.sh\"; [ -x \"$script\" ] || exit 0; exec \"$script\"'"
+          }
+        ]
+      }
+    ]
+  }
+}
