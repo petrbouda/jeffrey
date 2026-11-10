@@ -189,8 +189,11 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     public SessionDeletion deleteSession(String sessionId) {
         SessionDeletion deletion = VolumeChanges.deleteSession(volume, tree, sessionId);
         if (deletion.deleted()) {
-            LOG.info("Deleted session directory: session_id={} instance_deleted={}",
-                    sessionId, deletion.instanceDeleted());
+            LOG.info("Deleted session directory: session_id={} project_id={} instance_deleted={}",
+                    sessionId, projectInfo.id(), deletion.instanceDeleted());
+        } else {
+            LOG.warn("Recording session not found, nothing to delete: session_id={} project_id={}",
+                    sessionId, projectInfo.id());
         }
         return deletion;
     }

@@ -22,12 +22,11 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
-import java.util.OptionalLong;
 
 /**
  * The hub's storage overview, as the last retention pass left it. That pass already lists every
  * project's sessions with their files, so it publishes each project's figure here instead of a
- * second walk of the volume; the dashboard reads it instantly, up to one pass period stale.
+ * second walk of the volume; the storage endpoint reads it instantly, up to one pass period stale.
  */
 public class StorageOverviewCache {
 
@@ -55,16 +54,5 @@ public class StorageOverviewCache {
 
     public CachedOverview get() {
         return snapshot;
-    }
-
-    /**
-     * What the last pass measured for one project, or empty before the first pass and for a
-     * project created since.
-     */
-    public OptionalLong projectSize(String workspaceId, String projectId) {
-        return snapshot.overview().projects().stream()
-                .filter(project -> project.workspaceId().equals(workspaceId) && project.projectId().equals(projectId))
-                .mapToLong(ProjectStorage::totalSizeBytes)
-                .findFirst();
     }
 }

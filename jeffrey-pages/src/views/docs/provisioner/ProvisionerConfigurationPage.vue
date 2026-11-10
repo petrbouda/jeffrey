@@ -236,8 +236,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
                 <code>$default</code>.
                 The workspace does not have to exist: the provisioner creates its folder when it is
                 missing (along with the project, instance and session directories), and that folder
-                is the workspace &mdash; its recordings show up in Microscope and on the Hub's
-                Storage page without any create step. Nothing else creates a workspace.
+                is the workspace &mdash; its recordings show up in Microscope and in the Hub's
+                <router-link to="/docs/hub/api#storage">storage figures</router-link> without any create step. Nothing else creates a workspace.
               </td>
             </tr>
             <tr>

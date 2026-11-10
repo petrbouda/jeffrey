@@ -61,29 +61,6 @@
             <artifactId>volume</artifactId>
         </dependency>
 
-        <!-- Third-party -->
-        <dependency>
-            <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-events</artifactId>
-        </dependency>
-        <!-- Where the Tracer keeps the span in progress; Jeffrey runs on Java 25, so the ScopedValue one. -->
-        <dependency>
-            <groupId>cafe.jeffrey-analyst</groupId>
-            <artifactId>jeffrey-tracing-scoped-value</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <!-- Shared version controller (GET /api/internal/version) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>version</artifactId>
-        </dependency>
-
-        <!-- Frontend -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>pages-hub</artifactId>
-        </dependency>
-
         <!-- Test -->
         <dependency>
             <groupId>${project.groupId}</groupId>

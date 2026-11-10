@@ -63,7 +63,6 @@ class ModuleBoundaryTest {
             return files
                     .filter(path -> path.toString().endsWith(".java"))
                     .filter(path -> !path.toString().contains("/target/"))
-                    .filter(path -> !path.toString().contains("/pages-hub/"))
                     .filter(path -> imports(path, forbidden))
                     .map(HUB_ROOT::relativize)
                     .map(Path::toString)

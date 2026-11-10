@@ -18,10 +18,8 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.HubProject;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -73,30 +71,20 @@ class ProjectRetentionJobSessionsTest {
     private static final int MAX_SESSIONS = 10;
 
     @Mock
-    WorkspacesManager workspacesManager;
-
-    @Mock
     RepositoryStorage storage;
-
-    @Mock
-    ProjectManager projectManager;
-
-    @Mock
-    RepositoryManager repositoryManager;
 
     @Mock
     StorageOverviewCache storageOverview;
 
+    private HubProject project;
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo("proj-1", "ws-1", NOW);
 
-        when(projectManager.info()).thenReturn(projectInfo);
-        when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
-        when(projectManager.repositoryStorage()).thenReturn(storage);
+        project = new HubProject(projectInfo, storage);
+        when(storage.deleteSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
         when(storage.instances()).thenReturn(List.of(instance(INSTANCE_ID)));
 
         job = job(MAX_SESSIONS);
@@ -115,15 +103,15 @@ class ProjectRetentionJobSessionsTest {
                 "max-sessions", Integer.toString(maxSessions),
                 "max-size", "1T",
                 "instance-retention", "14d"));
-        return new ProjectRetentionJob(workspacesManager, config, storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
+        return new ProjectRetentionJob(List::of, config, storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private void execute() {
-        job.retain(projectManager);
+        job.retain(project);
     }
 
     private void execute(int maxSessions) {
-        job(maxSessions).retain(projectManager);
+        job(maxSessions).retain(project);
     }
 
     private static ProjectInstanceInfo instance(String instanceId) {
@@ -157,7 +145,7 @@ class ProjectRetentionJobSessionsTest {
 
     private List<String> deletedSessionIds() {
         ArgumentCaptor<String> deleted = ArgumentCaptor.forClass(String.class);
-        verify(repositoryManager, atLeast(0)).deleteRecordingSession(deleted.capture());
+        verify(storage, atLeast(0)).deleteSession(deleted.capture());
         return deleted.getAllValues();
     }
 
@@ -179,7 +167,7 @@ class ProjectRetentionJobSessionsTest {
             execute();
 
             verify(storage).deleteRepositoryFiles("live", List.of("old"));
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
 
         @Test
@@ -188,10 +176,10 @@ class ProjectRetentionJobSessionsTest {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     newestSession("live", NOW.minus(Duration.ofDays(4)), onlyChunk)));
 
-            job(Duration.ofDays(30), Duration.ofDays(1), MAX_SESSIONS).retain(projectManager);
+            job(Duration.ofDays(30), Duration.ofDays(1), MAX_SESSIONS).retain(project);
 
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
 
         /** An ended session cannot grow: it goes whole by the session window, never trimmed empty. */
@@ -203,7 +191,7 @@ class ProjectRetentionJobSessionsTest {
                     newestSession("live", NOW.minusSeconds(600)),
                     session("ended", INSTANCE_ID, NOW.minus(Duration.ofDays(3)), false, old, last)));
 
-            job(Duration.ofDays(30), Duration.ofDays(1), MAX_SESSIONS).retain(projectManager);
+            job(Duration.ofDays(30), Duration.ofDays(1), MAX_SESSIONS).retain(project);
 
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
         }
@@ -220,7 +208,7 @@ class ProjectRetentionJobSessionsTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
 
         /** An instance that stopped has no newer session to end its last one; the window does. */
@@ -255,7 +243,7 @@ class ProjectRetentionJobSessionsTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
 
         @Test
@@ -285,10 +273,10 @@ class ProjectRetentionJobSessionsTest {
                     realSession("newer-ended", NOW.minus(AGE.plusDays(1))),
                     realSession("older-ended", NOW.minus(AGE.plusDays(2)))));
 
-            job(LONG, SHORT, MAX_SESSIONS).retain(projectManager);
+            job(LONG, SHORT, MAX_SESSIONS).retain(project);
 
             verify(storage).deleteRepositoryFiles("live", List.of("old"));
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
 
         @Test
@@ -300,7 +288,7 @@ class ProjectRetentionJobSessionsTest {
                     realSession("newer-ended", NOW.minus(AGE.plusDays(1))),
                     realSession("older-ended", NOW.minus(AGE.plusDays(2)))));
 
-            job(SHORT, LONG, MAX_SESSIONS).retain(projectManager);
+            job(SHORT, LONG, MAX_SESSIONS).retain(project);
 
             assertEquals(List.of("newer-ended", "older-ended"), deletedSessionIds());
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
@@ -354,7 +342,7 @@ class ProjectRetentionJobSessionsTest {
 
             execute(10);
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
 
         @Test
@@ -452,7 +440,7 @@ class ProjectRetentionJobSessionsTest {
             execute(4);
 
             // 6 sessions in total, but each instance holds only 3 logical sessions — under the cap
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
     }
 
@@ -464,7 +452,7 @@ class ProjectRetentionJobSessionsTest {
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of());
 
             assertDoesNotThrow(() -> execute());
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
         }
     }
 }

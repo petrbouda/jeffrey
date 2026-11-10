@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.jfr.JfrNotificationEmitter;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 
 import java.time.Duration;
@@ -55,15 +54,7 @@ record SessionRetentionRule(Duration retention, int maxSessions) implements Rete
             expired.addAll(expiredOf(InstanceSessionUnits.of(sessions), pass.now()));
         }
 
-        int deleted = 0;
-        for (RecordingSession session : expired) {
-            if (pass.deleteSession(session)) {
-                deleted++;
-            }
-        }
-        if (deleted > 0) {
-            JfrNotificationEmitter.sessionsCleaned(pass.projectName(), deleted);
-        }
+        expired.forEach(pass::deleteSession);
     }
 
     private List<RecordingSession> expiredOf(InstanceSessionUnits units, Instant now) {

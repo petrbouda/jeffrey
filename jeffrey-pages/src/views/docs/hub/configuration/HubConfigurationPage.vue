@@ -92,7 +92,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
           <tr>
             <td><code>server.port</code></td>
             <td><code>8080</code></td>
-            <td>HTTP server port for the web interface</td>
+            <td>HTTP server port for the <router-link to="/docs/hub/api">REST API</router-link> and the actuator health probes</td>
           </tr>
         </tbody>
       </table>
@@ -119,7 +119,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
 
       <h2 id="logging">Logging</h2>
       <p>
-        Application logging and JFR event monitoring settings. The <code>logging.*</code> properties
+        Application logging settings. The <code>logging.*</code> properties
         below are <strong>Spring Boot's own, not Jeffrey's</strong> — Jeffrey ships no
         <code>logback-spring.xml</code>, so Boot configures Logback itself and each one behaves
         exactly as the Spring Boot reference documents it. They are listed here because they are the
@@ -208,15 +208,20 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
       </p>
       <p>
         Job configuration is resolved once at startup and is not stored anywhere — changing a
-        period or retention window requires a server restart. The <strong>Scheduler</strong> page in the
-        UI is a read-only view of what the server resolved.
+        period or retention window requires a server restart.
+        <router-link to="/docs/hub/api#jobs"><code>GET /api/v1/jobs</code></router-link> is a
+        read-only view of what the server resolved; a job's <code>id</code> there is its key under
+        <code>jeffrey.hub.scheduler.jobs.&lt;id&gt;.*</code>.
       </p>
 
       <h3>Running a job on demand</h3>
       <p>
-        A job can also be run by hand from the <strong>Run</strong> column on the Scheduler page.
-        Whether a job offers this is a property of the job itself, not a setting — jobs that do not
-        show a disabled control. The run is synchronous and reports what it did when it finishes.
+        A job can also be run by hand with
+        <router-link to="/docs/hub/api#run-job"><code>POST /api/v1/jobs/{job}/run</code></router-link>.
+        Whether a job offers this is a property of the job itself, not a setting — it shows as
+        <code>manualRun</code> in the job listing, and a job without it answers <code>409</code>.
+        The run is synchronous, waits for a scheduled tick of the same job that is still running,
+        and reports what it did when it finishes.
       </p>
       <p>One job offers it today:</p>
       <ul>
@@ -305,8 +310,9 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
               before trimming newest sessions; and deletes instances without sessions started
               longer ago than <code>instance-retention</code>, with their directories. The newest
               recording of an instance's newest session is never deleted. An instance whose last
-              session is deleted goes with it. What is left is the project's figure on the storage
-              dashboard. The first tick runs at startup.
+              session is deleted goes with it. What is left is the project's figure in
+              <router-link to="/docs/hub/api#storage"><code>GET /api/v1/storage</code></router-link>.
+              The first tick runs at startup.
             </td>
           </tr>
           <tr>

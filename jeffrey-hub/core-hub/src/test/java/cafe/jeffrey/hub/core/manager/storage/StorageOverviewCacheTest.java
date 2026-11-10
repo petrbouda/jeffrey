@@ -22,7 +22,6 @@ import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,8 +39,6 @@ class StorageOverviewCacheTest {
     private static final Instant CREATED_AT = Instant.parse("2026-08-01T10:00:00Z");
     private static final Instant LAST_ACTIVITY = Instant.parse("2026-08-09T10:00:00Z");
 
-    private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", CREATED_AT, 1);
     private static final ProjectInfo PROJECT =
             new ProjectInfo("prj-1", "ws-1", CREATED_AT);
 
@@ -69,7 +66,7 @@ class StorageOverviewCacheTest {
 
         @Test
         void servesTheProjectsOfTheLastPassAndWhenItRan() {
-            ProjectStorage project = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 10L, 1, 0L);
+            ProjectStorage project = new ProjectStorage("ws-1", "prj-1", 10L, 1, 0L);
 
             cache.publish(List.of(project));
 
@@ -80,8 +77,8 @@ class StorageOverviewCacheTest {
 
         @Test
         void aLaterPassReplacesTheEarlierOne() {
-            cache.publish(List.of(new ProjectStorage("ws-1", "production", "gone", "gone", 10L, 1, 0L)));
-            ProjectStorage remaining = new ProjectStorage("ws-1", "production", "prj-1", "order-service", 5L, 1, 0L);
+            cache.publish(List.of(new ProjectStorage("ws-1", "gone", 10L, 1, 0L)));
+            ProjectStorage remaining = new ProjectStorage("ws-1", "prj-1", 5L, 1, 0L);
 
             cache.publish(List.of(remaining));
 
@@ -103,15 +100,15 @@ class StorageOverviewCacheTest {
                             file("recording-3.jfr", 500L, LAST_ACTIVITY),
                             file("service-app.log", 30L, CREATED_AT)));
 
-            ProjectStorage project = ProjectStorage.measure(WORKSPACE, PROJECT, sessions);
+            ProjectStorage project = ProjectStorage.measure(PROJECT, sessions);
 
             assertThat(project).isEqualTo(new ProjectStorage(
-                    "ws-1", "ws-1", "prj-1", "prj-1", 1730L, 5, LAST_ACTIVITY.toEpochMilli()));
+                    "ws-1", "prj-1", 1730L, 5, LAST_ACTIVITY.toEpochMilli()));
         }
 
         @Test
         void reportsZeroesForAProjectWithoutSessions() {
-            ProjectStorage project = ProjectStorage.measure(WORKSPACE, PROJECT, List.of());
+            ProjectStorage project = ProjectStorage.measure(PROJECT, List.of());
 
             assertThat(project.totalSizeBytes()).isZero();
             assertThat(project.totalFiles()).isZero();

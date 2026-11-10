@@ -26,8 +26,8 @@ import java.util.Map;
  * {@code JobInfo} per {@link JobType}.
  *
  * @param manualTriggerSupported whether an operator may run this job on demand. A capability of
- *                               the job itself, not a setting — the UI renders a control from
- *                               this flag alone and so never needs to know which jobs they are.
+ *                               the job itself, not a setting, so a client learns from this flag
+ *                               alone which jobs offer a run.
  */
 public record JobInfo(
         JobType jobType,

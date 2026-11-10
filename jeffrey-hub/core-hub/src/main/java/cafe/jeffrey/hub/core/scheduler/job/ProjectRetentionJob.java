@@ -18,14 +18,13 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.HubProject;
+import cafe.jeffrey.hub.core.project.HubProjects;
+import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.ManuallyTriggerable;
 import cafe.jeffrey.hub.model.job.JobType;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.BytesUtils;
 
 import java.time.Clock;
@@ -39,10 +38,10 @@ import java.util.List;
  * <p>Each project's sessions are listed once, with their files — a stat per file over the volume,
  * which is the expensive part — and the rules run over that one listing in order: the session age
  * window and per-instance cap, the trim of newest sessions, the disk quota, then stale instances.
- * What remains is measured into {@link StorageOverviewCache}, so the dashboard needs no walk of
+ * What remains is measured into {@link StorageOverviewCache}, so the storage endpoint needs no walk of
  * its own.</p>
  */
-public class ProjectRetentionJob extends FanOutJob implements ManuallyTriggerable {
+public class ProjectRetentionJob implements Job, ManuallyTriggerable {
 
     private static final String PARAM_SESSION_RETENTION = "session-retention";
     private static final String PARAM_MAX_SESSIONS = "max-sessions";
@@ -75,18 +74,19 @@ public class ProjectRetentionJob extends FanOutJob implements ManuallyTriggerabl
         }
     }
 
+    private final ProjectFanOut fanOut;
     private final List<RetentionRule> rules;
     private final StorageOverviewCache storageOverview;
     private final Clock clock;
     private final Duration period;
 
     public ProjectRetentionJob(
-            WorkspacesManager workspacesManager,
+            HubProjects projects,
             JobConfig config,
             StorageOverviewCache storageOverview,
             Clock clock) {
 
-        super(workspacesManager);
+        this.fanOut = new ProjectFanOut(projects, JobType.PROJECT_RETENTION);
         this.rules = List.of(
                 new SessionRetentionRule(
                         config.durationParam(PARAM_SESSION_RETENTION), config.intParam(PARAM_MAX_SESSIONS)),
@@ -112,22 +112,17 @@ public class ProjectRetentionJob extends FanOutJob implements ManuallyTriggerabl
     private Summary runPass() {
         List<ProjectRetentionPass.Outcome> outcomes = new ArrayList<>();
         List<ProjectStorage> measured = new ArrayList<>();
-        for (WorkspaceManager workspaceManager : workspacesManager.findAll()) {
-            WorkspaceInfo workspace = workspaceManager.info();
-            for (ProjectManager project : workspaceManager.projectsManager().findAll()) {
-                visit("workspace_id=" + workspace.id() + " project_id=" + project.info().id(), () -> {
-                    ProjectRetentionPass.Outcome outcome = retain(project);
-                    outcomes.add(outcome);
-                    measured.add(ProjectStorage.measure(workspace, project.info(), outcome.remaining()));
-                });
-            }
-        }
+        fanOut.forEachProject(project -> {
+            ProjectRetentionPass.Outcome outcome = retain(project);
+            outcomes.add(outcome);
+            measured.add(ProjectStorage.measure(project.info(), outcome.remaining()));
+        });
         storageOverview.publish(measured);
         return Summary.of(outcomes, measured);
     }
 
     /** One project: every rule, in order, over a single listing of its sessions. */
-    ProjectRetentionPass.Outcome retain(ProjectManager project) {
+    ProjectRetentionPass.Outcome retain(HubProject project) {
         ProjectRetentionPass pass = ProjectRetentionPass.begin(project, clock.instant());
         for (RetentionRule rule : rules) {
             rule.apply(pass);

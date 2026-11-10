@@ -128,7 +128,7 @@ onMounted(() => {
           <li><code>instance-retention</code> (14 days by default) - Deletes instances (including their directories on disk) started longer ago than the window that hold no session.</li>
         </ul>
         <p>Deleting an instance's last session — by retention or by hand — deletes the instance's directory with it, so there is no expired state. A <code>.retained</code> file left in a session directory by an older version is ignored and goes with its session's directory.</p>
-        <p>What a pass leaves is what the storage dashboard shows.</p>
+        <p>What a pass leaves is what <router-link to="/docs/hub/api#storage"><code>GET /api/v1/storage</code></router-link> reports; to apply retention and measure again without waiting for the next tick, call <code>POST /api/v1/jobs/project-retention/run</code>.</p>
 
         <h2 id="compression">Compression</h2>
         <p>The <strong>JFR Compression</strong> job LZ4-compresses recordings to save storage space, every minute by default. Each tick compresses the recordings of each instance's two newest sessions &mdash; the newest, which keeps recording, and the one it ended &mdash; and never the newest recording of the newest session. Older sessions were reached by an earlier tick.</p>

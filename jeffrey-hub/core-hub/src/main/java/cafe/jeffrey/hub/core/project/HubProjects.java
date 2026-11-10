@@ -14,20 +14,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package cafe.jeffrey.hub.core.project;
 
-import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import type { JobRunResult, JobView } from '@/services/api/model/JobView';
+import java.util.List;
 
-export default class SchedulerClient extends BasePlatformClient {
-    constructor() {
-        super('/scheduler');
-    }
+/**
+ * Every project the hub's jobs visit: each project directory of each workspace on the volume.
+ */
+@FunctionalInterface
+public interface HubProjects {
 
-    jobs(): Promise<JobView[]> {
-        return this.get<JobView[]>('/jobs');
-    }
-
-    run(jobType: string): Promise<JobRunResult> {
-        return this.post<JobRunResult>(`/jobs/${jobType}/run`);
-    }
+    /** Every project of every workspace, read from the volume now; nothing is remembered. */
+    List<HubProject> all();
 }

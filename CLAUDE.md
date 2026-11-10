@@ -2,14 +2,15 @@
 
 Self-hosted performance analyst for the JVM: ingests JFR recordings and heap dumps (pprof/OTLP too) and turns them into flamegraphs, timeseries, heap analysis and JVM dashboards, plus an MCP server so a coding agent can read the same profiles.
 
-Two deployments, one release: **jeffrey-microscope** (single-user analysis app) and **jeffrey-hub** (the maintenance service of the shared recording volume: retention, cleanup and compression jobs; no API to Microscope). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
+Two deployments, one release: **jeffrey-microscope** (single-user analysis app) and **jeffrey-hub** (the maintenance service of the shared recording volume: retention, cleanup and compression jobs, a JSON API under `/api/v1` and no UI; no API to Microscope). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
 
 Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `test-patterns`, `hub-repository`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
 
 ## Repository map
 
 ```
-jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope)
+jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope; its generic
+                                       components, services and design tokens in src/shared, imported as @shared)
   core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
                                        ConnectorInfo and the sealed ConnectorAddress (AzureFilesAddress |
@@ -31,15 +32,14 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
                                        mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
                                        scoping, hints, findings)
-jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs over the shared volume, web/ (storage
-                                       overview + scheduler), volume/ — no database: the volume is its only state),
-                                       hub-model, pages-hub (Storage and Scheduler pages)
+jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs over the shared volume, web/ (the REST
+                                       API: /api/v1 storage and jobs), volume/ — no database: the volume is its
+                                       only state), hub-model — no UI
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
                                        folder names are the state: projects/instances/sessions/files; the hub's reader),
                                        sql-builder, test (@DuckDBTest, VolumeWriter, RecordedSession: real chunks;
-                                       TestappRecording, CheckoutRecording: real traced runs),
-                                       ui/common (@shared: generic components, services, design tokens), ui/version
+                                       TestappRecording, CheckoutRecording: real traced runs)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
@@ -85,13 +85,13 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Time:** inject `java.time.Clock`, never `Instant.now()`; elapsed time via `Measuring`. Frontend timestamps are UTC epoch millis, formatted only by `FormattingService`.
 - **Literals:** anything matched, compared, put in SQL or used as config is a named `private static final`; set membership is `Set.of(...).contains`, not an `equals` ladder.
 - **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; Apache-2.0 header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
-- **Frontend shared-first:** check `@shared` first, then the app's own `src/components`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `shared/ui/common`.
+- **Frontend shared-first:** check `@shared` first, then the app's own `src/components`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `pages-microscope/src/shared` (`@shared`).
 - **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring types — map at the boundary.
 
 ## Architecture invariants (never)
 
 - **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
-- **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own Storage and Scheduler pages; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
+- **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
 - **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.

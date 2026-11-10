@@ -18,13 +18,9 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectsManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.HubProject;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -32,7 +28,6 @@ import cafe.jeffrey.hub.model.ProjectInstanceInfo;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.volume.layout.SessionDeletion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -73,38 +68,18 @@ class ProjectRetentionJobTest {
     private static final Duration INSTANCE_RETENTION = Duration.ofDays(14);
     private static final long MB = 1024L * 1024L;
 
-    private static final WorkspaceInfo WORKSPACE =
-            new WorkspaceInfo("ws-1", NOW, 1);
-
-    @Mock
-    WorkspacesManager workspacesManager;
-
-    @Mock
-    WorkspaceManager workspaceManager;
-
-    @Mock
-    ProjectsManager projectsManager;
-
-    @Mock
-    ProjectManager projectManager;
-
-    @Mock
-    RepositoryManager repositoryManager;
-
     @Mock
     RepositoryStorage storage;
 
+    /** The projects the volume holds, as the job's next tick will find them. */
+    private List<HubProject> projects;
     private StorageOverviewCache storageOverview;
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
-        when(workspacesManager.findAll()).thenReturn(List.of(workspaceManager));
-        when(workspaceManager.info()).thenReturn(WORKSPACE);
-        when(workspaceManager.projectsManager()).thenReturn(projectsManager);
-        when(projectsManager.findAll()).thenReturn(List.of(projectManager));
-        stubProject(projectManager, "prj-1", storage);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
+        projects = List.of(project("prj-1", storage));
+        when(storage.deleteSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
 
         storageOverview = new StorageOverviewCache(Clock.fixed(NOW, ZoneOffset.UTC));
         JobConfig config = new JobConfig(true, PERIOD, Map.of(
@@ -113,13 +88,11 @@ class ProjectRetentionJobTest {
                 "active-session-file-retention", "7d",
                 "max-size", "100M",
                 "instance-retention", INSTANCE_RETENTION.toDays() + "d"));
-        job = new ProjectRetentionJob(workspacesManager, config, storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
+        job = new ProjectRetentionJob(() -> projects, config, storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
-    private void stubProject(ProjectManager project, String projectId, RepositoryStorage repositoryStorage) {
-        when(project.info()).thenReturn(new ProjectInfo(projectId, "ws-1", NOW));
-        when(project.repositoryManager()).thenReturn(repositoryManager);
-        when(project.repositoryStorage()).thenReturn(repositoryStorage);
+    private static HubProject project(String projectId, RepositoryStorage repositoryStorage) {
+        return new HubProject(new ProjectInfo(projectId, "ws-1", NOW), repositoryStorage);
     }
 
     /** A session a newer one in its instance has ended, with one recording from its start. */
@@ -157,9 +130,9 @@ class ProjectRetentionJobTest {
 
             job.execute();
 
-            verify(repositoryManager).deleteRecordingSession("aged-out");
-            verify(repositoryManager, never()).deleteRecordingSession("newer");
-            verify(repositoryManager, never()).deleteRecordingSession("newest");
+            verify(storage).deleteSession("aged-out");
+            verify(storage, never()).deleteSession("newer");
+            verify(storage, never()).deleteSession("newest");
         }
     }
 
@@ -177,7 +150,7 @@ class ProjectRetentionJobTest {
             var cached = storageOverview.get();
             assertEquals(NOW, cached.computedAt());
             ProjectStorage project = cached.overview().projects().getFirst();
-            assertEquals("ws-1", project.workspaceName());
+            assertEquals("ws-1", project.workspaceId());
             assertEquals("prj-1", project.projectId());
             assertEquals(30 * MB, project.totalSizeBytes());
             assertEquals(1, project.totalFiles());
@@ -185,11 +158,9 @@ class ProjectRetentionJobTest {
 
         @Test
         void aFailingProjectDoesNotStopTheOthers() {
-            ProjectManager broken = mock(ProjectManager.class);
             RepositoryStorage brokenStorage = mock(RepositoryStorage.class);
-            stubProject(broken, "broken", brokenStorage);
             when(brokenStorage.listSessions(SessionDetail.WITH_FILES)).thenThrow(new IllegalStateException("volume"));
-            when(projectsManager.findAll()).thenReturn(List.of(broken, projectManager));
+            projects = List.of(project("broken", brokenStorage), project("prj-1", storage));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(
                     ended("s-1", Duration.ofDays(1), 10 * MB)));
 

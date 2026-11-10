@@ -81,7 +81,7 @@ onMounted(() => {
           <div class="release-icon"><i class="bi bi-cloud"></i></div>
           <div class="release-body">
             <h3>jeffrey-hub</h3>
-            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and runs the retention and compression jobs on the recordings the testapp pods write into it. Exposes its Storage and Scheduler pages on HTTP <code>8080</code>.</p>
+            <p>The Jeffrey Hub itself. Owns <code>jeffrey-pvc</code> and runs the retention and compression jobs on the recordings the testapp pods write into it. Serves its <router-link to="/docs/hub/api">REST API</router-link> on HTTP <code>8080</code>.</p>
           </div>
         </div>
         <div class="release-tile tile-direct">
@@ -171,7 +171,7 @@ onMounted(() => {
         <div class="cluster-ingress">
           <i class="bi bi-globe"></i>
           <span>Ingress</span>
-          <small>HTTP into jeffrey-hub · Storage &amp; Scheduler pages</small>
+          <small>optional HTTP into jeffrey-hub · REST API</small>
         </div>
       </div>
 

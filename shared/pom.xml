@@ -36,7 +36,6 @@
         <module>persistence</module>
         <module>test</module>
         <module>sql-builder</module>
-        <module>ui</module>
     </modules>
 
     <dependencyManagement>

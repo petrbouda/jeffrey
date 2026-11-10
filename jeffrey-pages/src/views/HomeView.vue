@@ -365,9 +365,9 @@ const productTabs: ProductTab[] = [
     features: [
       { icon: 'bi-trash3', title: 'Retention', desc: 'Drops sessions by age and per-project cap, trims each instance’s newest session, enforces a storage quota and cleans up stale instances.' },
       { icon: 'bi-file-zip', title: 'Compression', desc: 'LZ4-compresses finished JFR chunks in place.' },
-      { icon: 'bi-speedometer2', title: 'Storage Dashboard', desc: 'Size, files and last activity per workspace and project.' },
-      { icon: 'bi-calendar-check', title: 'Scheduler', desc: 'Lists the jobs and runs one now, without waiting for its next tick.' },
-      { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'No API and no database — the volume is the only state; Microscope reads it from the Azure file share.' }
+      { icon: 'bi-speedometer2', title: 'Storage API', desc: 'Size, files and last activity per workspace and project, as JSON.' },
+      { icon: 'bi-calendar-check', title: 'Scheduler', desc: 'Lists the jobs over the REST API and runs retention now, without waiting for its next tick.' },
+      { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'No API to Microscope and no database — the volume is the only state; Microscope reads it from the Azure file share.' }
     ],
     deployment: {
       eyebrow: 'Deployment',

@@ -425,6 +425,12 @@ const hubNavigation: DocSection[] = [
     children: [{ title: 'Configuration', to: '/docs/hub/configuration' }]
   },
   {
+    title: 'REST API',
+    path: '_hub-api',
+    icon: 'bi-braces',
+    children: [{ title: 'REST API', to: '/docs/hub/api' }]
+  },
+  {
     // The Provisioner has its own top-level documentation section; Hub keeps just a link.
     title: 'Jeffrey Provisioner',
     path: '_hub-provisioner-link',

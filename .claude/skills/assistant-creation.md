@@ -25,7 +25,7 @@ This skill documents how to create a new assistant component in the Jeffrey code
 ## Directory Structure
 
 ```
-shared/ui/common/src/components/assistants/       # @shared - the reusable pieces
+pages-microscope/src/shared/components/assistants/ # @shared - the reusable pieces
 ├── AssistantPanel.vue                   # Shared base panel component
 └── AssistantMinimizedButton.vue         # Shared reusable minimized button
 

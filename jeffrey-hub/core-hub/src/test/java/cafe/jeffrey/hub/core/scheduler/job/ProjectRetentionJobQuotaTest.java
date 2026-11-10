@@ -18,10 +18,8 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.HubProject;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -52,6 +50,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,36 +67,26 @@ class ProjectRetentionJobQuotaTest {
     private static final long BUDGET = 100 * MB;
 
     @Mock
-    WorkspacesManager workspacesManager;
-
-    @Mock
     RepositoryStorage storage;
-
-    @Mock
-    ProjectManager projectManager;
-
-    @Mock
-    RepositoryManager repositoryManager;
 
     @Mock
     StorageOverviewCache storageOverview;
 
+    private HubProject project;
     private ProjectRetentionJob job;
 
     @BeforeEach
     void setUp() {
         ProjectInfo projectInfo = new ProjectInfo("proj-1", "ws-1", NOW);
 
-        when(projectManager.info()).thenReturn(projectInfo);
-        when(projectManager.repositoryManager()).thenReturn(repositoryManager);
-        when(repositoryManager.deleteRecordingSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
-        when(projectManager.repositoryStorage()).thenReturn(storage);
+        project = new HubProject(projectInfo, storage);
+        when(storage.deleteSession(anyString())).thenReturn(SessionDeletion.SESSION_DELETED);
 
         job = job(BUDGET + "");
     }
 
     private ProjectRetentionJob job(String maxSize) {
-        return new ProjectRetentionJob(workspacesManager, config(maxSize), storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
+        return new ProjectRetentionJob(List::of, config(maxSize), storageOverview, Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private static JobConfig config(String maxSize) {
@@ -110,7 +99,7 @@ class ProjectRetentionJobQuotaTest {
     }
 
     private void execute() {
-        job.retain(projectManager);
+        job.retain(project);
     }
 
     /**
@@ -144,7 +133,7 @@ class ProjectRetentionJobQuotaTest {
 
             execute();
 
-            verify(repositoryManager, never()).deleteRecordingSession(anyString());
+            verify(storage, never()).deleteSession(anyString());
             verify(storage, never()).deleteRepositoryFiles(anyString(), any());
         }
     }
@@ -166,8 +155,8 @@ class ProjectRetentionJobQuotaTest {
 
             // 180MB total against a 100MB budget: dropping the two oldest brings it to 60MB
             ArgumentCaptor<String> deleted = ArgumentCaptor.forClass(String.class);
-            verify(repositoryManager, org.mockito.Mockito.times(2))
-                    .deleteRecordingSession(deleted.capture());
+            verify(storage, times(2))
+                    .deleteSession(deleted.capture());
 
             assertEquals(List.of("oldest", "middle"), deleted.getAllValues());
         }
@@ -182,8 +171,8 @@ class ProjectRetentionJobQuotaTest {
 
             execute();
 
-            verify(repositoryManager).deleteRecordingSession("oldest");
-            verify(repositoryManager, never()).deleteRecordingSession("newest");
+            verify(storage).deleteSession("oldest");
+            verify(storage, never()).deleteSession("newest");
         }
 
         /**
@@ -197,11 +186,11 @@ class ProjectRetentionJobQuotaTest {
             RecordingSession next = endedSession("next", NOW.minusSeconds(3000),
                     recording("n", NOW.minusSeconds(3000), 80 * MB));
             when(storage.listSessions(SessionDetail.WITH_FILES)).thenReturn(List.of(vanished, next));
-            when(repositoryManager.deleteRecordingSession("vanished")).thenReturn(SessionDeletion.NOT_FOUND);
+            when(storage.deleteSession("vanished")).thenReturn(SessionDeletion.NOT_FOUND);
 
             execute();
 
-            verify(repositoryManager).deleteRecordingSession("next");
+            verify(storage).deleteSession("next");
         }
 
         @Test

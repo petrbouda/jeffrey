@@ -18,13 +18,14 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cafe.jeffrey.hub.core.project.HubProject;
+import cafe.jeffrey.hub.core.project.HubProjects;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
+import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.model.job.JobType;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.List;
@@ -44,26 +45,32 @@ import java.util.List;
  * position in the project's listing. Compressing a recording still being written would compress a
  * prefix of it and then delete the file the profiler is writing into.
  */
-public class RepositoryCompressionProjectJob extends RepositoryProjectJob {
+public class RepositoryCompressionProjectJob implements Job {
 
     private static final Logger LOG = LoggerFactory.getLogger(RepositoryCompressionProjectJob.class);
 
     /** The newest session and the one it ended: the only sessions a tick can find anything new in. */
     private static final int SESSIONS_PER_INSTANCE = 2;
 
+    private final ProjectFanOut fanOut;
     private final Duration period;
 
-    public RepositoryCompressionProjectJob(WorkspacesManager workspacesManager, JobConfig config) {
-        super(workspacesManager);
+    public RepositoryCompressionProjectJob(HubProjects projects, JobConfig config) {
+        this.fanOut = new ProjectFanOut(projects, JobType.REPOSITORY_JFR_COMPRESSION);
         this.period = config.period();
     }
 
     @Override
-    protected void executeOnRepository(ProjectManager manager, RepositoryStorage repositoryStorage) {
-        String projectName = manager.info().id();
+    public void execute() {
+        fanOut.forEachProject(this::compress);
+    }
+
+    /** One project: each instance's newest sessions, read with their files, and nothing older. */
+    void compress(HubProject project) {
+        RepositoryStorage repositoryStorage = project.repositoryStorage();
+        String projectName = project.info().id();
         LOG.debug("Starting JFR compression check: project_name={}", projectName);
 
-        // Only each instance's newest sessions are read, with their files
         List<RecordingSession> sessions = repositoryStorage.newestSessions(SESSIONS_PER_INSTANCE);
         if (sessions.isEmpty()) {
             LOG.debug("No sessions found for compression: project_name={}", projectName);

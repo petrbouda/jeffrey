@@ -46,7 +46,6 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider;
-import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.ProfileInitializer;
 import cafe.jeffrey.profile.ProfileInitializerImpl;
@@ -80,7 +79,7 @@ import java.time.Clock;
  * Configuration beans specific to LOCAL mode: Recordings, web controllers, resolvers.
  */
 @Configuration
-@Import({WebInfrastructureConfig.class, VersionFeatureConfiguration.class})
+@Import(WebInfrastructureConfig.class)
 public class MicroscopeAppConfiguration {
 
     @Bean

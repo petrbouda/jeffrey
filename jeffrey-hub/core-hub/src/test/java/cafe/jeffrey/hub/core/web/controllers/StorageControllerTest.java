@@ -14,70 +14,100 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package cafe.jeffrey.hub.core.web.controllers;
 
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
+import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverview.ProjectStorage;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache.CachedOverview;
 
 import java.time.Instant;
 import java.util.List;
 
+import static cafe.jeffrey.hub.core.web.MockMvcSupport.mockMvcTesterFor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
-import static cafe.jeffrey.hub.core.web.MockMvcSupport.mockMvcTesterFor;
 
+/**
+ * {@code GET /api/v1/storage}: the last pass's figures grouped by workspace, with the totals the
+ * reader would otherwise have to add up, and ISO-8601 times.
+ */
 @ExtendWith(MockitoExtension.class)
 class StorageControllerTest {
 
-    private static final Instant COMPUTED_AT = Instant.parse("2026-08-10T10:00:00Z");
+    private static final Instant MEASURED_AT = Instant.parse("2026-11-08T20:35:10Z");
+    private static final Instant ORDERS_ACTIVITY = Instant.parse("2026-11-08T20:30:00Z");
+    private static final long GIB = 1024L * 1024L * 1024L;
 
     @Mock
     StorageOverviewCache storageOverviewCache;
 
-    @Test
-    void returnsCachedStorageOverview() {
-        StorageOverview overview = new StorageOverview(
-                List.of(new ProjectStorage(
-                        "ws-1", "production",
-                        "prj-1", "order-service",
-                        27_100_000_000L, 342, 1_775_000_000_000L)));
-        when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
-
-        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
-
-        assertThat(mvc.get().uri("/api/internal/storage"))
-                .hasStatusOk()
-                .bodyJson()
-                .hasPathSatisfying("$.computedAtMillis", v -> assertThat(v).asNumber().isEqualTo(COMPUTED_AT.toEpochMilli()))
-                .doesNotHavePath("$.tempSizeBytes")
-                .hasPathSatisfying("$.projects[0].workspaceName", v -> assertThat(v).asString().isEqualTo("production"))
-                .hasPathSatisfying("$.projects[0].projectName", v -> assertThat(v).asString().isEqualTo("order-service"))
-                .hasPathSatisfying("$.projects[0].totalSizeBytes", v -> assertThat(v).asNumber().isEqualTo(27_100_000_000L))
-                .hasPathSatisfying("$.projects[0].totalFiles", v -> assertThat(v).asNumber().isEqualTo(342))
-                .hasPathSatisfying("$.projects[0].lastActivityTimeMillis", v -> assertThat(v).asNumber().isEqualTo(1_775_000_000_000L))
-                .doesNotHavePath("$.projects[0].active")
-                .doesNotHavePath("$.projects[0].fileTypes")
-                .doesNotHavePath("$.projects[0].largestFiles");
+    private MockMvcTester mvc() {
+        return mockMvcTesterFor(new StorageController(storageOverviewCache));
     }
 
-    @Test
-    void returnsEmptyProjectsWhenNothingIsStored() {
-        StorageOverview overview = new StorageOverview(List.of());
-        when(storageOverviewCache.get()).thenReturn(new CachedOverview(overview, COMPUTED_AT));
+    @Nested
+    class Measured {
 
-        MockMvcTester mvc = mockMvcTesterFor(new StorageController(storageOverviewCache));
+        @Test
+        void groupsTheProjectsByWorkspaceWithTotalsAtBothLevels() {
+            when(storageOverviewCache.get()).thenReturn(new CachedOverview(new StorageOverview(List.of(
+                    new ProjectStorage("production", "orders", 17 * GIB, 1004, ORDERS_ACTIVITY.toEpochMilli()),
+                    new ProjectStorage("staging", "orders", 2 * GIB, 132, ORDERS_ACTIVITY.toEpochMilli()),
+                    new ProjectStorage("production", "payments", 3 * GIB, 206, ORDERS_ACTIVITY.toEpochMilli()))),
+                    MEASURED_AT));
 
-        assertThat(mvc.get().uri("/api/internal/storage"))
-                .hasStatusOk()
-                .bodyJson()
-                .hasPathSatisfying("$.projects", v -> assertThat(v).asList().isEmpty());
+            assertThat(mvc().get().uri("/api/v1/storage"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .hasPathSatisfying("$.measuredAt", v -> assertThat(v).asString().isEqualTo("2026-11-08T20:35:10Z"))
+                    .hasPathSatisfying("$.totalBytes", v -> assertThat(v).asNumber().isEqualTo(22 * GIB))
+                    .hasPathSatisfying("$.totalFiles", v -> assertThat(v).asNumber().isEqualTo(1342))
+                    .hasPathSatisfying("$.workspaces.length()", v -> assertThat(v).asNumber().isEqualTo(2))
+                    .hasPathSatisfying("$.workspaces[0].id", v -> assertThat(v).asString().isEqualTo("production"))
+                    .hasPathSatisfying("$.workspaces[0].totalBytes", v -> assertThat(v).asNumber().isEqualTo(20 * GIB))
+                    .hasPathSatisfying("$.workspaces[0].totalFiles", v -> assertThat(v).asNumber().isEqualTo(1210))
+                    .hasPathSatisfying("$.workspaces[0].projects[0].id", v -> assertThat(v).asString().isEqualTo("orders"))
+                    .hasPathSatisfying("$.workspaces[0].projects[1].id", v -> assertThat(v).asString().isEqualTo("payments"))
+                    .hasPathSatisfying("$.workspaces[0].projects[0].lastActivityAt",
+                            v -> assertThat(v).asString().isEqualTo("2026-11-08T20:30:00Z"))
+                    .hasPathSatisfying("$.workspaces[1].id", v -> assertThat(v).asString().isEqualTo("staging"))
+                    .hasPathSatisfying("$.workspaces[1].totalBytes", v -> assertThat(v).asNumber().isEqualTo(2 * GIB))
+                    .doesNotHavePath("$.workspaces[0].projects[0].projectName")
+                    .doesNotHavePath("$.projects");
+        }
+
+        @Test
+        void aProjectWithoutFilesHasNoLastActivity() {
+            when(storageOverviewCache.get()).thenReturn(new CachedOverview(new StorageOverview(List.of(
+                    new ProjectStorage("production", "empty", 0L, 0, 0L))), MEASURED_AT));
+
+            assertThat(mvc().get().uri("/api/v1/storage"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .hasPathSatisfying("$.workspaces[0].projects[0].lastActivityAt", v -> assertThat(v).isNull());
+        }
+    }
+
+    @Nested
+    class BeforeTheFirstPass {
+
+        @Test
+        void saysNothingWasMeasuredYet() {
+            when(storageOverviewCache.get()).thenReturn(new CachedOverview(new StorageOverview(List.of()), null));
+
+            assertThat(mvc().get().uri("/api/v1/storage"))
+                    .hasStatusOk()
+                    .bodyJson()
+                    .hasPathSatisfying("$.measuredAt", v -> assertThat(v).isNull())
+                    .hasPathSatisfying("$.totalBytes", v -> assertThat(v).asNumber().isEqualTo(0))
+                    .hasPathSatisfying("$.workspaces", v -> assertThat(v).asArray().isEmpty());
+        }
     }
 }

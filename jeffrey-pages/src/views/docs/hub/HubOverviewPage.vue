@@ -80,8 +80,8 @@ onMounted(() => {
         </div>
         <div class="value-tile tile-grpc">
           <div class="value-icon"><i class="bi bi-speedometer2"></i></div>
-          <h3>Storage &amp; Scheduler UI</h3>
-          <p>A small web UI shows what the last retention pass measured per workspace and project, and lists the scheduler jobs so you can run one now.</p>
+          <h3>REST API</h3>
+          <p>A small JSON API reports what the last retention pass measured per workspace and project, and lists the scheduler jobs so you can run retention now.</p>
         </div>
       </section>
 
@@ -109,14 +109,14 @@ onMounted(() => {
         <DocsFeatureCard
           color="green"
           icon="bi bi-hdd-stack"
-          title="Storage Dashboard"
-          description="Size, file count and last activity per workspace and project, as the last retention pass measured them."
+          title="Storage Figures"
+          description="GET /api/v1/storage returns size, file count and last activity per workspace and project, as the last retention pass measured them."
         />
         <DocsFeatureCard
           color="neutral"
           icon="bi bi-play-circle"
           title="Run a Job Now"
-          description="The Scheduler page lists the jobs and runs one on demand, without waiting for its next tick."
+          description="GET /api/v1/jobs lists the jobs; POST /api/v1/jobs/project-retention/run runs retention on demand, without waiting for its next tick."
         />
         <DocsFeatureCard
           color="blue"

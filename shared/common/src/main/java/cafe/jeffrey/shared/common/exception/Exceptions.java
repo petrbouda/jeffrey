@@ -57,6 +57,11 @@ public abstract class Exceptions {
                 "No finished recording files found in session: %s. The session may still be actively recording.".formatted(sessionId));
     }
 
+    public static JeffreyClientException schedulerJobNotFound(String job) {
+        return new JeffreyClientException(
+                ErrorCode.SCHEDULER_JOB_NOT_FOUND, "No such job: %s".formatted(job));
+    }
+
     /**
      * A 404 for a resource that has no error code of its own — a trace, a span, anything addressed
      * by an id inside a profile rather than by a top-level entity id.

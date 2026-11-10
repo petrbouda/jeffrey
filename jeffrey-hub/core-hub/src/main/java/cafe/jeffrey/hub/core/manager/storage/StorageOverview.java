@@ -20,7 +20,6 @@ package cafe.jeffrey.hub.core.manager.storage;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
-import cafe.jeffrey.hub.model.workspace.WorkspaceInfo;
 
 import java.time.Instant;
 import java.util.List;
@@ -38,16 +37,13 @@ public record StorageOverview(List<ProjectStorage> projects) {
      */
     public record ProjectStorage(
             String workspaceId,
-            String workspaceName,
             String projectId,
-            String projectName,
             long totalSizeBytes,
             int totalFiles,
             long lastActivityTimeMillis) {
 
         /** Measures a project from its sessions, loaded with their files. */
-        public static ProjectStorage measure(
-                WorkspaceInfo workspace, ProjectInfo project, List<RecordingSession> sessions) {
+        public static ProjectStorage measure(ProjectInfo project, List<RecordingSession> sessions) {
 
             List<RepositoryFile> files = sessions.stream()
                     .flatMap(session -> session.files().stream())
@@ -63,7 +59,7 @@ public record StorageOverview(List<ProjectStorage> projects) {
                     .orElse(0L);
 
             return new ProjectStorage(
-                    workspace.id(), workspace.id(), project.id(), project.id(),
+                    project.workspaceId(), project.id(),
                     totalSize, files.size(), lastActivity);
         }
     }

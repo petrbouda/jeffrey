@@ -18,8 +18,7 @@
 package cafe.jeffrey.hub.core.scheduler.job;
 
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.HubProject;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.model.ProjectInfo;
 import cafe.jeffrey.hub.model.repository.RecordingSession;
@@ -53,20 +52,15 @@ class RepositoryCompressionProjectJobTest {
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
 
     @Mock
-    WorkspacesManager workspacesManager;
-
-    @Mock
-    ProjectManager projectManager;
-
-    @Mock
     RepositoryStorage storage;
 
+    private HubProject project;
     private RepositoryCompressionProjectJob job;
 
     @BeforeEach
     void setUp() {
-        when(projectManager.info()).thenReturn(new ProjectInfo("proj-1", "ws-1", T0));
-        job = new RepositoryCompressionProjectJob(workspacesManager, new JobConfig(true, Duration.ofMinutes(1), Map.of()));
+        project = new HubProject(new ProjectInfo("proj-1", "ws-1", T0), storage);
+        job = new RepositoryCompressionProjectJob(() -> List.of(project), new JobConfig(true, Duration.ofMinutes(1), Map.of()));
     }
 
     private static RecordingSession session(String id, String instanceId, int minutes, boolean newest) {
@@ -80,7 +74,7 @@ class RepositoryCompressionProjectJobTest {
         RecordingSession b2 = session("b-2", "pod-b", 25, true);
         when(storage.newestSessions(2)).thenReturn(List.of(a3, a2, b2));
 
-        job.executeOnRepository(projectManager, storage);
+        job.execute();
 
         verify(storage).compressSession(a3);
         verify(storage).compressSession(a2);
@@ -92,7 +86,7 @@ class RepositoryCompressionProjectJobTest {
     void anEmptyProjectCompressesNothing() {
         when(storage.newestSessions(2)).thenReturn(List.of());
 
-        job.executeOnRepository(projectManager, storage);
+        job.execute();
 
         verify(storage, never()).compressSession(any());
     }
