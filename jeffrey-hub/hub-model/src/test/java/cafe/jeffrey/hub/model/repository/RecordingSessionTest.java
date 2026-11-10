@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.hub.model.repository;
 
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +44,11 @@ class RecordingSessionTest {
 
     private static RepositoryFile artifact(String name, Instant createdAt) {
         return new RepositoryFile(name, name, createdAt, 1L, false, null);
+    }
+
+    /** A chunk as the provisioner names it: started when its id says, at the offset it carries. */
+    private static RepositoryFile chunk(String id) {
+        return new RepositoryFile(id, id + ".jfr", JeffreyLayout.recordingStart(id).orElseThrow(), 1L, true, null);
     }
 
     private static List<String> namesOf(List<RepositoryFile> files) {
@@ -102,6 +108,22 @@ class RecordingSessionTest {
      */
     @Nested
     class OpenRecording {
+
+        /**
+         * Daylight saving ends: the clocks go back from 03:00 to 02:00 while the names keep the
+         * session's +0200, so the chunk written after the switch reads an hour older than the one
+         * before it. The file number in its name says it is the newest; the hub and Microscope
+         * must agree on it, so the same case is pinned on both sides.
+         */
+        @Test
+        void isTheHighestFileNumberWhenTheClockGoesBack() {
+            RepositoryFile beforeTheSwitch = chunk("rec-20261025-024500+0200_10");
+            RepositoryFile afterTheSwitch = chunk("rec-20261025-020000+0200_11");
+            RecordingSession recordingSession = newest(afterTheSwitch, beforeTheSwitch);
+
+            assertEquals(Optional.of(afterTheSwitch), recordingSession.openRecording());
+            assertEquals(List.of(beforeTheSwitch), recordingSession.trimmableRecordings());
+        }
 
         @Test
         void isTheNewestRecordingOfTheInstancesNewestSession() {

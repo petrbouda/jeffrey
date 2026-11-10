@@ -62,8 +62,8 @@ public class ManualJobRunner {
     }
 
     /**
-     * Job types an operator may run on demand. The registry reports these so the UI can render a
-     * control without knowing what any particular job does.
+     * Job types an operator may run on demand. The registry reports these, so the API can say which jobs
+     * offer a run without knowing what any particular job does.
      */
     public Set<JobType> supportedTypes() {
         return triggerable.keySet();
@@ -101,7 +101,7 @@ public class ManualJobRunner {
     public static class ManualRunNotSupportedException extends RuntimeException {
 
         public ManualRunNotSupportedException(JobType jobType) {
-            super("Job cannot be run manually: " + jobType);
+            super("Job cannot be run manually: " + jobType.key());
         }
     }
 }

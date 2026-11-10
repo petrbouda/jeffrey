@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -188,6 +189,72 @@ class ProjectTreeTest {
         }
     }
 
+    /**
+     * Whether an instance still holds a session, asked before it is deleted with everything in it:
+     * an instance that cannot be listed holds them all.
+     */
+    @Nested
+    class HoldsAnySession {
+
+        private Path project;
+
+        @BeforeEach
+        void setUp() {
+            project = VolumeWriter.project(root, "project");
+        }
+
+        private boolean holdsAnySession(VolumeAccess over) {
+            ProjectTree tree = ProjectTree.at(over, PROJECT).orElseThrow();
+            return tree.holdsAnySession(tree.instance("pod-a").orElseThrow());
+        }
+
+        @Test
+        void holdsOneWhenASessionIsThere() {
+            VolumeWriter.session(VolumeWriter.instance(project, "pod-a"), T0);
+
+            assertTrue(holdsAnySession(volume));
+        }
+
+        @Test
+        void holdsNoneWhenOnlyOtherDirectoriesAreThere() throws IOException {
+            Path instance = VolumeWriter.instance(project, "pod-a");
+            Files.createDirectories(instance.resolve("not-a-session"));
+            Files.createDirectories(instance.resolve(".scratch"));
+
+            assertFalse(holdsAnySession(volume));
+        }
+
+        @Test
+        void holdsThemAllWhenTheInstanceCannotBeListed() {
+            VolumeWriter.instance(project, "pod-a");
+
+            assertTrue(holdsAnySession(new UnlistableInstances(volume)),
+                    "a listing that fails must not read as an instance with no session");
+        }
+    }
+
+    /** Every instance directory fails to list; the project's own listing still works. */
+    private record UnlistableInstances(VolumeAccess delegate) implements VolumeAccess {
+
+        @Override
+        public List<VolumeEntry> list(VolumePath directory) {
+            if (!directory.equals(PROJECT)) {
+                throw new UncheckedIOException(new IOException("Stale file handle: " + directory));
+            }
+            return delegate.list(directory);
+        }
+
+        @Override
+        public Optional<VolumeEntry> stat(VolumePath path) {
+            return delegate.stat(path);
+        }
+
+        @Override
+        public Optional<OpenedFile> open(VolumePath file) {
+            return delegate.open(file);
+        }
+    }
+
     @Nested
     class SessionFiles {
 
@@ -239,6 +306,19 @@ class ProjectTreeTest {
 
             assertEquals(List.of("rec-20260220-121500+0000.jfr", "rec-20260220-120000+0000.jfr"), names,
                     "a nested directory is no file of the session");
+        }
+
+        /** A chunk named through today's template: its id keeps the file number, its start is the name's. */
+        @Test
+        void readsAChunkNamedWithItsFileNumber() {
+            String name = VolumeWriter.recordingName(T0, ZoneOffset.ofHours(1), 3);
+            VolumeWriter.file(session, name, "chunk");
+
+            SessionFile chunk = tree.files(sessionPath).getFirst();
+            assertEquals("rec-20260220-130000+0100_3.jfr", chunk.name());
+            assertEquals("rec-20260220-130000+0100_3", chunk.id());
+            assertEquals(T0, chunk.createdAt());
+            assertTrue(chunk.recording());
         }
 
         /**

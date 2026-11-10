@@ -24,7 +24,7 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Heap dump', 'MCP server', 'Events'];
-const serverComponents = ['Retention', 'Compression', 'Scheduler', 'Storage dashboard'];
+const serverComponents = ['Retention', 'Compression', 'Scheduler', 'REST API'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
@@ -121,7 +121,7 @@ onMounted(() => {
           to="/docs/hub"
           title="Hub"
           role="Maintenance · Multi-workspace"
-          description="The maintenance service of the shared recording volume. Runs retention and compression as scheduled jobs, with Storage and Scheduler pages; Microscope reads the volume itself."
+          description="The maintenance service of the shared recording volume. Runs retention and compression as scheduled jobs, with a small JSON REST API for storage figures and the jobs; Microscope reads the volume itself."
           icon="bi bi-cloud"
           :components="serverComponents"
           cta-text="Open Server docs"

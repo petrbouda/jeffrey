@@ -18,12 +18,19 @@
 package cafe.jeffrey.microscope.connector.api.dto;
 
 import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
 
+import java.util.OptionalLong;
+
 /**
+ * @param sequence        the file number async-profiler wrote into a recording's name
+ *                        ({@link JeffreyLayout#recordingSequence}), {@code null} for a name without
+ *                        one and for any other file: what a session's chunks are ordered by, so a
+ *                        reader holding them orders them as the backend does
  * @param newestRecording whether it is the newest recording of its instance's newest session: the
  *                        one the hub keeps uncompressed, which may still be on its way onto the volume
  */
@@ -31,6 +38,7 @@ public record RepositoryFileResponse(
         String id,
         String name,
         Long createdAt,
+        Long sequence,
         Long size,
         ManagedFile fileType,
         boolean newestRecording,
@@ -50,10 +58,19 @@ public record RepositoryFileResponse(
                 file.id(),
                 file.name(),
                 InstantUtils.toEpochMilli(file.createdAt()),
+                sequenceOf(file),
                 file.size(),
                 RepositoryFiles.typeOf(file),
                 newestRecording,
                 file.isRecordingFile());
+    }
+
+    private static Long sequenceOf(RepositoryFile file) {
+        if (!file.isRecordingFile()) {
+            return null;
+        }
+        OptionalLong sequence = JeffreyLayout.recordingSequence(file.id());
+        return sequence.isPresent() ? sequence.getAsLong() : null;
     }
 
     public static RepositoryFile from(RepositoryFileResponse response) {

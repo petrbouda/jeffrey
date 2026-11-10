@@ -25,9 +25,8 @@ import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
 import cafe.jeffrey.shared.common.JeffreyVersion;
 
 /**
- * Microscope-only WorkspaceBrowser endpoint: checks GitHub for a newer release. The shared
- * {@code /api/internal/version} endpoint lives in {@code cafe.jeffrey.shared.ui.version}; only
- * microscope offers the update check, so it stays here.
+ * Checks GitHub for a newer release. The running version itself is {@link VersionController}'s
+ * {@code /api/internal/version}.
  */
 @RestController
 @RequestMapping("/api/internal")

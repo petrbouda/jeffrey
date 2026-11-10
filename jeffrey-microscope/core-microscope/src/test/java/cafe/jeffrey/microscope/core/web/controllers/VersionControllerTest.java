@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.core.web.controllers;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.shared.ui.version.VersionController;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;

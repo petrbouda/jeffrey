@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.hub.core.manager;
+package cafe.jeffrey.hub.core.project.repository;
 
 import cafe.jeffrey.hub.core.volume.TestVolume;
 import cafe.jeffrey.hub.model.ProjectInfo;
@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Deleting a session takes its directory, and its instance's directory once no session is left —
  * an instance with nothing in it has nothing to show, and nothing on the volume would say why.
  */
-class HubRepositoryManagerDeleteSessionTest {
+class FilesystemRepositoryStorageDeleteSessionTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final ProjectInfo PROJECT = new ProjectInfo("project", "ws", T0);
@@ -46,14 +46,13 @@ class HubRepositoryManagerDeleteSessionTest {
     Path workspacesDir;
 
     private Path instance;
-    private HubRepositoryManager manager;
+    private RepositoryStorage storage;
 
     @BeforeEach
     void setUp() {
         Path project = TestVolume.project(workspacesDir.resolve("ws"), PROJECT.id());
         instance = TestVolume.instance(project, "pod-a");
-        manager = new HubRepositoryManager(PROJECT,
-                TestVolume.storage(PROJECT, workspacesDir, project));
+        storage = TestVolume.storage(PROJECT, workspacesDir, project);
     }
 
     private static final String FIRST = TestVolume.sessionId(T0);
@@ -74,7 +73,7 @@ class HubRepositoryManagerDeleteSessionTest {
         Files.createDirectories(older.resolve(".heartbeat"));
         Files.writeString(older.resolve(".heartbeat").resolve("finished"), "0");
 
-        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession(FIRST));
+        assertEquals(SessionDeletion.SESSION_DELETED, storage.deleteSession(FIRST));
 
         assertFalse(Files.exists(older));
     }
@@ -84,7 +83,7 @@ class HubRepositoryManagerDeleteSessionTest {
         Path older = session(T0);
         Path newer = session(T0.plusSeconds(600));
 
-        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession(FIRST));
+        assertEquals(SessionDeletion.SESSION_DELETED, storage.deleteSession(FIRST));
 
         assertFalse(Files.exists(older));
         assertTrue(Files.exists(newer));
@@ -95,7 +94,7 @@ class HubRepositoryManagerDeleteSessionTest {
     void deletesTheInstanceWithItsLastSession() {
         session(T0);
 
-        assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, manager.deleteRecordingSession(FIRST));
+        assertEquals(SessionDeletion.SESSION_AND_INSTANCE_DELETED, storage.deleteSession(FIRST));
 
         assertFalse(Files.exists(instance));
     }
@@ -106,7 +105,7 @@ class HubRepositoryManagerDeleteSessionTest {
         session(T0);
         Path starting = Files.createDirectories(instance.resolve("about-to-start"));
 
-        assertEquals(SessionDeletion.SESSION_DELETED, manager.deleteRecordingSession(FIRST));
+        assertEquals(SessionDeletion.SESSION_DELETED, storage.deleteSession(FIRST));
 
         assertTrue(Files.exists(starting));
     }
@@ -115,7 +114,7 @@ class HubRepositoryManagerDeleteSessionTest {
     void aDirectoryNotNamedForItsStartIsNoSession() throws IOException {
         Path other = Files.createDirectories(instance.resolve("not-a-session"));
 
-        assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("not-a-session"));
+        assertEquals(SessionDeletion.NOT_FOUND, storage.deleteSession("not-a-session"));
         assertTrue(Files.exists(other));
     }
 
@@ -123,7 +122,7 @@ class HubRepositoryManagerDeleteSessionTest {
     void aSessionThatIsNotThereFreesNothing() {
         session(T0);
 
-        assertEquals(SessionDeletion.NOT_FOUND, manager.deleteRecordingSession("ghost"));
+        assertEquals(SessionDeletion.NOT_FOUND, storage.deleteSession("ghost"));
         assertTrue(Files.exists(instance));
     }
 }

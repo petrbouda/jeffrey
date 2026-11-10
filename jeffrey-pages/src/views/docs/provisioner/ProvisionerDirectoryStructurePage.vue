@@ -55,12 +55,12 @@ onMounted(() => {
         └── &lt;project-name&gt;/                  # Project id = folder name (the configured project name)
             └── &lt;instance-name&gt;/             # Instance id = folder name (instance-name, HOSTNAME by default)
                 └── &lt;session-id&gt;/            # Session id = folder name, a UUIDv7 (its timestamp is the start)
-                    ├── rec-20261027-085500+0100.jfr # Async-Profiler output
-                    ├── rec-20261027-091000+0100.jfr
+                    ├── rec-20261027-085500+0100_0.jfr # Async-Profiler output
+                    ├── rec-20261027-091000+0100_1.jfr
                     └── ...</code></pre>
         </div>
 
-        <p>The folder names are the state. A workspace's id is its folder (its reference id), a project's id is its folder (the project <code>name</code> the Provisioner was configured with), an instance's id is its folder, and a session's id is its folder &mdash; a UUIDv7 whose timestamp is the session's start. There are no marker files anywhere on the volume: a workspace is a visible root folder named with a valid reference id, which is also its name, and the Provisioner creates that folder when it is missing &mdash; a workspace does not have to be created before the Provisioner writes into it. The Provisioner decides whether a project or an instance is new by whether its folder exists. A project or instance is any visible (non-dot) child directory; a session is a visible directory named with a UUIDv7, and anything else under an instance is ignored. Its recordings show up in Microscope and on the Hub's Storage page without any create step.</p>
+        <p>The folder names are the state. A workspace's id is its folder (its reference id), a project's id is its folder (the project <code>name</code> the Provisioner was configured with), an instance's id is its folder, and a session's id is its folder &mdash; a UUIDv7 whose timestamp is the session's start. There are no marker files anywhere on the volume: a workspace is a visible root folder named with a valid reference id, which is also its name, and the Provisioner creates that folder when it is missing &mdash; a workspace does not have to be created before the Provisioner writes into it. The Provisioner decides whether a project or an instance is new by whether its folder exists. A project or instance is any visible (non-dot) child directory; a session is a visible directory named with a UUIDv7, and anything else under an instance is ignored. Its recordings show up in Microscope and in the Hub's <router-link to="/docs/hub/api#storage">storage figures</router-link> without any create step.</p>
 
         <DocsCallout type="warning">
           <strong>Upgrading from a release with marker files:</strong> there is no compatibility with older volumes &mdash; re-provision. Links, downloads, MCP references and profiles that carried the old random project id are orphaned, since a project's id is now its folder name. Project rename is gone: the name in Settings is read-only. Old <code>.workspace-info.json</code>, <code>.project-info.json</code>, <code>.instance-info.json</code> and <code>.session-info.json</code> files left in folders are ignored as hidden entries and go with their directory. Workspace display names are gone: a workspace whose display name differed from its folder now shows the folder name, its reference id. Chunks an older Provisioner named <code>profile-…</code> are still listed and downloadable as recordings, but they are timed by the volume rather than by their name; new chunks are named <code>rec-…</code>.
@@ -75,16 +75,18 @@ onMounted(() => {
 
         <div class="directory-structure">
           <pre><code>&lt;session-id&gt;/
-├── rec-20261027-085500+0100.jfr  # JFR chunk (local timestamp + UTC offset)
-├── rec-20261027-091000+0100.jfr  # Next chunk after loop interval
-├── rec-20261027-092500+0100.jfr  # ... more chunks
-├── heap-dump.hprof.gz           # Heap dump (if captured)
-├── jfr.jvm-log                  # JVM log (if enabled)
-├── perf-counters.hsperfdata     # Performance counters (if enabled)
-└── hs-jvm-err.log               # HotSpot error log (written on JVM crash)</code></pre>
+├── rec-20261027-085500+0100_0.jfr  # JFR chunk (local timestamp + UTC offset + sequence number)
+├── rec-20261027-091000+0100_1.jfr  # Next chunk after loop interval
+├── rec-20261027-092500+0100_2.jfr  # ... more chunks
+├── heap-dump.hprof.gz             # Heap dump (if captured)
+├── jfr.jvm-log                    # JVM log (if enabled)
+├── perf-counters.hsperfdata       # Performance counters (if enabled)
+└── hs-jvm-err.log                 # HotSpot error log (written on JVM crash)</code></pre>
         </div>
 
-        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone, so the Provisioner writes the UTC offset of its own zone (<code>TZ</code> or <code>/etc/localtime</code>) at the session's start into the file template as literal text: <code>rec-%t&lt;offset&gt;.jfr</code>, the offset without its colon (<code>+0100</code>, <code>-0330</code>, and <code>+0000</code> on a UTC machine: <code>rec-20260220-120500+0000.jfr</code>). The Hub and Microscope read each chunk's timestamp at the offset its own name carries; a name without an offset is read as UTC. The offset is fixed for the session: in a zone with daylight saving, the chunks a JVM writes after a switch read one hour off until it restarts. UTC machines are never affected.</p>
+        <p>Async-Profiler creates new chunks based on the <code>loop</code> and <code>chunksize</code> parameters. The <code>%t</code> placeholder in the file pattern is replaced with the current timestamp, in the machine's local time zone, so the Provisioner writes the UTC offset of its own zone (<code>TZ</code> or <code>/etc/localtime</code>) at the session's start into the file template as literal text, followed by async-profiler's <code>%n</code> sequence number: <code>rec-%t&lt;offset&gt;_%n.jfr</code>, the offset without its colon (<code>+0100</code>, <code>-0330</code>, and <code>+0000</code> on a UTC machine: <code>rec-20260220-120500+0000_0.jfr</code>). The Hub and Microscope read each chunk's timestamp at the offset its own name carries; a name without an offset is read as UTC. The offset is fixed for the session: in a zone with daylight saving, the chunks a JVM writes after a switch read one hour off until it restarts. UTC machines are never affected.</p>
+
+        <p>The sequence number starts at <code>0</code> for the JVM's first file and goes up by one at each loop restart. When clocks go back at the end of daylight saving time, local time repeats an hour; the number keeps the chunks of that hour from getting the names of the hour before, which would have overwritten them on the volume. Jeffrey orders a session's chunks by the number, so the newest chunk and the unbroken runs a download is made of stay right across the switch. A name without the number &mdash; an older chunk, or a custom <code>profiler-command</code> with a file name of its own &mdash; is still read and ordered by its timestamp alone; keep <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code> in a custom command to get both the offset and the number.</p>
 
         <DocsCallout type="info">
           <strong>Session order and crashes:</strong> nothing in the session reports liveness &mdash; the Hub and Microscope order sessions by their UUIDv7 directory names and read the file names. A <code>.heartbeat/</code> folder left by an older release is ignored and goes with its session. The presence of <code>hs-jvm-err.log</code> indicates a JVM crash was detected.

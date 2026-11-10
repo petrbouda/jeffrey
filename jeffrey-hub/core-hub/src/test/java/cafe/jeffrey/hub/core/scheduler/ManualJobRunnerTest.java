@@ -138,8 +138,8 @@ class ManualJobRunnerTest {
 
             var e = assertThrows(ManualJobRunner.ManualRunNotSupportedException.class,
                     () -> runner.run(JobType.REPOSITORY_JFR_COMPRESSION));
-            assertTrue(e.getMessage().contains("REPOSITORY_JFR_COMPRESSION"),
-                    "The error should name the job that was asked for");
+            assertTrue(e.getMessage().contains("repository-jfr-compression"),
+                    "The error should name the job by the key the caller asked for it with");
         }
 
         @Test

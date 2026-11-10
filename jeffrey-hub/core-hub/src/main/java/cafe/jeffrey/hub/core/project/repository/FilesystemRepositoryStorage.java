@@ -24,7 +24,6 @@ import cafe.jeffrey.hub.model.repository.RecordingSession;
 import cafe.jeffrey.hub.model.repository.RepositoryFile;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
 import cafe.jeffrey.shared.volume.layout.ProjectSessions;
@@ -189,20 +188,34 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
     public SessionDeletion deleteSession(String sessionId) {
         SessionDeletion deletion = VolumeChanges.deleteSession(volume, tree, sessionId);
         if (deletion.deleted()) {
-            LOG.info("Deleted session directory: session_id={} instance_deleted={}",
-                    sessionId, deletion.instanceDeleted());
+            LOG.info("Deleted session directory: session_id={} project_id={} instance_deleted={}",
+                    sessionId, projectInfo.id(), deletion.instanceDeleted());
+        } else {
+            LOG.warn("Recording session not found, nothing to delete: session_id={} project_id={}",
+                    sessionId, projectInfo.id());
         }
         return deletion;
     }
 
+    /**
+     * Looks at the instance once more before deleting it with everything in it: a session the
+     * provisioner laid down since it was listed keeps it, and so does a listing that fails, which
+     * would otherwise read as no session at all.
+     */
     @Override
-    public void deleteInstanceDirectory(String instanceId) {
-        Optional<VolumePath> instanceDir = tree.instance(instanceId).map(InstanceDirectory::path);
-        if (instanceDir.isEmpty()) {
-            return;
+    public boolean deleteInstanceDirectory(String instanceId) {
+        Optional<InstanceDirectory> instance = tree.instance(instanceId);
+        if (instance.isEmpty()) {
+            return false;
         }
-        volume.delete(instanceDir.get());
-        LOG.info("Deleted instance directory: instance_path={}", instanceDir.get());
+        if (tree.holdsAnySession(instance.get())) {
+            LOG.warn("Kept an instance directory that holds a session or cannot be listed: instance_path={}",
+                    instance.get().path());
+            return false;
+        }
+        volume.delete(instance.get().path());
+        LOG.info("Deleted instance directory: instance_path={}", instance.get().path());
+        return true;
     }
 
     // ========== Session Compression ==========
@@ -225,7 +238,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      *
      * <p>The source is deleted only once the archive exists, and {@link Compression#compress}
      * publishes the archive whole by a rename. That makes the "archive already exists" shortcut
-     * safe, including for two overlapping runs over the same session.
+     * safe, including for two overlapping runs over the same session — as long as the archive is
+     * this recording's: see {@link #collidesWith}.
      */
     private Path compress(String sessionId, RepositoryFile file) {
         // Only recordings reach here, so a format without compression is an archive already
@@ -241,6 +255,11 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
         // Already compressed, here or by an overlapping run; the archive is whole by construction
         if (Files.exists(compressedPath)) {
+            if (collidesWith(sourcePath, compressedPath)) {
+                LOG.warn("Kept a recording whose name an older recording's archive already holds: "
+                        + "session_id={} file={} archive={}", sessionId, sourcePath, compressedPath);
+                return null;
+            }
             FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
         }
@@ -255,5 +274,23 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         compression.compress(sourcePath, compressedPath);
         FileSystemUtils.removeFile(sourcePath);
         return compressedPath;
+    }
+
+    /**
+     * Whether an archive beside a recording is another recording's that happened to have the same
+     * name, rather than this one's, compressed by a run that stopped before deleting its source.
+     * An archive is written after its source is complete, so one older than the source holds an
+     * earlier chunk: two names collided (a template without the file number, through a
+     * daylight-saving switch), and deleting the source would delete the newer chunk. Times that
+     * cannot be read count as a collision: keeping a file costs only its space.
+     */
+    private static boolean collidesWith(Path source, Path archive) {
+        try {
+            return Files.getLastModifiedTime(source).compareTo(Files.getLastModifiedTime(archive)) > 0;
+        } catch (IOException e) {
+            LOG.warn("Cannot compare a recording with the archive of the same name, keeping both: source={} archive={}",
+                    source, archive, e);
+            return true;
+        }
     }
 }

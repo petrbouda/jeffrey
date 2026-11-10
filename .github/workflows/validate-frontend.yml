@@ -54,10 +54,9 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
+      # Microscope is the one product with a frontend: the hub serves only its JSON API.
       matrix:
         include:
-          - product: hub
-            component: Hub
           - product: microscope
             component: Microscope
     steps:
@@ -77,8 +76,7 @@ jobs:
         working-directory: jeffrey-${{ matrix.product }}/pages-${{ matrix.product }}
         run: npm install --no-audit --no-fund
 
-      - name: Test frontend and shared UI
-        if: matrix.product == 'microscope'
+      - name: Test frontend
         working-directory: jeffrey-microscope/pages-microscope
         run: npm test
 

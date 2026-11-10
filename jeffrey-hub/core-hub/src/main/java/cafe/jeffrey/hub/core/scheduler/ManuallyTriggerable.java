@@ -18,10 +18,10 @@
 package cafe.jeffrey.hub.core.scheduler;
 
 /**
- * A {@link Job} that an operator may also run on demand from the UI.
+ * A {@link Job} that an operator may also run on demand, through {@code POST /api/v1/jobs/{job}/run}.
  *
- * <p>Implementing this is the whole opt-in: the scheduler reports the capability, the REST layer
- * exposes the run, and the jobs table renders a control for it. Nothing anywhere names an
+ * <p>Implementing this is the whole opt-in: the scheduler reports the capability ({@code manualRun}
+ * in the job's listing) and the REST layer exposes the run. Nothing anywhere names an
  * individual job, so a future job becomes triggerable by implementing this interface and nothing
  * else.</p>
  *
@@ -33,7 +33,7 @@ public interface ManuallyTriggerable {
 
     /**
      * Runs the job's manual variant to completion and describes what it did in one line, phrased
-     * for the person who pressed the button ("3 projects, 11 sessions"). The caller shows this
+     * for the person who asked for the run ("3 projects, 11 sessions"). The caller shows this
      * verbatim and never interprets it, so each job stays free to report in its own terms.
      *
      * <p>Runs on the caller's request thread: implementations are expected to finish in seconds.</p>

@@ -17,25 +17,17 @@
 
 package cafe.jeffrey.hub.core;
 
+import cafe.jeffrey.shared.common.JeffreyVersion;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.core.io.Resource;
-import org.springframework.http.CacheControl;
-import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
-import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.resource.PathResourceResolver;
-import cafe.jeffrey.shared.common.JeffreyVersion;
 
-import java.io.IOException;
-
+/**
+ * The hub: the scheduler's jobs on the recording volume and a JSON API under {@code /api/v1}.
+ * It serves no pages.
+ */
 @SpringBootApplication
-public class HubApplication implements WebMvcConfigurer {
-
-    private static final String INDEX_PAGE = "index.html";
-    private static final String API_PATH = "api";
-    private static final String ASSETS_PATH = "assets";
+public class HubApplication {
 
     private static final String VERSION_FLAG = "--version";
 
@@ -51,41 +43,5 @@ public class HubApplication implements WebMvcConfigurer {
         SpringApplication app = new SpringApplication(HubApplication.class);
         app.setBannerMode(Banner.Mode.OFF);
         app.run(args);
-    }
-
-    @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry
-                .addResourceHandler("/**")
-                .addResourceLocations("classpath:/pages-hub/")
-                // Revalidate HTML so a page cached before deployment cannot retain obsolete bundle URLs.
-                .setCacheControl(CacheControl.noCache())
-                .resourceChain(true)
-                .addResolver(new PathResourceResolver() {
-                    @Override
-                    protected Resource getResource(String resourcePath, Resource location) throws IOException {
-                        Resource requestedResource = super.getResource(resourcePath, location);
-                        if (requestedResource != null) {
-                            return requestedResource;
-                        }
-                        // Only browser routes fall back to the SPA. Missing bundles must be 404s,
-                        // not successful HTML responses that fail the browser's module MIME check.
-                        if (!resourcePath.contains(".")
-                                && !isUnderPath(resourcePath, API_PATH)
-                                && !isUnderPath(resourcePath, ASSETS_PATH)) {
-                            return super.getResource(INDEX_PAGE, location);
-                        }
-                        return null;
-                    }
-                });
-    }
-
-    private static boolean isUnderPath(String resourcePath, String prefix) {
-        return resourcePath.equals(prefix) || resourcePath.startsWith(prefix + "/");
-    }
-
-    @Override
-    public void addViewControllers(ViewControllerRegistry registry) {
-        registry.addViewController("/").setViewName("forward:/index.html");
     }
 }

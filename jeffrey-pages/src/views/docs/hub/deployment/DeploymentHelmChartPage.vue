@@ -47,8 +47,8 @@ const chartStructure = `helm/
 │   ├── jeffrey-base.conf             # provisioner init config for self-profiling
 │   └── templates/
 │       ├── deployment.yaml
-│       ├── service.yaml              # HTTP 8080 (Storage + Scheduler UI)
-│       ├── ingress.yaml              # optional HTTP ingress
+│       ├── service.yaml              # HTTP 8080 (REST API)
+│       ├── ingress.yaml              # optional HTTP access to the API
 │       ├── persistent-volume-claim.yaml
 │       ├── persistent-volume.yaml    # hostPath PV (orbstack/minikube)
 │       ├── configmap.yaml            # mounts application.properties + jeffrey-base.conf
@@ -199,7 +199,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         <tbody>
           <tr>
             <td><code>helm/jeffrey-hub/</code></td>
-            <td>Jeffrey Hub itself. Owns the shared PVC, runs the retention and compression jobs on it, and exposes its web UI on HTTP <code>8080</code>.</td>
+            <td>Jeffrey Hub itself. Owns the shared PVC, runs the retention and compression jobs on it, and serves its <router-link to="/docs/hub/api">REST API</router-link> on HTTP <code>8080</code>.</td>
             <td><code>jeffrey-hub</code></td>
           </tr>
           <tr>
@@ -257,7 +257,7 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         code="jeffrey.hub.home.dir=\${JEFFREY_HOME}"
       />
 
-      <p>The Service exposes the hub's web UI — its Storage and Scheduler pages — on a single ClusterIP:</p>
+      <p>The Service exposes the hub's <router-link to="/docs/hub/api">REST API</router-link> (<code>/api/v1</code>) and its health probes on a single ClusterIP:</p>
 
       <DocsCodeBlock
         language="yaml"
@@ -265,10 +265,12 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
       />
 
       <p>
-        OrbStack publishes in-cluster Service DNS to the host automatically — open
-        <code>http://jeffrey-hub.jeffrey-testapp.svc.cluster.local:8080</code> directly
-        from the laptop. For other clusters, expose Jeffrey Hub via the chart's
-        <code>ingress.enabled=true</code> (HTTP).
+        OrbStack publishes in-cluster Service DNS to the host automatically — call
+        <code>http://jeffrey-hub.jeffrey-testapp.svc.cluster.local:8080/api/v1/storage</code> directly
+        from the laptop. For other clusters, the chart's optional <code>ingress.enabled=true</code>
+        gives HTTP access to the API from outside — or use <code>kubectl port-forward</code>.
+        The API has no authentication and its run endpoint deletes data, so keep it inside the
+        cluster unless the Ingress is protected.
       </p>
 
       <h2 id="configure-app">Configuring the Monitored Application</h2>

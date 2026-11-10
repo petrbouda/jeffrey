@@ -27,7 +27,7 @@ import java.util.Optional;
 
 /**
  * The instant async-profiler wrote into the file's name, read the same from its {@code .lz4}
- * archive: {@code rec-20260220-120500+0100.jfr}. A name outside the convention falls back to
+ * archive: {@code rec-20260220-120500+0100_7.jfr}, the file's number after the offset. A name outside the convention falls back to
  * the volume, logged at debug since this runs per file per listing.
  *
  * <p>async-profiler expands {@code %t} in the profiled machine's local time ({@code localtime_r}),

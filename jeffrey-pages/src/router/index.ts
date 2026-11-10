@@ -327,6 +327,11 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsServerStorage',
         component: () => import('@/views/docs/hub/HubStoragePage.vue')
       },
+      {
+        path: 'hub/api',
+        name: 'DocsHubApi',
+        component: () => import('@/views/docs/hub/HubApiPage.vue')
+      },
       // Legacy: Continuous Recording was superseded by the Deployment section.
       { path: 'server/continuous-recording/overview', redirect: '/docs/hub/deployment' },
       { path: 'server/continuous-recording/jeffrey-deployment', redirect: '/docs/hub/deployment/helm-chart' },

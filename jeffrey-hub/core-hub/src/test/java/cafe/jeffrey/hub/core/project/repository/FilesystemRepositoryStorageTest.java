@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -249,6 +250,39 @@ class FilesystemRepositoryStorageTest {
                     List.of("rec-20260220-120000+0000.jfr.lz4", "rec-20260220-121000+0000.jfr.lz4"),
                     names(session),
                     "each recording is gone and its archive is there");
+        }
+
+        /** A run that stopped between writing the archive and deleting its source: the source goes. */
+        @Test
+        void deletesASourceLeftBesideItsOwnArchive() throws IOException {
+            Path session = sessionDir();
+            Path source = write(session, "rec-20260220-120000+0000.jfr");
+            Path archive = write(session, "rec-20260220-120000+0000.jfr.lz4");
+            Files.setLastModifiedTime(source, FileTime.from(T0));
+            Files.setLastModifiedTime(archive, FileTime.from(T0.plusSeconds(5)));
+
+            compress(endedSession());
+
+            assertEquals(List.of("rec-20260220-120000+0000.jfr.lz4"), names(session));
+        }
+
+        /**
+         * Two chunks with one name: a template without the file number, through the hour that
+         * repeats when daylight saving ends. The archive is the earlier chunk's, so the recording
+         * beside it is newer than it, and deleting it as a leftover would delete that chunk.
+         */
+        @Test
+        void keepsANewerChunkWhoseNameAnOlderArchiveHolds() throws IOException {
+            Path session = sessionDir();
+            Path archive = write(session, "rec-20260220-120000+0000.jfr.lz4");
+            Path source = write(session, "rec-20260220-120000+0000.jfr");
+            Files.setLastModifiedTime(archive, FileTime.from(T0));
+            Files.setLastModifiedTime(source, FileTime.from(T0.plusSeconds(3600)));
+
+            compress(endedSession());
+
+            assertEquals(List.of("rec-20260220-120000+0000.jfr", "rec-20260220-120000+0000.jfr.lz4"),
+                    names(session), "both chunks stay");
         }
 
         /**
@@ -471,6 +505,47 @@ class FilesystemRepositoryStorageTest {
             storage().deleteRepositoryFiles(SESSION_ID, List.of("../../../../keep-me.txt"));
 
             assertTrue(Files.exists(outside), "an id is matched against the session's files, not resolved to a path");
+        }
+    }
+
+    /**
+     * The stale-instance rule's delete: the instance goes with everything in it, so it is looked at
+     * once more first, and a session found there keeps it.
+     */
+    @Nested
+    class DeleteInstanceDirectory {
+
+        @TempDir
+        Path workspacesDir;
+
+        private FilesystemRepositoryStorage storage() {
+            return TestVolume.storage(PROJECT_INFO, workspacesDir, projectDir(workspacesDir));
+        }
+
+        @Test
+        void deletesAnInstanceThatHoldsNoSession() throws IOException {
+            Path instance = TestVolume.instance(projectDir(workspacesDir), "abandoned");
+            Files.createDirectories(instance.resolve("not-a-session"));
+
+            assertTrue(storage().deleteInstanceDirectory("abandoned"));
+            assertFalse(Files.exists(instance));
+        }
+
+        /** A session laid down after the rule listed the instance as empty keeps it. */
+        @Test
+        void keepsAnInstanceThatHoldsASession() {
+            Path instance = TestVolume.instance(projectDir(workspacesDir), "pod-a");
+            Path session = TestVolume.session(instance, T0);
+
+            assertFalse(storage().deleteInstanceDirectory("pod-a"));
+            assertTrue(Files.isDirectory(session));
+        }
+
+        @Test
+        void deletesNothingForAnInstanceThatIsNotThere() {
+            projectDir(workspacesDir);
+
+            assertFalse(storage().deleteInstanceDirectory("missing"));
         }
     }
 }

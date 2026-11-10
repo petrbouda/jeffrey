@@ -14,30 +14,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package cafe.jeffrey.hub.core.project;
 
-package cafe.jeffrey.hub.core.manager.project;
-
-import cafe.jeffrey.hub.core.manager.RepositoryManager;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
-import cafe.jeffrey.hub.core.volume.ProjectDirectory;
 import cafe.jeffrey.hub.model.ProjectInfo;
 
-import java.util.function.Function;
-
 /**
- * One project directory of a workspace. The hub only collects: no profile analysis, recording
- * management or downloads of its own.
+ * One project directory on the volume, as the hub's jobs work on it: which project it is and its
+ * repository. The hub only keeps the volume in shape — no analysis, no downloads of its own.
  */
-public interface ProjectManager {
+public record HubProject(ProjectInfo info, RepositoryStorage repositoryStorage) {
 
-    @FunctionalInterface
-    interface Factory extends Function<ProjectDirectory, ProjectManager> {
+    public HubProject {
+        if (info == null || repositoryStorage == null) {
+            throw new IllegalArgumentException("A project needs its info and its repository");
+        }
     }
 
-    RepositoryStorage repositoryStorage();
-
-    RepositoryManager repositoryManager();
-
-    ProjectInfo info();
-
+    /** The project as structured log keys, e.g. {@code workspace_id=ws-1 project_id=orders}. */
+    public String logScope() {
+        return "workspace_id=" + info.workspaceId() + " project_id=" + info.id();
+    }
 }

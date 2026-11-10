@@ -123,7 +123,7 @@ Add to `jeffrey-microscope/pages-microscope/src/router/index.ts` under the globa
 
 ### Step 3: Add Navigation Tab
 
-Add a link to `shared/ui/common/src/components/MainNavigation.vue`:
+Add a link to `jeffrey-microscope/pages-microscope/src/shared/components/MainNavigation.vue`:
 
 ```vue
 <router-link to="/your-page" class="nav-pill" active-class="active">
@@ -142,9 +142,9 @@ If the page calls backend APIs, create a client in `jeffrey-microscope/pages-mic
 |---|---|
 | Vue View | `jeffrey-microscope/pages-microscope/src/views/global/YourPageView.vue` |
 | Router | `jeffrey-microscope/pages-microscope/src/router/index.ts` (global routes section) |
-| Navigation | `shared/ui/common/src/components/MainNavigation.vue` |
+| Navigation | `pages-microscope/src/shared/components/MainNavigation.vue` |
 | API Client | `jeffrey-microscope/pages-microscope/src/services/api/YourPageClient.ts` |
-| MainCard / MainCardHeader | `shared/ui/common/src/components/MainCard.vue`, `MainCardHeader.vue` |
+| MainCard / MainCardHeader | `pages-microscope/src/shared/components/MainCard.vue`, `MainCardHeader.vue` |
 
 ## Related Skills
 

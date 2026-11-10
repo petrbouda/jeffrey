@@ -57,11 +57,13 @@ public interface RepositoryStorage {
     List<ProjectInstanceInfo> instances();
 
     /**
-     * Deletes an instance's directory with whatever is left in it.
+     * Deletes an instance's directory with whatever is left in it, unless it holds a session or
+     * cannot be listed to tell.
      *
      * @param instanceId the unique identifier of the instance whose directory to delete
+     * @return whether it was deleted
      */
-    void deleteInstanceDirectory(String instanceId);
+    boolean deleteInstanceDirectory(String instanceId);
 
     // ========== Session Compression ==========
 

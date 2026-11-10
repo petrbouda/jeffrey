@@ -29,14 +29,6 @@ jeffrey-microscope/pages-microscope/dist-ssr
 jeffrey-microscope/pages-microscope/coverage
 jeffrey-microscope/pages-microscope/*.local
 
-# pages-hub dependencies and build output
-jeffrey-hub/pages-hub/node_modules
-jeffrey-hub/pages-hub/package-lock.json
-jeffrey-hub/pages-hub/.DS_Store
-jeffrey-hub/pages-hub/dist
-jeffrey-hub/pages-hub/coverage
-jeffrey-hub/pages-hub/*.local
-
 /cypress/videos/
 /cypress/screenshots/
 

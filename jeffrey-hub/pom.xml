@@ -32,7 +32,6 @@
 
     <modules>
         <module>hub-model</module>
-        <module>pages-hub</module>
         <module>core-hub</module>
     </modules>
 

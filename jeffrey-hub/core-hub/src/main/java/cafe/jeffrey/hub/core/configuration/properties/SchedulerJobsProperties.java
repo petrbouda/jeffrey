@@ -36,7 +36,7 @@ import java.util.regex.Pattern;
  * on {@code HubAppConfiguration}); {@code application.properties} overrides
  * any field by redeclaring the same key.
  * <p>
- * Property keys use the lower-kebab-case form of {@link JobType} (for example
+ * Property keys are {@link JobType#key()}, the lower-kebab-case form of the constant (for example
  * {@code project-retention} for {@code PROJECT_RETENTION}).
  */
 @ConfigurationProperties("jeffrey.hub.scheduler")
@@ -76,7 +76,7 @@ public class SchedulerJobsProperties {
         JobConfig config = findConfig(jobType);
         if (config == null) {
             LOG.warn("No scheduler configuration found for job, it stays disabled: job={} expected_key={}",
-                    jobType, toKey(jobType));
+                    jobType, jobType.key());
             return new JobConfig(false, UNCONFIGURED_JOB_PERIOD, Map.of());
         }
         return config;
@@ -91,7 +91,7 @@ public class SchedulerJobsProperties {
      * would switch the job off instead.
      */
     private JobConfig findConfig(JobType jobType) {
-        JobConfig exact = jobs.get(toKey(jobType));
+        JobConfig exact = jobs.get(jobType.key());
         if (exact != null) {
             return exact;
         }
@@ -107,10 +107,6 @@ public class SchedulerJobsProperties {
     /** Reduces a key to letters and digits, so dashes, underscores and casing stop mattering. */
     private static String normalize(String key) {
         return NON_ALPHANUMERIC.matcher(key).replaceAll("").toLowerCase(Locale.ROOT);
-    }
-
-    public static String toKey(JobType jobType) {
-        return jobType.name().toLowerCase(Locale.ROOT).replace('_', '-');
     }
 
     public static class JobConfig {

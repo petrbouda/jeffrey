@@ -28,7 +28,7 @@ import java.util.Set;
 /**
  * Produces the current view of all configured scheduler jobs by joining
  * {@link JobType} metadata with the resolved {@link SchedulerJobsProperties}.
- * Used by the read-only scheduler REST endpoint.
+ * Used by the scheduler's REST endpoints.
  */
 public class JobRegistry {
 
@@ -40,17 +40,23 @@ public class JobRegistry {
         this.manuallyTriggerable = manuallyTriggerable;
     }
 
+    /** Every job, in the order {@link JobType} declares them. */
     public List<JobInfo> all() {
         List<JobInfo> result = new ArrayList<>();
         for (JobType jobType : JobType.values()) {
-            SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(jobType);
-            result.add(new JobInfo(
-                    jobType,
-                    config.period(),
-                    config.params(),
-                    config.enabled(),
-                    manuallyTriggerable.contains(jobType)));
+            result.add(get(jobType));
         }
         return result;
+    }
+
+    /** One job; every {@link JobType} has one, configured or not. */
+    public JobInfo get(JobType jobType) {
+        SchedulerJobsProperties.JobConfig config = schedulerJobsProperties.forType(jobType);
+        return new JobInfo(
+                jobType,
+                config.period(),
+                config.params(),
+                config.enabled(),
+                manuallyTriggerable.contains(jobType));
     }
 }

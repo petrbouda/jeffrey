@@ -171,11 +171,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>pages-hub</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>profile-management</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -232,11 +227,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>recordings-core</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>version</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

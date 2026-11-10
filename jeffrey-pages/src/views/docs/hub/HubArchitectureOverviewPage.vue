@@ -29,7 +29,7 @@ const headings = [
   { id: 'role', text: 'Role of the Hub', level: 2 },
   { id: 'components', text: 'Components', level: 2 },
   { id: 'scheduler-jobs', text: 'Scheduler Jobs', level: 2 },
-  { id: 'web-ui', text: 'Web UI', level: 2 },
+  { id: 'rest-api', text: 'REST API', level: 2 },
   { id: 'microscope', text: 'Microscope and the Hub', level: 2 },
   { id: 'storage', text: 'Storage', level: 2 }
 ];
@@ -112,23 +112,26 @@ onMounted(() => {
         <li>
           <strong>Repository compression</strong> (<code>RepositoryCompressionProjectJob</code>)
           LZ4-compresses JFR chunks once they are finished. Compression happens only here, never
-          on a read path.
+          on a read path. A <code>.jfr</code> newer than its same-named <code>.lz4</code> archive is a
+          name collision, not a leftover of a finished compression, so the job keeps it and logs a warning.
         </li>
       </ul>
 
-      <h2 id="web-ui">Web UI</h2>
+      <h2 id="rest-api">REST API</h2>
       <p>
-        The hub keeps a small web UI with two pages:
+        The hub has no web UI. On HTTP <code>8080</code> it serves a small JSON
+        <router-link to="/docs/hub/api">REST API</router-link> under <code>/api/v1</code>, for
+        operators and scripts — Microscope never calls it:
       </p>
       <ul>
         <li>
           <strong>Storage</strong> — what the last retention pass measured per workspace and
           project: size, files and last activity
-          (<code>GET /api/internal/storage</code>).
+          (<code>GET /api/v1/storage</code>).
         </li>
         <li>
-          <strong>Scheduler</strong> — lists the jobs (<code>GET /api/internal/scheduler/jobs</code>)
-          and runs one now (<code>POST /api/internal/scheduler/jobs/{jobType}/run</code>).
+          <strong>Jobs</strong> — lists the scheduler jobs, read-only (<code>GET /api/v1/jobs</code>),
+          and runs retention now (<code>POST /api/v1/jobs/project-retention/run</code>).
         </li>
       </ul>
 

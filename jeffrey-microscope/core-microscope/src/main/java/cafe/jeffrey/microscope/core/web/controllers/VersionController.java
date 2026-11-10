@@ -15,19 +15,18 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.ui.version;
+package cafe.jeffrey.microscope.core.web.controllers;
 
+import cafe.jeffrey.shared.common.JeffreyVersion;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import cafe.jeffrey.shared.common.JeffreyVersion;
 
 import java.util.Map;
 
 /**
- * Shared {@code GET /api/internal/version} endpoint, identical across all deployments. Registered via
- * {@link VersionFeatureConfiguration} (it lives outside the deployments' component-scan roots).
- * Deployment-specific extensions (e.g. microscope's update check) live in supplementary controllers.
+ * {@code GET /api/internal/version}: the running Microscope's version, which the UI's top bar
+ * shows. The check for a newer release is {@link VersionUpdateCheckController}'s.
  */
 @RestController
 @RequestMapping("/api/internal")

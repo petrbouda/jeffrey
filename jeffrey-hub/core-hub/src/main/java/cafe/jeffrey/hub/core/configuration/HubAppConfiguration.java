@@ -19,7 +19,8 @@ package cafe.jeffrey.hub.core.configuration;
 
 import cafe.jeffrey.hub.core.HubJeffreyDirs;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
-import cafe.jeffrey.shared.ui.version.VersionFeatureConfiguration;
+import cafe.jeffrey.hub.core.project.HubProjects;
+import cafe.jeffrey.hub.core.project.VolumeHubProjects;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,10 +39,7 @@ import java.time.Clock;
  * directory, which is the hub's only state.
  */
 @Configuration
-@Import({
-        SchedulerConfiguration.class,
-        VersionFeatureConfiguration.class
-})
+@Import(SchedulerConfiguration.class)
 @EnableConfigurationProperties(SchedulerJobsProperties.class)
 @PropertySource("classpath:scheduler-defaults.properties")
 public class HubAppConfiguration {
@@ -65,5 +63,11 @@ public class HubAppConfiguration {
     @Bean
     public FilesystemVolume workspacesVolume(HubJeffreyDirs jeffreyDirs) {
         return new FilesystemVolume(jeffreyDirs.workspaces());
+    }
+
+    /** Every project on the volume, read afresh each time a job visits them. */
+    @Bean
+    public HubProjects hubProjects(FilesystemVolume workspacesVolume) {
+        return new VolumeHubProjects(workspacesVolume);
     }
 }

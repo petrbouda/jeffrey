@@ -20,7 +20,7 @@ import cafe.jeffrey.hub.core.appinitializer.SchedulerInitializer;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties;
 import cafe.jeffrey.hub.core.configuration.properties.SchedulerJobsProperties.JobConfig;
 import cafe.jeffrey.hub.core.manager.storage.StorageOverviewCache;
-import cafe.jeffrey.hub.core.manager.workspace.WorkspacesManager;
+import cafe.jeffrey.hub.core.project.HubProjects;
 import cafe.jeffrey.hub.core.scheduler.Job;
 import cafe.jeffrey.hub.core.scheduler.JobLocks;
 import cafe.jeffrey.hub.core.scheduler.JobRegistry;
@@ -50,11 +50,11 @@ public class SchedulerConfiguration {
 
     private static final Logger LOG = LoggerFactory.getLogger(SchedulerConfiguration.class);
 
-    private final WorkspacesManager workspacesManager;
+    private final HubProjects projects;
     private final SchedulerJobsProperties properties;
 
-    public SchedulerConfiguration(WorkspacesManager workspacesManager, SchedulerJobsProperties properties) {
-        this.workspacesManager = workspacesManager;
+    public SchedulerConfiguration(HubProjects projects, SchedulerJobsProperties properties) {
+        this.projects = projects;
         this.properties = properties;
     }
 
@@ -106,11 +106,11 @@ public class SchedulerConfiguration {
     @Bean
     public ProjectRetentionJob projectRetentionJob(StorageOverviewCache storageOverviewCache, Clock clock) {
         return new ProjectRetentionJob(
-                workspacesManager, config(JobType.PROJECT_RETENTION), storageOverviewCache, clock);
+                projects, config(JobType.PROJECT_RETENTION), storageOverviewCache, clock);
     }
 
     @Bean
     public RepositoryCompressionProjectJob repositoryCompressionProjectJob() {
-        return new RepositoryCompressionProjectJob(workspacesManager, config(JobType.REPOSITORY_JFR_COMPRESSION));
+        return new RepositoryCompressionProjectJob(projects, config(JobType.REPOSITORY_JFR_COMPRESSION));
     }
 }

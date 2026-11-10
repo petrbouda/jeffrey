@@ -93,7 +93,7 @@ const onDiskTree = `/mnt/jeffrey/                                # JEFFREY_HOME 
         └── <project-name>/                  # folder names are the ids — no markers anywhere
             └── <instance-id>/
                 └── <session-id>/            # a UUIDv7; the JFR recordings land here
-                    └── rec-20261027-085500+0100.jfr`;
+                    └── rec-20261027-085500+0100_0.jfr`;
 </script>
 
 <template>

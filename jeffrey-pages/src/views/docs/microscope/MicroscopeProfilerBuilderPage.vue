@@ -234,9 +234,10 @@ onMounted(() => {
       <p>
         With Jeffrey JIB the output defaults to <code>&lt;&lt;JEFFREY:FILE_PATTERN&gt;&gt;</code>,
         which the provisioner expands to the session directory plus a file name carrying the machine's UTC offset
-        (<code>rec-%t+0100.jfr</code>). Keep it: an output of your own without the offset, such as
+        and a sequence number (<code>rec-%t+0100_%n.jfr</code>). Keep it: an output of your own without the offset, such as
         <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;/rec-%t.jfr</code>, is read as UTC, which gives wrong times
-        on a non-UTC machine. With a custom profiler it defaults to
+        on a non-UTC machine, and without the number its chunks are ordered by their timestamp alone, so the hour
+        a daylight-saving switch repeats gets the same names as the hour before. With a custom profiler it defaults to
         <code>/tmp/rec-%t.jfr</code>, and an empty profiler path falls back to
         <code>/path/to/libasyncProfiler.so</code>; both are placeholders meant to be replaced. Switching between the two
         keeps an output path you typed yourself.

@@ -17,10 +17,30 @@
 
 package cafe.jeffrey.hub.model.job;
 
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Optional;
+
 /**
  * The hub's scheduled jobs; each visits every project of every workspace once per tick.
  */
 public enum JobType {
     PROJECT_RETENTION,
-    REPOSITORY_JFR_COMPRESSION
+    REPOSITORY_JFR_COMPRESSION;
+
+    /**
+     * The job's one name outside the code: its constant in lower kebab case, as its properties
+     * spell it ({@code jeffrey.hub.scheduler.jobs.project-retention.*}) and the REST API addresses
+     * it ({@code /api/v1/jobs/project-retention}).
+     */
+    public String key() {
+        return name().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
+    /** The job a {@link #key()} names, or empty for any other text, the constant's own name included. */
+    public static Optional<JobType> ofKey(String key) {
+        return Arrays.stream(values())
+                .filter(jobType -> jobType.key().equals(key))
+                .findFirst();
+    }
 }

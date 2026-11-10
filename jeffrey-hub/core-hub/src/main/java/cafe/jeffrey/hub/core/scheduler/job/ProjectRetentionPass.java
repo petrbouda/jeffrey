@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.hub.core.scheduler.job;
 
-import cafe.jeffrey.hub.core.manager.project.ProjectManager;
+import cafe.jeffrey.hub.core.project.HubProject;
 import cafe.jeffrey.hub.core.project.repository.RepositoryStorage;
 import cafe.jeffrey.hub.core.project.repository.SessionDetail;
 import cafe.jeffrey.hub.model.ProjectInstanceInfo;
@@ -50,7 +50,7 @@ final class ProjectRetentionPass {
     record Outcome(int sessionsDeleted, int filesDeleted, int instancesDeleted, List<RecordingSession> remaining) {
     }
 
-    private final ProjectManager project;
+    private final String projectName;
     private final RepositoryStorage storage;
     private final Instant now;
     private final List<RecordingSession> sessions;
@@ -59,20 +59,20 @@ final class ProjectRetentionPass {
     private int filesDeleted;
     private int instancesDeleted;
 
-    private ProjectRetentionPass(ProjectManager project, Instant now) {
-        this.project = project;
+    private ProjectRetentionPass(HubProject project, Instant now) {
+        this.projectName = project.info().id();
         this.storage = project.repositoryStorage();
         this.now = now;
         this.sessions = new ArrayList<>(storage.listSessions(SessionDetail.WITH_FILES));
     }
 
     /** Lists the project's sessions with their files: the one walk of its directories this pass makes. */
-    static ProjectRetentionPass begin(ProjectManager project, Instant now) {
+    static ProjectRetentionPass begin(HubProject project, Instant now) {
         return new ProjectRetentionPass(project, now);
     }
 
     String projectName() {
-        return project.info().id();
+        return projectName;
     }
 
     Instant now() {
@@ -104,7 +104,7 @@ final class ProjectRetentionPass {
      * @return whether it was there to delete; one already gone frees nothing
      */
     boolean deleteSession(RecordingSession session) {
-        SessionDeletion deletion = project.repositoryManager().deleteRecordingSession(session.id());
+        SessionDeletion deletion = storage.deleteSession(session.id());
         if (deletion.deleted()) {
             sessions.remove(session);
             sessionsDeleted++;
@@ -134,14 +134,22 @@ final class ProjectRetentionPass {
                 session.id(), session.name(), session.instanceId(), session.createdAt(), session.newest(), kept));
     }
 
-    /** Deletes an instance's directory; a failure is logged and the next pass tries again. */
-    void deleteInstance(String instanceId) {
+    /**
+     * Deletes an instance's directory unless it holds a session or cannot be listed; a failure is
+     * logged and the next pass tries again.
+     *
+     * @return whether it was deleted
+     */
+    boolean deleteInstance(String instanceId) {
         try {
-            storage.deleteInstanceDirectory(instanceId);
-            instancesDeleted++;
+            if (storage.deleteInstanceDirectory(instanceId)) {
+                instancesDeleted++;
+                return true;
+            }
         } catch (RuntimeException e) {
             LOG.warn("Failed to delete instance directory: instance_id={}", instanceId, e);
         }
+        return false;
     }
 
     Outcome outcome() {

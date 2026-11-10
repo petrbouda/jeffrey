@@ -21,25 +21,27 @@ import cafe.jeffrey.hub.model.job.JobInfo;
 import java.util.Map;
 
 /**
- * One scheduler job as the Scheduler page lists it. The period travels in ISO-8601
- * ({@code PT5S}), which is what the page has always parsed; the domain record's
- * {@code Duration} serialised to exactly that, and this spells it out rather than relying on it.
+ * One scheduler job, as {@code GET /api/v1/jobs} lists it.
  *
- * @param manualTriggerSupported whether an operator may run this job on demand
+ * @param id        the job's key ({@code JobType.key()}), the same one its
+ *                  properties use: {@code jeffrey.hub.scheduler.jobs.<id>.*}
+ * @param period    ISO-8601 ({@code PT5M}), spelled out rather than left to the JSON mapper
+ * @param manualRun whether {@code POST /api/v1/jobs/{id}/run} runs it
+ * @param params    the job's parameters as configured, unparsed
  */
 public record JobResponse(
-        String jobType,
-        String period,
-        Map<String, String> params,
+        String id,
         boolean enabled,
-        boolean manualTriggerSupported) {
+        String period,
+        boolean manualRun,
+        Map<String, String> params) {
 
     public static JobResponse from(JobInfo job) {
         return new JobResponse(
-                job.jobType().name(),
-                job.period().toString(),
-                job.params(),
+                job.jobType().key(),
                 job.enabled(),
-                job.manualTriggerSupported());
+                job.period().toString(),
+                job.manualTriggerSupported(),
+                job.params());
     }
 }

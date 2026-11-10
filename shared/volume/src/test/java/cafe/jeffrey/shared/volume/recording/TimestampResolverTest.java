@@ -100,6 +100,15 @@ class TimestampResolverTest {
                     TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-120500.jfr")));
         }
 
+        /** The file number after the offset ({@code _%n}) leaves the instant as it is. */
+        @Test
+        void readsANameWithAFileNumberAndItsArchive() {
+            Optional<Instant> start = Optional.of(Instant.parse("2026-02-20T12:05:00Z"));
+            assertEquals(start, TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-130500+0100_7.jfr")));
+            assertEquals(start, TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-130500+0100_7.jfr.lz4")));
+            assertEquals(start, TimestampResolver.RECORDING_NAME.resolve(file("rec-20260220-083500-0330_12.jfr")));
+        }
+
         @Test
         void readsTheOffsetFromTheArchiveToo() {
             assertEquals(
