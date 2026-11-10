@@ -13,7 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Docker Server Image (Jib)
+name: Docker Server Image (Native)
+
+# Jeffrey Hub's image: a GraalVM native image, petrbouda/jeffrey-hub:<version> (and latest).
+# There is no JVM image of the hub; it does not profile itself (async-profiler is a JVM agent).
+#
+# native-image does not cross-compile, and compiling under qemu takes most of an hour, so each
+# architecture is built on its own runner, pushed by digest only, and the merge job joins the two
+# digests under the release's tags.
 
 on:
   workflow_call:
@@ -23,79 +30,85 @@ on:
         required: true
         type: string
 
+env:
+  IMAGE: petrbouda/jeffrey-hub
+
 jobs:
-  docker-server:
-    runs-on: ubuntu-latest
-    container:
-      image: petrbouda/jeffrey-builder:25
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
 
     steps:
     - uses: actions/checkout@v6
 
-    # The hub image is built with the jar flavour of the jeffrey-jib extension
-    # (jeffrey-jib-maven-jar), which bakes the provisioner jar and async-profiler
-    # from the jeffrey-jib-payload-jar artifact. That payload is built here, in this reactor, from
-    # THIS release's own provisioner.jar (uploaded by the build job) and the
-    # async-profiler pinned in
-    # jeffrey-jib/pom.xml — so the hub image never depends on a jeffrey-jib release
-    # having been published to Maven Central first, and always self-profiles with the provisioner
-    # it shipped with. The native flavour (which would need the GraalVM binaries) is not built.
-    - name: Stage this release's provisioner.jar as the jar payload
-      uses: actions/download-artifact@v8
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: docker/login-action@v3
       with:
-        name: provisioner-jar
-        path: ./jeffrey-jib/jeffrey-jib-payload-jar/src/main/payload/jeffrey-payload
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Stage async-profiler payloads
-      run: ./build/scripts/stage-async-profiler-payload.sh ./jeffrey-jib
+    - name: Build & push by digest
+      id: build
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: docker/Dockerfile-hub
+        platforms: linux/${{ matrix.arch }}
+        build-args: |
+          JEFFREY_TAG_VERSION=${{ inputs.version }}
+        outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+        cache-from: type=gha,scope=hub-${{ matrix.arch }}
+        cache-to: type=gha,mode=max,scope=hub-${{ matrix.arch }}
 
-    # Two-step: jib: prefix goal can only be invoked at the project level, so we install
-    # the reactor up to build-hub-jib first, then run jib:build scoped to that module.
-    - name: Install reactor up to build-hub-jib
+    - name: Export digest
       env:
-        JEFFREY_TAG_VERSION: ${{ inputs.version }}
-      run: mvn -pl build/build-hub-jib -am -DskipTests=true install
-
-    # The flavour and payload modules live behind the `payload` profile and are not part of the
-    # reactor above. -am pulls in the extension, core and parent; jeffrey.release is recorded in
-    # the payload's descriptor.
-    - name: Install the jeffrey-jib flavour the hub image is built with
-      env:
-        JEFFREY_TAG_VERSION: ${{ inputs.version }}
+        DIGEST: ${{ steps.build.outputs.digest }}
       run: |
-        mvn -P payload \
-          -pl jeffrey-jib/jeffrey-jib-maven-jar -am \
-          -DskipTests=true -Djeffrey.release=v${{ inputs.version }} install
+        mkdir -p "${RUNNER_TEMP}/digests"
+        touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
 
-    # docker/login-action shells out to `docker login`; the petrbouda/jeffrey-builder:25
-    # container has no docker CLI, so we write ~/.docker/config.json directly. Jib reads it
-    # automatically and Docker Hub accepts the same auth scheme docker login produces.
-    - name: Configure Docker Hub auth for Jib
-      env:
-        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      run: |
-        mkdir -p ~/.docker
-        AUTH=$(printf '%s' "${DOCKERHUB_USERNAME}:${DOCKERHUB_TOKEN}" | base64 | tr -d '\n')
-        printf '{"auths":{"https://index.docker.io/v1/":{"auth":"%s"}}}\n' "${AUTH}" > ~/.docker/config.json
-        chmod 600 ~/.docker/config.json
+    - uses: actions/upload-artifact@v7
+      with:
+        name: hub-digest-${{ matrix.arch }}
+        path: ${{ runner.temp }}/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+  merge:
+    needs: [build]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        pattern: hub-digest-*
+        path: ${{ runner.temp }}/digests
+        merge-multiple: true
+
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     # `latest` follows plain X.Y.Z releases only; betas and suffixed builds (e.g. 0.14.5-hub-db-less)
-    # must not move it. Jib's tag set always includes the image tag, so repeating the version is a no-op.
-    - name: Resolve extra image tags
+    # must not move it.
+    - name: Create the multi-arch manifest
+      working-directory: ${{ runner.temp }}/digests
+      env:
+        VERSION: ${{ inputs.version }}
       run: |
-        if [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-          echo "JIB_EXTRA_TAGS=latest" >> "$GITHUB_ENV"
-        else
-          echo "JIB_EXTRA_TAGS=${{ inputs.version }}" >> "$GITHUB_ENV"
+        TAGS=(-t "${IMAGE}:${VERSION}")
+        if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          TAGS+=(-t "${IMAGE}:latest")
         fi
-
-    # build-hub-jib pins a published jeffrey-jib release for local builds; here it takes the jar
-    # flavour installed above instead, so the image carries THIS release's provisioner.
-    - name: Build & push image with Jib
-      run: |
-        JEFFREY_JIB_VERSION=$(mvn -q -N -f jeffrey-jib/pom.xml -DforceStdout help:evaluate -Dexpression=project.version)
-        mvn -pl build/build-hub-jib compile jib:build \
-          -Djeffrey-jib-maven.version=${JEFFREY_JIB_VERSION} \
-          -Djib.to.image=petrbouda/jeffrey-hub:${{ inputs.version }} \
-          -Djib.to.tags=${JIB_EXTRA_TAGS}
+        docker buildx imagetools create "${TAGS[@]}" $(printf "${IMAGE}@sha256:%s " *)
+        docker buildx imagetools inspect "${IMAGE}:${VERSION}"

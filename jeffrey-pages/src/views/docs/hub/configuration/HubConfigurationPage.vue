@@ -65,12 +65,19 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
     <div class="docs-content">
       <h2 id="overview">Overview</h2>
       <p>
-        Jeffrey Hub (<code>jeffrey-hub.jar</code>) is configured through a single
+        Jeffrey Hub is configured through a single
         <code>application.properties</code> file. All properties have sensible code defaults,
         so you only need to override what you want to change. Frequently-tuned settings
         (port, directories) come first; advanced tuning (jobs, storage paths and
         workspace defaults) follows. The Hub has no database: the shared
         volume is its only state.
+      </p>
+      <p>
+        The hub's Docker image (<code>petrbouda/jeffrey-hub:&lt;version&gt;</code>) is a GraalVM
+        native image and takes the same properties: as environment variables
+        (<code>JEFFREY_HUB_HOME_DIR</code>), as <code>--key=value</code> arguments, or as a mounted
+        file named by <code>SPRING_CONFIG_ADDITIONAL_LOCATION</code>. See
+        <router-link to="/docs/hub/deployment/helm-chart#native-image">Native Image</router-link>.
       </p>
 
       <DocsCallout type="info">

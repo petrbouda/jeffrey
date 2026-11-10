@@ -1,0 +1,12 @@
+# The build context of Dockerfile-hub is the repository root; only the Maven reactor goes in.
+.git
+.github
+.claude
+**/target
+**/node_modules
+**/dist
+jeffrey-pages
+jeffrey-intellij-plugin
+jeffrey-agent-plugin
+static
+build/plugin-evals
