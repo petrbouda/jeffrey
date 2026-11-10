@@ -16,16 +16,19 @@
 -->
 
 <script setup lang="ts">
+import RunDots from '@/components/plugin/RunDots.vue';
+import UseCaseTiles from '@/components/plugin/UseCaseTiles.vue';
 import WorkloadMark from '@/components/plugin/WorkloadMark.vue';
 import { formatCount, usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
 import type { Replay } from '@/types/pluginUsage';
 
-// The figures of the recorded runs, one card per area with its agent, and the cases whose runs did
-// not all pass.
+// The way in by question — one tile per use case — then the figures of the recorded runs, one card per
+// area with its agent, and the cases whose runs did not all pass.
 
 const emit = defineEmits<{
-  (e: 'open-area', area: AreaLens, tab: 'replay' | 'map'): void;
+  (e: 'open-area', area: AreaLens): void;
   (e: 'open-case', index: number): void;
+  (e: 'open-use-case', name: string): void;
 }>();
 
 interface AreaSummary {
@@ -75,21 +78,14 @@ const AREAS: AreaSummary[] = AREA_LENSES_SHOWN.map((lens) => {
   };
 });
 
-const FAILING: { index: number; replay: Replay; area: string }[] = replays
-  .map((replay, index) => ({ index, replay, area: model.areas.get(model.caseArea(replay))?.label ?? '' }))
+const FAILING: { index: number; replay: Replay; useCase: string }[] = replays
+  .map((replay, index) => ({ index, replay, useCase: model.useCaseOf(replay)?.label ?? '' }))
   .filter(({ replay }) => replay.runs.some((run) => run.passed === false));
 
 const RUN_VERSIONS: string[] = model.data.pluginVersions?.length ? model.data.pluginVersions : [model.data.plugin];
 const OLDER_VERSIONS = RUN_VERSIONS.filter((version) => version !== model.data.wiringPlugin);
 const differentWiring = OLDER_VERSIONS.length > 0;
 const runVersions = RUN_VERSIONS.map((version) => `v${version}`).join(', ');
-
-function runState(passed: boolean | null): string {
-  if (passed === null) {
-    return 'unknown';
-  }
-  return passed ? 'passed' : 'failed';
-}
 </script>
 
 <template>
@@ -100,6 +96,8 @@ function runState(passed: boolean | null): string {
       {{ OLDER_VERSIONS.map((version) => `v${version}`).join(', ') }}; their agent names are linked to the current ones, and they do not
       validate changes made in v{{ model.data.wiringPlugin }}.
     </p>
+
+    <UseCaseTiles @open-use-case="emit('open-use-case', $event)" />
 
     <ul class="overview-facts">
       <li v-for="fact in FACTS" :key="fact.label" class="overview-fact">
@@ -120,10 +118,7 @@ function runState(passed: boolean | null): string {
           {{ area.real }} {{ area.real === 1 ? 'case' : 'cases' }} on a real service · {{ area.madeUp }} on a made-up workload
         </p>
         <div class="overview-area-actions">
-          <button type="button" class="overview-button" @click="emit('open-area', area.lens, 'replay')">
-            Replay its cases <i class="bi bi-arrow-right" aria-hidden="true"></i>
-          </button>
-          <button type="button" class="overview-button" @click="emit('open-area', area.lens, 'map')">
+          <button type="button" class="overview-button" @click="emit('open-area', area.lens)">
             Open its map <i class="bi bi-arrow-right" aria-hidden="true"></i>
           </button>
         </div>
@@ -143,10 +138,8 @@ function runState(passed: boolean | null): string {
       >
         <span class="overview-case-name">{{ item.replay.case }}</span>
         <WorkloadMark v-if="model.workloadOf(item.replay)" :workload="model.workloadOf(item.replay)!" />
-        <span class="overview-case-area">{{ item.area }}</span>
-        <span class="overview-dots" :aria-label="item.replay.runs.map((run) => `run ${run.run} ${runState(run.passed)}`).join(', ')">
-          <i v-for="run in item.replay.runs" :key="run.run" class="overview-dot" :class="`overview-dot--${runState(run.passed)}`"></i>
-        </span>
+        <span class="overview-case-area">{{ item.useCase }}</span>
+        <RunDots :runs="item.replay.runs" />
       </button>
     </section>
   </div>
@@ -337,29 +330,6 @@ function runState(passed: boolean | null): string {
 .overview-case-area {
   font-size: 12.5px;
   color: var(--site-faint);
-}
-
-.overview-dots {
-  display: inline-flex;
-  gap: 3px;
-}
-
-.overview-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--ap-radius-pill);
-}
-
-.overview-dot--passed {
-  background: var(--ap-ok);
-}
-
-.overview-dot--failed {
-  background: var(--ap-no);
-}
-
-.overview-dot--unknown {
-  background: var(--site-line-strong);
 }
 
 @media (max-width: 859px) {

@@ -36,7 +36,8 @@ from plugin_layout import PLUGIN_DIR  # noqa: E402
 
 PLUGIN = ROOT / PLUGIN_DIR
 SOURCES = PLUGIN / "evals/fixtures/testapp"
-CASES = PLUGIN / "evals/cases"
+# Both suites: a live persons case that works on the code (a question no mock can answer) scaffolds it too.
+CASE_DIRS = (PLUGIN / "evals/cases", PLUGIN / "evals-live/cases")
 WORKLOAD_TAG = "persons"
 SCAFFOLD = "scaffold_script: setup.sh"
 TAGS = re.compile(r"^tags:\s*\[(.*)\]$", re.M)
@@ -80,7 +81,7 @@ def script() -> str:
 def scaffolded_cases() -> list[Path]:
     """The persons cases whose case.yaml asks for the scaffold."""
     cases = []
-    for case in sorted(CASES.iterdir()):
+    for case in sorted((case for cases in CASE_DIRS for case in cases.iterdir()), key=lambda case: case.name):
         prompt, config = case / "prompt.md", case / "case.yaml"
         if not (prompt.is_file() and config.is_file()) or SCAFFOLD not in config.read_text():
             continue

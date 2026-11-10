@@ -17,22 +17,22 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import RunDots from '@/components/plugin/RunDots.vue';
 import WorkloadMark from '@/components/plugin/WorkloadMark.vue';
-import { usePluginUsage, type AreaLens } from '@/composables/usePluginUsage';
-import type { AreaName, Replay } from '@/types/pluginUsage';
+import { usePluginUsage } from '@/composables/usePluginUsage';
+import type { Replay } from '@/types/pluginUsage';
 
-// Every replayed eval case under the lens, grouped by the area whose skills it invokes, with one dot
-// per run: green passed, orange failed; a case run against a live Jeffrey says so, and each case is
-// marked with what it ran on: a real service's recorded runs or a made-up workload. On a phone the list
-// folds into a select.
+// Every replayed eval case, grouped by the use case it asks, with one dot per run: green passed, orange
+// failed; a case run against a live Jeffrey says so, and each case is marked with what it ran on: a real
+// service's recorded runs or a made-up workload. On a phone the list folds into a select.
 
-const props = defineProps<{ replays: Replay[]; selected: number; lens: AreaLens }>();
+const props = defineProps<{ replays: Replay[]; selected: number }>();
 const emit = defineEmits<{ (e: 'select', index: number): void }>();
 
-interface AreaGroup {
-  area: AreaName;
+interface UseCaseGroup {
+  name: string;
   label: string;
-  agent: string | null;
+  icon: string;
   size: number;
   cases: { index: number; replay: Replay }[];
 }
@@ -40,29 +40,28 @@ interface AreaGroup {
 const model = usePluginUsage();
 const query = ref('');
 
-const groups = computed<AreaGroup[]>(() => {
+function matches(replay: Replay, needle: string): boolean {
+  return !needle
+    || replay.case.includes(needle)
+    || replay.prompt.toLowerCase().includes(needle)
+    || model.questionOf(replay).toLowerCase().includes(needle);
+}
+
+const groups = computed<UseCaseGroup[]>(() => {
   const needle = query.value.trim().toLowerCase();
-  return model
-    .areasFor(props.lens)
-    .map((area) => {
-      const inArea = model.casesOf(area.name).map((index) => ({ index, replay: props.replays[index] }));
+  return model.data.useCases
+    .map((useCase) => {
+      const cases = model.casesOfUseCase(useCase.name).map((index) => ({ index, replay: props.replays[index] }));
       return {
-        area: area.name,
-        label: area.label,
-        agent: area.agent,
-        size: inArea.length,
-        cases: inArea.filter(({ replay }) => !needle || replay.case.includes(needle) || replay.prompt.toLowerCase().includes(needle))
+        name: useCase.name,
+        label: useCase.label,
+        icon: useCase.icon,
+        size: cases.length,
+        cases: cases.filter(({ replay }) => matches(replay, needle))
       };
     })
     .filter((group) => group.size > 0);
 });
-
-function runState(passed: boolean | null): string {
-  if (passed === null) {
-    return 'unknown';
-  }
-  return passed ? 'passed' : 'failed';
-}
 
 /** On a phone the select carries what the row's mark says. */
 function optionSuffix(replay: Replay): string {
@@ -83,7 +82,7 @@ function onSelectChange(event: Event): void {
     <label class="case-select-wrap">
       <span class="visually-hidden">Eval case</span>
       <select class="case-select" :value="selected" @change="onSelectChange">
-        <optgroup v-for="group in groups" :key="group.area" :label="`${group.label} (${group.size})`">
+        <optgroup v-for="group in groups" :key="group.name" :label="`${group.label} (${group.size})`">
           <option v-for="item in group.cases" :key="item.index" :value="item.index">{{ item.replay.case }}{{ optionSuffix(item.replay) }}</option>
         </optgroup>
       </select>
@@ -93,7 +92,7 @@ function onSelectChange(event: Event): void {
       <label class="case-search">
         <i class="bi bi-search" aria-hidden="true"></i>
         <span class="visually-hidden">Search cases</span>
-        <input v-model="query" type="search" placeholder="Search cases or prompts…" />
+        <input v-model="query" type="search" placeholder="Search cases or questions…" />
       </label>
 
       <p class="case-key">
@@ -101,10 +100,10 @@ function onSelectChange(event: Event): void {
         <WorkloadMark v-for="workload in model.data.workloads" :key="workload.name" :workload="workload" />
       </p>
 
-      <section v-for="group in groups" :key="group.area" class="case-group" :class="`case-group--${group.area}`">
+      <section v-for="group in groups" :key="group.name" class="case-group">
         <h3 class="case-group-title">
+          <i class="bi" :class="group.icon" aria-hidden="true"></i>
           {{ group.label }} ({{ group.size }})
-          <span v-if="group.agent" class="case-group-agent">{{ group.agent }}</span>
         </h3>
         <p v-if="!group.cases.length" class="case-none">No case matches.</p>
         <button
@@ -114,15 +113,13 @@ function onSelectChange(event: Event): void {
           class="case-item"
           :class="{ 'case-item--on': item.index === selected }"
           :aria-current="item.index === selected ? 'true' : undefined"
-          :title="item.replay.prompt"
+          :title="`${model.questionOf(item.replay)}\n\n${item.replay.prompt}`"
           @click="emit('select', item.index)"
         >
           <span class="case-name">{{ item.replay.case }}</span>
           <span v-if="item.replay.suite === 'live'" class="case-live" title="Run against a live Jeffrey">live</span>
           <WorkloadMark v-if="model.workloadOf(item.replay)" :workload="model.workloadOf(item.replay)!" compact />
-          <span class="case-dots" :aria-label="item.replay.runs.map((run) => `run ${run.run} ${runState(run.passed)}`).join(', ')">
-            <i v-for="run in item.replay.runs" :key="run.run" class="case-dot" :class="`case-dot--${runState(run.passed)}`"></i>
-          </span>
+          <RunDots :runs="item.replay.runs" />
         </button>
       </section>
     </div>
@@ -177,28 +174,13 @@ function onSelectChange(event: Event): void {
 
 .case-group-title {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-left: 8px;
-  border-left: 3px solid var(--site-line-strong);
+  align-items: center;
+  gap: 7px;
 }
 
-.case-group--jfr .case-group-title {
-  border-left-color: var(--ap-jfr);
-}
-
-.case-group--heap .case-group-title {
-  border-left-color: var(--ap-heap);
-}
-
-.case-group-agent {
-  white-space: nowrap;
-  font-family: var(--site-font-mono);
-  font-size: 10.5px;
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ap-agent);
+.case-group-title .bi {
+  font-size: 12px;
+  color: var(--site-ember);
 }
 
 .case-live {
@@ -261,30 +243,6 @@ function onSelectChange(event: Event): void {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.case-dots {
-  display: inline-flex;
-  flex: none;
-  gap: 3px;
-}
-
-.case-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--ap-radius-pill);
-}
-
-.case-dot--passed {
-  background: var(--ap-ok);
-}
-
-.case-dot--failed {
-  background: var(--ap-no);
-}
-
-.case-dot--unknown {
-  background: var(--site-line-strong);
 }
 
 @media (max-width: 859px) {

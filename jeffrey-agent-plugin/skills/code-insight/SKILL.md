@@ -122,6 +122,20 @@ JVM, GC or a library thread — and `jvm_gc` or a `flamegraph_export` of the sam
 For a burst rather than the whole run, `timeline_hotWindows` gives the window and both tools take
 `startEpochMs`/`endEpochMs`.
 
+**What allocates** — with the repository here, answer both axes before offering anything more:
+`memory_allocations` names the types, and `code_hotspots` on the allocation event the profile recorded
+(`jdk.ObjectAllocationSample`, or `jdk.ObjectAllocationInNewTLAB` from async-profiler; `flamegraph_list`
+says which) with `useWeight: true` and your `framePrefixes` names which of your methods the bytes are
+charged to. The types alone leave the question half answered, and both calls are small.
+
+**How long one call takes** — a duration per invocation is a measurement only method timing makes:
+`methodtracing_timing` (the JVM's `jdk.MethodTiming`). When it answers `NOT_RECORDED`, say first that
+this recording cannot give a per-call time, and how to get one — `jdk.MethodTiming` with a filter naming
+the method, enabled before the run (`profile-run` has the option). Only then give what the recording
+does hold, each labelled as a stand-in: the duration of a statement or span the method runs
+(`jdbc_overview`, a traced span) or its share of the samples (`code_method`). Never divide samples by
+calls to make a duration.
+
 **What ran, against the code** — "which endpoints does this service really serve", "where does this
 request go in our code", "which business attributes do we record" — `code_runtimeSurface` with your
 `framePrefixes`. It lists the busiest traced operations with count, errors and p95 and, from the

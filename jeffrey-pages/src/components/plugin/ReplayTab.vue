@@ -46,7 +46,7 @@ const run = computed(() => replay.value.runs[props.runIndex] ?? replay.value.run
 const steps = computed(() => run.value.steps);
 const playback = useReplayPlayback(steps);
 
-const area = computed(() => model.areas.get(model.caseArea(replay.value))!);
+const useCase = computed(() => model.useCaseOf(replay.value));
 const workload = computed(() => model.workloadOf(replay.value));
 
 const runFacts = computed<string[]>(() => {
@@ -94,7 +94,7 @@ function runMark(passed: boolean | null): string {
         <div>
           <h2 class="replay-title">{{ replay.case }}</h2>
           <p class="replay-facts">
-            <span class="replay-area" :class="`replay-area--${area.name}`">{{ area.label }}</span>
+            <span v-if="useCase" class="replay-use-case"><i class="bi" :class="useCase.icon" aria-hidden="true"></i>{{ useCase.label }}</span>
             {{ runFacts.join(' · ') }}
           </p>
           <p v-if="workload" class="replay-data">
@@ -249,25 +249,17 @@ function runMark(passed: boolean | null): string {
   color: var(--site-ink);
 }
 
-.replay-area {
-  display: inline-block;
+.replay-use-case {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   margin-right: 6px;
   padding: 0 8px;
   border-radius: var(--ap-radius-pill);
-  background: var(--ap-hover);
-  color: var(--site-muted);
+  background: var(--ap-skill-bg);
+  color: var(--ap-skill);
   font-size: 12px;
   font-weight: 600;
-}
-
-.replay-area--jfr {
-  background: var(--ap-jfr-band);
-  color: var(--ap-jfr);
-}
-
-.replay-area--heap {
-  background: var(--ap-heap-band);
-  color: var(--ap-heap);
 }
 
 .replay-runs {
