@@ -130,6 +130,18 @@ export interface PluginWorkload {
   detail: string;
 }
 
+/** A question a reader brings, which the page groups the eval cases by. */
+export interface PluginUseCase {
+  name: string;
+  label: string;
+  /** What it answers, in a line. */
+  question: string;
+  /** A Bootstrap Icons class, e.g. 'bi-cpu'. */
+  icon: string;
+  /** The case whose question the overview quotes for it. */
+  example: string;
+}
+
 export interface PluginUsage {
   /** The version the newest runs were recorded with. */
   plugin: string;
@@ -147,6 +159,12 @@ export interface PluginUsage {
   workloads: PluginWorkload[];
   /** Eval case name → the workload its prompt's tags declare; null for a case that reads no recording. */
   caseWorkloads: Record<string, string | null>;
+  /** The use cases, in the order the page shows them; every case sits in exactly one. */
+  useCases: PluginUseCase[];
+  /** Eval case name → its use case. */
+  caseUseCases: Record<string, string>;
+  /** Eval case name → its question in a line; the replay's prompt is the full text. */
+  caseQuestions: Record<string, string>;
   usage: UsageTotals;
   /** Node id (s:, a:) → node id (s:, a:, t:) → calls charged to the first while it was active. */
   observed: Record<string, Record<string, number>>;

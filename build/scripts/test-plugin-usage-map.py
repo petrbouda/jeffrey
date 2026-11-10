@@ -461,6 +461,37 @@ class Areas(unittest.TestCase):
         self.assertEqual(len(worked), len(set(worked)))
 
 
+class UseCases(unittest.TestCase):
+    """Every eval case sits in exactly one use case and has its question in a line; a use case names only real
+    cases and holds at least one."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.cases = set(usage_map.case_names(ROOT / PLUGIN_DIR))
+        cls.placed = [case for use_case in usage_map.USE_CASES for case in use_case["cases"]]
+
+    def test_every_case_is_in_one_use_case(self):
+        self.assertEqual(sorted({case for case in self.placed if self.placed.count(case) > 1}), [],
+                         "a case in more than one use case")
+        self.assertEqual(sorted(self.cases - set(self.placed)), [], "a case in no use case: add it to USE_CASES")
+
+    def test_use_cases_name_only_cases_the_suites_hold(self):
+        self.assertEqual(sorted(set(self.placed) - self.cases), [])
+
+    def test_every_case_has_its_question_in_a_line(self):
+        self.assertEqual(sorted(self.cases - set(usage_map.CASE_QUESTIONS)), [], "add it to CASE_QUESTIONS")
+        self.assertEqual(sorted(set(usage_map.CASE_QUESTIONS) - self.cases), [])
+
+    def test_every_use_case_holds_a_case_and_a_unique_name(self):
+        names = [use_case["name"] for use_case in usage_map.USE_CASES]
+        self.assertEqual(len(names), len(set(names)))
+        self.assertEqual([use_case["name"] for use_case in usage_map.USE_CASES if not use_case["cases"]], [])
+
+    def test_each_use_case_quotes_one_of_its_own_cases(self):
+        self.assertEqual([use_case["name"] for use_case in usage_map.USE_CASES
+                          if use_case["example"] not in use_case["cases"]], [])
+
+
 class Workloads(unittest.TestCase):
     """Every eval case says what it runs on: one workload tag, or a place in NO_RECORDING."""
 

@@ -42,6 +42,20 @@ function chunk(id: string, startMinute: number, newestRecording = false): Reposi
   );
 }
 
+/** A chunk the provisioner named, with the file number async-profiler wrote into it. */
+function numbered(id: string, startMinute: number, sequence: number): RepositoryFile {
+  return new RepositoryFile(
+    id,
+    `rec-${id}.jfr`,
+    T0 + startMinute * MINUTE,
+    1024,
+    RecordingFileType.JFR,
+    false,
+    true,
+    sequence
+  );
+}
+
 function log(): RepositoryFile {
   return new RepositoryFile(
     'log',
@@ -86,6 +100,21 @@ describe('orderedChunks', () => {
     const withNewest = filesOf(chunk('c0', 0), log(), chunk('c1', 10, true));
 
     expect(orderedChunks(withNewest).map(f => f.id)).toEqual(['c0', 'c1']);
+  });
+
+  // Daylight saving ends: the clocks go back an hour, so the chunk after the switch reads 45
+  // minutes earlier than the one before it. The file number keeps them in the order written.
+  it('follows the file number when the clock goes back', () => {
+    const files = filesOf(numbered('after', 0, 11), numbered('before', 45, 10), numbered('later', 15, 12));
+
+    expect(orderedChunks(files).map(f => f.id)).toEqual(['before', 'after', 'later']);
+  });
+
+  it('agrees with the backend on what is contiguous across the switch', () => {
+    const files = filesOf(numbered('after', 0, 11), numbered('before', 45, 10), numbered('later', 15, 12));
+
+    expect(isContiguousChunkSelection(files, ticked('before', 'after'))).toBe(true);
+    expect(isContiguousChunkSelection(files, ticked('before', 'later'))).toBe(false);
   });
 });
 

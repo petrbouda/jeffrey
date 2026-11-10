@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.microscope.model.repository;
 
+import cafe.jeffrey.shared.common.JeffreyLayout;
+
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Comparator;
@@ -48,6 +50,10 @@ public record RecordingSession(
         List<RepositoryFile> files,
         boolean failed,
         SessionSize size) {
+
+    /** The order of a session's chunks: the one rule both sides keep, in {@link JeffreyLayout}. */
+    private static final Comparator<RepositoryFile> RECORDING_ORDER =
+            JeffreyLayout.recordingOrder(RepositoryFile::id, RepositoryFile::createdAt);
 
     /**
      * A session loaded without its files holds an empty list rather than none, so every reader
@@ -99,11 +105,13 @@ public record RecordingSession(
      * newest recording of the instance's newest session. A session with a newer one after it holds
      * none, and neither does a newest session that has written no recording yet.
      *
-     * <p>Newest by {@link RepositoryFile#createdAt()} — the timestamp the profiler put in the
-     * file's own name — and emphatically not by position in a listing, which is sorted for
-     * presentation, nor by the file being uncompressed, which only says the hub has not reached
-     * it yet. Every other reader of these files orders them by that timestamp, and a second
-     * notion of "newest" in the same tree is what let the two disagree.
+     * <p>Newest in {@link JeffreyLayout#recordingOrder} — by the file number the profiler put in
+     * the file's own name, else by the timestamp there — and emphatically not by position in a
+     * listing, which is sorted for presentation, nor by the file being uncompressed, which only
+     * says the hub has not reached it yet. Not by the timestamp alone either: it goes back an hour
+     * when daylight saving ends, and the chunk being written would read older than the one before.
+     * Every other reader of these files orders them the same way, and a second notion of "newest"
+     * in the same tree is what let the two disagree.
      *
      * <p>The hub never compresses or trims this file. Microscope lists it and hands it over; a
      * download that arrives incomplete is refused by the chunk check on arrival instead. Only
@@ -116,18 +124,18 @@ public record RecordingSession(
         return files.stream()
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.createdAt() != null)
-                .max(Comparator.comparing(RepositoryFile::createdAt));
+                .max(RECORDING_ORDER);
     }
 
     /**
-     * The session's recording chunks, oldest first. One definition, because a reader that counted
+     * The session's recording chunks, oldest first in {@link JeffreyLayout#recordingOrder}. One definition, because a reader that counted
      * chunks differently from the way it picked them would call a whole session a part of itself.
      */
     public List<RepositoryFile> recordings() {
         return files.stream()
                 .filter(RepositoryFile::isRecordingFile)
                 .filter(file -> file.createdAt() != null)
-                .sorted(Comparator.comparing(RepositoryFile::createdAt))
+                .sorted(RECORDING_ORDER)
                 .toList();
     }
 

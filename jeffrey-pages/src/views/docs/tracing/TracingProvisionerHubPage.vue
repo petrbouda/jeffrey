@@ -67,7 +67,7 @@ jdk.ZAllocationStall#enabled=true,jdk.ZAllocationStall#threshold=0ms`;
 
 const sessionLayout = `<workspaces>/<workspace-ref-id>/            # the workspace is its folder, created by the Provisioner if missing
 └── <project-name>/<instance-id>/<session-id>/     # folder names are the ids, no markers anywhere
-    └── rec-<timestamp><offset>.jfr          # the durable chunks — traces live in these`;
+    └── rec-<timestamp><offset>_<n>.jfr      # the durable chunks — traces live in these`;
 </script>
 
 <template>
@@ -135,7 +135,7 @@ const sessionLayout = `<workspaces>/<workspace-ref-id>/            # the workspa
 
       <DocsCodeBlock :code="sessionLayout" language="text" />
 
-      <p>The Provisioner creates the tree, the workspace folder included when it is missing, and writes no marker: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>rec-&lt;timestamp&gt;&lt;offset&gt;.jfr</code> chunk on its loop interval, the machine's UTC offset in its name (<code>rec-20261027-085500+0100.jfr</code>) so the timestamp is read at the offset it was written in.</p>
+      <p>The Provisioner creates the tree, the workspace folder included when it is missing, and writes no marker: the folders are the Hub's only record of what exists, and a project or instance is new when its folder does not exist yet. The application fills the session directory as it runs: async-profiler dumps a <code>rec-&lt;timestamp&gt;&lt;offset&gt;_&lt;n&gt;.jfr</code> chunk on its loop interval, the machine's UTC offset in its name so the timestamp is read at the offset it was written in, and a sequence number that starts at <code>0</code> and goes up by one with each loop (<code>rec-20261027-085500+0100_0.jfr</code>, then <code>rec-20261027-091000+0100_1.jfr</code>) so names never repeat, even when the clock goes back.</p>
 
       <h2 id="hub">What the Hub Does With It</h2>
 

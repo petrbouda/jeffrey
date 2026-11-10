@@ -238,7 +238,8 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
      *
      * <p>The source is deleted only once the archive exists, and {@link Compression#compress}
      * publishes the archive whole by a rename. That makes the "archive already exists" shortcut
-     * safe, including for two overlapping runs over the same session.
+     * safe, including for two overlapping runs over the same session — as long as the archive is
+     * this recording's: see {@link #collidesWith}.
      */
     private Path compress(String sessionId, RepositoryFile file) {
         // Only recordings reach here, so a format without compression is an archive already
@@ -254,6 +255,11 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
 
         // Already compressed, here or by an overlapping run; the archive is whole by construction
         if (Files.exists(compressedPath)) {
+            if (collidesWith(sourcePath, compressedPath)) {
+                LOG.warn("Kept a recording whose name an older recording's archive already holds: "
+                        + "session_id={} file={} archive={}", sessionId, sourcePath, compressedPath);
+                return null;
+            }
             FileSystemUtils.removeFile(sourcePath);
             return compressedPath;
         }
@@ -268,5 +274,23 @@ public class FilesystemRepositoryStorage implements RepositoryStorage {
         compression.compress(sourcePath, compressedPath);
         FileSystemUtils.removeFile(sourcePath);
         return compressedPath;
+    }
+
+    /**
+     * Whether an archive beside a recording is another recording's that happened to have the same
+     * name, rather than this one's, compressed by a run that stopped before deleting its source.
+     * An archive is written after its source is complete, so one older than the source holds an
+     * earlier chunk: two names collided (a template without the file number, through a
+     * daylight-saving switch), and deleting the source would delete the newer chunk. Times that
+     * cannot be read count as a collision: keeping a file costs only its space.
+     */
+    private static boolean collidesWith(Path source, Path archive) {
+        try {
+            return Files.getLastModifiedTime(source).compareTo(Files.getLastModifiedTime(archive)) > 0;
+        } catch (IOException e) {
+            LOG.warn("Cannot compare a recording with the archive of the same name, keeping both: source={} archive={}",
+                    source, archive, e);
+            return true;
+        }
     }
 }

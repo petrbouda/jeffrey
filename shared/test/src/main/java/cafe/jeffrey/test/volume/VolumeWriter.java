@@ -80,12 +80,27 @@ public final class VolumeWriter {
 
     /**
      * The name async-profiler gives a recording opened at {@code openedAt} on a machine at
-     * {@code offset}, through the provisioner's template: {@code rec-20260220-120500+0000.jfr}.
+     * {@code offset}, without the file number: {@code rec-20260220-120500+0000.jfr}, as chunks were
+     * named before the number was added — still read, by their timestamp alone.
      */
     public static String recordingName(Instant openedAt, ZoneOffset offset) {
-        String template = JeffreyLayout.recordingTemplate(offset);
+        return recordingNameTemplate(openedAt, offset)
+                .replace(JeffreyLayout.SEQUENCE_SEPARATOR + JeffreyLayout.SEQUENCE_PLACEHOLDER, "");
+    }
+
+    /**
+     * The name async-profiler gives the JVM's {@code sequence}-th recording (from 0), opened at
+     * {@code openedAt} on a machine at {@code offset}, through the provisioner's template:
+     * {@code rec-20260220-120500+0000_3.jfr}.
+     */
+    public static String recordingName(Instant openedAt, ZoneOffset offset, long sequence) {
+        return recordingNameTemplate(openedAt, offset)
+                .replace(JeffreyLayout.SEQUENCE_PLACEHOLDER, Long.toString(sequence));
+    }
+
+    private static String recordingNameTemplate(Instant openedAt, ZoneOffset offset) {
         String local = LocalDateTime.ofInstant(openedAt, offset).format(TIMESTAMP);
-        return template.replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, local);
+        return JeffreyLayout.recordingTemplate(offset).replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, local);
     }
 
     /** A recording opened at {@code openedAt} on a machine at {@code offset}. */

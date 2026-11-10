@@ -725,15 +725,16 @@ class PersonsScaffoldTest(unittest.TestCase):
     real runs were built from (fixtures/testapp/), each byte for byte between its marker, committed."""
 
     SOURCES = ROOT / PLUGIN_DIR / 'evals/fixtures/testapp'
-    CASES = ROOT / PLUGIN_DIR / 'evals/cases'
+    CASE_DIRS = (ROOT / PLUGIN_DIR / 'evals/cases', ROOT / PLUGIN_DIR / 'evals-live/cases')
 
     @classmethod
     def scaffolds(cls):
-        return sorted((script for script in cls.CASES.glob('*/setup.sh') if "<<'TESTAPP_" in script.read_text()),
+        return sorted((script for cases in cls.CASE_DIRS for script in cases.glob('*/setup.sh')
+                       if "<<'TESTAPP_" in script.read_text()),
                       key=lambda script: script.parent.name)
 
     def test_the_persons_code_cases_scaffold_the_repository(self):
-        self.assertEqual(['fix-it', 'hot-methods', 'method-worth-it', 'n-plus-one', 'what-runs'],
+        self.assertEqual(['allocation-hotspots', 'fix-it', 'hot-methods', 'method-worth-it', 'n-plus-one', 'per-call-timing-not-recorded', 'what-runs'],
                          [script.parent.name for script in self.scaffolds()])
 
     def test_the_scaffold_is_the_one_the_writer_writes(self):

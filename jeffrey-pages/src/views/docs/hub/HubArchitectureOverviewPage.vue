@@ -112,7 +112,8 @@ onMounted(() => {
         <li>
           <strong>Repository compression</strong> (<code>RepositoryCompressionProjectJob</code>)
           LZ4-compresses JFR chunks once they are finished. Compression happens only here, never
-          on a read path.
+          on a read path. A <code>.jfr</code> newer than its same-named <code>.lz4</code> archive is a
+          name collision, not a leftover of a finished compression, so the job keeps it and logs a warning.
         </li>
       </ul>
 

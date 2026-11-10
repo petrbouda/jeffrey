@@ -24,6 +24,7 @@ import OverviewTab from '@/components/plugin/OverviewTab.vue';
 import ReplayCaseList from '@/components/plugin/ReplayCaseList.vue';
 import ReplayTab from '@/components/plugin/ReplayTab.vue';
 import ToolsTab from '@/components/plugin/ToolsTab.vue';
+import UseCasesTab from '@/components/plugin/UseCasesTab.vue';
 import {
   nodeId,
   parseNodeId,
@@ -36,21 +37,24 @@ import {
 import type { AreaName } from '@/types/pluginUsage';
 
 // The microscope coding-agent plugin in action. One bar under the site header holds the tabs and, where a
-// tab is scoped to an area, the JFR recordings / Heap dumps switch; Overview carries the figures of the
-// recorded runs, Replay plays them call by call beside the case list, Map and Tools show the wiring. The
+// tab is scoped to an area, the JFR recordings / Heap dumps switch; Overview opens with the questions a
+// reader brings and carries the figures of the recorded runs, Use cases groups the eval cases by those
+// questions, Replay plays them call by call beside the case list, Map and Tools show the wiring. The
 // data is src/data/plugin-usage.json, written by build/scripts/plugin-usage-map.py.
 
-type Tab = 'overview' | 'replay' | 'map' | 'tools';
+type Tab = 'overview' | 'use-cases' | 'replay' | 'map' | 'tools';
 
-const TABS: Tab[] = ['overview', 'replay', 'map', 'tools'];
+const TABS: Tab[] = ['overview', 'use-cases', 'replay', 'map', 'tools'];
 const DEFAULT_TAB: Tab = 'overview';
 const LINKED_CASE_TAB: Tab = 'replay';
+const USE_CASES_TAB: Tab = 'use-cases';
 /** The tabs that show one area at a time, and so carry the area switch. */
-const AREA_TABS = new Set<Tab>(['replay', 'map', 'tools']);
+const AREA_TABS = new Set<Tab>(['map', 'tools']);
 const QUERY_TAB = 'tab';
 const QUERY_CASE = 'case';
 const QUERY_RUN = 'run';
 const QUERY_AREA = 'area';
+const QUERY_USE_CASE = 'useCase';
 const DEFAULT_LENS: AreaLens = 'jfr';
 
 const model = usePluginUsage();
@@ -64,26 +68,28 @@ function single(query: LocationQuery, key: string): string | null {
   return typeof value === 'string' ? value : null;
 }
 
-/** The named case, or the first one of the lens's own area. */
-function caseIndexOf(name: string | null, lens: AreaLens): number {
+/** The named case, or the first one of the first use case. */
+function caseIndexOf(name: string | null): number {
   const index = replays.findIndex((replay) => replay.case === name);
-  return index >= 0 ? index : (model.areasFor(lens).flatMap((area) => model.casesOf(area.name))[0] ?? 0);
+  return index >= 0 ? index : (model.data.useCases.flatMap((useCase) => model.casesOfUseCase(useCase.name))[0] ?? 0);
 }
 
 const tab = ref<Tab>(DEFAULT_TAB);
 const caseIndex = ref(0);
 const runIndex = ref(0);
 const lens = ref<AreaLens>(DEFAULT_LENS);
+/** The use case the Use cases tab scrolls to and marks: the one a reader picked on the overview. */
+const focusedUseCase = ref<string | null>(null);
 
 function readQuery(query: LocationQuery): void {
   const asked = single(query, QUERY_TAB);
   // A link to a case opens its replay; the bare page opens on the overview.
   tab.value = TABS.find((candidate) => candidate === asked) ?? (single(query, QUERY_CASE) ? LINKED_CASE_TAB : DEFAULT_TAB);
   const area = single(query, QUERY_AREA);
-  const askedLens = AREA_LENSES.find((candidate) => candidate === area) ?? DEFAULT_LENS;
-  caseIndex.value = caseIndexOf(single(query, QUERY_CASE), askedLens);
-  const caseArea = model.caseArea(replays[caseIndex.value]);
-  lens.value = caseArea === 'shared' ? askedLens : caseArea;
+  lens.value = AREA_LENSES.find((candidate) => candidate === area) ?? DEFAULT_LENS;
+  caseIndex.value = caseIndexOf(single(query, QUERY_CASE));
+  const useCase = single(query, QUERY_USE_CASE);
+  focusedUseCase.value = useCase && model.useCases.has(useCase) ? useCase : null;
   const run = Number(single(query, QUERY_RUN) ?? 1);
   const runs = replays[caseIndex.value]?.runs ?? [];
   runIndex.value = Math.max(0, runs.findIndex((item) => item.run === run));
@@ -92,26 +98,42 @@ function readQuery(query: LocationQuery): void {
 readQuery(route.query);
 watch(() => route.query, readQuery);
 
-watch([tab, lens, caseIndex, runIndex], () => {
+watch([tab, lens, caseIndex, runIndex, focusedUseCase], () => {
   const replay = replays[caseIndex.value];
-  const query = {
+  const query: Record<string, string> = {
     [QUERY_TAB]: tab.value,
     [QUERY_AREA]: lens.value,
-    [QUERY_CASE]: replay?.case,
+    [QUERY_CASE]: replay?.case ?? '',
     [QUERY_RUN]: String(replay?.runs[runIndex.value]?.run ?? 1)
   };
-  const same = Object.entries(query).every(([key, value]) => single(route.query, key) === value);
+  if (tab.value === USE_CASES_TAB && focusedUseCase.value) {
+    query[QUERY_USE_CASE] = focusedUseCase.value;
+  }
+  const same = Object.entries(query).every(([key, value]) => single(route.query, key) === value)
+    && Object.keys(route.query).every((key) => key in query);
   if (!same) {
     router.replace({ query });
   }
 }, { immediate: true });
 
-// A tab opens at its top: the reader may have scrolled far down the previous one.
+// A tab opens at its top: the reader may have scrolled far down the previous one. The Use cases tab
+// opened for one use case opens at that use case's card instead.
 const bar = ref<HTMLElement | null>(null);
 const HEADER_OFFSET_PX = 70;
 
-watch(tab, async () => {
+function scrollToFocusedUseCase(): boolean {
+  const card = tab.value === USE_CASES_TAB && focusedUseCase.value
+    ? document.getElementById(`use-case-${focusedUseCase.value}`)
+    : null;
+  card?.scrollIntoView({ block: 'start' });
+  return card !== null;
+}
+
+watch([tab, focusedUseCase], async () => {
   await nextTick();
+  if (scrollToFocusedUseCase()) {
+    return;
+  }
   const element = bar.value;
   if (!element) {
     return;
@@ -137,22 +159,17 @@ const tabLabels = computed<Record<Tab, { label: string; count: string }>>(() => 
   const agents = shown.filter((area) => area.agent).length;
   const families = shown.flatMap((area) => area.families);
   const tools = families.reduce((sum, family) => sum + (model.familyTools.get(family)?.length ?? 0), 0);
-  const cases = shown.reduce((sum, area) => sum + model.casesOf(area.name).length, 0);
   return {
     overview: { label: 'Overview', count: '' },
-    replay: { label: 'Replay', count: `${cases} cases` },
+    'use-cases': { label: 'Use cases', count: `${model.data.useCases.length}` },
+    replay: { label: 'Replay', count: `${replays.length} cases` },
     map: { label: 'Map', count: `${skills} · ${agents} · ${families.length}` },
     tools: { label: 'Tools', count: `${tools}` }
   };
 });
 
-// Keep the area and its destinations coherent before the query watcher sees a change.
 function changeLens(next: AreaLens): void {
   lens.value = next;
-  if (!model.inLens(next, model.caseArea(replays[caseIndex.value]))) {
-    caseIndex.value = model.areasFor(next).flatMap((area) => model.casesOf(area.name))[0] ?? 0;
-    runIndex.value = 0;
-  }
 }
 
 function revealArea(area: AreaName): void {
@@ -230,7 +247,6 @@ function clearTrail(): void {
 }
 
 function openCase(index: number): void {
-  revealArea(model.caseArea(replays[index]));
   caseIndex.value = index;
   runIndex.value = 0;
   tab.value = 'replay';
@@ -241,8 +257,18 @@ function selectCase(index: number): void {
   runIndex.value = 0;
 }
 
-function openArea(area: AreaLens, next: 'replay' | 'map'): void {
+function openArea(area: AreaLens): void {
   changeLens(area);
+  tab.value = 'map';
+}
+
+function openUseCase(name: string): void {
+  focusedUseCase.value = name;
+  tab.value = USE_CASES_TAB;
+}
+
+function selectTab(next: Tab): void {
+  focusedUseCase.value = null;
   tab.value = next;
 }
 
@@ -261,7 +287,7 @@ function openArea(area: AreaLens, next: 'replay' | 'map'): void {
           class="ap-tab"
           :class="{ 'ap-tab--on': item === tab }"
           :aria-selected="item === tab"
-          @click="tab = item"
+          @click="selectTab(item)"
         >
           {{ tabLabels[item].label }}<span v-if="tabLabels[item].count" class="ap-tab-count">{{ tabLabels[item].count }}</span>
         </button>
@@ -271,11 +297,12 @@ function openArea(area: AreaLens, next: 'replay' | 'map'): void {
 
     <div class="ap-shell" :class="{ 'ap-shell--rail': tab === 'replay' }">
       <aside v-if="tab === 'replay'" class="ap-rail">
-        <ReplayCaseList :replays="replays" :selected="caseIndex" :lens="lens" @select="selectCase" />
+        <ReplayCaseList :replays="replays" :selected="caseIndex" @select="selectCase" />
       </aside>
 
       <div class="ap-content">
-    <OverviewTab v-if="tab === 'overview'" @open-area="openArea" @open-case="openCase" />
+    <OverviewTab v-if="tab === 'overview'" @open-area="openArea" @open-case="openCase" @open-use-case="openUseCase" />
+    <UseCasesTab v-else-if="tab === 'use-cases'" :focused="focusedUseCase" @open-case="openCase" @pick="pickOnMap" />
     <ReplayTab
       v-else-if="tab === 'replay'"
       :case-index="caseIndex"

@@ -319,7 +319,7 @@ const traceToFileExample = `# helm/jeffrey-hub/templates/deployment.yaml
             <td><code>repository-jfr-compression</code></td>
             <td><code>1m</code></td>
             <td>—</td>
-            <td>LZ4-compresses the JFR files of each instance's two newest sessions and deletes the originals, never the newest recording of the newest session</td>
+            <td>LZ4-compresses the JFR files of each instance's two newest sessions and deletes the originals, never the newest recording of the newest session; a <code>.jfr</code> newer than its same-named <code>.lz4</code> archive is a name collision, kept with a warning</td>
           </tr>
         </tbody>
       </table>

@@ -72,6 +72,11 @@ Four things worth knowing before reading them:
   `traces_operationExport`. `methodtracing_` is for the invocations outside any request (a service
   without tracing, a batch job, startup) and for `jdk.MethodTiming`, which has no span form. A traced
   method's callers are `flamegraph_export` with `eventType: jdk.MethodTrace`.
+- **A per-call time is method timing's, or it is not in the recording.** A method's duration per
+  invocation comes only from `jdk.MethodTiming` (`methodtracing_timing`) or `jdk.MethodTrace`. Samples
+  give a share, never a duration, and a statement's or span's time is the time of that statement or span.
+  When the timing answers `NOT_RECORDED`, say so with how to record it — `profile-run` has the filter —
+  and label any stand-in as one.
 - **Slow requests whose statements are all fast are usually waiting for a connection.** That is
   `jdbc_pools`, and nothing in the statement view can show it — a pool with acquisition timeouts
   makes every query look fine while the request waits in front of them.

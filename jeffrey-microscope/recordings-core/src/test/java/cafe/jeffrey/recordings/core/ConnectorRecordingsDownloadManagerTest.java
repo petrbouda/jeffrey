@@ -240,12 +240,12 @@ class ConnectorRecordingsDownloadManagerTest {
     private static RepositoryFileResponse file(
             String id, String name, ManagedFile type, Instant createdAt) {
         return new RepositoryFileResponse(
-                id, name, createdAt.toEpochMilli(), 1024L, type, false, type == ManagedFile.JFR);
+                id, name, createdAt.toEpochMilli(), null, 1024L, type, false, type == ManagedFile.JFR);
     }
 
     /** A chunk a profiler was stopped before it wrote anything into. */
     private static RepositoryFileResponse emptyFile(String id, String name, Instant createdAt) {
-        return new RepositoryFileResponse(id, name, createdAt.toEpochMilli(), 0L, ManagedFile.JFR, false, true);
+        return new RepositoryFileResponse(id, name, createdAt.toEpochMilli(), null, 0L, ManagedFile.JFR, false, true);
     }
 
     /** A session a newer one in its instance has ended: it holds all it ever will. */
@@ -673,11 +673,11 @@ class ConnectorRecordingsDownloadManagerTest {
         void compressionDoesNotMakeAnIdenticalChunkASecondRecording() {
             when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
                     new RepositoryFileResponse("f-1", "profile-1.jfr.lz4", CREATED_AT.toEpochMilli(),
-                            1024L, ManagedFile.JFR_LZ4, false, true),
+                            null, 1024L, ManagedFile.JFR_LZ4, false, true),
                     new RepositoryFileResponse("f-2", "profile-2.jfr.lz4", CREATED_AT.plusSeconds(20).toEpochMilli(),
-                            1024L, ManagedFile.JFR_LZ4, false, true),
+                            null, 1024L, ManagedFile.JFR_LZ4, false, true),
                     new RepositoryFileResponse("f-3", "profile-3.jfr.lz4", CREATED_AT.plusSeconds(40).toEpochMilli(),
-                            1024L, ManagedFile.JFR_LZ4, false, true)));
+                            null, 1024L, ManagedFile.JFR_LZ4, false, true)));
             servesEveryFile();
             alreadyHere(partTags(), "profile-2.jfr", "profile-3.jfr");
 

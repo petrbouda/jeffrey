@@ -23,9 +23,10 @@ public abstract class CliConstants {
     public static final String CURRENT_SESSION = "<<JEFFREY:CURRENT_SESSION>>";
 
     /**
-     * The session's recording file, {@code <session>/rec-%t<offset>.jfr}: async-profiler writes
+     * The session's recording file, {@code <session>/rec-%t<offset>_%n.jfr}: async-profiler writes
      * {@code %t} in local time, and the machine's UTC offset after it is what every reader turns
-     * the name back into an instant with.
+     * the name back into an instant with; {@code %n}, the file's number, keeps the name unique when
+     * local time repeats an hour ({@link JeffreyLayout#recordingTemplate}).
      */
     public static final String FILE_PATTERN = "<<JEFFREY:FILE_PATTERN>>";
 

@@ -28,7 +28,7 @@ import RepositoryFile from '@/services/api/model/connector/RepositoryFile.ts';
  *
  * Said before the request is made, so the reader finds out while looking at the list rather than
  * afterwards. It mirrors `ChunkWindow` on the Java side field for field: recording files only,
- * ordered by `createdAt`. Deleting files has no such rule, which is why this constrains the
+ * in `JeffreyLayout.recordingOrder` — by `sequence`, a chunk without one first, then by `createdAt`. Deleting files has no such rule, which is why this constrains the
  * Download button rather than the ticking.
  *
  * Every function takes the session's files as read on their own: a session from a listing
@@ -49,12 +49,18 @@ export function downloadableFiles(files: RepositoryFile[]): RepositoryFile[] {
   return files.filter(isDownloadable);
 }
 
+/** Where a chunk without a file number sorts: before every numbered one, as on the Java side. */
+const NO_SEQUENCE = -1;
+
 /** The session's recording chunks, oldest first — `RecordingSession.recordings`. */
 export function orderedChunks(files: RepositoryFile[]): RepositoryFile[] {
   return files
     .filter(file => file.isRecording)
     .slice()
-    .sort((a, b) => a.createdAt - b.createdAt);
+    .sort(
+      (a, b) =>
+        (a.sequence ?? NO_SEQUENCE) - (b.sequence ?? NO_SEQUENCE) || a.createdAt - b.createdAt
+    );
 }
 
 /**
