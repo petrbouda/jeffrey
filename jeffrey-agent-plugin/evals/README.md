@@ -60,12 +60,20 @@ site shows it on its **Agent Plugin** page (`/agent-plugin`, next to Docs in the
 Set `--recorded-version` to the plugin version used by the runs. All ingested traces must share
 that version; the generator requires this declaration because traces do not identify it reliably.
 
-The page has four tabs, and a **JFR recordings / Heap dumps** switch on the last three that shows one
+The page has five tabs, and a **JFR recordings / Heap dumps** switch on Map and Tools that shows one
 area's skills, agent and tool families together with the shared ones:
-- **Overview.** The figures of the recorded runs, one card per area (its agent, skills, tool families,
-  cases and runs passed), and the cases with a failed run.
-- **Replay.** Each case's latest runs, picked from a list with a pass/fail dot per run and the mark of
-  what it ran on (real service or made-up). Every Skill,
+- **Overview.** "What do you want to know?": one tile per use case (an example question, what it answers,
+  the tool families its runs called most, its examples and runs passed), each opening its card on Use cases.
+  Below, the figures of the recorded runs, one card per area (its agent, skills, tool families, cases and
+  runs passed), and the cases with a failed run.
+- **Use cases.** One card per use case — the question a reader brings, such as *Where the CPU goes* or
+  *Did it regress?* — with its cases as questions to replay and what answered them in the runs: the skills,
+  the agent and the tool families with their call counts (the `profiles` lookup every run starts with is
+  left out). The use cases, each case's place in one and its question in a line are tables in
+  `plugin-usage-map.py` (USE_CASES, CASE_QUESTIONS), not tags in the prompts: a prompt is part of its case's digest,
+  so retagging one would mark its replay stale. `test-plugin-usage-map.py` fails on a case in none or two.
+- **Replay.** Each case's latest runs, picked from a list grouped by use case, with a pass/fail dot per run
+  and the mark of what it ran on (real service or made-up). Every Skill,
   Agent and tool call appears in order, in its lane: the main conversation, or the agent it was
   handed to. Play, step or scrub through them.
 - **Map.** Who calls (the area's agent first, then its skills) and the tool families, wired either as
@@ -89,59 +97,117 @@ has been run.
 
 ## The cases
 
-Each case's prompt is tagged with what it runs on (`persons` or `checkout`), and the Agent Plugin page
-marks it: **real service** or **made-up**.
+The Agent Plugin page groups the cases by **use case**, the question a reader brings (USE_CASES in
+`build/scripts/plugin-usage-map.py`). Each prompt is tagged with what it runs on (`persons` or `checkout`), and the
+page marks it **real service** or **made-up**. The persons service is real: recorded runs of jeffrey-testapp (see
+[Where the answers come from](#where-the-answers-come-from)). The made-up checkout workload, marked below, is kept
+for what the real runs do not hold: a heap dump and a regression between two commits.
 
-**On the real persons service** — two recorded runs of jeffrey-testapp (see
-[Where the answers come from](#where-the-answers-come-from)):
+### Where the CPU goes
+
+Which code burns the CPU, and is it ours?
 
 | Case | The question | What it holds the plugin to |
 |---|---|---|
-| `dom-regression` | "We rolled out a new build ('persons dom' after 'persons direct') — slower, and where?" | `compare_list` before `compare_movements`, `compare_quality` read, the new build as primary, the extra `COUNT` query of the pick-id step named, a verdict that states its limits (one run each, both containers throttled by different amounts) |
-| `did-it-regress` | "Did my last change make the persons service slower?" | `compare-jfr` reached, `compare_list` read |
-| `slow-endpoints` | "Some requests are much slower than the rest — which endpoints, and why?" | traces first (`traces_slowestTraces`): GET /persons/{count} and POST /persons by p95 (~29 ms), their span breakdown, medians around a millisecond kept apart from the tail |
 | `endpoint-cpu` (live) | "Where does the CPU time go?" | the CPU flamegraph, its 5,097 samples split with figures between the service's work — the database through JDBC into SQLite the largest part — and the JVM's and the profiler's own (the JIT, GC, JFR) |
-| `gc-pauses` | "Are GC pauses hurting it?" | `jvm_gc`: 24 collections, ~249 ms of pause in ~76 s (~0.33%), no tuning |
-| `open-question` | "What is wrong with this recording?" | `analyze-jfr`, `profiles_summary`, the menu put to the user with Traces first, no export before a choice |
-| `write-report` | "Write up what I found, for my team" | `report`, the user's COUNT-query and allocation figures read back from Jeffrey first, confidence stated, a **Not assessed** section |
-| `what-to-change` | "What should I change? The code is not checked out here" | `optimize-code`, `profiles_summary` read first |
 | `hot-methods` | "Which of our own methods does the CPU go to? This is the repository" | `code_hotspots` with the root package: PersonRepository.count (~716 of 5,097 samples) named, its time below it in the driver, tied to the source |
-| `method-worth-it` | "Is PersonController.toJsonTree worth optimizing?" | `code_method` by its source name, weighed across kinds (~0.5% of the CPU, ~18 MB of 4.1 GB allocated): not where the cost is |
-| `what-runs` | "What does GET /persons/{count} actually run?" | `code_runtimeSurface`: count_query and find_all_by_ids with their code, the steps in order |
 | `fix-it` | "Where does the CPU go? This is the repository" | **Implement fixes** offered for the COUNT query, nothing edited before the user picks it |
-| `why-slow`, `what-to-change`, `did-it-regress`, `nothing-profiled` | prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `optimize-code`, `compare-jfr`, `profile-run`) and makes that skill's first call |
-| `two-revisions` | "Did my last commit make it slower? Nothing is profiled yet" | `regression-check`, not `compare-jfr`: HEAD against its parent, both recorded the same way, no differential of the catalogue's unrelated pair |
-| `no-connector` | "Why was it slow in production this morning? Its recordings should be on the connector" | `analyze-connector`, `connector_status`'s `NOT_CONFIGURED` passed on with the `jeffrey.microscope.connector.*` properties and a restart, nothing claimed about production |
-| `count-queries` (live) | "The database runs far more COUNT queries than we get count requests — why?" | 11,141 COUNT statements against 7,161 count requests: the other 3,980 traced to the pick-id / pick-ids step of GET /persons and GET /persons/{count} |
-| `pool-latency` | "Is the connection pool what makes requests slow?" | `jdbc_pools`: one connection of ten ever active, no waiting thread, ~21 µs to acquire — not the pool |
-| `jvm-health` | "Before we scale up: is the JVM healthy?" | the JVM's sections read: GC fine, the one-core container throttled in ~39% of its CFS periods (~2.7 s parked) named as what to address first |
-| `wall-vs-cpu` (live) | "Requests feel slow but the CPU is low — where do the threads wait?" | the wall clock (57,373 samples, a third idle) read against the CPU (5,097), idle kept apart, where the request threads spend it named |
-| `n-plus-one` | "Does GET /persons/{count} have an N+1? This is the repository" (`persons n-plus-one`) | `code_callSites` on `jeffrey.JdbcQuery`: find_by_id 13,720 times in 555 requests (about 25 each) from the loop in NPlusOnePersonService.getNPersons, one `IN` query offered |
-| `lock-contention` | "Which locks hold the threads back?" (`persons lock`) | `blocking_monitors`, `LockPersonService`'s monitor named, its ~48 s of blocked time across 31 threads read as thread-time, never as a share of the 36 s recording |
-| `exception-sites` | "Why so many exceptions? The source is not checked out" (`persons exceptions`) | `jvm_exceptions`, `jvm_exceptionSites` with the service's package: 16,094 `NumberFormatException`s from ExceptionsPersonService.normalizePhone, classified as control flow, a check before parsing proposed |
+| `method-worth-it` | "Is PersonController.toJsonTree worth optimizing?" | `code_method` by its source name, weighed across kinds (~0.5% of the CPU, ~18 MB of 4.1 GB allocated): not where the cost is |
+| `two-areas-delegated` *(made-up)* | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `jfr-analyst` |
+| `cpu-spike-window` (live) | "Was there a moment the CPU spiked, and what ran then?" | `timeline_hotWindows` on the CPU samples, and "no real spike" said plainly: the busiest seconds ~2% of 5,097 samples each, against an average of ~66 a second |
 
-**On the made-up checkout workload** — kept for what the real runs do not hold: a heap dump and a regression
-between two commits:
+### Slow requests and waiting
+
+Which requests are slow, and where do their threads wait?
 
 | Case | The question | What it holds the plugin to |
 |---|---|---|
-| `heap-dump-what-holds-memory` | "What holds the memory in this .hprof?" | the import, a GC-root path behind the leak claim, one dump read as a state |
-| `heap-offers-implement-fixes` | the heap dump, with the repository | **Implement fixes** offered for what holds the memory |
-| `help-what-is-here` | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
-| `two-areas-delegated` | "CPU and allocation, both" | both exports read, each hotspot named, allocation weighed by bytes — and whether the two are handed to `jfr-analyst` |
+| `slow-endpoints` | "Some requests are much slower than the rest — which endpoints, and why?" | traces first (`traces_slowestTraces`): GET /persons/{count} and POST /persons by p95 (~29 ms), their span breakdown, medians around a millisecond kept apart from the tail |
+| `what-runs` | "What does GET /persons/{count} actually run?" | `code_runtimeSurface`: count_query and find_all_by_ids with their code, the steps in order |
+| `wall-vs-cpu` (live) | "Requests feel slow but the CPU is low — where do the threads wait?" | the wall clock (57,373 samples, a third idle) read against the CPU (5,097), idle kept apart, where the request threads spend it named |
+| `lock-contention` | "Which locks hold the threads back?" (`persons lock`) | `blocking_monitors`, `LockPersonService`'s monitor named, its ~48 s of blocked time across 31 threads read as thread-time, never as a share of the 36 s recording |
+| `network-or-disk` | "Do the requests wait on the network or on the disk?" | `io_overview` for both: 92 slow socket and 21 slow file operations in 76 s — not where the requests wait |
 
-`record-exceptions-next-time` ("How do I record the exception types?") reads no recording: it holds the
-plugin to `jdk.JavaExceptionThrow#enabled=true`, and to saying that `settings=profile` alone does not name
-every throw.
+### Database
+
+What does the service ask the database, how often, and how long does it take?
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `count-queries` (live) | "The database runs far more COUNT queries than we get count requests — why?" | 11,141 COUNT statements against 7,161 count requests: the other 3,980 traced to the pick-id / pick-ids step of GET /persons and GET /persons/{count} |
+| `n-plus-one` | "Does GET /persons/{count} have an N+1? This is the repository" (`persons n-plus-one`) | `code_callSites` on `jeffrey.JdbcQuery`: find_by_id 13,720 times in 555 requests (about 25 each) from the loop in NPlusOnePersonService.getNPersons, one `IN` query offered |
+| `pool-latency` | "Is the connection pool what makes requests slow?" | `jdbc_pools`: one connection of ten ever active, no waiting thread, ~21 µs to acquire — not the pool |
+| `slow-sql-statements` | "Which SQL statements cost the most time?" | `jdbc_overview`: count_query the costliest by volume (11,141 of 16,317 statements), kept apart from the slowest single execution (all_ids_query, ~63 ms) |
+
+### Memory
+
+What allocates, and what holds the heap?
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `allocation-hotspots` (live) | "What allocates the most memory? This is the repository" | allocation weighed by bytes (`memory_allocations`, or the allocation hotspots or flamegraph): byte[] first (~1.99 GB of 4.1 GB), the service's own share (~13%) and its biggest allocators — PersonRepository.modifyOpinion's String.replaceAll, the row mapper — named with figures; startup kept apart |
+| `heap-dump-what-holds-memory` *(made-up)* | "What holds the memory in this .hprof?" | the import, a GC-root path behind the leak claim, one dump read as a state |
+| `heap-offers-implement-fixes` *(made-up)* | the heap dump, with the repository | **Implement fixes** offered for what holds the memory |
+| `orders-by-coupon-in-sql` *(made-up)* (live) | "How many orders carry a SPRING- coupon? (SQL over the heap)" | see [The SQL cases](#the-sql-cases) and the live suite's graders |
+
+### JVM health
+
+Is the JVM itself healthy: GC, the container, its threads?
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `gc-pauses` | "Are GC pauses hurting it?" | `jvm_gc`: 24 collections, ~249 ms of pause in ~76 s (~0.33%), no tuning |
+| `jvm-health` | "Before we scale up: is the JVM healthy?" | the JVM's sections read: GC fine, the one-core container throttled in ~39% of its CFS periods (~2.7 s parked) named as what to address first |
+| `threads-stuck` | "Are any threads stuck or deadlocked?" | `jvm_threadDumps`: no deadlock in 3 dumps; the three "stuck" threads are the JVM's Common-Cleaner, Reference Handler and Finalizer, idle by design |
+
+### Exceptions
+
+Where are exceptions thrown, and do they cost anything?
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `exception-sites` | "Why so many exceptions? The source is not checked out" (`persons exceptions`) | `jvm_exceptions`, `jvm_exceptionSites` with the service's package: 16,094 `NumberFormatException`s from ExceptionsPersonService.normalizePhone, classified as control flow, a check before parsing proposed |
+| `exception-inputs-counted-in-sql` *(made-up)* (live) | "NumberFormatExceptions: a few inputs or many? (SQL)" | see [The SQL cases](#the-sql-cases) and the live suite's graders |
+| `record-exceptions-next-time` | "How do I record the exception types?" | no recording read: `jdk.JavaExceptionThrow#enabled=true`, and that `settings=profile` alone does not name every throw |
+
+### Did it regress?
+
+Did my change make it slower, and where?
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `did-it-regress` | "Did my last change make the persons service slower?" | `compare-jfr` reached, `compare_list` read |
+| `dom-regression` | "We rolled out a new build ('persons dom' after 'persons direct') — slower, and where?" | `compare_list` before `compare_movements`, `compare_quality` read, the new build as primary, the extra `COUNT` query of the pick-id step named, a verdict that states its limits (one run each, both containers throttled by different amounts) |
+| `two-revisions` | "Did my last commit make it slower? Nothing is profiled yet" | `regression-check`, not `compare-jfr`: HEAD against its parent, both recorded the same way, no differential of the catalogue's unrelated pair |
+| `did-my-last-commit-make-it-worse` *(made-up)* (live) | "Did my pricing change make checkout costlier?" | see [The SQL cases](#the-sql-cases) and the live suite's graders |
+| `compare-the-methods-my-diff-touched` *(made-up)* (live) | "Did reprice and formatLine get more expensive?" | see [The SQL cases](#the-sql-cases) and the live suite's graders |
+| `regression-call-paths` | "Through which call path did the extra time come?" | `compare_movements` before `compare_flamegraph`: PersonController into the new InefficientPersonService (getRandomPerson ~+319 samples, getNPersons ~+126), the COUNT query beneath |
+
+### Getting started
+
+What is here, how do I record it, and what should I change?
+
+| Case | The question | What it holds the plugin to |
+|---|---|---|
+| `help-what-is-here` *(made-up)* | "What can Jeffrey do, and what is in it?" | `help`, the catalogue listed, nothing analysed unasked |
+| `open-question` | "What is wrong with this recording?" | `analyze-jfr`, `profiles_summary`, the menu put to the user with Traces first, no export before a choice |
+| `why-slow`, `what-to-change`, `did-it-regress`, `nothing-profiled` | prompts more than one skill's description claims | each reaches the one skill meant for it (`analyze-jfr`, `optimize-code`, `compare-jfr`, `profile-run`) and makes that skill's first call |
+| `what-to-change` | "What should I change? The code is not checked out here" | `optimize-code`, `profiles_summary` read first |
+| `no-connector` | "Why was it slow in production this morning? Its recordings should be on the connector" | `analyze-connector`, `connector_status`'s `NOT_CONFIGURED` passed on with the `jeffrey.microscope.connector.*` properties and a restart, nothing claimed about production |
+| `write-report` | "Write up what I found, for my team" | `report`, the user's COUNT-query and allocation figures read back from Jeffrey first, confidence stated, a **Not assessed** section |
+| `per-call-timing-not-recorded` (live) | "How long does PersonRepository.count take per call? This is the repository" | no method timing recorded, said with how to record it (`jdk.MethodTiming` with a filter); a JDBC or span duration given only labelled as a stand-in |
 
 The cases marked (live) and four checkout ones live under [`../evals-live/`](../evals-live/) and run against a
 real Jeffrey loaded with the same recordings: the real service's open questions invite calls no mock can
 pin — a wall clock with idle threads left out, a filter or grouping of the statements, the frames of a
-library — and two checkout cases ask what only SQL answers, two compare the methods a change touched — see
-[The SQL cases](#the-sql-cases). The three persons cases need no shell, so they run without the `git` grants:
-`claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off --case count-queries
---allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none --keep-temp` (likewise `endpoint-cpu`,
-`wall-vs-cpu`).
+library, a flamegraph of one time window (the mock answers an export by its event type alone), a method
+named without its package — and two checkout cases ask what only SQL answers, two compare the methods a
+change touched — see [The SQL cases](#the-sql-cases). The six persons cases need no shell, so they run
+without the `git` grants: `claude plugin eval ./jeffrey-agent-plugin --eval-dir evals-live --mocks off
+--scaffold --case count-queries --allow-tools 'mcp__plugin_microscope_jeffrey__*' --ablation none
+--keep-temp` (likewise `endpoint-cpu`, `wall-vs-cpu`, `cpu-spike-window`, `allocation-hotspots`,
+`per-call-timing-not-recorded`; the last two scaffold the repository). A run granted `git` needs the
+harness's sandbox — on Linux, `bubblewrap` and `socat` installed — or it is refused before it starts.
 
 ## Where the answers come from
 
@@ -1466,3 +1532,71 @@ runs each.
 Spend for this round: $103.40 — five full passes ($17.00, the first on a mock recorded at the wrong dump path;
 $15.89; $16.97; $17.53; $17.36 on the final mocks) and $18.65 of case re-runs. The live suite (`evals-live/`)
 was not run on 1.0.32: its cases keep their earlier replays on the Agent Plugin page.
+
+## Use cases, and seven cases to fill them (plugin 1.0.33)
+
+The Agent Plugin page now groups the cases by use case: a **Use cases** tab of cards, the overview's
+"What do you want to know?" tiles, and the Replay list grouped the same way. Seven persons cases were added
+where a use case was thin or a tool family had never been called: `timeline`, `io`, `methodtracing`,
+real-service allocation, the thread dumps, the differential tree and the SQL statements. Every new case reads
+recordings that were already kept; no mock was re-recorded.
+
+**First pass, on 1.0.32, all seven mocked: 11 of 21 runs.** What missed, and why:
+
+- **Calls no mock can answer** — the main cause. Asked when the CPU spiked and what ran then, every run read
+  `timeline_hotWindows` and then followed the server's own next call, a `flamegraph_export` of the hottest
+  window: the fixed mock answers an export by its event type and profile alone, so a window cannot be told
+  apart, and a re-recording cannot change that (a window as a file-name segment would break every call
+  without one; a flamegraph is too large to relay). The allocation analyst's `search`, and `code_method`
+  without `framePrefixes` or `jdbc_statementGroup` on the persons group, are the same kind. These three cases
+  — `cpu-spike-window`, `allocation-hotspots`, `per-call-timing-not-recorded` — moved to `evals-live/`, beside
+  `endpoint-cpu` and `wall-vs-cpu` for the same reason; `write-persons-scaffold.py` now scaffolds the live
+  suite's persons code cases too.
+- **The case.** `per-call-timing-not-recorded` named `PersonRepository.count` without its package and gave no
+  repository, so every run guessed the class; it now gives the repository.
+- **The plugin**, two gaps, fixed in 1.0.33:
+  - an allocation question with the repository at hand stopped at `memory_allocations`' types and offered the
+    code as a follow-up. `analyze-jfr`'s routing table and `code-insight` now answer both axes:
+    `code_hotspots` on the allocation event with `useWeight: true` and the checkout's `framePrefixes` names the
+    methods the bytes are charged to;
+  - asked for a method's time per call, a run whose recording had no method timing gave the JDBC stand-in and
+    never said how to measure it. `code-insight`, `analyze-jfr` and `references/latency.md` now say it first
+    — `jdk.MethodTiming` with a filter on the method — and label any stand-in; `profile-run` gained the JDK 25
+    option (JEP 520).
+- **Routing**: two runs answered correctly without loading a skill (`slow-sql-statements`, `threads-stuck`).
+
+**On 1.0.33**, every case whose skills changed ran again (19 mocked), the whole live suite (10) against a
+Microscope on JDK 25 loaded with `--load`, and `slow-sql-statements` once more after its rubric was widened:
+
+| | Runs passed |
+|---|---|
+| Mocked, re-run (19 cases) | 53 of 57, then `slow-sql-statements` 3 of 3 again |
+| Live (10 cases) | 26 of 30 |
+| Every case on the page (39) | **111 of 117** |
+
+| New case | Suite | Passed |
+|---|---|---|
+| `allocation-hotspots` | live | 3 of 3 |
+| `cpu-spike-window` | live | 3 of 3 |
+| `per-call-timing-not-recorded` | live | 2 of 3 — one run answered without loading a skill |
+| `network-or-disk` | mocked | 2 of 3 — the judges split 1–2 on a reply that meets the rubric |
+| `regression-call-paths` | mocked | 3 of 3 (on 1.0.32; it reaches no changed skill) |
+| `slow-sql-statements` | mocked | 3 of 3 |
+| `threads-stuck` | mocked | 3 of 3 |
+
+The other misses on 1.0.33: `endpoint-cpu` 1 of 3 (2 of 3 on 1.0.31) — one run read only the summary view
+and split nothing, one gave no sample count for its shares; `wall-vs-cpu` 2 of 3 (3 of 3 on 1.0.31) — one run
+did not keep idle time apart; `slow-endpoints` 2 of 3 — one link without ↗. They are in cases and skills this
+round did not touch beyond the two routing rows, and at three runs one dissenting run moves a case by a run.
+
+**Grader widened**: `slow-sql-statements`' rubric now says that ranking `count_query` first by its count and
+percentiles is an inference — `jdbc_overview` gives no total time per statement — and a reply that says so
+meets it. The run it had failed did exactly that.
+
+**Still open**: a direct SQL or thread question sometimes skips the skills altogether (3 of 12 runs across
+`slow-sql-statements`, `threads-stuck` and `per-call-timing-not-recorded`). The answers were right; whether a
+skill's description should claim these questions is a routing change, which re-runs every case.
+
+Spend for this round: $27.51 — on 1.0.32 $5.59 (a smoke run, the seven cases, `per-call-timing-not-recorded`
+again with its repository); on 1.0.33 $13.06 (19 mocked cases), $8.09 (the live suite), $0.29 (a refused live
+attempt and a live smoke run) and $0.48 (`slow-sql-statements` again).

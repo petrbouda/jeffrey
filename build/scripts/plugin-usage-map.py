@@ -114,6 +114,83 @@ WORKLOADS = [
 ]
 NO_RECORDING = {"record-exceptions-next-time"}
 
+# The question a reader brings, which the page groups the cases by: every eval case of both suites sits in exactly
+# one use case (test-plugin-usage-map.py fails on one that is in none or in two); `example` is the case whose
+# question the overview quotes for it. Held here rather than as a tag in
+# each prompt, because a prompt is part of its case's digest: retagging would mark every replay stale.
+USE_CASES = [
+    {"name": "cpu", "example": "endpoint-cpu", "label": "Where the CPU goes", "icon": "bi-cpu",
+     "question": "Which code burns the CPU, and is it ours?",
+     "cases": ["endpoint-cpu", "hot-methods", "fix-it", "method-worth-it", "two-areas-delegated",
+               "cpu-spike-window"]},
+    {"name": "slow-requests", "example": "slow-endpoints", "label": "Slow requests and waiting", "icon": "bi-hourglass-split",
+     "question": "Which requests are slow, and where do their threads wait?",
+     "cases": ["slow-endpoints", "what-runs", "wall-vs-cpu", "lock-contention", "network-or-disk"]},
+    {"name": "database", "example": "n-plus-one", "label": "Database", "icon": "bi-database",
+     "question": "What does the service ask the database, how often, and how long does it take?",
+     "cases": ["count-queries", "n-plus-one", "pool-latency", "slow-sql-statements"]},
+    {"name": "memory", "example": "heap-dump-what-holds-memory", "label": "Memory", "icon": "bi-memory",
+     "question": "What allocates, and what holds the heap?",
+     "cases": ["allocation-hotspots", "heap-dump-what-holds-memory", "heap-offers-implement-fixes",
+               "orders-by-coupon-in-sql"]},
+    {"name": "jvm-health", "example": "gc-pauses", "label": "JVM health", "icon": "bi-heart-pulse",
+     "question": "Is the JVM itself healthy: GC, the container, its threads?",
+     "cases": ["gc-pauses", "jvm-health", "threads-stuck"]},
+    {"name": "exception-cost", "example": "exception-sites", "label": "Exceptions", "icon": "bi-exclamation-triangle",
+     "question": "Where are exceptions thrown, and do they cost anything?",
+     "cases": ["exception-sites", "exception-inputs-counted-in-sql", "record-exceptions-next-time"]},
+    {"name": "regression", "example": "dom-regression", "label": "Did it regress?", "icon": "bi-arrow-left-right",
+     "question": "Did my change make it slower, and where?",
+     "cases": ["did-it-regress", "dom-regression", "two-revisions", "did-my-last-commit-make-it-worse",
+               "compare-the-methods-my-diff-touched", "regression-call-paths"]},
+    {"name": "getting-started", "example": "help-what-is-here", "label": "Getting started", "icon": "bi-compass",
+     "question": "What is here, how do I record it, and what should I change?",
+     "cases": ["help-what-is-here", "open-question", "why-slow", "what-to-change", "nothing-profiled",
+               "no-connector", "write-report", "per-call-timing-not-recorded"]},
+]
+# Each case's question in a line, as the page lists it under its use case; the prompt itself is the full text.
+CASE_QUESTIONS = {
+    "endpoint-cpu": "Where does the CPU time go?",
+    "hot-methods": "Which of our own methods does the CPU go to?",
+    "fix-it": "Where does the CPU go? This is the repository",
+    "method-worth-it": "Is PersonController.toJsonTree worth optimizing?",
+    "two-areas-delegated": "CPU and allocation, both",
+    "cpu-spike-window": "Was there a moment the CPU spiked, and what ran then?",
+    "slow-endpoints": "Which endpoints are much slower than the rest, and why?",
+    "what-runs": "What does GET /persons/{count} actually run?",
+    "wall-vs-cpu": "Requests feel slow but the CPU is low: where do the threads wait?",
+    "lock-contention": "Which locks hold the threads back?",
+    "network-or-disk": "Do the requests wait on the network or on the disk?",
+    "count-queries": "Why far more COUNT queries than count requests?",
+    "n-plus-one": "Does GET /persons/{count} have an N+1?",
+    "pool-latency": "Is the connection pool what makes requests slow?",
+    "slow-sql-statements": "Which SQL statements cost the most time?",
+    "allocation-hotspots": "What allocates the most? This is the repository",
+    "heap-dump-what-holds-memory": "What holds the memory in this heap dump?",
+    "heap-offers-implement-fixes": "What holds the memory? This is the repository",
+    "orders-by-coupon-in-sql": "How many orders carry a SPRING- coupon? (SQL over the heap)",
+    "gc-pauses": "Are GC pauses hurting it?",
+    "jvm-health": "Before we scale up: is the JVM healthy?",
+    "threads-stuck": "Are any threads stuck or deadlocked?",
+    "exception-sites": "Why so many exceptions?",
+    "exception-inputs-counted-in-sql": "NumberFormatExceptions: a few inputs or many? (SQL)",
+    "record-exceptions-next-time": "How do I record the exception types next time?",
+    "did-it-regress": "Did my last change make it slower?",
+    "dom-regression": "The new build is slower: where?",
+    "two-revisions": "Did my last commit make it slower? Nothing is profiled yet",
+    "did-my-last-commit-make-it-worse": "Did my pricing change make checkout costlier?",
+    "compare-the-methods-my-diff-touched": "Did reprice and formatLine get more expensive?",
+    "regression-call-paths": "Through which call path did the extra time come?",
+    "help-what-is-here": "What can Jeffrey do, and what is in it?",
+    "open-question": "What is wrong with this recording?",
+    "why-slow": "It feels slow: can Jeffrey say why?",
+    "what-to-change": "What should I change? The code is not checked out",
+    "nothing-profiled": "How do I record it so Jeffrey can analyse it?",
+    "no-connector": "Why was it slow in production this morning?",
+    "write-report": "Write up what I found, for my team",
+    "per-call-timing-not-recorded": "How long does PersonRepository.count take per call?",
+}
+
 # What a replay's runs depended on, by group, so a later change to any of them marks the replay stale (`--stale`):
 # the skills the runs reached and the plugin agents they handed work to, every skill's description (which skill a
 # prompt reaches at all), the case's own files (prompt, scaffold, graders), and the answers the runs were given —
@@ -392,6 +469,21 @@ def case_workloads(plugin: Path) -> dict[str, str | None]:
     return cases
 
 
+def case_names(plugin: Path) -> list[str]:
+    """Every eval case of both suites, by name."""
+    return sorted(prompt.parent.name for suite in SUITES for prompt in (plugin / suite / "cases").glob("*/prompt.md"))
+
+
+def use_cases_of(plugin: Path) -> dict:
+    """The use cases as the page shows them, each case's use case and its question in a line — only for cases the
+    suites hold, so a case named here before its directory exists does not reach the page."""
+    present = set(case_names(plugin))
+    return {"useCases": [{key: value for key, value in use_case.items() if key != "cases"} for use_case in USE_CASES],
+            "caseUseCases": {case: use_case["name"] for use_case in USE_CASES for case in use_case["cases"]
+                             if case in present},
+            "caseQuestions": {case: question for case, question in CASE_QUESTIONS.items() if case in present}}
+
+
 def usage_of(plugin: Path, recorded_version: str | None = None, earlier: dict | None = None) -> dict:
     """Each current case's latest runs whose traces are still on disk, as replays, and the totals over exactly
     those runs: a case run again replaces its earlier runs rather than adding to them, a case no longer in its
@@ -464,7 +556,7 @@ def wiring_of(plugin: Path, snapshot: dict) -> dict:
             "agentAliases": AGENT_ALIASES,
             "tools": tools, "skills": skills_of(plugin, tool_names, skill_names, agent_names),
             "agents": agents_of(plugin, tool_names, skill_names, agent_names), "areas": AREAS,
-            "workloads": WORKLOADS, "caseWorkloads": case_workloads(plugin)}
+            "workloads": WORKLOADS, "caseWorkloads": case_workloads(plugin)} | use_cases_of(plugin)
 
 
 def usage_map(plugin: Path, snapshot: dict, recorded_version: str, earlier: dict | None = None) -> dict:

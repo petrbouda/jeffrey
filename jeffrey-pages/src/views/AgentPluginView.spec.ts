@@ -51,16 +51,14 @@ async function openProfilesTool() {
 }
 
 describe('Agent Plugin navigation', () => {
-  it('opens a cross-area replay in its own area and preserves the linked run on reload', async () => {
+  it('opens a replay from a tool card without an area switch, and preserves the linked run on reload', async () => {
     const page = await openPage('/agent-plugin?area=jfr');
     const user = await openProfilesTool();
     await user.click(screen.getByRole('button', { name: /^orders-by-coupon-in-sql/ }));
-    await waitFor(() => {
-      expect(screen.getByRole('radio', { name: /^Heap dumps/ }).getAttribute('aria-checked')).toBe('true');
-    });
+    expect(screen.getByRole('heading', { name: 'orders-by-coupon-in-sql' })).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: 'Area of the plugin' })).toBeNull();
     await user.click(screen.getByRole('tab', { name: /^Run 2/ }));
     await waitFor(() => {
-      expect(page.router.currentRoute.value.query.area).toBe('heap');
       expect(page.router.currentRoute.value.query.run).toBe('2');
     });
     const linked = page.router.currentRoute.value.fullPath;
@@ -79,19 +77,83 @@ describe('Agent Plugin navigation', () => {
     expect(screen.getByRole('button', { name: /^skill heap-sql,/ }).getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('keeps the current area when opening a shared replay', async () => {
+  it('keeps the map area while a replay is opened and left', async () => {
     await openPage('/agent-plugin?area=heap');
     const user = await openProfilesTool();
     await user.click(screen.getByRole('button', { name: /^help-what-is-here/ }));
     expect(screen.getByRole('heading', { name: 'help-what-is-here' })).toBeTruthy();
+    await user.click(screen.getByRole('tab', { name: /^Map/ }));
     expect(screen.getByRole('radio', { name: /^Heap dumps/ }).getAttribute('aria-checked')).toBe('true');
   });
 
-  it('honors an explicitly linked case when its query area disagrees', async () => {
+  it('honors an explicitly linked case and run', async () => {
     await openPage('/agent-plugin?area=jfr&case=orders-by-coupon-in-sql&run=3');
     expect(screen.getByRole('heading', { name: 'orders-by-coupon-in-sql' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: /^Heap dumps/ }).getAttribute('aria-checked')).toBe('true');
     expect(screen.getByRole('tab', { name: /^Run 3/ }).getAttribute('aria-selected')).toBe('true');
+  });
+});
+
+describe('The case list on Replay', () => {
+  it('groups every case under its use case', async () => {
+    await openPage('/agent-plugin?tab=replay');
+    for (const useCase of model.data.useCases) {
+      const cases = model.data.replays.filter((replay) => model.data.caseUseCases[replay.case] === useCase.name);
+      if (!cases.length) {
+        continue;
+      }
+      const heading = screen.getByRole('heading', { name: `${useCase.label} (${cases.length})` });
+      const group = heading.parentElement as HTMLElement;
+      for (const replay of cases) {
+        expect(within(group).getByRole('button', { name: new RegExp(`^${replay.case}`) })).toBeTruthy();
+      }
+    }
+  });
+});
+
+describe('Use cases', () => {
+  it('shows one card per use case, each question opening its replay', async () => {
+    const page = await openPage('/agent-plugin?tab=use-cases');
+    for (const useCase of model.data.useCases) {
+      expect(screen.getByRole('heading', { level: 2, name: useCase.label })).toBeTruthy();
+    }
+    const card = screen.getByRole('region', { name: 'JVM health' });
+    await userEvent.setup().click(within(card).getByRole('button', { name: /^Are GC pauses hurting it\?/ }));
+    expect(screen.getByRole('heading', { name: 'gc-pauses' })).toBeTruthy();
+    expect(page.router.currentRoute.value.query.tab).toBe('replay');
+    expect(page.router.currentRoute.value.query.case).toBe('gc-pauses');
+  });
+
+  it('names the tool families its runs called, the profile lookup left out', async () => {
+    await openPage('/agent-plugin?tab=use-cases');
+    for (const useCase of model.data.useCases) {
+      const called = new Set<string>();
+      for (const replay of model.data.replays.filter((item) => model.data.caseUseCases[item.case] === useCase.name)) {
+        for (const step of replay.runs.flatMap((run) => run.steps)) {
+          const family = step.kind === 'jeffrey' ? model.tools.get(step.name)?.family : undefined;
+          if (family && family !== 'profiles') {
+            called.add(family);
+          }
+        }
+      }
+      const card = screen.getByRole('region', { name: useCase.label });
+      const chips = Array.from(card.querySelectorAll('.node-chip--family .node-chip-label')).map((chip) => chip.textContent);
+      expect(new Set(chips)).toEqual(called);
+    }
+  });
+
+  it('opens from an overview tile at its card', async () => {
+    const page = await openPage('/agent-plugin');
+    const scrolled = vi.fn();
+    Element.prototype.scrollIntoView = scrolled;
+    await userEvent.setup().click(screen.getByRole('button', { name: /^JVM health/ }));
+    await waitFor(() => {
+      expect(page.router.currentRoute.value.query.tab).toBe('use-cases');
+      expect(page.router.currentRoute.value.query.useCase).toBe('jvm-health');
+    });
+    expect(screen.getByRole('tab', { name: /^Use cases/ }).getAttribute('aria-selected')).toBe('true');
+    await waitFor(() => {
+      expect(scrolled).toHaveBeenCalled();
+    });
   });
 });
 
@@ -100,6 +162,7 @@ describe('Overview and the bar', () => {
     await openPage('/agent-plugin');
     expect(screen.getByRole('tab', { name: /^Overview/ }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByText('recorded eval runs')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'What do you want to know?' })).toBeTruthy();
     expect(screen.queryByRole('radiogroup', { name: 'Area of the plugin' })).toBeNull();
   });
 
@@ -198,7 +261,14 @@ describe('Replay trail', () => {
 
 
   it('highlights actual owner-to-tool calls without adding edges from other runs', async () => {
-    await openPage('/agent-plugin?area=jfr&case=wall-vs-cpu&run=2');
+    // A run whose flamegraph export was the analyst's alone: the map's analyze-jfr → flamegraph_export edge comes
+    // from other runs, and must not light up for this one. Picked from the data, since a new eval round re-records it.
+    const exportsBy = (steps: { kind: string; name: string; by?: [string, string] | null }[], owner: string) =>
+      steps.some((step) => step.kind === 'jeffrey' && step.name === 'flamegraph_export' && step.by?.[1] === owner);
+    const delegated = model.data.replays
+      .flatMap((replay) => replay.runs.map((run) => ({ replay, run })))
+      .find(({ run }) => exportsBy(run.steps, 'jfr-analyst') && !exportsBy(run.steps, 'analyze-jfr'))!;
+    await openPage(`/agent-plugin?area=jfr&case=${delegated.replay.case}&run=${delegated.run.run}`);
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: /Show it on the full map/ }));
     const map = screen.getByRole('group', { name: 'Skills, agents and tool families' });

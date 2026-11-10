@@ -55,6 +55,12 @@ Add these when the question calls for them:
   `-XX:StartFlightRecording` options: it records every throw on either (JDK 17 or later; a JDK
   without the throttle, such as 21, warns that `throttle` does not exist and ignores it). Between the
   two, the JDK's own `lib/jfr/profile.jfc` says which applies.
+- **How long one method takes per call** — sampling cannot say: it measures a method's share, never one
+  invocation. JDK 25 times it exactly (JEP 520): add `jdk.MethodTiming#filter=com.example.Repository::count`
+  to the `-XX:StartFlightRecording` options — invocation count and average, minimum and maximum duration
+  per method — or `jdk.MethodTrace#filter=…` for every invocation with its stack. The filter names a class
+  and method (`Class::method`), a whole class, or an annotation (`@jakarta.ws.rs.GET`); keep it to the
+  methods asked about, since every call is instrumented.
 - **A JMH run** — profile the benchmark, not the harness: `-prof jfr` gives one recording per
   benchmark rather than one for the whole fork.
 

@@ -22,6 +22,7 @@ import type {
   PluginArea,
   PluginSkill,
   PluginTool,
+  PluginUseCase,
   PluginWorkload,
   PluginUsage,
   Replay,
@@ -343,6 +344,82 @@ function casesOf(area: AreaName): number[] {
     .map(({ index }) => index);
 }
 
+// ---------- use cases: the question a reader brings, and the cases that answer it ----------
+
+/**
+ * The lookup nearly every run starts with (profiles_list, profiles_summary): left out of what a use case is
+ * answered by, so each one shows the families that are its own.
+ */
+const LOOKUP_FAMILY = 'profiles';
+
+const useCases = new Map<string, PluginUseCase>(data.useCases.map((useCase) => [useCase.name, useCase]));
+
+/** What a case answers, in a line: its listed question, else the prompt's first sentence. */
+function questionOf(replay: Replay): string {
+  return data.caseQuestions[replay.case] ?? replay.prompt.split(/(?<=[.?!])\s/)[0];
+}
+
+function useCaseOf(replay: Replay): PluginUseCase | null {
+  return useCases.get(data.caseUseCases[replay.case] ?? '') ?? null;
+}
+
+/** The cases of a use case, as indices into the replays: the mocked ones first, then the real-service ones, then by name. */
+function casesOfUseCase(name: string): number[] {
+  const real = (replay: Replay): number => Number(workloadOf(replay)?.real ?? false);
+  return data.replays
+    .map((replay, index) => ({ replay, index }))
+    .filter(({ replay }) => data.caseUseCases[replay.case] === name)
+    .sort((a, b) => SUITE_ORDER[a.replay.suite] - SUITE_ORDER[b.replay.suite]
+      || real(b.replay) - real(a.replay)
+      || a.replay.case.localeCompare(b.replay.case))
+    .map(({ index }) => index);
+}
+
+/** What a use case's runs actually reached, busiest first: the counts are calls across all of its cases' runs. */
+export interface UseCaseSummary {
+  skills: [string, number][];
+  agents: [string, number][];
+  families: [string, number][];
+  runs: number;
+  passed: number;
+}
+
+const byCount = (counts: Map<string, number>): [string, number][] =>
+  [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+const bump = (counts: Map<string, number>, key: string): void => {
+  counts.set(key, (counts.get(key) ?? 0) + 1);
+};
+
+function summarizeUseCase(name: string): UseCaseSummary {
+  const skillCounts = new Map<string, number>();
+  const agentCounts = new Map<string, number>();
+  const familyCounts = new Map<string, number>();
+  let runs = 0;
+  let passed = 0;
+  for (const index of casesOfUseCase(name)) {
+    for (const run of data.replays[index].runs) {
+      runs += 1;
+      passed += run.passed ? 1 : 0;
+      for (const step of run.steps) {
+        if (step.kind === 'skill') {
+          bump(skillCounts, step.name);
+        } else if (step.kind === 'agent' && agents.has(agentName(step.name))) {
+          bump(agentCounts, agentName(step.name));
+        } else if (step.kind === 'jeffrey') {
+          const family = tools.get(step.name)?.family;
+          if (family && family !== LOOKUP_FAMILY) {
+            bump(familyCounts, family);
+          }
+        }
+      }
+    }
+  }
+  return { skills: byCount(skillCounts), agents: byCount(agentCounts), families: byCount(familyCounts), runs, passed };
+}
+
+const useCaseSummaries = new Map<string, UseCaseSummary>(data.useCases.map((useCase) => [useCase.name, summarizeUseCase(useCase.name)]));
+
 const MODEL = {
   data,
   observed,
@@ -388,7 +465,12 @@ const MODEL = {
   inLens,
   areasFor,
   casesOf,
-  workloadOf
+  workloadOf,
+  useCases,
+  useCaseOf,
+  casesOfUseCase,
+  questionOf,
+  useCaseSummary: (name: string): UseCaseSummary => useCaseSummaries.get(name) ?? summarizeUseCase(name)
 };
 
 export type PluginUsageModel = typeof MODEL;
