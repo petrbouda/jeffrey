@@ -21,12 +21,15 @@ import cafe.jeffrey.shared.common.JeffreyVersion;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ImportRuntimeHints;
 
 /**
  * The hub: the scheduler's jobs on the recording volume and a JSON API under {@code /api/v1}.
- * It serves no pages.
+ * It serves no pages. Its Docker image is a GraalVM native image ({@code build-hub-native});
+ * {@code build-hub} keeps the plain jar.
  */
 @SpringBootApplication
+@ImportRuntimeHints(HubRuntimeHints.class)
 public class HubApplication {
 
     private static final String VERSION_FLAG = "--version";

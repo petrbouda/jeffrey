@@ -29,6 +29,7 @@ const headings = [
   { id: 'three-charts', text: 'Three Charts at a Glance', level: 2 },
   { id: 'chart-structure', text: 'Chart Structure', level: 2 },
   { id: 'configure-server', text: 'Configuring Jeffrey Hub', level: 2 },
+  { id: 'native-image', text: 'Native Image', level: 3 },
   { id: 'configure-app', text: 'Configuring the Monitored Application', level: 2 },
   { id: 'side-by-side', text: 'Side-by-Side: direct vs dom', level: 2 },
   { id: 'installing', text: 'Installing the Stack', level: 2 },
@@ -44,14 +45,13 @@ const chartStructure = `helm/
 │   ├── Chart.yaml
 │   ├── values.yaml                   # image tag, sharedVolume, ports, ingress, probes
 │   ├── application.properties        # Spring Boot config (home.dir)
-│   ├── jeffrey-base.conf             # provisioner init config for self-profiling
 │   └── templates/
 │       ├── deployment.yaml
 │       ├── service.yaml              # HTTP 8080 (REST API)
 │       ├── ingress.yaml              # optional HTTP access to the API
 │       ├── persistent-volume-claim.yaml
 │       ├── persistent-volume.yaml    # hostPath PV (orbstack/minikube)
-│       ├── configmap.yaml            # mounts application.properties + jeffrey-base.conf
+│       ├── configmap.yaml            # mounts application.properties
 │       ├── serviceaccount.yaml
 │       └── _helpers.tpl
 │
@@ -80,16 +80,34 @@ const chartStructure = `helm/
         └── _helpers.tpl`;
 
 const serverImage = `image:
-  repository: petrbouda/jeffrey-hub
-  # Pin to a specific upstream build. Bump when a newer 0.7.x is pushed
+  repository: petrbouda/jeffrey-hub   # a GraalVM native image, no JVM inside
+  # Pin to a specific upstream build
   # (https://hub.docker.com/r/petrbouda/jeffrey-hub/tags).
-  tag: 0.7.1-b68
+  tag: <version>
   pullPolicy: IfNotPresent
 
-containerPort: 8080
+containerPort: 8080`;
 
-selfProfile:
-  enabled: true   # jeffrey-hub self-profiles via the JIB entrypoint`;
+const nativeImageContainer = `containers:
+  - name: jeffrey-hub
+    image: petrbouda/jeffrey-hub:<version>   # or latest
+    # Options of the native image itself come first, then Spring's --key=value arguments.
+    args: ["-Xmx64m"]
+    env:
+      - name: JEFFREY_HUB_HOME_DIR
+        value: /mnt/jeffrey
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 192Mi`;
+
+const nativeImageBuild = `# The image, from the repository root (the build runs in a GraalVM container):
+docker build -f docker/Dockerfile-hub -t jeffrey-hub .
+
+# Or the binary alone, with GraalVM 25 as JAVA_HOME:
+mvn -pl build/build-hub-native -am -Pnative package -DskipTests
+./build/build-hub-native/target/jeffrey-hub --jeffrey.hub.home.dir=/mnt/jeffrey`;
 
 const serverService = `apiVersion: v1
 kind: Service
@@ -272,6 +290,43 @@ helm upgrade --install jeffrey-hub helm/jeffrey-hub \\
         The API has no authentication and its run endpoint deletes data, so keep it inside the
         cluster unless the Ingress is protected.
       </p>
+
+      <h3 id="native-image">Native Image</h3>
+      <p>
+        The hub's image, <code>petrbouda/jeffrey-hub:&lt;version&gt;</code> (and <code>latest</code>)
+        for <code>amd64</code> and <code>arm64</code>, is Jeffrey Hub compiled ahead of time with
+        GraalVM, on a distroless base with no JVM inside. It starts in about a tenth of a second.
+        In a small test (one project, a few recordings, a few hundred API calls) it held about
+        half the memory the JVM build did under the same load: around 100&nbsp;MB resident against
+        about 200&nbsp;MB, both with <code>-Xmx32m</code>. Options of the native image itself, such
+        as the heap cap, come first among the container's arguments, before Spring's
+        <code>--key=value</code> ones:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="nativeImageContainer"
+      />
+
+      <DocsCallout type="info">
+        <strong>The hub does not profile itself.</strong> async-profiler is a JVM agent, which a
+        native image cannot load, so the hub's image has no
+        <router-link to="/docs/hub/deployment/jeffrey-jib">Jeffrey JIB</router-link> entrypoint and
+        no <code>jeffrey-base.conf</code>; <code>JEFFREY_ENABLED</code> has no effect on it. It also
+        has no shell, so health checks go through the HTTP probes
+        (<code>/actuator/health/liveness</code>, <code>/actuator/health/readiness</code>). The
+        monitored applications keep their JIB entrypoints as before.
+      </DocsCallout>
+
+      <p>
+        The hub runs as root, because it deletes and compresses files written by applications
+        running under any uid. To build the image or the binary yourself:
+      </p>
+
+      <DocsCodeBlock
+        language="bash"
+        :code="nativeImageBuild"
+      />
 
       <h2 id="configure-app">Configuring the Monitored Application</h2>
       <p>

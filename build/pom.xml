@@ -35,7 +35,7 @@
         <module>build-microscope-jib</module>
         <module>build-microscope-examples-jib</module>
         <module>build-hub</module>
-        <module>build-hub-jib</module>
+        <module>build-hub-native</module>
         <module>build-provisioner</module>
         <module>build-provisioner-native</module>
     </modules>

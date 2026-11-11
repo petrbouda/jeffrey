@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     https://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cafe.jeffrey</groupId>
+        <artifactId>build</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <!--
+        Jeffrey Hub as a GraalVM native image, the one the hub's Docker image ships: the same core-hub
+        as build-hub, run through Spring's AOT pass and compiled ahead of time. Starts in a fraction of
+        a second and needs a fraction of the JVM's memory. It does not profile itself: async-profiler
+        is a JVMTI agent, and a native image takes none.
+
+        Without -Pnative this module builds nothing. With it (GraalVM 25 as JAVA_HOME):
+            mvn -pl build/build-hub-native -am -Pnative package -DskipTests
+        → target/jeffrey-hub. docker/Dockerfile-hub runs the same build in a container.
+    -->
+    <artifactId>build-hub-native</artifactId>
+
+    <properties>
+        <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
+        <finalName>jeffrey-hub</finalName>
+        <native-maven-plugin.version>1.1.16</native-maven-plugin.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>core-hub</artifactId>
+        </dependency>
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>native</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <groupId>org.codehaus.mojo</groupId>
+                    </plugin>
+
+                    <!-- Spring's AOT pass: starts the application context at build time and writes
+                         its bean definitions as code, plus the reflection/resource hints the image
+                         needs (HubRuntimeHints among them), into target/classes. -->
+                    <plugin>
+                        <groupId>org.springframework.boot</groupId>
+                        <artifactId>spring-boot-maven-plugin</artifactId>
+                        <executions>
+                            <!-- Inherited from build/pom.xml; a native image has no use for a fat jar. -->
+                            <execution>
+                                <id>repackage</id>
+                                <phase>none</phase>
+                            </execution>
+                            <execution>
+                                <id>process-aot</id>
+                                <goals>
+                                    <goal>process-aot</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>${mainClass}</mainClass>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.graalvm.buildtools</groupId>
+                        <artifactId>native-maven-plugin</artifactId>
+                        <version>${native-maven-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <executions>
+                            <execution>
+                                <id>build-native</id>
+                                <goals>
+                                    <goal>compile-no-fork</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <imageName>${finalName}</imageName>
+                            <mainClass>${mainClass}</mainClass>
+                            <!-- Reachability metadata for third-party libraries (Logback, Tomcat, …)
+                                 that ship none of their own. -->
+                            <metadataRepository>
+                                <enabled>true</enabled>
+                            </metadataRepository>
+                            <buildArgs>
+                                <buildArg>--no-fallback</buildArg>
+                                <!-- Baseline x86-64 / ARMv8.0-A instead of the build host's CPU
+                                     features, so the image starts on any host (see
+                                     build-provisioner-native). -->
+                                <buildArg>-march=compatibility</buildArg>
+                                <!-- lz4-java tries System.loadLibrary before it falls back to its
+                                     Java codecs (HubRuntimeHints); without this the JDK warns about
+                                     the restricted call on every start. -->
+                                <buildArg>--enable-native-access=ALL-UNNAMED</buildArg>
+                            </buildArgs>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

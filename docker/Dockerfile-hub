@@ -1,0 +1,63 @@
+# syntax=docker/dockerfile:1
+#
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+# Jeffrey Hub's image: a GraalVM native image (petrbouda/jeffrey-hub:<version>). There is no JVM
+# image of the hub.
+#
+# Build from the repository root (the reactor needs every module's pom):
+#   docker build -f docker/Dockerfile-hub -t jeffrey-hub .
+#   docker build -f docker/Dockerfile-hub --build-arg JEFFREY_TAG_VERSION=0.14.0 -t ... .
+#
+# The image is built for the platform it is built on: native-image does not cross-compile, so the
+# release builds amd64 and arm64 on their own runners and joins them under one tag
+# (.github/workflows/release-hub.yml).
+#
+# The binary takes the runtime options a native image understands ahead of the application's own
+# arguments, e.g. a heap cap:  docker run petrbouda/jeffrey-hub:<version> -Xmx64m
+# Application properties come in as usual, as JEFFREY_HUB_HOME_DIR or --jeffrey.hub.home.dir=...
+
+ARG GRAALVM_IMAGE=ghcr.io/graalvm/native-image-community:25
+# glibc of the runtime must be at least the builder's (Oracle Linux 10: 2.39; Debian 13: 2.41).
+ARG RUNTIME_IMAGE=gcr.io/distroless/base-debian13
+
+FROM ${GRAALVM_IMAGE} AS builder
+
+ARG MAVEN_VERSION=3.9.11
+ARG JEFFREY_TAG_VERSION=dev
+
+RUN curl -fsSL "https://archive.apache.org/dist/maven/maven-3/${MAVEN_VERSION}/binaries/apache-maven-${MAVEN_VERSION}-bin.tar.gz" \
+        | tar -xz -C /opt
+ENV PATH="/opt/apache-maven-${MAVEN_VERSION}/bin:${PATH}"
+
+WORKDIR /build
+COPY . .
+
+# Only the hub's part of the reactor: shared/common, shared/volume, the hub modules and
+# build-hub-native (Spring AOT + native-image). No frontend, no Microscope.
+RUN --mount=type=cache,target=/root/.m2 \
+    JEFFREY_TAG_VERSION="${JEFFREY_TAG_VERSION}" \
+    mvn -B -q -pl build/build-hub-native -am -Pnative package -DskipTests
+
+FROM ${RUNTIME_IMAGE}
+
+# Runs as root: the hub deletes and compresses whatever the profiled
+# applications wrote to the shared volume, under whichever uid they ran.
+COPY --from=builder /build/build/build-hub-native/target/jeffrey-hub /app/jeffrey-hub
+
+EXPOSE 8080
+ENTRYPOINT ["/app/jeffrey-hub"]
