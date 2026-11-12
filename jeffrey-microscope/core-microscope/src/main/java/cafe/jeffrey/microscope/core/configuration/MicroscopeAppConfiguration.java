@@ -20,11 +20,9 @@ package cafe.jeffrey.microscope.core.configuration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import cafe.jeffrey.microscope.core.initializer.RecordingSeedInitializer;
 import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParserAdapter;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
@@ -150,15 +148,6 @@ public class MicroscopeAppConfiguration {
                         clock, jeffreyDirs, recordingsPath, repos, profileManagerFactory, profileCleanup)));
 
         return new ProfileRecordingsManager(core, profileManagerFactory, repos, profileCleanup, builders);
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "jeffrey.microscope.seed.recordings.enabled", havingValue = "true")
-    public RecordingSeedInitializer recordingSeedInitializer(
-            RecordingsManager recordingsManager,
-            @Value("${jeffrey.microscope.seed.recordings.dir:/jeffrey-examples}") String seedDir) {
-
-        return new RecordingSeedInitializer(recordingsManager, Path.of(seedDir));
     }
 
     @Bean

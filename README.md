@@ -39,14 +39,11 @@ java -jar microscope.jar
 
 ### 🧪 With example recordings
 
-Pre-loaded with sample recordings — just look around:
+No JFR of your own yet? [jeffrey-recordings](https://github.com/petrbouda/jeffrey-recordings) is the source
+of example JFR recordings — download them and upload any of them on the Recordings page:
 
 ```bash
 git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings
-
-java -jar microscope.jar \
-  --jeffrey.microscope.seed.recordings.enabled=true \
-  --jeffrey.microscope.seed.recordings.dir=jeffrey-recordings
 ```
 
 Then open **http://localhost:8585**, go to **Recordings → upload a JFR or Heap dump → Analyze**,

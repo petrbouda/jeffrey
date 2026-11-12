@@ -38,20 +38,18 @@
           <div class="content-section">
 
             <div class="intro-text">
-              <p>The <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank">jeffrey-recordings</a> repository contains pre-generated recordings that demonstrate Jeffrey's capabilities. Microscope loads them on its first start, so you can understand how Jeffrey works without needing to set up your own recordings.</p>
+              <p>The <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank">jeffrey-recordings</a> repository is the source of pre-generated JFR recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
             </div>
 
             <div class="step-card">
               <div class="step-number">1</div>
               <div class="step-content">
                 <h3>Quick Start</h3>
-                <p>With <strong>Java 25 or newer</strong> on your <code>PATH</code>, download <code>microscope.jar</code>, clone the example recordings and start Microscope with the recordings seeded from the cloned directory:</p>
+                <p>With <strong>Java 25 or newer</strong> on your <code>PATH</code>, download and start Microscope, and download the example recordings:</p>
                 <pre><code>curl -L -o microscope.jar https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
-git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings
+java -jar microscope.jar
 
-java -jar microscope.jar \
-  --jeffrey.microscope.seed.recordings.enabled=true \
-  --jeffrey.microscope.seed.recordings.dir=jeffrey-recordings</code></pre>
+git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings</code></pre>
                 <p>After starting Microscope, open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser to access the Jeffrey UI.</p>
               </div>
             </div>
@@ -88,7 +86,7 @@ java -jar microscope.jar \
               <div class="step-number">2</div>
               <div class="step-content">
                 <h3>Create Your First Profile</h3>
-                <p>Open the <code>Recordings</code> page, where the example recordings are pre-loaded. Pick any recording and start the initialization of a new profile.
+                <p>Open the <code>Recordings</code> page and upload any of the example recordings from the cloned <code>jeffrey-recordings</code> directory. Pick the uploaded recording and start the initialization of a new profile.
                   Switch to the <code>Profiles</code> section and wait for the initialization to be finished.</p>
 
                 <div class="info-note">
@@ -118,8 +116,8 @@ java -jar microscope.jar \
                 (both profiles needs to be generated from recordings). The <code>Secondary Profile</code> needs to be selected to enable the button in sidebar menu.
               </p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-direct-serde-cpu.jfr</div>
-                <div class="example-item">jeffrey-persons-dom-serde-cpu.jfr</div>
+                <div class="example-item">jeffrey-persons-direct-serde-cpu.jfr.lz4</div>
+                <div class="example-item">jeffrey-persons-dom-serde-cpu.jfr.lz4</div>
               </div>
             </div>
 
@@ -137,8 +135,8 @@ java -jar microscope.jar \
                 and <code>Differential Flamegraphs</code> section.
               </p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-direct-serde-ctimer.jfr</div>
-                <div class="example-item">jeffrey-persons-dom-serde-ctimer.jfr</div>
+                <div class="example-item">jeffrey-persons-direct-serde-ctimer.jfr.lz4</div>
+                <div class="example-item">jeffrey-persons-dom-serde-ctimer.jfr.lz4</div>
               </div>
             </div>
 
@@ -156,7 +154,7 @@ java -jar microscope.jar \
               </p>
               <div class="category-examples">
                 <div class="example-item">jeffrey-persons-direct-serde-jdk.jfr</div>
-                <div class="example-item">jeffrey-persons-dom-serde-jdk.jfr</div>
+                <div class="example-item">jeffrey-persons-dom-serde-jdk.jfr.lz4</div>
               </div>
             </div>
 
@@ -175,7 +173,7 @@ java -jar microscope.jar \
               </ul>
               <p>Switch to the <code>custom mode</code> at the top of the sidebar menu and look at the dashboards related to custom events.</p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-custom-events.jfr</div>
+                <div class="example-item">jeffrey-persons-custom-events.jfr.lz4</div>
               </div>
             </div>
 
@@ -209,7 +207,7 @@ java -jar microscope.jar \
                 Look at the <code>Flamegraphs</code> section and select Native Allocation flamegraphs related to <code>Leaks</code> or <code>Malloc</code> samples.
               </p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-native-allocation-samples.jfr</div>
+                <div class="example-item">jeffrey-persons-native-allocation-samples.jfr.lz4</div>
               </div>
             </div>
           </div>

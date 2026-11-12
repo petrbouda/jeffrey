@@ -32,10 +32,7 @@ const headings = [
   { id: 'analyze-profile', text: 'Analyze Your Profile', level: 2 }
 ];
 
-const examplesExample = `git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings
-java -jar microscope.jar \\
-  --jeffrey.microscope.seed.recordings.enabled=true \\
-  --jeffrey.microscope.seed.recordings.dir=jeffrey-recordings`;
+const examplesExample = `git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings`;
 
 onMounted(() => {
   setHeadings(headings);
@@ -63,7 +60,8 @@ onMounted(() => {
           <span class="hero-promo-icon"><i class="bi bi-box-seam"></i></span>
           <span class="hero-promo-body">
             <strong>No JFR yet?</strong> The
-            <strong>Tour with Examples</strong> starts Microscope with pre-loaded sample recordings —
+            <strong>Tour with Examples</strong> walks through the sample recordings of
+            <code>jeffrey-recordings</code> —
             poke at flame graphs and dashboards before instrumenting your own
             application.
           </span>
@@ -74,7 +72,7 @@ onMounted(() => {
       <h2 id="install">Install</h2>
       <p>
         Microscope ships as a single <code>microscope.jar</code> and needs <strong>Java 25 or newer</strong>.
-        Start it clean, or with the example recordings pre-loaded.
+        Bring your own recordings, or start with the example ones.
       </p>
 
       <section class="install-tiles">
@@ -98,10 +96,12 @@ onMounted(() => {
 
         <div class="install-tile tile-examples">
           <div class="install-icon"><i class="bi bi-collection"></i></div>
-          <h3>With Examples</h3>
+          <h3>Example Recordings</h3>
           <p>
-            Clone the <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank" rel="noopener">example
-            recordings</a> next to the JAR and let Microscope load them on its first start.
+            No JFR of your own yet? The
+            <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank" rel="noopener">jeffrey-recordings</a>
+            repository is the source of example JFR recordings — download them and upload any of them in the
+            next steps.
           </p>
           <DocsCodeBlock
             language="bash"
@@ -119,8 +119,7 @@ onMounted(() => {
       />
 
       <DocsCallout type="info">
-        You should land on the Microscope home page. Started with the example recordings, they are
-        pre-loaded on the Recordings page — skip the next step.
+        You should land on the Microscope home page.
       </DocsCallout>
 
       <h2 id="upload-recording">Upload a Recording</h2>
