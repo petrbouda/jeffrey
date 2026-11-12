@@ -38,16 +38,21 @@
           <div class="content-section">
 
             <div class="intro-text">
-              <p>The <code>microscope-examples</code> Docker image contains pre-generated recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
+              <p>The <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank">jeffrey-recordings</a> repository contains pre-generated recordings that demonstrate Jeffrey's capabilities. Microscope loads them on its first start, so you can understand how Jeffrey works without needing to set up your own recordings.</p>
             </div>
 
             <div class="step-card">
               <div class="step-number">1</div>
               <div class="step-content">
                 <h3>Quick Start</h3>
-                <p>Launch the Docker container with the following command:</p>
-                <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
-                <p>After starting the container, open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser to access the Jeffrey UI.</p>
+                <p>With <strong>Java 25 or newer</strong> on your <code>PATH</code>, download <code>microscope.jar</code>, clone the example recordings and start Microscope with the recordings seeded from the cloned directory:</p>
+                <pre><code>curl -L -o microscope.jar https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
+git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings
+
+java -jar microscope.jar \
+  --jeffrey.microscope.seed.recordings.enabled=true \
+  --jeffrey.microscope.seed.recordings.dir=jeffrey-recordings</code></pre>
+                <p>After starting Microscope, open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser to access the Jeffrey UI.</p>
               </div>
             </div>
 
@@ -88,7 +93,7 @@
 
                 <div class="info-note">
                   <i class="bi bi-info-circle"></i>
-                  <span>It can take a while based on the size of the selected recording. Currently, SQLite database is used under the hood, therefore, there are limited possibilities to enhance parallelism while inserting data. It's going to be improved in the future.</span>
+                  <span>It can take a while based on the size of the selected recording.</span>
                 </div>
               </div>
             </div>

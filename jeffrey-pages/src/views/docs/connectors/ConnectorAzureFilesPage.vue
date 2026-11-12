@@ -91,13 +91,12 @@ jeffrey.microscope.connector.azure-files.sas-token=\${AZURE_FILES_SAS}`;
 const runJarExample = `export AZURE_FILES_SAS='<token printed in step 2>'
 java -jar microscope.jar --spring.config.additional-location=file:./connector.properties`;
 
-const runDockerExample = `docker run -it --network host \\
-  -e JEFFREY_MICROSCOPE_CONNECTOR_NAME="Production recordings" \\
-  -e JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_ENDPOINT=https://<storage-account>.file.core.windows.net \\
-  -e JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SHARE=<share> \\
-  -e JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_ROOTPATH=workspaces \\
-  -e JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN="$AZURE_FILES_SAS" \\
-  petrbouda/microscope`;
+const runEnvExample = `JEFFREY_MICROSCOPE_CONNECTOR_NAME="Production recordings" \\
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_ENDPOINT=https://<storage-account>.file.core.windows.net \\
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SHARE=<share> \\
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_ROOTPATH=workspaces \\
+JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN="$AZURE_FILES_SAS" \\
+java -jar microscope.jar`;
 
 const entraPropertiesExample = `jeffrey.microscope.connector.azure-files.endpoint=https://jeffreyprod.file.core.windows.net
 jeffrey.microscope.connector.azure-files.share=recordings
@@ -196,8 +195,8 @@ JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
         <code>jeffrey.microscope.connector.azure-files.auth=entra</code>. Then start Microscope with the file:
       </p>
       <DocsCodeBlock language="bash" :code="runJarExample" />
-      <p>Or, in Docker, pass every property as an environment variable:</p>
-      <DocsCodeBlock language="bash" :code="runDockerExample" />
+      <p>Or skip the file and pass every property as an environment variable:</p>
+      <DocsCodeBlock language="bash" :code="runEnvExample" />
       <p>
         Microscope talks to the share over HTTPS (port 443) only, with no SMB mount, so port 445 need not be
         open. If the storage account's firewall restricts networks, allow the address Microscope connects from.

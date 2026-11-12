@@ -100,13 +100,6 @@ jobs:
     with:
       version: ${{ needs.version.outputs.version }}
 
-  docker-microscope:
-    needs: [version, build]
-    uses: ./.github/workflows/release-microscope.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-    secrets: inherit
-
   docker-hub:
     # The hub's native image builds from source in its own container (docker/Dockerfile-hub);
     # it needs no artifact of the build job.
@@ -117,7 +110,7 @@ jobs:
     secrets: inherit
 
   create-release:
-    needs: [version, docker-microscope, docker-hub, provisioner-native]
+    needs: [version, build, docker-hub, provisioner-native]
     runs-on: ubuntu-latest
     permissions: write-all
 

@@ -39,25 +39,31 @@
             <div class="methods-grid">
               <div class="method-card recommended">
                 <div class="method-header">
-                  <div class="method-icon docker">
-                    <i class="bi bi-box-seam"></i>
+                  <div class="method-icon java">
+                    <i class="bi bi-collection"></i>
                   </div>
                   <div class="method-title">
-                    <h4>Docker with Examples</h4>
+                    <h4>Plain Java with Examples</h4>
                     <span class="badge">Recommended</span>
                   </div>
                 </div>
-                <p class="method-description">Start quickly with pre-generated recordings in a Docker container.</p>
+                <p class="method-description">Start quickly with pre-generated recordings loaded on the first start. Requires <strong>Java 25 or newer</strong>.</p>
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <p>Find the Docker Image at <a href="https://hub.docker.com/r/petrbouda/microscope-examples/tags"
-                                                     target="_blank">Docker Hub</a></p>
+                      <p>Download <code>microscope.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases/latest"
+                                                                     target="_blank">GitHub Releases</a> and clone the
+                        <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank">example recordings</a>:</p>
+                      <pre><code>curl -L -o microscope.jar https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
+git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings</code></pre>
                     </div>
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
+                      <p>Start Microscope with the recordings seeded from the cloned directory:</p>
+                      <pre><code>java -jar microscope.jar \
+  --jeffrey.microscope.seed.recordings.enabled=true \
+  --jeffrey.microscope.seed.recordings.dir=jeffrey-recordings</code></pre>
                     </div>
                   </div>
                   <div class="step">
@@ -76,31 +82,6 @@
 
               <div class="method-card">
                 <div class="method-header">
-                  <div class="method-icon docker">
-                    <i class="bi bi-box"></i>
-                  </div>
-                  <div class="method-title">
-                    <h4>Empty Docker</h4>
-                  </div>
-                </div>
-                <p class="method-description">Start with a clean Docker container.</p>
-                <div class="method-steps">
-                  <div class="step">
-                    <div class="step-content">
-                      <pre><code>docker run -it --network host petrbouda/microscope</code></pre>
-                    </div>
-                  </div>
-                  <div class="step">
-                    <div class="step-content">
-                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="method-card">
-                <div class="method-header">
                   <div class="method-icon java">
                     <i class="bi bi-cup-hot"></i>
                   </div>
@@ -108,11 +89,12 @@
                     <h4>Plain Java</h4>
                   </div>
                 </div>
-                <p class="method-description">Run as a standalone Java application.</p>
+                <p class="method-description">Start clean and bring your own JFR recordings and heap dumps. Requires <strong>Java 25 or newer</strong>.</p>
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <pre><code>java -jar microscope.jar</code></pre>
+                      <pre><code>curl -L -o microscope.jar https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
+java -jar microscope.jar</code></pre>
                     </div>
                   </div>
                   <div class="step">
@@ -240,10 +222,6 @@
   margin-right: 1rem;
   font-size: 1.5rem;
   color: white;
-}
-
-.method-icon.docker {
-  background: linear-gradient(135deg, #0db7ed, #0aa2d4);
 }
 
 .method-icon.java {

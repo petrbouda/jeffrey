@@ -175,8 +175,10 @@ onMounted(() => {
 
       <h2 id="seed-recordings">Seed Recordings</h2>
       <p>
-        Pre-loads a directory of JFR recordings into the Microscope on first start —
-        used by the example <code>petrbouda/microscope-examples</code> container image.
+        Pre-loads a directory of JFR recordings and heap dumps into the Microscope on first start —
+        used by the <router-link to="/tour-with-examples">Tour with Examples</router-link>, which points it at a clone of
+        <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank" rel="noopener">jeffrey-recordings</a>.
+        Files already on the Recordings page are skipped, so restarting with the same flags imports nothing twice.
       </p>
 
       <table>
