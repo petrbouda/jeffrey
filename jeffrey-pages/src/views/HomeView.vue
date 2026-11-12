@@ -300,9 +300,9 @@ const productTabs: ProductTab[] = [
     ],
     deployment: {
       eyebrow: 'Deployment',
-      title: 'Runs as a JAR or container',
-      desc: 'No Hub required. Drop it on your laptop, drop in a JFR file, browse.',
-      cmd: 'docker run -it --network host petrbouda/microscope-examples'
+      title: 'Runs as a plain JAR',
+      desc: 'No Hub required. Java 25+ on your laptop, drop in a JFR file, browse.',
+      cmd: 'java -jar microscope.jar'
     },
     docsRoute: '/docs/microscope',
     cta: 'Read Microscope docs'

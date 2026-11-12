@@ -32,6 +32,8 @@ const headings = [
   { id: 'analyze-profile', text: 'Analyze Your Profile', level: 2 }
 ];
 
+const examplesExample = `git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings`;
+
 onMounted(() => {
   setHeadings(headings);
 });
@@ -50,7 +52,7 @@ onMounted(() => {
         <p class="hero-eyebrow"><i class="bi bi-stopwatch"></i> Up and running in minutes</p>
         <h2 class="hero-title">Install, open, analyze.</h2>
         <p class="hero-lede">
-          Pick Docker or a plain Java run, point a browser at <code>localhost:8585</code>, drop a JFR
+          Start <code>microscope.jar</code>, point a browser at <code>localhost:8585</code>, drop a JFR
           recording or heap dump, and you're inside the Microscope. The whole loop is four steps.
         </p>
 
@@ -58,7 +60,8 @@ onMounted(() => {
           <span class="hero-promo-icon"><i class="bi bi-box-seam"></i></span>
           <span class="hero-promo-body">
             <strong>No JFR yet?</strong> The
-            <strong>Tour with Examples</strong> image ships with pre-loaded sample recordings —
+            <strong>Tour with Examples</strong> walks through the sample recordings of
+            <code>jeffrey-recordings</code> —
             poke at flame graphs and dashboards before instrumenting your own
             application.
           </span>
@@ -67,12 +70,15 @@ onMounted(() => {
       </section>
 
       <h2 id="install">Install</h2>
-      <p>Two ways to run Microscope. Pick whichever fits your environment.</p>
+      <p>
+        Microscope ships as a single <code>microscope.jar</code> and needs <strong>Java 25 or newer</strong>.
+        Bring your own recordings, or start with the example ones.
+      </p>
 
       <section class="install-tiles">
         <div class="install-tile tile-java">
           <div class="install-icon"><i class="bi bi-cup-hot"></i></div>
-          <h3>Standalone JAR <span class="tile-badge">Recommended</span></h3>
+          <h3>Standalone JAR</h3>
           <p>Run Microscope directly on your machine — best for day-to-day desktop use.</p>
           <ol class="install-steps">
             <li>
@@ -88,20 +94,18 @@ onMounted(() => {
           />
         </div>
 
-        <div class="install-tile tile-docker">
-          <div class="install-icon"><i class="bi bi-box-seam"></i></div>
-          <h3>Docker</h3>
-          <p>Zero local dependencies — just Docker. Convenient for trying out the examples image.</p>
-          <DocsCodeBlock
-            language="bash"
-            code="docker run -it --network host petrbouda/microscope"
-          />
-          <p class="install-note">
-            Or grab the version with pre-loaded examples:
+        <div class="install-tile tile-examples">
+          <div class="install-icon"><i class="bi bi-collection"></i></div>
+          <h3>Example Recordings</h3>
+          <p>
+            No JFR of your own yet? The
+            <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank" rel="noopener">jeffrey-recordings</a>
+            repository is the source of example JFR recordings — download them and upload any of them in the
+            next steps.
           </p>
           <DocsCodeBlock
             language="bash"
-            code="docker run -it --network host petrbouda/microscope-examples"
+            :code="examplesExample"
           />
         </div>
       </section>
@@ -115,8 +119,7 @@ onMounted(() => {
       />
 
       <DocsCallout type="info">
-        You should land on the Microscope home page. With the <code>microscope-examples</code>
-        image, the example recordings are pre-loaded on the Recordings page — skip the next step.
+        You should land on the Microscope home page.
       </DocsCallout>
 
       <h2 id="upload-recording">Upload a Recording</h2>
@@ -291,23 +294,11 @@ onMounted(() => {
   font-size: 1.15rem;
 }
 
-.tile-docker .install-icon { background: #dbeafe; color: #1d4ed8; }
-.tile-docker:hover         { border-color: #93c5fd; }
+.tile-examples .install-icon { background: #dbeafe; color: #1d4ed8; }
+.tile-examples:hover         { border-color: #93c5fd; }
 
 .tile-java .install-icon   { background: #fef3c7; color: #b45309; }
 .tile-java:hover           { border-color: #fcd34d; }
-
-.tile-badge {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #0e7490;
-  background: #cffafe;
-  border-radius: 999px;
-}
 
 .install-steps {
   margin: 0.4rem 0 0.6rem;

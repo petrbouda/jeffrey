@@ -29,8 +29,7 @@ const headings = [
   { id: 'logging', text: 'Logging', level: 2 },
   { id: 'profile', text: 'Profile Initialization', level: 2 },
   { id: 'visualization', text: 'Visualization', level: 2 },
-  { id: 'database', text: 'Database', level: 2 },
-  { id: 'seed-recordings', text: 'Seed Recordings', level: 2 }
+  { id: 'database', text: 'Database', level: 2 }
 ];
 
 onMounted(() => {
@@ -169,34 +168,6 @@ onMounted(() => {
             <td><code>jeffrey.<wbr>microscope.<wbr>persistence.<wbr>database.<wbr>url</code></td>
             <td><code>jdbc:duckdb:<wbr>${jeffrey.<wbr>microscope.<wbr>home.<wbr>dir}<wbr>/jeffrey-data.db</code></td>
             <td>JDBC URL for the Microscope core DuckDB file. Override only if you want to relocate the file outside the home directory.</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <h2 id="seed-recordings">Seed Recordings</h2>
-      <p>
-        Pre-loads a directory of JFR recordings into the Microscope on first start —
-        used by the example <code>petrbouda/microscope-examples</code> container image.
-      </p>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Property</th>
-            <th>Default</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><code>jeffrey.<wbr>microscope.<wbr>seed.<wbr>recordings.<wbr>enabled</code></td>
-            <td><code>false</code></td>
-            <td>Enable seeding from a directory at startup.</td>
-          </tr>
-          <tr>
-            <td><code>jeffrey.<wbr>microscope.<wbr>seed.<wbr>recordings.<wbr>dir</code></td>
-            <td><code>/jeffrey-examples</code></td>
-            <td>Directory containing the JFR recordings to seed.</td>
           </tr>
         </tbody>
       </table>

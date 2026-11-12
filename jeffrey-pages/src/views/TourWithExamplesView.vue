@@ -38,16 +38,19 @@
           <div class="content-section">
 
             <div class="intro-text">
-              <p>The <code>microscope-examples</code> Docker image contains pre-generated recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
+              <p>The <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank">jeffrey-recordings</a> repository is the source of pre-generated JFR recordings that demonstrate Jeffrey's capabilities. These examples help you understand how Jeffrey works without needing to set up your own recordings.</p>
             </div>
 
             <div class="step-card">
               <div class="step-number">1</div>
               <div class="step-content">
                 <h3>Quick Start</h3>
-                <p>Launch the Docker container with the following command:</p>
-                <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
-                <p>After starting the container, open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser to access the Jeffrey UI.</p>
+                <p>With <strong>Java 25 or newer</strong> on your <code>PATH</code>, download and start Microscope, and download the example recordings:</p>
+                <pre><code>curl -L -o microscope.jar https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
+java -jar microscope.jar
+
+git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings</code></pre>
+                <p>After starting Microscope, open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser to access the Jeffrey UI.</p>
               </div>
             </div>
 
@@ -83,12 +86,12 @@
               <div class="step-number">2</div>
               <div class="step-content">
                 <h3>Create Your First Profile</h3>
-                <p>Open the <code>Recordings</code> page, where the example recordings are pre-loaded. Pick any recording and start the initialization of a new profile.
+                <p>Open the <code>Recordings</code> page and upload any of the example recordings from the cloned <code>jeffrey-recordings</code> directory. Pick the uploaded recording and start the initialization of a new profile.
                   Switch to the <code>Profiles</code> section and wait for the initialization to be finished.</p>
 
                 <div class="info-note">
                   <i class="bi bi-info-circle"></i>
-                  <span>It can take a while based on the size of the selected recording. Currently, SQLite database is used under the hood, therefore, there are limited possibilities to enhance parallelism while inserting data. It's going to be improved in the future.</span>
+                  <span>It can take a while based on the size of the selected recording.</span>
                 </div>
               </div>
             </div>
@@ -113,8 +116,8 @@
                 (both profiles needs to be generated from recordings). The <code>Secondary Profile</code> needs to be selected to enable the button in sidebar menu.
               </p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-direct-serde-cpu.jfr</div>
-                <div class="example-item">jeffrey-persons-dom-serde-cpu.jfr</div>
+                <div class="example-item">jeffrey-persons-direct-serde-cpu.jfr.lz4</div>
+                <div class="example-item">jeffrey-persons-dom-serde-cpu.jfr.lz4</div>
               </div>
             </div>
 
@@ -132,8 +135,8 @@
                 and <code>Differential Flamegraphs</code> section.
               </p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-direct-serde-ctimer.jfr</div>
-                <div class="example-item">jeffrey-persons-dom-serde-ctimer.jfr</div>
+                <div class="example-item">jeffrey-persons-direct-serde-ctimer.jfr.lz4</div>
+                <div class="example-item">jeffrey-persons-dom-serde-ctimer.jfr.lz4</div>
               </div>
             </div>
 
@@ -151,7 +154,7 @@
               </p>
               <div class="category-examples">
                 <div class="example-item">jeffrey-persons-direct-serde-jdk.jfr</div>
-                <div class="example-item">jeffrey-persons-dom-serde-jdk.jfr</div>
+                <div class="example-item">jeffrey-persons-dom-serde-jdk.jfr.lz4</div>
               </div>
             </div>
 
@@ -170,7 +173,7 @@
               </ul>
               <p>Switch to the <code>custom mode</code> at the top of the sidebar menu and look at the dashboards related to custom events.</p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-custom-events.jfr</div>
+                <div class="example-item">jeffrey-persons-custom-events.jfr.lz4</div>
               </div>
             </div>
 
@@ -204,7 +207,7 @@
                 Look at the <code>Flamegraphs</code> section and select Native Allocation flamegraphs related to <code>Leaks</code> or <code>Malloc</code> samples.
               </p>
               <div class="category-examples">
-                <div class="example-item">jeffrey-persons-native-allocation-samples.jfr</div>
+                <div class="example-item">jeffrey-persons-native-allocation-samples.jfr.lz4</div>
               </div>
             </div>
           </div>

@@ -12,7 +12,6 @@
   <a href="https://github.com/petrbouda/jeffrey/blob/master/LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/License-Apache--2.0-2563eb.svg"></a>
   <a href="https://github.com/petrbouda/jeffrey"><img alt="Java 25+" src="https://img.shields.io/badge/Java-25%2B-orange.svg"></a>
   <a href="https://github.com/petrbouda/jeffrey/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/petrbouda/jeffrey?color=7c3aed&label=release"></a>
-  <a href="https://hub.docker.com/r/petrbouda/microscope"><img alt="Docker pulls" src="https://img.shields.io/docker/pulls/petrbouda/microscope?color=0ea5e9&logo=docker&logoColor=white"></a>
   <a href="https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope"><img alt="JetBrains Marketplace" src="https://img.shields.io/jetbrains/plugin/v/31963-jeffrey-microscope?label=IntelliJ%20plugin&color=fb923c"></a>
   <a href="https://github.com/petrbouda/jeffrey/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/petrbouda/jeffrey?style=flat&color=eab308"></a>
 </p>
@@ -20,34 +19,31 @@
 <p align="center">
   <a href="https://www.jeffrey-analyst.cafe/"><strong>🌐 Website</strong></a> ·
   <a href="https://www.jeffrey-analyst.cafe/docs"><strong>📖 Docs</strong></a> ·
-  <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar"><strong>⬇️ Download</strong></a> ·
-  <a href="https://hub.docker.com/r/petrbouda/microscope"><strong>🐳 Docker Hub</strong></a>
+  <a href="https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar"><strong>⬇️ Download</strong></a>
 </p>
 
 ---
 
 ## 🚀 Getting started
 
-**Requires Java 25+.** Pre-loaded with sample recordings — nothing to configure, just look around:
-
-### 🐳 Docker
-
-```bash
-# with pre-loaded example recordings
-docker run -it --network host petrbouda/microscope-examples
-
-# clean, bring your own JFR files
-docker run -it --network host petrbouda/microscope
-```
-
-### ☕ Plain JAR
+**Requires Java 25+.** Microscope ships as a single JAR — nothing to configure:
 
 ```bash
 # grab the latest release
 curl -L -o microscope.jar \
   https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
 
+# clean, bring your own JFR files
 java -jar microscope.jar
+```
+
+### 🧪 With example recordings
+
+No JFR of your own yet? [jeffrey-recordings](https://github.com/petrbouda/jeffrey-recordings) is the source
+of example JFR recordings — download them and upload any of them on the Recordings page:
+
+```bash
+git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings
 ```
 
 Then open **http://localhost:8585**, go to **Recordings → upload a JFR or Heap dump → Analyze**,
@@ -59,7 +55,7 @@ The complete toolbox — Microscope and Hub are the core, the rest round it out:
 
 | Product                                                                                         | What it does |
 |-------------------------------------------------------------------------------------------------|---|
-| **[Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)**                      | The standalone analyzer. Open a JFR recording or heap dump — or pull one from the recording volume on an Azure file share — and read flamegraphs, sub-second timelines and JVM & tech dashboards. Runs as a JAR or container. |
+| **[Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)**                      | The standalone analyzer. Open a JFR recording or heap dump — or pull one from the recording volume on an Azure file share — and read flamegraphs, sub-second timelines and JVM & tech dashboards. Runs as a plain JAR. |
 | **[Jeffrey Hub](https://www.jeffrey-analyst.cafe/docs/hub)**                                    | A containerised maintenance service for Kubernetes. Runs on the shared recording volume your services write their JFR recordings and artifacts to, and keeps it in shape: retention, stale-instance cleanup and LZ4 compression, with a small JSON REST API for storage figures and the scheduler jobs. |
 | **[IntelliJ Plugin](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)**            | Jump from any flamegraph frame straight to the source line in your open IntelliJ — Java & Kotlin — or pull inline source back into the profile. |
 | **[Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp)**                      | Analyse your profiles from an interactive coding-agent session in your own repository — list recordings, query their tables, and pull flamegraph, trace and heap-dump exports, so the profile and the source code sit in front of the same reader. Works with Claude Code (on its v2 MCP runtime) and Codex (v0.147.0+ with the `mcp_2026_07_28` feature flag) — one `/plugin install microscope@jeffrey` or `codex plugin marketplace add petrbouda/jeffrey` — and with Gemini CLI once it speaks MCP `2026-07-28`. |

@@ -52,8 +52,9 @@ utilities/                             release root (jeffrey-utilities-parent + 
                                        jeffrey-tracing-scoped-value (ScopedValue, 25, opt-in) and
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
 jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler (release-jib.yml)
-build/                                 build-microscope, build-hub (jar), build-hub-native (GraalVM; the hub's only image,
-                                       docker/Dockerfile-hub), *-jib, build-provisioner(-native)
+build/                                 build-microscope (microscope.jar — Microscope's only distribution, no container
+                                       image), build-hub (jar), build-hub-native (GraalVM; the hub's only image,
+                                       docker/Dockerfile-hub), build-provisioner(-native)
 ```
 
 ## Build, run, verify

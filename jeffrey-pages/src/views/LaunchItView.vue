@@ -39,31 +39,55 @@
             <div class="methods-grid">
               <div class="method-card recommended">
                 <div class="method-header">
-                  <div class="method-icon docker">
-                    <i class="bi bi-box-seam"></i>
+                  <div class="method-icon java">
+                    <i class="bi bi-cup-hot"></i>
                   </div>
                   <div class="method-title">
-                    <h4>Docker with Examples</h4>
+                    <h4>Plain Java</h4>
                     <span class="badge">Recommended</span>
                   </div>
                 </div>
-                <p class="method-description">Start quickly with pre-generated recordings in a Docker container.</p>
+                <p class="method-description">Run Microscope as a standalone Java application. Requires <strong>Java 25 or newer</strong>.</p>
                 <div class="method-steps">
                   <div class="step">
                     <div class="step-content">
-                      <p>Find the Docker Image at <a href="https://hub.docker.com/r/petrbouda/microscope-examples/tags"
-                                                     target="_blank">Docker Hub</a></p>
-                    </div>
-                  </div>
-                  <div class="step">
-                    <div class="step-content">
-                      <pre><code>docker run -it --network host petrbouda/microscope-examples</code></pre>
+                      <p>Download <code>microscope.jar</code> from <a href="https://github.com/petrbouda/jeffrey/releases/latest"
+                                                                     target="_blank">GitHub Releases</a> and start it:</p>
+                      <pre><code>curl -L -o microscope.jar https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar
+java -jar microscope.jar</code></pre>
                     </div>
                   </div>
                   <div class="step">
                     <div class="step-content">
                       <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
                       </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="method-card">
+                <div class="method-header">
+                  <div class="method-icon examples">
+                    <i class="bi bi-collection"></i>
+                  </div>
+                  <div class="method-title">
+                    <h4>Example Recordings</h4>
+                  </div>
+                </div>
+                <p class="method-description">No JFR recording of your own yet? Try Microscope on pre-generated example recordings.</p>
+                <div class="method-steps">
+                  <div class="step">
+                    <div class="step-content">
+                      <p>Download the JFR recordings from the
+                        <a href="https://github.com/petrbouda/jeffrey-recordings" target="_blank">jeffrey-recordings</a>
+                        repository:</p>
+                      <pre><code>git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings</code></pre>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-content">
+                      <p>Upload any of them on the <strong>Recordings</strong> page and click <strong>Analyze</strong></p>
                     </div>
                   </div>
                 </div>
@@ -71,56 +95,6 @@
                   <router-link to="/tour-with-examples" class="btn btn-outline-primary">
                     <i class="bi bi-collection me-2"></i>Tour with Examples
                   </router-link>
-                </div>
-              </div>
-
-              <div class="method-card">
-                <div class="method-header">
-                  <div class="method-icon docker">
-                    <i class="bi bi-box"></i>
-                  </div>
-                  <div class="method-title">
-                    <h4>Empty Docker</h4>
-                  </div>
-                </div>
-                <p class="method-description">Start with a clean Docker container.</p>
-                <div class="method-steps">
-                  <div class="step">
-                    <div class="step-content">
-                      <pre><code>docker run -it --network host petrbouda/microscope</code></pre>
-                    </div>
-                  </div>
-                  <div class="step">
-                    <div class="step-content">
-                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="method-card">
-                <div class="method-header">
-                  <div class="method-icon java">
-                    <i class="bi bi-cup-hot"></i>
-                  </div>
-                  <div class="method-title">
-                    <h4>Plain Java</h4>
-                  </div>
-                </div>
-                <p class="method-description">Run as a standalone Java application.</p>
-                <div class="method-steps">
-                  <div class="step">
-                    <div class="step-content">
-                      <pre><code>java -jar microscope.jar</code></pre>
-                    </div>
-                  </div>
-                  <div class="step">
-                    <div class="step-content">
-                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -242,7 +216,7 @@
   color: white;
 }
 
-.method-icon.docker {
+.method-icon.examples {
   background: linear-gradient(135deg, #0db7ed, #0aa2d4);
 }
 
