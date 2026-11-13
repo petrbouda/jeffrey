@@ -61,15 +61,25 @@ jobs:
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "Releasing version ${VERSION}"
 
+  # The same toolchain Validate Backend and Validate Frontend run on: Temurin 25 and Maven for
+  # the reactor, Node 24 (npm 11) for Microscope's frontend, which Maven builds through npm.
   build:
     needs: [version]
     runs-on: ubuntu-latest
-    container:
-      image: petrbouda/jeffrey-builder:25
     permissions: write-all
 
     steps:
     - uses: actions/checkout@v6
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '25'
+        cache: maven
+
+    - uses: actions/setup-node@v6
+      with:
+        node-version: '24'
 
     - name: Build with Maven
       env:
