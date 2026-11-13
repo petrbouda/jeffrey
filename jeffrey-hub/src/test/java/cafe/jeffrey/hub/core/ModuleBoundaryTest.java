@@ -35,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class ModuleBoundaryTest {
 
-    private static final Path HUB_ROOT = Path.of("..").toAbsolutePath().normalize();
+    private static final Path HUB_ROOT = Path.of("").toAbsolutePath().normalize();
 
     private static final Pattern MICROSCOPE_IMPORT = Pattern.compile(
             "^import (static )?cafe\\.jeffrey\\.(microscope|hub\\.client|recordings|storage|profile|shared\\.notification)\\.");
