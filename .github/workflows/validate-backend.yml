@@ -38,7 +38,7 @@ jobs:
       matrix:
         include:
           - component: Hub
-            module: jeffrey-hub/core-hub
+            module: jeffrey-hub
             phase: test
           - component: Microscope
             module: jeffrey-microscope/core-microscope

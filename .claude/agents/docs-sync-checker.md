@@ -31,7 +31,7 @@ side of each finding.
    | `jeffrey-microscope/core-microscope`, `jeffrey-microscope/pages-microscope` | `microscope/` (overview, quick start, recordings, storage, profiler builder), `microscope/configuration/`, `connectors/` (workspaces, projects, instances) |
    | `jeffrey-microscope/connectors/**` (connector-api, volume-connector, azure-files-connector) | `connectors/` (overview, declaring, the available-connectors catalog, one page per connector kind with its `jeffrey.microscope.connector.<kind>.*` block — `ConnectorAzureFilesPage.vue` — workspaces, `projects/`; every kind module must appear in the catalog table and the sidebar group), plus the pointers in `microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector` and `DocsMicroscopePage.vue#connector` |
    | `jeffrey-microscope/profiles/**` | `microscope/profiles/` — one page per analysis feature, plus the feature cards on `microscope/profiles/ProfilesPage.vue` |
-   | `jeffrey-hub/core-hub` | `hub/`, `hub/recording-sessions/`, `hub/configuration/`, `hub/deployment/` |
+   | `jeffrey-hub` | `hub/`, `hub/recording-sessions/`, `hub/configuration/`, `hub/deployment/` |
    | tracing instrumentation (`utilities/`) | `tracing/`, `tracing/tracer-api/` |
    | `jeffrey-provisioner/` | `provisioner/` |
    | Jib build/deployment | `jib/` |

@@ -490,7 +490,7 @@ class FilesystemRepositoryStorageTest {
         }
 
         /**
-         * The ids arrive over gRPC. Resolving one against the session directory let a {@code ../}
+         * An id is only a name. Resolving one against the session directory let a {@code ../}
          * walk out of it, and every file the hub could delete was one it would delete. Matching
          * against the directory's own entries leaves nothing to resolve.
          */
