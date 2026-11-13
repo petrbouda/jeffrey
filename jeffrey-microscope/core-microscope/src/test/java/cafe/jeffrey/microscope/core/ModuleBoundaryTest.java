@@ -38,7 +38,7 @@ class ModuleBoundaryTest {
     private static final Path MICROSCOPE_ROOT = Path.of("..").toAbsolutePath().normalize();
 
     private static final Pattern HUB_IMPORT = Pattern.compile(
-            "^import (static )?cafe\\.jeffrey\\.hub\\.(core|model|persistence)\\.");
+            "^import (static )?cafe\\.jeffrey\\.hub\\.");
 
     @Test
     void noMicroscopeSourceImportsAHubPackage() throws IOException {

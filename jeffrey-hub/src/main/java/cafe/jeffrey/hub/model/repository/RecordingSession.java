@@ -118,7 +118,7 @@ public record RecordingSession(
     /** The session's recordings that carry a start: the files every rule above reads. */
     private Stream<RepositoryFile> recordings() {
         return files.stream()
-                .filter(RepositoryFile::isRecordingFile)
+                .filter(RepositoryFile::recording)
                 .filter(file -> file.createdAt() != null);
     }
 

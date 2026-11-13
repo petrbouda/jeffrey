@@ -15,5 +15,5 @@
 # limitations under the License.
 #
 
-mkdir target
+mkdir -p target
 echo "$JEFFREY_TAG_VERSION" > target/jeffrey-tag.txt

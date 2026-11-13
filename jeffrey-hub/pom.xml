@@ -34,13 +34,8 @@
     -->
     <artifactId>jeffrey-hub</artifactId>
 
-    <properties>
-        <mainClass>cafe.jeffrey.hub.core.HubApplication</mainClass>
-        <finalName>jeffrey-hub</finalName>
-    </properties>
-
     <dependencies>
-        <!-- Spring Boot -->
+        <!-- Spring Boot; Logback comes with the starters (spring-boot-starter-logging) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -48,12 +43,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
-        </dependency>
-
-        <!-- Logging -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
         </dependency>
 
         <!-- Shared modules -->
@@ -66,21 +55,11 @@
             <artifactId>volume</artifactId>
         </dependency>
 
-        <!-- Test -->
+        <!-- Test; JUnit, Mockito and MockMvc come with spring-boot-starter-test -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>test</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

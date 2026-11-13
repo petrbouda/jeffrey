@@ -29,8 +29,8 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * The hub compiles against {@code shared/} and its own modules and nothing of Microscope's.
- * Maven already makes this so — no hub pom names a Microscope artifact — but a pom is edited
+ * The hub compiles against {@code shared/} and its own module and nothing of Microscope's.
+ * Maven already makes this so — the hub's pom names no Microscope artifact — but a pom is edited
  * once and read never, and this is the sentence that fails when someone adds one.
  */
 class ModuleBoundaryTest {
@@ -38,7 +38,7 @@ class ModuleBoundaryTest {
     private static final Path HUB_ROOT = Path.of("").toAbsolutePath().normalize();
 
     private static final Pattern MICROSCOPE_IMPORT = Pattern.compile(
-            "^import (static )?cafe\\.jeffrey\\.(microscope|hub\\.client|recordings|storage|profile|shared\\.notification)\\.");
+            "^import (static )?cafe\\.jeffrey\\.(microscope|recordings|storage|profile|shared\\.notification)\\.");
 
     /**
      * MCP belongs to Microscope only: the hub has no MCP endpoint and reads no recording for an agent, so
