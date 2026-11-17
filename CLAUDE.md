@@ -2,7 +2,7 @@
 
 Self-hosted performance analyst for the JVM: ingests JFR recordings and heap dumps (pprof/OTLP too) and turns them into flamegraphs, timeseries, heap analysis and JVM dashboards, plus an MCP server so a coding agent can read the same profiles.
 
-Two deployments, one release: **jeffrey-microscope** (single-user analysis app) and **jeffrey-hub** (the maintenance service of the shared recording volume: retention, cleanup and compression jobs, a JSON API under `/api/v1` and no UI; no API to Microscope). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
+Two deployments, released separately: **jeffrey-microscope** (single-user analysis app; GitHub release with the provisioner, on a `v<version>` tag — `release.yml`) and **jeffrey-hub** (the maintenance service of the shared recording volume: retention, cleanup and compression jobs, a JSON API under `/api/v1` and no UI; no API to Microscope; only its Docker image, by a manual run of `release-hub.yml`, tagged `hub-v<version>`, no GitHub release). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
 
 Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `test-patterns`, `hub-repository`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
 

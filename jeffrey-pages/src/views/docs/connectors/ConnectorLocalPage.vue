@@ -60,7 +60,8 @@ const layoutExample = `/tmp/jeffrey/workspaces/          <- local.path
 
 const localLoopExample = `# One home directory shared by all three
 export JEFFREY_HOME=/tmp/jeffrey          # the provisioner writes <home>/workspaces/...
-java -Djeffrey.hub.home.dir=/tmp/jeffrey -jar hub.jar
+docker run -d -v /tmp/jeffrey:/tmp/jeffrey -p 8080:8080 \\
+  petrbouda/jeffrey-hub:latest --jeffrey.hub.home.dir=/tmp/jeffrey
 java -jar microscope.jar --jeffrey.microscope.connector.local.path=/tmp/jeffrey/workspaces`;
 </script>
 
