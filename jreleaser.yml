@@ -46,7 +46,7 @@ release:
     skipTag: true
     # Make re-runs idempotent (update an existing release instead of failing).
     overwrite: true
-    releaseName: 'Jeffrey {{projectVersion}}'
+    releaseName: 'Jeffrey Microscope {{projectVersion}}'
     prerelease:
       # Any suffixed tag (vX.Y.Z-bN betas, vX.Y.Z-<suffix> builds) is flagged as a
       # pre-release automatically, so it never becomes GitHub's "latest" release.
