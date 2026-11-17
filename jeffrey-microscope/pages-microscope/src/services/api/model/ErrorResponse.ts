@@ -35,7 +35,6 @@ export type ErrorCode =
   | 'CONNECTOR_UNAVAILABLE'
   | 'EMPTY_RECORDING_SESSION'
   | 'INVALID_REQUEST'
-  | 'SCHEDULER_JOB_NOT_FOUND'
   | 'PROFILER_CONFIGURATION_ERROR'
   | 'CONNECTOR_OPERATION_FAILED'
   | 'RESOURCE_NOT_FOUND';
@@ -74,7 +73,6 @@ export function isNotFoundError(error: ErrorResponse): boolean {
     error.code === 'RECORDING_SESSION_NOT_FOUND' ||
     error.code === 'RECORDING_FILE_NOT_FOUND' ||
     error.code === 'REPOSITORY_NOT_FOUND' ||
-    error.code === 'SCHEDULER_JOB_NOT_FOUND' ||
     error.code === 'RESOURCE_NOT_FOUND'
   );
 }

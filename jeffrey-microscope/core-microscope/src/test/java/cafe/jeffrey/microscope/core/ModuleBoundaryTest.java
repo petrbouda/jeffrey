@@ -29,19 +29,19 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Microscope never talks to the hub: both read the recording volume through {@code shared/volume},
- * and Microscope maps its layout onto records of its own ({@code cafe.jeffrey.microscope.connector.*})
- * instead of reaching for the hub's.
+ * Microscope never talks to the volume scheduler: both read the recording volume through
+ * {@code shared/volume}, and Microscope maps its layout onto records of its own
+ * ({@code cafe.jeffrey.microscope.connector.*}) instead of reaching for the volume scheduler's.
  */
 class ModuleBoundaryTest {
 
     private static final Path MICROSCOPE_ROOT = Path.of("..").toAbsolutePath().normalize();
 
-    private static final Pattern HUB_IMPORT = Pattern.compile(
-            "^import (static )?cafe\\.jeffrey\\.hub\\.");
+    private static final Pattern VOLUME_SCHEDULER_IMPORT = Pattern.compile(
+            "^import (static )?cafe\\.jeffrey\\.volumescheduler\\.");
 
     @Test
-    void noMicroscopeSourceImportsAHubPackage() throws IOException {
+    void noMicroscopeSourceImportsAVolumeSchedulerPackage() throws IOException {
         List<String> offenders;
         try (Stream<Path> files = Files.walk(MICROSCOPE_ROOT)) {
             offenders = files
@@ -49,7 +49,7 @@ class ModuleBoundaryTest {
                     .filter(path -> !path.toString().contains("/target/"))
                     .filter(path -> !path.toString().contains("/node_modules/"))
                     .filter(path -> !path.toString().contains("/pages-microscope/"))
-                    .filter(ModuleBoundaryTest::importsHub)
+                    .filter(ModuleBoundaryTest::importsVolumeScheduler)
                     .map(MICROSCOPE_ROOT::relativize)
                     .map(Path::toString)
                     .sorted()
@@ -58,9 +58,9 @@ class ModuleBoundaryTest {
         assertEquals(List.of(), offenders);
     }
 
-    private static boolean importsHub(Path file) {
+    private static boolean importsVolumeScheduler(Path file) {
         try (Stream<String> lines = Files.lines(file)) {
-            return lines.anyMatch(line -> HUB_IMPORT.matcher(line).find());
+            return lines.anyMatch(line -> VOLUME_SCHEDULER_IMPORT.matcher(line).find());
         } catch (IOException e) {
             throw new IllegalStateException("Cannot read " + file, e);
         }

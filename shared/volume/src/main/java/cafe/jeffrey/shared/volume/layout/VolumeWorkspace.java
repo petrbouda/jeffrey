@@ -23,17 +23,23 @@ import cafe.jeffrey.shared.volume.VolumePath;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * A workspace: a visible directory at the volume's root, named by its id — the reference id the
  * provisioner writes into, which is also its name. Nothing in it is read to tell, like every
- * level below it.
+ * level below it. The one visible directory at the root that is not a workspace is the one a
+ * filesystem keeps for itself ({@code lost+found} on an ext4 volume), which every reader of the
+ * volume leaves out alike.
  *
  * @param path      the directory, named by the workspace's id
  * @param createdAt when the directory was created, as the volume lists it; empty on a share that
  *                  lists no times
  */
 public record VolumeWorkspace(VolumePath path, Optional<Instant> createdAt) {
+
+    /** Directories a filesystem keeps at its root for itself, never written by the provisioner. */
+    private static final Set<String> FILESYSTEM_DIRECTORIES = Set.of("lost+found");
 
     public VolumeWorkspace {
         if (path == null || createdAt == null) {
@@ -48,6 +54,7 @@ public record VolumeWorkspace(VolumePath path, Optional<Instant> createdAt) {
     /** Every workspace on the volume: one listing of its root. */
     public static List<VolumeWorkspace> all(VolumeAccess volume) {
         return VolumeDirectories.childDirectoryEntries(volume, VolumePath.root()).stream()
+                .filter(entry -> isWorkspaceName(entry.path().name()))
                 .map(entry -> new VolumeWorkspace(entry.path(), entry.createdAt()))
                 .toList();
     }
@@ -58,7 +65,13 @@ public record VolumeWorkspace(VolumePath path, Optional<Instant> createdAt) {
      */
     public static Optional<VolumeWorkspace> at(VolumeAccess volume, String id) {
         return VolumePath.root().visibleChild(id)
+                .filter(directory -> isWorkspaceName(directory.name()))
                 .flatMap(directory -> VolumeDirectories.directory(volume, directory)
                         .map(entry -> new VolumeWorkspace(directory, entry.createdAt())));
+    }
+
+    /** Whether a visible directory at the volume's root, named so, is a workspace. */
+    public static boolean isWorkspaceName(String name) {
+        return !FILESYSTEM_DIRECTORIES.contains(name);
     }
 }

@@ -31,7 +31,7 @@ const headings = [
   { id: 'layout', text: 'What a Connector Holds', level: 2 },
   { id: 'what-microscope-does', text: 'What Microscope Does With It', level: 2 },
   { id: 'available', text: 'Available Connectors', level: 2 },
-  { id: 'hub', text: 'The Hub Is Not on the Path', level: 2 },
+  { id: 'volume-scheduler', text: 'The Volume Scheduler Is Not on the Path', level: 2 },
   { id: 'where-next', text: 'Where to Go Next', level: 2 }
 ];
 
@@ -101,7 +101,7 @@ const layout = `<root-path>/
       <h2 id="layout">What a Connector Holds</h2>
       <p>
         Every connector exposes the same tree, because it is the same volume the provisioner writes and the
-        <router-link to="/docs/hub">Jeffrey Hub</router-link> maintains. The folder names <em>are</em> the
+        <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link> maintains. The folder names <em>are</em> the
         state: there are no marker or description files, so every id Microscope shows is a folder name.
       </p>
 
@@ -134,7 +134,7 @@ const layout = `<root-path>/
           <tr>
             <td><router-link to="/docs/connectors/projects/instances#instance-sessions"><strong>Session</strong></router-link></td>
             <td>One run of that JVM, named by a UUIDv7 whose timestamp is its start; only the newest one may still grow.</td>
-            <td>A new one each time the instance starts. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link>.</td>
+            <td>A new one each time the instance starts. See <router-link to="/docs/connectors/recording-sessions/lifecycle">Session Lifecycle</router-link>.</td>
           </tr>
         </tbody>
       </table>
@@ -143,7 +143,7 @@ const layout = `<root-path>/
       <ul>
         <li><strong>Browse</strong> &mdash; the <strong>Connector</strong> page shows the connector's name and <router-link to="/docs/connectors/workspaces#status">status</router-link>, and walks the tree in columns: Workspaces, Projects, Instances, Sessions. Each column reads one level when its parent is picked.</li>
         <li><strong>Download</strong> &mdash; a whole session, or an unbroken run of its chunks, is pulled down one file at a time and lands on the Recordings page as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>: the JFR chunks as one recording (never joined), each heap dump and the perf-counters file as recordings of their own, logs and crash files as download-only files.</li>
-        <li><strong>Delete</strong> &mdash; on a writable connector, removing a workspace, a project or a session deletes its directory, exactly where the hub's jobs expect it. Nothing else is ever written: Microscope creates nothing on the volume.</li>
+        <li><strong>Delete</strong> &mdash; on a writable connector, removing a workspace, a project or a session deletes its directory, exactly where the Volume Scheduler's jobs expect it. Nothing else is ever written: Microscope creates nothing on the volume.</li>
         <li><strong>Hand it to a coding agent</strong> &mdash; the MCP <router-link to="/docs/microscope-mcp/tools#connector"><code>connector_</code> tools</router-link> list the sessions across the whole connector, pull one down into the same kind of bundle, and fetch a log or crash file as a path.</li>
       </ul>
 
@@ -156,12 +156,13 @@ const layout = `<root-path>/
         <router-link to="/docs/connectors/local">Local Directory</router-link>.
       </p>
 
-      <h2 id="hub">The Hub Is Not on the Path</h2>
+      <h2 id="volume-scheduler">The Volume Scheduler Is Not on the Path</h2>
       <p>
-        Microscope reads the volume itself; it never talks to a Jeffrey Hub, and the hub has no API for it.
-        The hub's part is upkeep &mdash; retention, cleanup of stale instances and LZ4 compression run as its
-        scheduled jobs on the same volume. A volume that only Microscope reads gets none of them and only
-        grows, so run a hub beside it. The two work side by side: the hub writes an archive whole before it
+        Microscope reads the volume itself; it never talks to the Volume Scheduler, and the volume scheduler
+        has no API for it. The volume scheduler's part is upkeep &mdash; retention, cleanup of stale instances
+        and LZ4 compression run as its scheduled jobs on the same volume. A volume that only Microscope reads
+        gets none of them and only grows, so run a volume scheduler beside it. The two work side by side: the
+        volume scheduler writes an archive whole before it
         removes the original, and a download whose file was just compressed is retried on the archive.
       </p>
 
@@ -191,6 +192,12 @@ const layout = `<root-path>/
           icon="bi bi-hdd-stack"
           title="Instances"
           description="Instances, sessions and the session drawer that downloads them."
+        />
+        <DocsLinkCard
+          to="/docs/connectors/recording-sessions/overview"
+          icon="bi bi-collection"
+          title="Recording Sessions"
+          description="What a session holds, how the Provisioner configures it, and how it ages on the volume."
         />
       </div>
     </div>

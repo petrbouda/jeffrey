@@ -32,14 +32,14 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * The clients of the connector when it is the recording volume in a directory on this machine,
  * opened once per address. Nothing is remembered between calls — every level is one listing of its
- * parent — so what the profiler writes and the hub's jobs remove is seen on the next read. Its reads
+ * parent — so what the profiler writes and the volume scheduler's jobs remove is seen on the next read. Its reads
  * run one after another: a local listing has no round-trip to overlap.
  */
 public final class LocalClientsFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(LocalClientsFactory.class);
 
-    /** What a local directory reports where a hub reports its version. */
+    /** What a local directory reports as the version in its connector info. */
     private static final String DESCRIPTION = ConnectorKind.LOCAL.block();
 
     private final ConcurrentHashMap<LocalDirectoryAddress, ConnectorClients> cache = new ConcurrentHashMap<>();

@@ -6,8 +6,8 @@ paths:
 ## Java Backend Rules
 
 ### Packages and layout
-- `cafe.jeffrey.microscope.*` (microscope), `cafe.jeffrey.hub.*` (hub), `cafe.jeffrey.profile.*` (profiles), `cafe.jeffrey.*` (shared).
-- REST: Spring MVC `@RestController` + class-level `@RequestMapping`, picked up by component scan — never declared as `@Bean`. Microscope controllers: `/api/internal/**`; profile-scoped ones live in `core-microscope/.../web/controllers/profile/` (`profiles/profile-management/.../resources/` holds request DTOs only). Hub controllers in `jeffrey-hub/.../hub/core/web/controllers/`, DTOs in `.../web/response/`.
+- `cafe.jeffrey.microscope.*` (microscope), `cafe.jeffrey.volumescheduler.*` (volume scheduler), `cafe.jeffrey.profile.*` (profiles), `cafe.jeffrey.*` (shared).
+- REST: Spring MVC `@RestController` + class-level `@RequestMapping`, picked up by component scan — never declared as `@Bean`. Microscope controllers: `/api/internal/**`; profile-scoped ones live in `core-microscope/.../web/controllers/profile/` (`profiles/profile-management/.../resources/` holds request DTOs only). Volume-scheduler controllers in `volume-scheduler/.../volumescheduler/web/`, DTOs in `.../web/response/`.
 - Manager pattern with service-layer separation; errors are custom exceptions mapped to HTTP status by `JeffreyExceptionHandler`.
 
 ### Bean registration
@@ -38,7 +38,7 @@ paths:
 ### Types and design
 - Records for DTOs, immutable data and any group of 3+ related parameters or callbacks that travel together (`ChunkWindow.Selection` is the model; `ProgressCallback` is a nine-method interface, not an example of this).
 - Validate invariants in compact constructors with standard exceptions (`IllegalArgumentException`), never framework ones.
-- Sealed interfaces for closed hierarchies (`WindowResolution`, `Compression`, `TimeRange`); polymorphism or a `Map` lookup over switch ladders; composition over inheritance (`CompositeToolset` delegates to one `ReflectiveToolset` per family).
+- Sealed interfaces for closed hierarchies (`WindowResolution`, `RetentionRule`, `TimeRange`); polymorphism or a `Map` lookup over switch ladders; composition over inheritance (`CompositeToolset` delegates to one `ReflectiveToolset` per family).
 - Domain code is free of framework types: map them at the controller boundary. Extract repeated framework boilerplate into static utilities (`Exceptions.invalidRequest(...)`).
 - Temp files: one dedicated UUID subdirectory per process, deleted whole on close.
 - Design over micro-optimization by default. Do not inline, pack primitives, add caches or parallelism for speed unless asked; when you spot such a trade-off, present both options in a sentence each and let the user pick.

@@ -38,8 +38,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Microscope reading a hub's volume straight off an NFS Azure file share — the protocol whose
- * listings carry no timestamps — through the same clients that would otherwise talk to the hub.
+ * Microscope reading the recording volume straight off an NFS Azure file share — the protocol whose
+ * listings carry no timestamps — through the same clients every connector answers.
  */
 class AzureFilesSourceTest {
 
@@ -70,7 +70,7 @@ class AzureFilesSourceTest {
         clients = VolumeConnectorClients.of(new VolumeSource(volume, "azure-files", false));
     }
 
-    /** A delete reaches the share as the layout's own write, and reads back as the hub would. */
+    /** A delete reaches the share as the layout's own write, and reads back as the volume scheduler would see it on its mount. */
     @Test
     void aSessionIsDeletedWithItsInstanceOnTheShare() {
         clients.repository().deleteSession(ORDERS, LIVE);

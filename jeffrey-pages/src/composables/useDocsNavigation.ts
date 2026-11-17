@@ -24,7 +24,7 @@ interface BreadcrumbItem {
   to?: string
 }
 
-export type Product = 'microscope' | 'microscope-mcp' | 'connectors' | 'hub' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
+export type Product = 'microscope' | 'microscope-mcp' | 'connectors' | 'volume-scheduler' | 'deployment' | 'provisioner' | 'jib' | 'intellij-plugin' | 'tracing';
 
 interface ProductInfo {
   id: Product;
@@ -52,11 +52,17 @@ export const PRODUCTS: Record<Product, ProductInfo> = {
     icon: 'bi-plug',
     hubPath: '/docs/connectors'
   },
-  hub: {
-    id: 'hub',
-    title: 'Jeffrey Hub',
-    icon: 'bi-cloud',
-    hubPath: '/docs/hub'
+  'volume-scheduler': {
+    id: 'volume-scheduler',
+    title: 'Volume Scheduler',
+    icon: 'bi-clock-history',
+    hubPath: '/docs/volume-scheduler'
+  },
+  deployment: {
+    id: 'deployment',
+    title: 'Deployment by Example',
+    icon: 'bi-cloud-upload',
+    hubPath: '/docs/deployment'
   },
   provisioner: {
     id: 'provisioner',
@@ -94,13 +100,15 @@ const MICROSCOPE_MCP_SEGMENTS = new Set(['microscope-mcp']);
 // Connectors is its own section (previously the "Connector" group under Microscope): how
 // Microscope reaches the shared recording volume and browses what it holds.
 const CONNECTORS_SEGMENTS = new Set(['connectors']);
-// 'server' is kept alongside 'hub' so a direct hit on a legacy /docs/server/* URL still
-// resolves to the Hub sidebar in the brief moment before the router redirects to /docs/hub/*.
-const HUB_SEGMENTS = new Set(['hub', 'server']);
+// The Volume Scheduler: the small maintenance service on the shared recording volume.
+const VOLUME_SCHEDULER_SEGMENTS = new Set(['volume-scheduler']);
+// Deployment by Example is a cross-product walkthrough: JIB, the shared volume, the
+// Provisioner and the Helm chart, in the order a cluster is put together.
+const DEPLOYMENT_SEGMENTS = new Set(['deployment']);
 // The Provisioner is its own product. 'cli' is kept so a direct hit on a legacy
 // /docs/cli/* URL still resolves to the Provisioner sidebar before the router redirects.
 const PROVISIONER_SEGMENTS = new Set(['provisioner', 'cli']);
-// Jeffrey JIB is its own product (previously a single page under Hub).
+// Jeffrey JIB is its own product.
 const JIB_SEGMENTS = new Set(['jib']);
 // The IntelliJ Plugin is its own product (previously a group under Microscope).
 const INTELLIJ_PLUGIN_SEGMENTS = new Set(['intellij-plugin']);
@@ -130,8 +138,8 @@ const microscopeNavigation: DocSection[] = [
     path: '_microscope-architecture',
     icon: 'bi-diagram-3',
     children: [
-      // Cross-product page (how Microscope and Hub fit together, plus the staged pipelines
-      // both share). It lives under /docs/architecture/*, which resolves to this sidebar.
+      // Cross-product page (how Microscope and the Volume Scheduler fit together, plus the
+      // staged pipelines). It lives under /docs/architecture/*, which resolves to this sidebar.
       { title: 'Platform Overview', to: '/docs/architecture/overview' },
       { title: 'Overview', to: '/docs/microscope/architecture' },
       { title: 'Storage', to: '/docs/microscope/storage' }
@@ -352,6 +360,17 @@ const connectorsNavigation: DocSection[] = [
     ]
   },
   {
+    // How the Provisioner lays a session out on the volume, and how sessions age there.
+    title: 'Recording Sessions',
+    path: '_connectors-recording-sessions',
+    icon: 'bi-collection',
+    children: [
+      { title: 'Overview', to: '/docs/connectors/recording-sessions/overview' },
+      { title: 'Configuration', to: '/docs/connectors/recording-sessions/configuration' },
+      { title: 'Lifecycle', to: '/docs/connectors/recording-sessions/lifecycle' }
+    ]
+  },
+  {
     // A downloaded session lands on Microscope's Recordings page as a bundle.
     title: 'Downloaded Sessions',
     path: '_connectors-bundles-link',
@@ -376,72 +395,113 @@ const connectorsNavigation: DocSection[] = [
   }
 ];
 
-const hubNavigation: DocSection[] = [
-  // Top-level single-page entries — promoted out of the "Jeffrey Hub" group
-  // so the most-used links sit at the root of the sidebar. Synthetic section paths
-  // (prefixed with `_`) keep them out of the breadcrumb/section auto-expand logic
-  // that matches against the URL's first segment.
+const volumeSchedulerNavigation: DocSection[] = [
+  // The Volume Scheduler's own pages. Single-page entries use synthetic `_` paths with
+  // absolute `to:` children; the cross-links lead to the products it works beside.
   {
     title: 'Overview',
-    path: '_hub-overview',
+    path: '_volume-scheduler-overview',
     icon: 'bi-info-circle',
-    children: [{ title: 'Overview', to: '/docs/hub' }]
-  },
-  {
-    title: 'Deployment by Example',
-    path: 'hub/deployment',
-    icon: 'bi-cloud-upload',
-    children: [
-      { title: 'Overview', to: '/docs/hub/deployment' },
-      { title: 'Jeffrey JIB Extension', to: '/docs/hub/deployment/jeffrey-jib' },
-      { title: 'Shared Volume', to: '/docs/hub/deployment/shared-volume' },
-      { title: 'Jeffrey Provisioner', to: '/docs/hub/deployment/jeffrey-provisioner' },
-      { title: 'Helm Chart', to: '/docs/hub/deployment/helm-chart' }
-    ]
+    children: [{ title: 'Overview', to: '/docs/volume-scheduler' }]
   },
   {
     title: 'Architecture',
-    path: '_hub-architecture',
+    path: '_volume-scheduler-architecture',
     icon: 'bi-diagram-3',
     children: [
-      { title: 'Overview', to: '/docs/hub/architecture' },
-      { title: 'Storage', to: '/docs/hub/storage' }
-    ]
-  },
-  {
-    title: 'Recording Sessions',
-    path: 'hub/recording-sessions',
-    icon: 'bi-collection',
-    children: [
-      { title: 'Overview', to: '/docs/hub/recording-sessions/overview' },
-      { title: 'Configuration', to: '/docs/hub/recording-sessions/configuration' },
-      { title: 'Lifecycle', to: '/docs/hub/recording-sessions/lifecycle' }
+      { title: 'Overview', to: '/docs/volume-scheduler/architecture' },
+      { title: 'Storage', to: '/docs/volume-scheduler/storage' }
     ]
   },
   {
     title: 'Configuration',
-    path: '_hub-configuration',
+    path: '_volume-scheduler-configuration',
     icon: 'bi-gear',
-    children: [{ title: 'Configuration', to: '/docs/hub/configuration' }]
+    children: [{ title: 'Configuration', to: '/docs/volume-scheduler/configuration' }]
   },
   {
     title: 'REST API',
-    path: '_hub-api',
+    path: '_volume-scheduler-api',
     icon: 'bi-braces',
-    children: [{ title: 'REST API', to: '/docs/hub/api' }]
+    children: [{ title: 'REST API', to: '/docs/volume-scheduler/api' }]
   },
   {
-    // The Provisioner has its own top-level documentation section; Hub keeps just a link.
+    // The Helm chart in Deployment by Example runs it beside the profiled pods.
+    title: 'Deploying',
+    path: '_volume-scheduler-deployment-link',
+    icon: 'bi-cloud-upload',
+    crossLink: true,
+    children: [{ title: 'Helm Chart', to: '/docs/deployment/helm-chart' }]
+  },
+  {
+    // Microscope reads the same volume the Volume Scheduler maintains.
+    title: 'Jeffrey Microscope',
+    path: '_volume-scheduler-microscope-link',
+    icon: 'bi-pc-display',
+    crossLink: true,
+    children: [{ title: 'Microscope docs', to: '/docs/microscope' }]
+  },
+  {
+    // The Provisioner writes the sessions the Volume Scheduler maintains.
     title: 'Jeffrey Provisioner',
-    path: '_hub-provisioner-link',
+    path: '_volume-scheduler-provisioner-link',
     icon: 'bi-terminal',
     crossLink: true,
     children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
   },
   {
-    // Jeffrey JIB has its own top-level documentation section; Hub keeps just a link.
     title: 'Jeffrey JIB',
-    path: '_hub-jib-link',
+    path: '_volume-scheduler-jib-link',
+    icon: 'bi-box-seam',
+    crossLink: true,
+    children: [{ title: 'Jeffrey JIB docs', to: '/docs/jib' }]
+  }
+];
+
+const deploymentNavigation: DocSection[] = [
+  // Cross-product walkthrough based on the jeffrey-testapp repo, one page per step; the
+  // cross-links lead to the reference docs of each product the walkthrough wires up.
+  {
+    title: 'Overview',
+    path: '_deployment-overview',
+    icon: 'bi-info-circle',
+    children: [{ title: 'Overview', to: '/docs/deployment' }]
+  },
+  {
+    title: 'Deployment by Example',
+    path: '_deployment-steps',
+    icon: 'bi-list-ol',
+    children: [
+      { title: 'Jeffrey JIB Extension', to: '/docs/deployment/jeffrey-jib' },
+      { title: 'Shared Volume', to: '/docs/deployment/shared-volume' },
+      { title: 'Jeffrey Provisioner', to: '/docs/deployment/jeffrey-provisioner' },
+      { title: 'Helm Chart', to: '/docs/deployment/helm-chart' }
+    ]
+  },
+  {
+    title: 'Jeffrey Microscope',
+    path: '_deployment-microscope-link',
+    icon: 'bi-pc-display',
+    crossLink: true,
+    children: [{ title: 'Microscope docs', to: '/docs/microscope' }]
+  },
+  {
+    title: 'Volume Scheduler',
+    path: '_deployment-volume-scheduler-link',
+    icon: 'bi-clock-history',
+    crossLink: true,
+    children: [{ title: 'Volume Scheduler docs', to: '/docs/volume-scheduler' }]
+  },
+  {
+    title: 'Jeffrey Provisioner',
+    path: '_deployment-provisioner-link',
+    icon: 'bi-terminal',
+    crossLink: true,
+    children: [{ title: 'Provisioner docs', to: '/docs/provisioner' }]
+  },
+  {
+    title: 'Jeffrey JIB',
+    path: '_deployment-jib-link',
     icon: 'bi-box-seam',
     crossLink: true,
     children: [{ title: 'Jeffrey JIB docs', to: '/docs/jib' }]
@@ -476,12 +536,12 @@ const provisionerNavigation: DocSection[] = [
     children: [{ title: 'Directory Structure', to: '/docs/provisioner/directory-structure' }]
   },
   {
-    // Cross-link into the Hub deployment example that wires the Provisioner into a cluster.
+    // Cross-link into the deployment example that wires the Provisioner into a cluster.
     title: 'Deployment',
     path: '_provisioner-deployment',
     icon: 'bi-cloud-upload',
     crossLink: true,
-    children: [{ title: 'Deploying with the Hub', to: '/docs/hub/deployment/jeffrey-provisioner' }]
+    children: [{ title: 'Deployment by Example', to: '/docs/deployment/jeffrey-provisioner' }]
   }
 ];
 
@@ -507,12 +567,12 @@ const jibNavigation: DocSection[] = [
     children: [{ title: 'Build Setup', to: '/docs/jib/setup' }]
   },
   {
-    // Cross-link into the Hub deployment example that wires JIB into a cluster.
+    // Cross-link into the deployment example that wires JIB into a cluster.
     title: 'Deployment',
     path: '_jib-deployment',
     icon: 'bi-cloud-upload',
     crossLink: true,
-    children: [{ title: 'Deploying with the Hub', to: '/docs/hub/deployment/jeffrey-jib' }]
+    children: [{ title: 'Deployment by Example', to: '/docs/deployment/jeffrey-jib' }]
   }
 ];
 
@@ -615,10 +675,10 @@ const tracingNavigation: DocSection[] = [
     children: [{ title: 'Analyzing Traces', to: '/docs/tracing/analysis' }]
   },
   {
-    title: 'Provisioner & Hub',
-    path: '_tracing-provisioner-hub',
+    title: 'Provisioner & Volume',
+    path: '_tracing-provisioner-volume',
     icon: 'bi-hdd-network',
-    children: [{ title: 'Provisioner & Hub', to: '/docs/tracing/provisioner-hub' }]
+    children: [{ title: 'Provisioner & Volume', to: '/docs/tracing/provisioner-volume' }]
   },
   {
     title: 'Configuration',
@@ -635,7 +695,7 @@ const tracingNavigation: DocSection[] = [
 ];
 
 // Union — used by global helpers like getAllDocs/search and as a back-compat export.
-const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...connectorsNavigation, ...hubNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
+const docsNavigation: DocSection[] = [...microscopeNavigation, ...microscopeMcpNavigation, ...connectorsNavigation, ...volumeSchedulerNavigation, ...deploymentNavigation, ...provisionerNavigation, ...jibNavigation, ...intellijPluginNavigation, ...tracingNavigation];
 
 export function getProductForPath(routePath: string): Product | null {
   const cleaned = routePath.replace(/^\/docs\/?/, '');
@@ -644,7 +704,8 @@ export function getProductForPath(routePath: string): Product | null {
   if (MICROSCOPE_MCP_SEGMENTS.has(first)) {return 'microscope-mcp';}
   if (MICROSCOPE_SEGMENTS.has(first)) {return 'microscope';}
   if (CONNECTORS_SEGMENTS.has(first)) {return 'connectors';}
-  if (HUB_SEGMENTS.has(first)) {return 'hub';}
+  if (VOLUME_SCHEDULER_SEGMENTS.has(first)) {return 'volume-scheduler';}
+  if (DEPLOYMENT_SEGMENTS.has(first)) {return 'deployment';}
   if (PROVISIONER_SEGMENTS.has(first)) {return 'provisioner';}
   if (JIB_SEGMENTS.has(first)) {return 'jib';}
   if (INTELLIJ_PLUGIN_SEGMENTS.has(first)) {return 'intellij-plugin';}
@@ -659,8 +720,11 @@ export function navigationForProduct(product: Product): DocSection[] {
   if (product === 'connectors') {
     return connectorsNavigation;
   }
-  if (product === 'hub') {
-    return hubNavigation;
+  if (product === 'volume-scheduler') {
+    return volumeSchedulerNavigation;
+  }
+  if (product === 'deployment') {
+    return deploymentNavigation;
   }
   if (product === 'provisioner') {
     return provisionerNavigation;
@@ -712,9 +776,9 @@ export function getAllDocs(): SearchableDoc[] {
 // declare absolute `to:` overrides without a `path:`. Match by the resolved URL via
 // `pageHref` so the lookup works regardless of how the entry was declared.
 //
-// The flat list is scoped to the current *product* — Microscope and Server are
-// separate sidebars, so the last Microscope page must NOT chain into the first
-// Server page (and vice versa). Routes that don't belong to either product
+// The flat list is scoped to the current *product* — each product has its own
+// sidebar, so the last Microscope page must NOT chain into the first page of the
+// next product (and vice versa). Routes that don't belong to either product
 // (e.g. /docs/getting-started/…) default to Microscope, matching DocsSidebar.
 function getAdjacentPages(routePath: string): AdjacentPages {
   const product = getProductForPath(routePath) ?? 'microscope';
@@ -746,8 +810,8 @@ function getAdjacentPages(routePath: string): AdjacentPages {
     }
   }
 
-  // Strip query / hash from both sides — entries like `/docs/hub#architecture`
-  // should still align with `/docs/hub` so the prev/next pair stays sensible.
+  // Strip query / hash from both sides — entries like `/docs/microscope#architecture`
+  // should still align with `/docs/microscope` so the prev/next pair stays sensible.
   const normalize = (url: string | undefined) => (url ?? '').split(/[#?]/)[0];
   const targetPath = normalize(routePath);
   const currentIndex = allPages.findIndex(p => normalize(p.to) === targetPath);

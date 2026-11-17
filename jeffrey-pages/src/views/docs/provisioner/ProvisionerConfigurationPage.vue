@@ -73,16 +73,16 @@ JEFFREY_HEAP_DUMP=crash              # exit | crash | off
 JEFFREY_PERF_COUNTERS=true
 JEFFREY_ADDITIONAL_JVM_OPTIONS="-Xmx2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_SESSION>>/gc.jvm-log:time,uptime,level,tags:filecount=3,filesize=20m"`;
 
-const loggingExample = `# A Deployment env: entry — Jeffrey Hub, provisioned like any other application.
+const loggingExample = `# A Deployment env: entry — the testapp server, a Spring Boot application, provisioned like any other.
 # Everything after -XX:+AlwaysPreTouch is application configuration the provisioner just forwards:
-# jeffrey.hub.* are Jeffrey Hub's own properties, logging.* are Spring Boot's.
+# server.* and logging.* are Spring Boot's own properties.
 - name: JEFFREY_ADDITIONAL_JVM_OPTIONS
   value: >-
-    -Xmx300m -Xms300m -XX:+UseG1GC -XX:+AlwaysPreTouch
-    -Djeffrey.hub.home.dir=<<ENV:JEFFREY_HOME>>
-    -Dlogging.level.cafe.jeffrey=TRACE
+    -Xmx400m -Xms400m -XX:+UseG1GC -XX:+AlwaysPreTouch
+    -Dserver.port=8080
+    -Dlogging.level.jeffrey.testapp=TRACE
     -Dlogging.threshold.console=INFO
-    -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/jeffrey-app.log
+    -Dlogging.file.name=<<JEFFREY:CURRENT_SESSION>>/testapp-server.log
     -Dlogging.logback.rollingpolicy.max-file-size=10MB
     -Dlogging.logback.rollingpolicy.total-size-cap=100MB
     -Dlogging.logback.rollingpolicy.max-history=2`;
@@ -138,7 +138,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
           carries more than heap sizing and the JVM's own <code>-Xlog:</code> above: it is equally how
           an application's <em>own</em> configuration reaches it, and — because placeholders are
           resolved there too — how that configuration can name the session directory this run writes
-          into. The example below is Jeffrey Hub provisioned like any other application, putting its
+          into. The example below is the testapp server, a plain Spring Boot application, putting its
           log file beside that run's recordings:
         </p>
         <DocsCodeBlock
@@ -149,20 +149,21 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
         <DocsCallout type="warning">
           <strong>Those <code>logging.*</code> flags are Spring Boot's, not Jeffrey's.</strong> The
           provisioner has no logging options of its own to offer an application and does not interpret
-          this string at all — it forwards it. They work here only because Jeffrey Hub is a Spring Boot
+          this string at all — it forwards it. They work here only because the testapp server is a Spring Boot
           application: <code>logging.file.name</code> adds Boot's rolling file appender, and
           <code>logging.threshold.console</code> holds the console at <code>INFO</code> while the level
           is <code>TRACE</code>, so the file gets everything and <code>kubectl logs</code> stays
           readable. An application on another framework reaches its own logging the same way, with that
           framework's properties. See
-          <router-link to="/docs/hub/configuration#logging">Hub &rarr; Configuration &rarr; Logging</router-link>
+          <router-link to="/docs/volume-scheduler/configuration#logging">Volume Scheduler &rarr; Configuration &rarr; Logging</router-link>
           for what each one does.
         </DocsCallout>
 
         <DocsCallout type="info">
-          <code>&lt;&lt;ENV:JEFFREY_HOME&gt;&gt;</code> is resolved by the provisioner rather than by
-          Kubernetes, which is the whole point — see <a href="#placeholders">Placeholders</a> for why
-          <code>$(VAR)</code> would not do here. The YAML folded scalar (<code>value: &gt;-</code>)
+          <code>&lt;&lt;JEFFREY:CURRENT_SESSION&gt;&gt;</code> is resolved by the provisioner rather than by
+          Kubernetes, which is the whole point: only the provisioner knows the session directory this run
+          writes into — see <a href="#placeholders">Placeholders</a> for why <code>$(VAR)</code> would
+          not do here. The YAML folded scalar (<code>value: &gt;-</code>)
           joins the indented lines back into one space-separated string, so the flag list stays
           readable in the chart.
         </DocsCallout>
@@ -224,7 +225,7 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
               <td><code>jeffrey-home</code></td>
               <td>Yes</td>
               <td><code>JEFFREY_HOME</code></td>
-              <td>Root of the shared volume. Recordings always go under <code>&lt;jeffrey-home&gt;/workspaces/</code>, the same place the Hub reads them from, so point it at wherever the volume is mounted in this container. Images built with jeffrey-jib bake <code>JEFFREY_HOME</code>.</td>
+              <td>Root of the shared volume. Recordings always go under <code>&lt;jeffrey-home&gt;/workspaces/</code>, the same place the Volume Scheduler and Microscope read them from, so point it at wherever the volume is mounted in this container. Images built with jeffrey-jib bake <code>JEFFREY_HOME</code>.</td>
             </tr>
             <tr>
               <td><code>project.workspace-ref-id</code></td>
@@ -236,8 +237,8 @@ additional-jvm-options = "-Xmx2g -Xms2g -Xlog:gc*=debug:file=<<JEFFREY:CURRENT_S
                 <code>$default</code>.
                 The workspace does not have to exist: the provisioner creates its folder when it is
                 missing (along with the project, instance and session directories), and that folder
-                is the workspace &mdash; its recordings show up in Microscope and in the Hub's
-                <router-link to="/docs/hub/api#storage">storage figures</router-link> without any create step. Nothing else creates a workspace.
+                is the workspace &mdash; its recordings show up in Microscope and in the Volume Scheduler's
+                <router-link to="/docs/volume-scheduler/api#storage">storage figures</router-link> without any create step. Nothing else creates a workspace.
               </td>
             </tr>
             <tr>

@@ -73,8 +73,8 @@ import static org.mockito.Mockito.when;
 class GrpcMcpToolsTest {
 
     private static final String PROFILE_ID = "p-1";
-    private static final String SERVICE = "cafe.jeffrey.hub.api.v1.ProjectService";
-    private static final String METHOD = "ListProjects";
+    private static final String SERVICE = "com.example.orders.api.v1.OrderService";
+    private static final String METHOD = "ListOrders";
     private static final String UNKNOWN_SERVICE = "cafe.jeffrey.NoSuchService";
     private static final String OVERVIEW_VIEW_LINK = "/profiles/p-1/technologies/grpc/overview";
     private static final String SERVICES_VIEW_LINK = "/profiles/p-1/technologies/grpc/services";
@@ -143,7 +143,7 @@ class GrpcMcpToolsTest {
                 services,
                 List.of(new GrpcStatusStats("OK", 4_180), new GrpcStatusStats("DEADLINE_EXCEEDED", 20)),
                 List.of(new GrpcSlowCall(SERVICE, METHOD, 980_000_000L, "OK",
-                        1_900L, 2_850L, "hub", 8080, 1)),
+                        1_900L, 2_850L, "orders", 8080, 1)),
                 new SingleSerie("responseTime", List.of()),
                 new SingleSerie("callCount", List.of()));
     }
@@ -298,7 +298,7 @@ class GrpcMcpToolsTest {
             assertEquals(METHOD, out.get("methods").get(0).get("method").asString());
             assertEquals(0.994, out.get("methods").get(0).get("successRate").asDouble(), 1e-9);
             assertTrue(out.get("uiLink").asString().contains(SERVICES_VIEW_LINK), out.get("uiLink").asString());
-            assertTrue(out.get("uiLink").asString().contains("service=cafe.jeffrey.hub.api.v1.ProjectService"),
+            assertTrue(out.get("uiLink").asString().contains("service=com.example.orders.api.v1.OrderService"),
                     out.get("uiLink").asString());
         }
 

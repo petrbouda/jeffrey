@@ -75,7 +75,7 @@ onMounted(() => {
 
       <h2 id="workspace-folders">Workspaces on the Volume</h2>
       <p>
-        Each directory at the volume's root (for an Azure File Share, the share's root or its configured root path) is a workspace. The folder
+        Each visible directory at the volume's root (for an Azure File Share, the share's root or its configured root path) is a workspace, except the filesystem's own <code>lost+found</code>; Microscope and the Volume Scheduler read the same set. The folder
         names are the state and nothing on the volume is a marker: a workspace is a visible folder named by
         its reference id, which is also its id and its name &mdash; there is no separate display name. That
         reference id is the provisioner's <code>project.workspace-ref-id</code> (3-64 characters, letters,
@@ -92,20 +92,20 @@ onMounted(() => {
       <p>
         Microscope creates nothing on the volume: workspaces, projects, instances and sessions all
         come from provisioning. The only changes it makes are the deletions you ask for, exactly
-        where the Jeffrey Hub's jobs expect them: deleting a workspace or a project removes its
+        where the Volume Scheduler's jobs expect them: deleting a workspace or a project removes its
         directory, and deleting a session takes its instance with its last session. Which session
         of an instance is the newest — the only one that may still grow — is read from the session
-        directories' UUIDv7 names, by the same rules the hub applies. A read-only connector offers
+        directories' UUIDv7 names, by the same rules the volume scheduler applies. A read-only connector offers
         none of these deletions.
       </p>
 
       <DocsCallout type="warning">
-        <strong>Keep a hub on the volume for upkeep.</strong> Retention, cleanup of stale instances
-        and LZ4 compression of recordings are the scheduled jobs of a
-        <router-link to="/docs/hub">Jeffrey Hub</router-link>, because the hub maintains the
-        volume. A volume that only Microscope reads gets none of them and only grows. Run a Jeffrey
-        Hub on the same volume — Microscope never connects to it — and let Microscope read the
-        volume directly. They work side by side: the hub writes an archive whole before it
+        <strong>Keep a Volume Scheduler on the volume for upkeep.</strong> Retention, cleanup of stale
+        instances and LZ4 compression of recordings are the scheduled jobs of the
+        <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link>, the small maintenance
+        service of the volume. A volume that only Microscope reads gets none of them and only grows. Run
+        one on the same volume — Microscope never connects to it — and let Microscope read the volume
+        directly. They work side by side: the volume scheduler writes an archive whole before it
         removes the original, and a download whose file was just compressed is retried on the
         archive.
       </DocsCallout>
@@ -152,7 +152,7 @@ onMounted(() => {
         <li><strong>Connecting, changing or disconnecting the connector</strong> — it is declared in <router-link to="/docs/connectors/declaring">configuration</router-link> only; change it there and restart.</li>
         <li><strong>More than one connector</strong> — Microscope reaches exactly one.</li>
         <li><strong>Per-workspace credentials</strong> — Microscope signs in at the connector level (for an Azure File Share, its SAS token or Entra identity); there's no separate workspace-level credential.</li>
-        <li><strong>Retention and compression on the volume</strong> — Microscope makes the changes you ask for, never upkeep; keep a hub on the volume for that.</li>
+        <li><strong>Retention and compression on the volume</strong> — Microscope makes the changes you ask for, never upkeep; keep a Volume Scheduler on the volume for that.</li>
       </ul>
     </div>
 

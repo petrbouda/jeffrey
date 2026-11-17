@@ -337,7 +337,7 @@ it: every `](` closes a link text that holds `↗`.**
 
 **It does not delete anything on the connector.** `recordings_delete` removes a recording from *this*
 Jeffrey; no tool here removes a session, a file or a project from the connector. Data retention there
-is the business of the Jeffrey Hub's scheduled jobs on that volume.
+is the business of the Volume Scheduler's jobs on that volume.
 
 **It does not push.** Recordings travel from the connector into this Jeffrey, never the other way.
 

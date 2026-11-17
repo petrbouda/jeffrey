@@ -52,7 +52,7 @@ import java.util.UUID;
  *     <li>{@link TestappRecording#instance()}: the session as it was delivered, one file;</li>
  *     <li>{@link #SPLIT_POD_SUFFIX}: the same recording as its three chunks in files of their own, named by
  *     when each began — the JDK's two and async-profiler's one side by side in one session, the way two
- *     producers writing separate files leave it — compressed as the hub's compression job leaves them
+ *     producers writing separate files leave it — compressed as the volume scheduler's compression job leaves them
  *     but the newest of the newest session.</li>
  * </ul>
  * Shared by every test class that extends this one; each session is downloaded whole and built into
@@ -164,7 +164,7 @@ abstract class TestappVolumeMicroscope extends BootedMicroscope {
 
     /**
      * The run's chunks, cut out of its file and named by when each began; the header of each is
-     * checked against the start the fixture pins. Compressed as the hub leaves them: every chunk but
+     * checked against the start the fixture pins. Compressed as the volume scheduler leaves them: every chunk but
      * the newest of the newest run.
      */
     private static void layDownChunks(TestappRecording recording, Path session) {

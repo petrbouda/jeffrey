@@ -74,54 +74,61 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsMicroscopeQuickStart',
         component: () => import('@/views/docs/microscope/MicroscopeQuickStartPage.vue')
       },
+      // ──── Volume Scheduler ────
+      // The small maintenance service beside Microscope on the shared recording volume.
       {
-        path: 'hub',
-        alias: 'server',
-        name: 'DocsServer',
-        component: () => import('@/views/docs/hub/HubOverviewPage.vue')
-      },
-      // Legacy / consolidated entry-points: installation + quick-start replaced by
-      // the Deployment section; /docs/hub/overview was superseded by /docs/hub.
-      { path: 'server/installation', redirect: '/docs/hub/deployment' },
-      { path: 'server/overview', redirect: '/docs/hub' },
-      { path: 'hub/overview', redirect: '/docs/hub' },
-      { path: 'server/quick-start', redirect: '/docs/hub/deployment' },
-      // Deployment — worked example based on the jeffrey-testapp repo.
-      {
-        path: 'hub/deployment',
-        alias: 'server/deployment',
-        name: 'DocsServerDeploymentOverview',
-        component: () => import('@/views/docs/hub/deployment/DeploymentOverviewPage.vue')
+        path: 'volume-scheduler',
+        name: 'DocsVolumeScheduler',
+        component: () => import('@/views/docs/volume-scheduler/VolumeSchedulerOverviewPage.vue')
       },
       {
-        path: 'hub/deployment/jeffrey-jib',
-        alias: 'server/deployment/jeffrey-jib',
-        name: 'DocsServerDeploymentJeffreyJib',
-        component: () => import('@/views/docs/hub/deployment/DeploymentJeffreyJibPage.vue')
+        path: 'volume-scheduler/architecture',
+        name: 'DocsVolumeSchedulerArchitecture',
+        component: () => import('@/views/docs/volume-scheduler/VolumeSchedulerArchitecturePage.vue')
       },
       {
-        path: 'hub/deployment/shared-volume',
-        alias: 'server/deployment/shared-volume',
-        name: 'DocsServerDeploymentSharedVolume',
-        component: () => import('@/views/docs/hub/deployment/DeploymentSharedVolumePage.vue')
+        path: 'volume-scheduler/storage',
+        name: 'DocsVolumeSchedulerStorage',
+        component: () => import('@/views/docs/volume-scheduler/VolumeSchedulerStoragePage.vue')
       },
       {
-        path: 'hub/deployment/jeffrey-provisioner',
-        alias: ['server/deployment/jeffrey-provisioner', 'server/deployment/jeffrey-cli', 'hub/deployment/jeffrey-cli'],
-        name: 'DocsServerDeploymentJeffreyProvisioner',
-        component: () => import('@/views/docs/hub/deployment/DeploymentJeffreyProvisionerPage.vue')
+        path: 'volume-scheduler/configuration',
+        name: 'DocsVolumeSchedulerConfiguration',
+        component: () => import('@/views/docs/volume-scheduler/configuration/VolumeSchedulerConfigurationPage.vue')
       },
       {
-        path: 'hub/deployment/helm-chart',
-        alias: 'server/deployment/helm-chart',
-        name: 'DocsServerDeploymentHelmChart',
-        component: () => import('@/views/docs/hub/deployment/DeploymentHelmChartPage.vue')
+        path: 'volume-scheduler/api',
+        name: 'DocsVolumeSchedulerApi',
+        component: () => import('@/views/docs/volume-scheduler/VolumeSchedulerApiPage.vue')
+      },
+
+      // ──── Deployment by Example (cross-product section) ────
+      // A worked example based on the jeffrey-testapp repo: JIB, the shared volume, the
+      // Provisioner and the Helm chart that runs Microscope's volume and the Volume Scheduler.
+      {
+        path: 'deployment',
+        name: 'DocsDeploymentOverview',
+        component: () => import('@/views/docs/deployment/DeploymentOverviewPage.vue')
       },
       {
-        path: 'hub/architecture',
-        alias: 'server/architecture',
-        name: 'DocsServerArchitecture',
-        component: () => import('@/views/docs/hub/HubArchitectureOverviewPage.vue')
+        path: 'deployment/jeffrey-jib',
+        name: 'DocsDeploymentJeffreyJib',
+        component: () => import('@/views/docs/deployment/DeploymentJeffreyJibPage.vue')
+      },
+      {
+        path: 'deployment/shared-volume',
+        name: 'DocsDeploymentSharedVolume',
+        component: () => import('@/views/docs/deployment/DeploymentSharedVolumePage.vue')
+      },
+      {
+        path: 'deployment/jeffrey-provisioner',
+        name: 'DocsDeploymentJeffreyProvisioner',
+        component: () => import('@/views/docs/deployment/DeploymentJeffreyProvisionerPage.vue')
+      },
+      {
+        path: 'deployment/helm-chart',
+        name: 'DocsDeploymentHelmChart',
+        component: () => import('@/views/docs/deployment/DeploymentHelmChartPage.vue')
       },
 
       // ──── Getting Started ────
@@ -139,8 +146,8 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/architecture/ArchitectureOverviewPage.vue')
       },
       // /docs/architecture/storage was retired in favor of per-product storage pages.
-      // Default the redirect to the Microscope variant; users can navigate to the
-      // Server one from its sidebar.
+      // The redirect lands on the Microscope variant; the Volume Scheduler's storage
+      // page is one click away in its own sidebar.
       { path: 'architecture/storage', redirect: '/docs/microscope/storage' },
 
       // ──── Jeffrey Microscope ────
@@ -320,55 +327,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/microscope/configuration/MicroscopeConfigAdvancedPropertiesPage.vue')
       },
 
-      // ──── Jeffrey Hub ────
-      {
-        path: 'hub/storage',
-        alias: 'server/storage',
-        name: 'DocsServerStorage',
-        component: () => import('@/views/docs/hub/HubStoragePage.vue')
-      },
-      {
-        path: 'hub/api',
-        name: 'DocsHubApi',
-        component: () => import('@/views/docs/hub/HubApiPage.vue')
-      },
-      // Legacy: Continuous Recording was superseded by the Deployment section.
-      { path: 'server/continuous-recording/overview', redirect: '/docs/hub/deployment' },
-      { path: 'server/continuous-recording/jeffrey-deployment', redirect: '/docs/hub/deployment/helm-chart' },
-      { path: 'server/continuous-recording/service-deployment', redirect: '/docs/hub/deployment/helm-chart' },
-      // Recording Sessions
-      {
-        path: 'hub/recording-sessions/overview',
-        alias: 'server/recording-sessions/overview',
-        name: 'DocsRecordingSessionsOverview',
-        component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsOverviewPage.vue')
-      },
-      {
-        path: 'hub/recording-sessions/configuration',
-        alias: 'server/recording-sessions/configuration',
-        name: 'DocsRecordingSessionsConfiguration',
-        component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsConfigurationPage.vue')
-      },
-      {
-        path: 'hub/recording-sessions/lifecycle',
-        alias: 'server/recording-sessions/lifecycle',
-        name: 'DocsRecordingSessionsLifecycle',
-        component: () => import('@/views/docs/hub/recording-sessions/RecordingSessionsLifecyclePage.vue')
-      },
-      // Legacy: the hub's gRPC API page was removed together with the API itself.
-      { path: 'hub/grpc-api', redirect: '/docs/hub/architecture' },
-      { path: 'server/grpc-api', redirect: '/docs/hub/architecture' },
-      // Server Configuration — single merged page
-      {
-        path: 'hub/configuration',
-        alias: 'server/configuration',
-        name: 'DocsServerConfiguration',
-        component: () => import('@/views/docs/hub/configuration/HubConfigurationPage.vue')
-      },
-      // Legacy: split application/advanced pages were merged into a single Configuration page.
-      { path: 'server/configuration/application-properties', redirect: '/docs/hub/configuration' },
-      { path: 'server/configuration/advanced-properties', redirect: '/docs/hub/configuration' },
-
       // ──── Jeffrey Provisioner (standalone product) ────
       {
         path: 'provisioner',
@@ -396,11 +354,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'cli/configuration', redirect: '/docs/provisioner/configuration' },
       { path: 'cli/directory-structure', redirect: '/docs/provisioner/directory-structure' },
       { path: 'cli/generated-output', redirect: '/docs/provisioner/generated-output' },
-
-      // The Jeffrey Agent and the heartbeat library were removed; sessions are ordered by their
-      // UUIDv7 directory names. Kept as redirects so inbound links to the old pages keep working.
-      { path: 'agent/jeffrey-agent', redirect: '/docs/hub/recording-sessions/lifecycle' },
-      { path: 'agent/heartbeat-library', redirect: '/docs/hub/recording-sessions/lifecycle' },
 
       // The MCP integration moved to its own top-level product at /docs/microscope-mcp.
       { path: 'ai/claude-code-plugin', redirect: '/docs/microscope-mcp/claude-code' },
@@ -551,9 +504,9 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/docs/tracing/TracingEventsPage.vue')
       },
       {
-        path: 'tracing/provisioner-hub',
-        name: 'DocsTracingProvisionerHub',
-        component: () => import('@/views/docs/tracing/TracingProvisionerHubPage.vue')
+        path: 'tracing/provisioner-volume',
+        name: 'DocsTracingProvisionerVolume',
+        component: () => import('@/views/docs/tracing/TracingProvisionerVolumePage.vue')
       },
       {
         path: 'tracing/configuration',
@@ -697,6 +650,22 @@ const routes: RouteRecordRaw[] = [
         name: 'DocsProjectsInstances',
         component: () => import('@/views/docs/connectors/projects/ProjectsInstancesPage.vue')
       },
+      // Recording Sessions: how the Provisioner lays a session out on the volume and how it ages.
+      {
+        path: 'connectors/recording-sessions/overview',
+        name: 'DocsConnectorsRecordingSessionsOverview',
+        component: () => import('@/views/docs/connectors/recording-sessions/RecordingSessionsOverviewPage.vue')
+      },
+      {
+        path: 'connectors/recording-sessions/configuration',
+        name: 'DocsConnectorsRecordingSessionsConfiguration',
+        component: () => import('@/views/docs/connectors/recording-sessions/RecordingSessionsConfigurationPage.vue')
+      },
+      {
+        path: 'connectors/recording-sessions/lifecycle',
+        name: 'DocsConnectorsRecordingSessionsLifecycle',
+        component: () => import('@/views/docs/connectors/recording-sessions/RecordingSessionsLifecyclePage.vue')
+      },
       { path: 'connectors/overview', redirect: '/docs/connectors' },
 
       // ──── IntelliJ Plugin (standalone product) ────
@@ -734,9 +703,6 @@ const routes: RouteRecordRaw[] = [
       { path: 'platform/projects/scheduler', redirect: '/docs/connectors/projects' },
       { path: 'platform/projects/alerts-messages', redirect: '/docs/connectors/projects' },
       { path: 'microscope/projects/event-streaming', redirect: '/docs/connectors/projects' },
-      { path: 'platform/recording-sessions/overview', redirect: '/docs/hub/recording-sessions/overview' },
-      { path: 'platform/recording-sessions/configuration', redirect: '/docs/hub/recording-sessions/configuration' },
-      { path: 'platform/recording-sessions/lifecycle', redirect: '/docs/hub/recording-sessions/lifecycle' },
       { path: 'profiles/overview', redirect: '/docs/microscope/profiles' },
       { path: 'profiles/jvm-internals', redirect: '/docs/microscope/profiles' },
       { path: 'profiles/application', redirect: '/docs/microscope/profiles' },
@@ -749,15 +715,10 @@ const routes: RouteRecordRaw[] = [
       { path: 'local/profiles/visualization', redirect: '/docs/microscope/profiles' },
       { path: 'local/profiles/heap-dump-analysis', redirect: '/docs/microscope/profiles' },
       { path: 'local/profiles/tools', redirect: '/docs/microscope/profiles' },
-      { path: 'deployments/live-recording', redirect: '/docs/hub/deployment' },
-      { path: 'live-recording/overview', redirect: '/docs/hub/deployment' },
-      { path: 'live-recording/jeffrey-deployment', redirect: '/docs/hub/deployment/helm-chart' },
-      { path: 'live-recording/service-deployment', redirect: '/docs/hub/deployment/helm-chart' },
       { path: 'configuration/overview', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/application-properties', redirect: '/docs/microscope/configuration/application-properties' },
       { path: 'configuration/advanced-properties', redirect: '/docs/microscope/configuration/advanced-properties' },
       { path: 'configuration/secrets', redirect: '/docs/microscope/configuration/application-properties' },
-      { path: 'architecture/public-api', redirect: '/docs/hub/architecture' },
       { path: 'jeffrey-jfr-events/overview', redirect: '/docs/tracing/events' },
       { path: 'features/overview', redirect: '/docs/getting-started/introduction' },
 

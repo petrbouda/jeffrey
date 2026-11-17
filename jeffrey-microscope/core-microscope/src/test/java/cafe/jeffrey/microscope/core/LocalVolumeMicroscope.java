@@ -42,7 +42,7 @@ import static cafe.jeffrey.test.recording.RecordedSession.CHUNKS;
  * <p>The volume holds one workspace and project with three pods:
  * <ul>
  *     <li>{@link #RECORDED_POD}: {@link RecordedSession}'s four real 15-minute async-profiler chunks,
- *     three of them compressed as the hub's compression job leaves them, and beside them the GC log
+ *     three of them compressed as the volume scheduler's compression job leaves them, and beside them the GC log
  *     and crash file the provisioner points the JVM at;</li>
  *     <li>{@link #CUT_SHORT_POD}: a session whose only chunk the profiler was killed while writing;</li>
  *     <li>{@link #DELETED_POD}: a session a test deletes from the UI.</li>
@@ -88,7 +88,7 @@ abstract class LocalVolumeMicroscope extends BootedMicroscope {
     static final String PROJECT_API = "/api/internal/connector/workspaces/" + WORKSPACE + "/projects/" + PROJECT;
 
     static {
-        RecordedSession.writeAsTheHubLeavesIt(VolumeWriter.instance(PROJECT_DIR, RECORDED_POD));
+        RecordedSession.writeAsTheVolumeSchedulerLeavesIt(VolumeWriter.instance(PROJECT_DIR, RECORDED_POD));
         VolumeWriter.file(RECORDED_SESSION_DIR, GC_LOG, GC_LOG_CONTENT);
         VolumeWriter.file(RECORDED_SESSION_DIR, CRASH_FILE, CRASH_FILE_CONTENT);
 

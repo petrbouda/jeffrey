@@ -410,8 +410,32 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 <template>
   <div class="release-notes-page">
+    <!-- ─────────────────────── 0.15.0 Hero ─────────────────────── -->
+    <section v-if="selectedVersion === '0.15.0'" class="hero-banner">
+      <div class="hero-inner">
+        <div class="hero-version-card">
+          <div class="hero-version-badge">v0.15.0</div>
+          <div class="hero-version-meta">
+            <span class="hero-version-dot server"></span>
+            Volume Scheduler
+          </div>
+        </div>
+        <div class="hero-text">
+          <div class="hero-eyebrow">Release Notes</div>
+          <h1 class="hero-title"><span>Next</span> Release</h1>
+          <p class="hero-version">Version 0.15.0 &middot; Upcoming</p>
+          <p class="hero-summary">Jeffrey Hub is now the <strong>Volume Scheduler</strong>: the small maintenance service that runs beside Microscope on the shared recording volume, with scheduled retention and LZ4 compression and a small JSON API for storage figures and jobs.</p>
+          <div class="hero-docs">
+            <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
+            <router-link to="/docs/volume-scheduler" class="hero-docs-btn"><i class="bi bi-clock-history"></i> Volume Scheduler</router-link>
+            <router-link to="/docs/deployment" class="hero-docs-btn"><i class="bi bi-cloud-upload"></i> Deployment by Example</router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ─────────────────────── 0.14.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.14.0'" class="hero-banner hero-banner-140">
+    <section v-else-if="selectedVersion === '0.14.0'" class="hero-banner hero-banner-140">
       <div class="hero-inner">
         <div class="hero-version-card">
           <div class="hero-version-badge">v0.14.0</div>
@@ -433,7 +457,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
             <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
             <router-link to="/docs/microscope-mcp" class="hero-docs-btn"><i class="bi bi-robot"></i> Microscope MCP</router-link>
             <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
-            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+            <router-link to="/docs/volume-scheduler" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
           </div>
         </div>
       </div>
@@ -461,7 +485,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
           <div class="hero-docs">
             <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
             <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
-            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+            <router-link to="/docs/volume-scheduler" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
             <router-link to="/docs/tracing" class="hero-docs-btn"><i class="bi bi-bar-chart-steps"></i> Tracing</router-link>
           </div>
         </div>
@@ -490,7 +514,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
           <div class="hero-docs">
             <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
             <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
-            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+            <router-link to="/docs/volume-scheduler" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
             <router-link to="/docs/microscope-mcp/skills" class="hero-docs-btn"><i class="bi bi-lightbulb"></i> Advisor (now the optimize-code skill)</router-link>
           </div>
         </div>
@@ -519,7 +543,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
           <div class="hero-docs">
             <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
             <router-link to="/docs/microscope" class="hero-docs-btn"><i class="bi bi-search"></i> Microscope</router-link>
-            <router-link to="/docs/hub" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
+            <router-link to="/docs/volume-scheduler" class="hero-docs-btn"><i class="bi bi-cloud"></i> Hub</router-link>
           </div>
         </div>
       </div>
@@ -723,6 +747,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
+            <option value="0.15.0">0.15.0 &mdash; Next Release</option>
             <option value="0.14.0">0.14.0 &mdash; MCP Release</option>
             <option value="0.13.0">0.13.0 &mdash; Jeffrey Traces Release</option>
             <option value="0.12.0">0.12.0 &mdash; Advisor Release</option>
@@ -896,8 +921,48 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
       </div>
     </section>
 
+    <!-- ──────────────────────── 0.15.0 features ──────────────────────── -->
+    <template v-if="selectedVersion === '0.15.0'">
+      <div class="improvements-section">
+        <div class="improvements-inner">
+          <div class="improvements-header">
+            <div class="improvements-header-line"></div>
+            <h2><i class="bi bi-wrench"></i> Changes</h2>
+            <div class="improvements-header-line"></div>
+          </div>
+
+          <div class="improvement-group">
+            <div class="improvement-group-label volume-scheduler"><i class="bi bi-clock-history"></i> Volume Scheduler</div>
+            <div class="improvements-grid">
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Jeffrey Hub is now Volume Scheduler</h3>
+                  <p>The image is <code>petrbouda/volume-scheduler</code>, released under the tag <code>volume-scheduler-v&lt;version&gt;</code>, and its configuration lives under <code>jeffrey.volume-scheduler.*</code>.</p>
+                  <router-link to="/docs/volume-scheduler" class="imp-link">Open Volume Scheduler docs <i class="bi bi-arrow-right"></i></router-link>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>A Required Volume Path</h3>
+                  <p><code>jeffrey.volume-scheduler.volume.path</code> names the directory that holds <code>workspaces/</code>. Startup fails when it is missing, so an unmounted volume is caught at once.</p>
+                  <router-link to="/docs/volume-scheduler/configuration" class="imp-link">Open configuration <i class="bi bi-arrow-right"></i></router-link>
+                </div>
+              </div>
+              <div class="improvement-tile improvement-tile-text">
+                <div class="imp-tile-body">
+                  <h3>Two Jobs, Both Runnable by Hand</h3>
+                  <p><code>retention</code> and <code>compression</code> each have their own <code>enabled</code> and <code>period</code>, and <code>POST /api/v1/jobs/{job}/run</code> runs either one now and answers with its summary.</p>
+                  <router-link to="/docs/volume-scheduler/api" class="imp-link">Open REST API <i class="bi bi-arrow-right"></i></router-link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
     <!-- ──────────────────────── 0.14.0 features ──────────────────────── -->
-    <template v-if="selectedVersion === '0.14.0'">
+    <template v-else-if="selectedVersion === '0.14.0'">
       <!-- Optimize from the Runtime Profile (highlighted) -->
       <section class="feature-section">
         <div class="feature-frame feature-frame-140">
@@ -2327,7 +2392,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               <div class="imp-tile-body">
                 <h3>Deployment by Examples</h3>
                 <p>A new <strong>Deployment by Examples</strong> guide walks through deploying Jeffrey Hub alongside your applications &mdash; concrete, copy-pasteable setups instead of abstract reference docs.</p>
-                <a href="https://www.jeffrey-analyst.cafe/docs/hub/deployment" target="_blank" class="imp-link">Open deployment guide <i class="bi bi-arrow-right"></i></a>
+                <a href="https://www.jeffrey-analyst.cafe/docs/deployment" target="_blank" class="imp-link">Open deployment guide <i class="bi bi-arrow-right"></i></a>
               </div>
             </div>
           </div>
@@ -4039,6 +4104,11 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 .improvement-group-label.hub {
   background: rgba(168, 85, 247, 0.1);
   color: #9333ea;
+}
+
+.improvement-group-label.volume-scheduler {
+  background: rgba(124, 58, 237, 0.1);
+  color: #7c3aed;
 }
 
 .improvement-group-label.platform {

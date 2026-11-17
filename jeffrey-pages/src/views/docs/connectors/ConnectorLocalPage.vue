@@ -33,7 +33,7 @@ const headings = [
   { id: 'live', text: 'Read Live', level: 2 },
   { id: 'links', text: 'Links Outside the Directory', level: 2 },
   { id: 'read-only', text: 'Read-only Mode', level: 2 },
-  { id: 'local-loop', text: 'Provisioner, Hub and Microscope on One Machine', level: 2 },
+  { id: 'local-loop', text: 'Provisioner, Volume Scheduler and Microscope on One Machine', level: 2 },
   { id: 'startup', text: 'Startup Behaviour', level: 2 },
   { id: 'troubleshooting', text: 'Troubleshooting', level: 2 }
 ];
@@ -58,10 +58,10 @@ const layoutExample = `/tmp/jeffrey/workspaces/          <- local.path
           rec-20260220-121500+0000_1.jfr
           gc.log`;
 
-const localLoopExample = `# One home directory shared by all three
+const localLoopExample = `# One directory shared by all three
 export JEFFREY_HOME=/tmp/jeffrey          # the provisioner writes <home>/workspaces/...
 docker run -d -v /tmp/jeffrey:/tmp/jeffrey -p 8080:8080 \\
-  petrbouda/jeffrey-hub:latest --jeffrey.hub.home.dir=/tmp/jeffrey
+  petrbouda/volume-scheduler:latest --jeffrey.volume-scheduler.volume.path=/tmp/jeffrey
 java -jar microscope.jar --jeffrey.microscope.connector.local.path=/tmp/jeffrey/workspaces`;
 </script>
 
@@ -85,7 +85,7 @@ java -jar microscope.jar --jeffrey.microscope.connector.local.path=/tmp/jeffrey/
       <ul>
         <li>try the Connector page and the <code>connector_</code> MCP tools without Azure;</li>
         <li>run the <router-link to="/docs/provisioner">provisioner</router-link>, the
-          <router-link to="/docs/hub">hub</router-link> and Microscope together on one machine
+          <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link> and Microscope together on one machine
           (<a href="#local-loop">below</a>);</li>
         <li>work on a copy of part of another volume, copied into the directory by whatever tool you like.</li>
       </ul>
@@ -150,7 +150,7 @@ java -jar microscope.jar --jeffrey.microscope.connector.local.path=/tmp/jeffrey/
       <h2 id="live">Read Live</h2>
       <p>
         Nothing is cached: every page and every MCP call lists the directory again. A session the
-        profiler starts, a chunk it closes, or a session the hub's retention removes shows up on the next
+        profiler starts, a chunk it closes, or a session the volume scheduler's retention removes shows up on the next
         read &mdash; press refresh on the Connector page.
       </p>
 
@@ -169,18 +169,20 @@ java -jar microscope.jar --jeffrey.microscope.connector.local.path=/tmp/jeffrey/
         a copy you want to keep as it is.
       </p>
 
-      <h2 id="local-loop">Provisioner, Hub and Microscope on One Machine</h2>
+      <h2 id="local-loop">Provisioner, Volume Scheduler and Microscope on One Machine</h2>
       <p>
-        The provisioner and the hub both keep the volume under <code>&lt;home&gt;/workspaces</code>. Give
-        them one home and point the local connector at its <code>workspaces</code> directory, and the whole
-        chain runs on a laptop: the provisioner writes sessions, the hub's retention, cleanup and
-        compression jobs act on them, and Microscope reads what is there right now.
+        The provisioner writes the volume under <code>&lt;jeffrey-home&gt;/workspaces</code>, and the volume
+        scheduler maintains the <code>workspaces</code> directory inside its
+        <router-link to="/docs/volume-scheduler/configuration#volume"><code>volume.path</code></router-link>.
+        Give both the same directory and point the local connector at its <code>workspaces</code>
+        directory, and the whole chain runs on a laptop: the provisioner writes sessions, the volume
+        scheduler's retention and compression jobs act on them, and Microscope reads what is there right now.
       </p>
       <DocsCodeBlock language="bash" :code="localLoopExample" />
 
       <DocsCallout type="info">
-        <strong>The hub stays off Microscope's path.</strong> Pointing both at one directory shares the volume,
-        not a connection: the hub still has no API to Microscope, exactly as with a share.
+        <strong>The volume scheduler stays off Microscope's path.</strong> Pointing both at one directory shares
+        the volume, not a connection: the volume scheduler has no API to Microscope, exactly as with a share.
       </DocsCallout>
 
       <h2 id="startup">Startup Behaviour</h2>

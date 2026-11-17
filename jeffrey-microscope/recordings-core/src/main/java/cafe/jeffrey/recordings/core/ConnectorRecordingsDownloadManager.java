@@ -136,9 +136,9 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
      * The session's files the caller named, refusing an id the session does not hold.
      *
      * <p>Filtering alone would drop such an id without a word and return a recording made of the
-     * rest — a download that looks like the one that was asked for and is not. The hub used to
-     * catch this, because the merged RPC was the one call that saw a session and a whole selection
-     * together; it serves one file per call now, so the refusal belongs here with the other one.
+     * rest — a download that looks like the one that was asked for and is not. The connector
+     * serves one file per call and never sees a session and a whole selection together, so the
+     * refusal belongs here with the other one.
      */
     private static List<RepositoryFile> chosenFiles(RecordingSession session, List<String> fileIds) {
         List<RepositoryFile> files = session.files();
@@ -185,7 +185,7 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
      * its files, so a skipped chunk leaves no trace: the recording would claim a span half of which
      * it does not hold, and every rate read off it would be wrong by the size of the hole. That is
      * true whether the chunks are joined or kept apart — the span is the same either way — so the
-     * rule outlived the merge that first motivated it. It lives here now: the hub serves one file
+     * rule outlived the merge that first motivated it. It lives here: the connector serves one file
      * per call and so never sees the selection whole.
      *
      * @return the covered span, or {@code null} for the whole session
@@ -248,7 +248,7 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
         // chunk cannot turn a whole session into a gapped one.
         ChunkWindow.Selection part = partOf(recordingSession, files);
 
-        // The chunks that can be asked for, and the ones that cannot. The hub refuses to serve an
+        // The chunks that can be asked for, and the ones that cannot. The connector refuses to hand over an
         // empty recording and is right to: a zero-byte chunk is what a profiler leaves when it is
         // stopped before it writes an event, and a download of one is a file that fails to parse.
         // Asked for anyway it fails the whole session's download for the sake of a chunk holding
@@ -310,7 +310,7 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
         Semaphore downloadSemaphore = new Semaphore(MAX_CONCURRENT_DOWNLOADS);
 
         try (TempDirectory tempDir = tempDirProvider.newTempDir()) {
-            // One transfer for both, now that the hub serves every kind of file through one call.
+            // One transfer for both, since the connector serves every kind of file through one call.
             // What still separates them is what a failure means, which is the two blocks below: a
             // missing recording fails the download, a missing artifact is noted and skipped.
             List<CompletableFuture<Path>> recordingDownloads = pendingRecordings.stream()
@@ -458,8 +458,8 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
 
     /**
      * Refuses an uncompressed recording that arrived cut short — taken while the profiler was still
-     * writing it into place. An archive is whole by construction: the hub compresses only
-     * recordings that are complete, and publishes the archive by a rename.
+     * writing it into place. An archive is whole by construction: the volume scheduler compresses
+     * only recordings that are complete, and publishes the archive by a rename.
      */
     private static void requireWhole(Path recording) {
         if (!recording.getFileName().toString().endsWith(JFR_SUFFIX)) {
@@ -477,7 +477,7 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
     /**
      * Where a file of the session is written, from a name that came off the wire.
      *
-     * <p>The hub names its own files and nothing here has reason to doubt them, but the name is
+     * <p>The volume names its own files and nothing here has reason to doubt them, but the name is
      * connector input and this is a path: reduced to a single element it cannot climb out of the
      * directory it is resolved against, whatever the other end sends.
      */
@@ -550,7 +550,7 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
             ProgressCallback progressCallback) throws IOException {
 
         // Written beside the real name and moved onto it once the last byte has arrived. A transfer
-        // that stops partway -- cancelled, or the hub going away -- otherwise leaves a truncated
+        // that stops partway -- cancelled, or the connector going away -- otherwise leaves a truncated
         // file under the name a complete one would have, and a short chunk is indistinguishable
         // from a chunk that recorded less: exactly the hole the whole-run rules exist to refuse.
         Path partial = target.resolveSibling(target.getFileName().toString() + PARTIAL_FILE_SUFFIX);

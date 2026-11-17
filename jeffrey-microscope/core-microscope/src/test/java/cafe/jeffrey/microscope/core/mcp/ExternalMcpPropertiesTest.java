@@ -150,7 +150,7 @@ class ExternalMcpPropertiesTest {
      * too, so an explicit list with connector has to keep recordings.
      */
     @Nested
-    class RecordingsBesideHubsRule {
+    class RecordingsBesideConnectorRule {
 
         @Test
         void refusesConnectorWithoutRecordings() {

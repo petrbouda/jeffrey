@@ -1,0 +1,467 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2026 Petr Bouda
+  -
+  - Licensed under the Apache License, Version 2.0 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -     https://www.apache.org/licenses/LICENSE-2.0
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+-->
+
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import DocsCallout from '@/components/docs/DocsCallout.vue';
+import DocsCodeBlock from '@/components/docs/DocsCodeBlock.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import { useDocHeadings } from '@/composables/useDocHeadings';
+
+const { setHeadings } = useDocHeadings();
+
+const headings = [
+  { id: 'three-charts', text: 'Three Charts at a Glance', level: 2 },
+  { id: 'chart-structure', text: 'Chart Structure', level: 2 },
+  { id: 'configure-volume-scheduler', text: 'Configuring the Volume Scheduler', level: 2 },
+  { id: 'native-image', text: 'Native Image', level: 3 },
+  { id: 'configure-app', text: 'Configuring the Monitored Application', level: 2 },
+  { id: 'side-by-side', text: 'Side-by-Side: direct vs dom', level: 2 },
+  { id: 'installing', text: 'Installing the Stack', level: 2 },
+  { id: 'tearing-down', text: 'Tearing Down', level: 2 }
+];
+
+onMounted(() => {
+  setHeadings(headings);
+});
+
+const chartStructure = `helm/
+├── volume-scheduler/
+│   ├── Chart.yaml
+│   ├── values.yaml                   # image tag, sharedVolume, ports, ingress, probes
+│   ├── application.properties        # Spring Boot config (logging, overrides)
+│   └── templates/
+│       ├── deployment.yaml
+│       ├── service.yaml              # HTTP 8080 (REST API)
+│       ├── ingress.yaml              # optional HTTP access to the API
+│       ├── persistent-volume-claim.yaml
+│       ├── persistent-volume.yaml    # hostPath PV (orbstack/minikube)
+│       ├── configmap.yaml            # mounts application.properties
+│       ├── serviceaccount.yaml
+│       └── _helpers.tpl
+│
+├── jeffrey-testapp-server/
+│   ├── Chart.yaml
+│   ├── values.yaml                   # mode toggle, sharedVolume, jeffrey env, probes
+│   ├── jeffrey-base.conf             # provisioner init config for the monitored service
+│   └── templates/
+│       ├── deployment.yaml           # JIB image, shared-volume mount, jeffrey env
+│       ├── service.yaml              # HTTP 8080
+│       ├── configmap.yaml            # application.properties
+│       ├── jeffrey-base-configmap.yaml
+│       ├── serviceaccount.yaml
+│       └── _helpers.tpl
+│
+└── jeffrey-testapp-client/
+    ├── Chart.yaml
+    ├── values.yaml                   # load config, sharedVolume, jeffrey env, TCP probes
+    ├── jeffrey-base.conf             # provisioner init config for the load generator
+    └── templates/                    # same shape as testapp-server (no DB mount)
+        ├── deployment.yaml
+        ├── service.yaml
+        ├── configmap.yaml
+        ├── jeffrey-base-configmap.yaml
+        ├── serviceaccount.yaml
+        └── _helpers.tpl`;
+
+const volumeSchedulerImage = `image:
+  repository: petrbouda/volume-scheduler   # a GraalVM native image, no JVM inside
+  # Pin to a specific upstream build
+  # (https://hub.docker.com/r/petrbouda/volume-scheduler/tags).
+  tag: <version>
+  pullPolicy: IfNotPresent
+
+containerPort: 8080`;
+
+const volumePathEnv = `env:
+  - name: JEFFREY_VOLUMESCHEDULER_VOLUME_PATH
+    value: {{ .Values.sharedVolume.mountPath | quote }}     # /mnt/jeffrey`;
+
+const nativeImageContainer = `containers:
+  - name: volume-scheduler
+    image: petrbouda/volume-scheduler:<version>   # or latest
+    # Options of the native image itself come first, then Spring's --key=value arguments.
+    args: ["-Xmx64m"]
+    env:
+      - name: JEFFREY_VOLUMESCHEDULER_VOLUME_PATH
+        value: /mnt/jeffrey
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 192Mi`;
+
+const nativeImageBuild = `# The image, from the repository root (the build runs in a GraalVM container):
+docker build -f docker/Dockerfile-volume-scheduler -t volume-scheduler .
+
+# Or the binary alone, with GraalVM 25 as JAVA_HOME:
+mvn -pl build/build-volume-scheduler-native -am -Pnative package -DskipTests
+./build/build-volume-scheduler-native/target/volume-scheduler --jeffrey.volume-scheduler.volume.path=/mnt/jeffrey`;
+
+const volumeSchedulerService = `apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "volume-scheduler.fullname" . }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: http
+      name: http
+  selector:
+    {{- include "volume-scheduler.selectorLabels" . | nindent 4 }}`;
+
+const testappValues = `# Service-mode toggle: "direct" (efficient.mode=true) or "dom" (efficient.mode=false).
+mode: dom
+
+applicationProperties: |-
+  server.port=8080
+  database.file=/var/lib/jeffrey/testapp.db
+  database.cleanup-on-shutdown=false
+  management.endpoints.web.exposure.include=health
+  management.endpoint.health.probes.enabled=true
+
+# Must match volume-scheduler's sharedVolume block exactly.
+sharedVolume:
+  claimName: jeffrey-pvc
+  mountPath: /mnt/jeffrey
+
+jeffrey:
+  baseConfigPath: /jeffrey/jeffrey-base.conf
+  enabled: true`;
+
+const testappEnv = `env:
+  # Additional-location MERGES with the image-bundled application.properties
+  # (preserving spring.sql.init.* and other defaults). SPRING_CONFIG_LOCATION
+  # would REPLACE them, which silently drops \`spring.sql.init.mode=always\`
+  # and the init.sql schema bootstrap.
+  - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+    value: /app/config/application.properties
+  - name: JEFFREY_HOME
+    value: {{ .Values.sharedVolume.mountPath | quote }}
+  - name: JEFFREY_BASE_CONFIG
+    value: {{ .Values.jeffrey.baseConfigPath | quote }}
+  - name: JEFFREY_ENABLED
+    value: {{ .Values.jeffrey.enabled | quote }}
+  - name: JEFFREY_TESTAPP_MODE
+    value: {{ .Values.mode | quote }}`;
+
+const sideBySide = `# Two flavours from one chart — same image, different values.mode:
+helm upgrade --install direct helm/jeffrey-testapp-server --set mode=direct
+helm upgrade --install dom    helm/jeffrey-testapp-server --set mode=dom
+
+# On the volume, and in Microscope, the two projects appear as:
+#   direct-jeffrey-testapp-server   (efficient PersonService)
+#   dom-jeffrey-testapp-server      (inefficient PersonService)`;
+
+const installCommands = `# 1) The Volume Scheduler — creates the shared PVC the recordings land in.
+helm upgrade --install volume-scheduler helm/volume-scheduler \\
+  --namespace jeffrey-testapp --create-namespace
+
+# 2) Two flavours of the testapp service from the same chart.
+helm upgrade --install direct helm/jeffrey-testapp-server \\
+  --namespace jeffrey-testapp --set mode=direct
+helm upgrade --install dom    helm/jeffrey-testapp-server \\
+  --namespace jeffrey-testapp --set mode=dom
+
+# 3) Load generator that drives both servers.
+helm upgrade --install jeffrey-testapp-client helm/jeffrey-testapp-client \\
+  --namespace jeffrey-testapp`;
+
+const orbstackOverride = `# When the cluster has no RWX provisioner (orbstack/minikube/kind), tell the
+# volume-scheduler chart to bind to a static hostPath PV instead of a dynamic one:
+helm upgrade --install volume-scheduler helm/volume-scheduler \\
+  --namespace jeffrey-testapp --create-namespace \\
+  --set sharedVolume.storageClassName="" \\
+  --set sharedVolume.hostPath.create=true`;
+</script>
+
+<template>
+  <article class="docs-article">
+    <DocsPageHeader
+      title="Helm Chart"
+      icon="bi bi-file-earmark-code"
+    />
+
+    <div class="docs-content">
+      <p>
+        The full Kubernetes example for the
+        <a href="https://github.com/petrbouda/jeffrey-testapp" target="_blank" rel="noopener">jeffrey-testapp</a>
+        repo. Three charts under <code>helm/</code> coordinate the Volume Scheduler, two
+        flavours of the testapp service, and one load-generating client — all in a single
+        namespace, all sharing one PVC. Every snippet on this page is taken verbatim from
+        the repo with minor formatting trims; follow the file links for the un-edited source.
+      </p>
+
+      <h2 id="three-charts">Three Charts at a Glance</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Chart</th>
+            <th>Role</th>
+            <th>Releases installed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>helm/volume-scheduler/</code></td>
+            <td>The Volume Scheduler. Owns the shared PVC, runs the retention and compression jobs on it, and serves its <router-link to="/docs/volume-scheduler/api">REST API</router-link> on HTTP <code>8080</code>.</td>
+            <td><code>volume-scheduler</code></td>
+          </tr>
+          <tr>
+            <td><code>helm/jeffrey-testapp-server/</code></td>
+            <td>SQLite-backed Spring Boot REST app, profiled by the JIB entrypoint. Toggles between efficient and inefficient PersonService via <code>mode</code>.</td>
+            <td><code>direct</code> (<code>--set mode=direct</code>), <code>dom</code> (<code>--set mode=dom</code>)</td>
+          </tr>
+          <tr>
+            <td><code>helm/jeffrey-testapp-client/</code></td>
+            <td>Load generator — drives both server flavours concurrently.</td>
+            <td><code>jeffrey-testapp-client</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="chart-structure">Chart Structure</h2>
+      <p>
+        Each chart follows the standard Helm v3 layout (<code>Chart.yaml</code> +
+        <code>values.yaml</code> + <code>templates/</code>). The two project-config files
+        unique to this stack are <code>application.properties</code> (Spring Boot) and
+        <code>jeffrey-base.conf</code> (HOCON for the provisioner) — both live next to
+        <code>values.yaml</code> and are pulled into ConfigMaps by the templates via
+        <code>.Files.Get</code>.
+      </p>
+
+      <DocsCodeBlock
+        language="text"
+        :code="chartStructure"
+      />
+
+      <DocsCallout type="info">
+        <strong>One chart per concern.</strong> <code>volume-scheduler</code> owns the
+        cluster-wide objects — the shared PVC, the optional hostPath PV, the Service, the
+        optional Ingress. The two testapp charts deliberately
+        carry no PV/PVC/Ingress — they only bind to <code>volume-scheduler</code>'s claim
+        and stay cluster-internal.
+      </DocsCallout>
+
+      <h2 id="configure-volume-scheduler">Configuring the Volume Scheduler</h2>
+      <p>
+        From
+        <a href="https://github.com/petrbouda/jeffrey-testapp/blob/main/helm/volume-scheduler/values.yaml" target="_blank" rel="noopener">
+          <code>helm/volume-scheduler/values.yaml</code></a>:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="volumeSchedulerImage"
+      />
+
+      <p>
+        One environment variable on the Deployment points the volume scheduler at the shared volume,
+        from <code>sharedVolume.mountPath</code>. The path is
+        <router-link to="/docs/volume-scheduler/configuration#volume">required</router-link>, and the
+        pod fails to start if the volume is not mounted there:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="volumePathEnv"
+      />
+
+      <p>The Service exposes the volume scheduler's <router-link to="/docs/volume-scheduler/api">REST API</router-link> (<code>/api/v1</code>) and its health probes on a single ClusterIP:</p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="volumeSchedulerService"
+      />
+
+      <p>
+        OrbStack publishes in-cluster Service DNS to the host automatically — call
+        <code>http://volume-scheduler.jeffrey-testapp.svc.cluster.local:8080/api/v1/storage</code> directly
+        from the laptop. For other clusters, the chart's optional <code>ingress.enabled=true</code>
+        gives HTTP access to the API from outside — or use <code>kubectl port-forward</code>.
+        The API has no authentication and its run endpoint deletes data, so keep it inside the
+        cluster unless the Ingress is protected.
+      </p>
+
+      <h3 id="native-image">Native Image</h3>
+      <p>
+        The image, <code>petrbouda/volume-scheduler:&lt;version&gt;</code> (and <code>latest</code>)
+        for <code>amd64</code> and <code>arm64</code>, is the Volume Scheduler compiled ahead of time
+        with GraalVM into the binary <code>/app/volume-scheduler</code>, on a distroless base with no
+        JVM inside. It starts in about a tenth of a second. In a small test (one project, a few
+        recordings, a few hundred API calls) it held about half the memory a JVM build of the same
+        code did under the same load at the same heap cap: around 100&nbsp;MB resident against about
+        200&nbsp;MB. Options of the native image itself, such as the <code>-Xmx64m</code> heap cap
+        below, come first among the container's arguments, before Spring's <code>--key=value</code>
+        ones:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="nativeImageContainer"
+      />
+
+      <DocsCallout type="info">
+        <strong>The volume scheduler does not profile itself.</strong> async-profiler is a JVM agent,
+        which a native image cannot load, so its image has no
+        <router-link to="/docs/deployment/jeffrey-jib">Jeffrey JIB</router-link> entrypoint, no
+        Provisioner and no <code>jeffrey-base.conf</code>; <code>JEFFREY_ENABLED</code> has no effect
+        on it. It also has no shell, so health checks go through the HTTP probes
+        (<code>/actuator/health/liveness</code>, <code>/actuator/health/readiness</code>). The
+        monitored applications keep their JIB entrypoints.
+      </DocsCallout>
+
+      <p>
+        The volume scheduler runs as root, because it deletes and compresses files written by
+        applications running under any uid. To build the image or the binary yourself:
+      </p>
+
+      <DocsCodeBlock
+        language="bash"
+        :code="nativeImageBuild"
+      />
+
+      <h2 id="configure-app">Configuring the Monitored Application</h2>
+      <p>
+        The testapp's
+        <a href="https://github.com/petrbouda/jeffrey-testapp/blob/main/helm/jeffrey-testapp-server/values.yaml" target="_blank" rel="noopener">
+          <code>values.yaml</code></a>:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="testappValues"
+      />
+
+      <p>
+        The Deployment wires <code>JEFFREY_HOME</code>, <code>JEFFREY_BASE_CONFIG</code>,
+        and <code>JEFFREY_ENABLED</code> into the application container — see the
+        <router-link to="/docs/deployment/jeffrey-provisioner">Jeffrey Provisioner</router-link>
+        page for the full env-var contract:
+      </p>
+
+      <DocsCodeBlock
+        language="yaml"
+        :code="testappEnv"
+      />
+
+      <DocsCallout type="tip">
+        <strong>Changing what the agent records.</strong> Add a
+        <code>JEFFREY_PROFILER_COMMAND</code> entry to the pod's <code>env:</code> with options
+        built in <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>
+        (<code>start,event=cpu,...</code>); they run on the async-profiler the image bakes in.
+        It takes precedence over any <code>profiler-command</code> in a mounted configuration file,
+        so no rebuild or ConfigMap change is needed.
+      </DocsCallout>
+
+      <DocsCallout type="warning">
+        <strong>Spring Boot config-mount gotcha.</strong> Use
+        <code>SPRING_CONFIG_ADDITIONAL_LOCATION</code>, not
+        <code>SPRING_CONFIG_LOCATION</code>. Additional-location <em>merges</em> with the
+        image-bundled <code>application.properties</code>; the regular
+        <code>SPRING_CONFIG_LOCATION</code> <em>replaces</em> it, silently dropping
+        defaults like <code>spring.sql.init.mode=always</code> that the testapp uses for
+        its bootstrap SQL.
+      </DocsCallout>
+
+      <h2 id="side-by-side">Side-by-Side: direct vs dom</h2>
+      <p>
+        The headline value of this layout: one chart, two distinct projects on the shared
+        volume, ready for differential analysis in Microscope.
+      </p>
+
+      <DocsCodeBlock
+        language="bash"
+        :code="sideBySide"
+      />
+
+      <p>
+        Inside the application container, <code>jeffrey-base.conf</code> reads
+        <code>JEFFREY_TESTAPP_MODE</code> via HOCON variable substitution to set the
+        project name and label — see the
+        <router-link to="/docs/deployment/jeffrey-provisioner#project-block">Project Block</router-link>
+        section for the substitution syntax. In Microscope, opening both projects
+        side-by-side gives a one-click differential flame graph between the efficient
+        and inefficient code paths.
+      </p>
+
+      <h2 id="installing">Installing the Stack</h2>
+      <p>
+        Four <code>helm upgrade --install</code> calls — one per release. Order doesn't matter:
+        each application image carries its own provisioner and async-profiler, so a pod that
+        starts before the volume scheduler still profiles from the first second. It simply writes
+        its recordings to the shared volume, and the volume scheduler's retention and compression
+        jobs take them over whenever it arrives.
+      </p>
+
+      <DocsCodeBlock
+        language="bash"
+        :code="installCommands"
+      />
+
+      <p>
+        On dev clusters without an RWX provisioner (OrbStack, minikube, kind), pass two
+        extra flags to <code>volume-scheduler</code> so it binds the PVC to a static
+        hostPath PV instead:
+      </p>
+
+      <DocsCodeBlock
+        language="bash"
+        :code="orbstackOverride"
+      />
+
+      <DocsCallout type="tip">
+        Anything you'd put in <code>values.yaml</code> can also be passed inline with
+        <code>--set key=value</code> or <code>--values overrides.yaml</code> — the chart
+        is a vanilla Helm v3 chart with no opinions on how you supply values.
+      </DocsCallout>
+
+      <h2 id="tearing-down">Tearing Down</h2>
+      <p>
+        Reverse-order <code>helm uninstall</code> — the testapp releases first, then
+        <code>volume-scheduler</code> last (so its PVC outlives the consumers):
+      </p>
+
+      <DocsCodeBlock
+        language="bash"
+        code="helm uninstall jeffrey-testapp-client --namespace jeffrey-testapp
+helm uninstall dom                    --namespace jeffrey-testapp
+helm uninstall direct                 --namespace jeffrey-testapp
+helm uninstall volume-scheduler       --namespace jeffrey-testapp"
+      />
+
+      <DocsCallout type="warning">
+        <strong>Statically-defined hostPath PVs survive <code>helm uninstall</code>.</strong>
+        The default <code>reclaimPolicy</code> for a manually-created PV is
+        <code>Retain</code>, so the directory on the cluster node (e.g.
+        <code>/tmp/jeffrey-data</code> on OrbStack) keeps the contents the testapp pods
+        wrote into it. The next install would inherit stale recordings and session directories. On dev
+        clusters, wipe the directory yourself before re-installing. On real clusters
+        with a dynamic RWX provisioner, the <code>StorageClass</code> owns the reclaim
+        policy and the cleanup is automatic.
+      </DocsCallout>
+    </div>
+
+    <DocsNavFooter />
+  </article>
+</template>
+
+<style scoped>
+@import '@/views/docs/docs-page.css';
+</style>

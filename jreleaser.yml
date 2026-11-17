@@ -20,8 +20,8 @@
 # and the Spring Boot jars are produced in the earlier jobs of
 # .github/workflows/release.yml and handed to JReleaser as pre-built files.
 # Microscope ships only as microscope.jar — there is no Microscope container image.
-# Jeffrey Hub is not part of this release: it ships only as its Docker image,
-# released by hand through .github/workflows/release-hub.yml, which creates no
+# The Volume Scheduler is not part of this release: it ships only as its Docker
+# image, released by hand through .github/workflows/release-volume-scheduler.yml, which creates no
 # GitHub release (Microscope's update check reads the latest one).
 #
 # The project version is NOT taken from the pom (which stays 1.0-SNAPSHOT). It is

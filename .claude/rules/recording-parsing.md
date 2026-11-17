@@ -30,4 +30,4 @@ paths:
 - `RecordingFileLookup` (auto-analysis on demand, a `@Bean` in `ProfileAnalysisConfiguration`) returns **every** JFR file of the recording, the same set the import ran the rules over, and nothing else: no heap dump, pprof, OTLP or log. If any of them is gone from disk it returns none, as the import does. Anything it returns makes `canGenerate()` answer true, so a non-JFR answer advertises an analysis that can only fail.
 
 ### Microscope's `ManagedFile` is the only type that knows a heap dump from a log
-- `recording-storage-api` (`ManagedFile`, `FileCategory`, `RecordingFile`, `Recording`) carries description, extension, matcher and category. The hub cannot see it and must not depend on it.
+- `recording-storage-api` (`ManagedFile`, `FileCategory`, `RecordingFile`, `Recording`) carries description, extension, matcher and category. The volume scheduler cannot see it and must not depend on it.

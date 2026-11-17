@@ -134,7 +134,7 @@ describe('profilerOptions', () => {
       METHOD,
       'java.lang.Thread.*',
       '*.<init>',
-      'cafe.jeffrey.hub.core.grpc.*.*',
+      'com.example.orders.grpc.*.*',
       'java.lang.String.indexOf(Ljava/lang/String;)I'
     ])('accepts the Class.method pattern %s', pattern => {
       expect(tracePatternError(pattern)).toBeNull();

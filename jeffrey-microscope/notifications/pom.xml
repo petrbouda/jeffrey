@@ -34,7 +34,7 @@
         Its own module rather than a package of shared/common: this needs jeffrey-events, and because
         a JPMS `requires` has to resolve for every module that reads it, folding it into common would
         put that dependency on the module path of two dozen modules that never emit anything --
-        including the hub's. Here it reaches only the handful with something to say.
+        including the volume scheduler's. Here it reaches only the handful with something to say.
     </description>
 
     <dependencies>

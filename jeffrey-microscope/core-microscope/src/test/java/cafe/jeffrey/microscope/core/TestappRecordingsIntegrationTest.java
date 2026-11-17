@@ -121,7 +121,7 @@ class TestappRecordingsIntegrationTest extends TestappVolumeMicroscope {
     /**
      * The same run as two producers writing separate files leave it: the JDK's two chunks and
      * async-profiler's one side by side in a session, named by when each began, the older ones
-     * compressed by the hub.
+     * compressed by the volume scheduler.
      */
     @Nested
     class SplitSessions {
@@ -135,9 +135,9 @@ class TestappRecordingsIntegrationTest extends TestappVolumeMicroscope {
             assertCounts(recording, splitProfile(recording));
         }
 
-        /** Every chunk is a recording of the session, compressed as the hub left it but the newest of the newest session. */
+        /** Every chunk is a recording of the session, compressed as the volume scheduler left it but the newest of the newest session. */
         @Test
-        void theSessionsListTheirChunksAsTheHubLeftThem() {
+        void theSessionsListTheirChunksAsTheVolumeSchedulerLeftThem() {
             for (TestappRecording recording : TestappRecording.values()) {
                 JsonNode files = microscope.answer("connector_files", Json.createObject()
                         .put("sessionRef", sessionRef(SPLIT_SESSIONS.get(recording))));

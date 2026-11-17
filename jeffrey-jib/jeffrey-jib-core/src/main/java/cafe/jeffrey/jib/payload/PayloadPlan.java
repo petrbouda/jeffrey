@@ -24,8 +24,8 @@ import java.util.Set;
  * What to bake into one image.
  *
  * <p>The provisioner is not optional and so is not a field: it is Jeffrey's own binary, the
- * protocol it writes is the one Jeffrey Hub reads, and an image that carried someone else's copy
- * would drift from that protocol with nothing recording which one it had. async-profiler is
+ * layout it writes is the one Microscope and the Volume Scheduler read, and an image that
+ * carried someone else's copy would drift from that layout with nothing recording which one it had. async-profiler is
  * attached from a path, so an image that already ships it can leave it out.
  *
  * @param descriptor    the payload jar found on the class path, which decides the provisioner build

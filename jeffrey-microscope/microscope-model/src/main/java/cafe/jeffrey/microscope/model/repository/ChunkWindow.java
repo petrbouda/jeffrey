@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 /**
  * A time window over a session's recording, and which of its chunks cover it.
  *
- * <p>A hub session can run for days and roll a chunk every few minutes, and the question is almost
+ * <p>A session on the recording volume can run for days and roll a chunk every few minutes, and the question is almost
  * never about all of it. A chunk's {@link RepositoryFile#createdAt()} is the moment the profiler
  * opened it — the timestamp in the file's own name — so chunk <em>n</em> covers everything from its
  * own start to the start of chunk <em>n+1</em>. The last one runs one chunk length past its start,

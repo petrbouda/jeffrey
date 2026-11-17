@@ -32,6 +32,9 @@ const emit = defineEmits<{
 
 const route = useRoute();
 
+// URL categories that are a product's own id rather than a section path.
+const PRODUCT_ROUTE_CATEGORIES = new Set(['microscope', 'volume-scheduler', 'deployment', 'provisioner', 'tracing', 'connectors']);
+
 // Default to the Microscope product when the route does not name one
 // (legacy /docs/getting-started/* and /docs/architecture/* fall here).
 const currentProduct = computed(() => getProductForPath(route.path) ?? 'microscope');
@@ -98,7 +101,7 @@ const getSinglePageLink = (section: DocSection): string => {
 };
 
 // Sidebar items mark themselves active when the current URL matches their target.
-// Anchor-targeted items (e.g. /docs/hub#architecture) require a hash match too,
+// Anchor-targeted items (e.g. /docs/microscope#architecture) require a hash match too,
 // so plain "Overview" and anchor "Architecture" don't both light up on the same path.
 const isItemActive = (sectionPath: string, page: DocPage): boolean => {
   const href = pageHref(sectionPath, page);
@@ -127,9 +130,9 @@ const isSectionActive = (section: DocSection): boolean => {
 watch(
   [currentCategory, currentPage, currentProduct, () => route.fullPath],
   ([newCategory, newPage, product]) => {
-    // /docs/microscope and /docs/hub are product-level URLs whose category
-    // is the product id, not a section path — expand the lead section instead.
-    const isProductRoute = newCategory === 'microscope' || newCategory === 'hub' || newCategory === 'provisioner' || newCategory === 'tracing' || newCategory === 'connectors';
+    // /docs/microscope, /docs/volume-scheduler and the like are product-level URLs whose
+    // category is the product id, not a section path — expand the lead section instead.
+    const isProductRoute = PRODUCT_ROUTE_CATEGORIES.has(newCategory);
     if (newCategory && !isProductRoute) {
       expandedSections.value.add(newCategory);
     }
@@ -287,8 +290,8 @@ watch(
   padding-top: 1.25rem;
 }
 
-/* Per-product accent — Hub gets the violet that already brands it. */
-.sidebar-content.product-hub {
+/* Per-product accent — the Volume Scheduler keeps the violet that already brands it. */
+.sidebar-content.product-volume-scheduler {
   --color-primary: #7c3aed;
   --color-primary-light: rgba(124, 58, 237, 0.10);
   --color-primary-lighter: rgba(124, 58, 237, 0.05);
@@ -320,6 +323,13 @@ watch(
   --color-primary: #0d9488;
   --color-primary-light: rgba(13, 148, 136, 0.10);
   --color-primary-lighter: rgba(13, 148, 136, 0.05);
+}
+
+/* Deployment by Example — slate, matching its docs-index card accent. */
+.sidebar-content.product-deployment {
+  --color-primary: #475569;
+  --color-primary-light: rgba(71, 85, 105, 0.10);
+  --color-primary-lighter: rgba(71, 85, 105, 0.05);
 }
 
 /* Connectors — lime, matching its docs-index card accent. */

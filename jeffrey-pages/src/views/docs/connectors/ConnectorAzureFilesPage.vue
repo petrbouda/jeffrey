@@ -123,7 +123,7 @@ JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
         Microscope can read; its block is <code>jeffrey.microscope.connector.azure-files.*</code>. This connector is the recording volume itself: the Azure Files share (SMB or NFS)
         the <router-link to="/docs/provisioner">provisioner</router-link> writes into &mdash; in AKS, the
         volume mounted through the <code>azurefile-csi</code> storage class
-        (<router-link to="/docs/hub/deployment/shared-volume">Shared Volume</router-link>). Microscope works
+        (<router-link to="/docs/deployment/shared-volume">Shared Volume</router-link>). Microscope works
         with it over the <strong>Azure Files REST API</strong>, so it needs no mount of its own and can run
         on a laptop outside the cluster. It lists workspaces, projects, instances and sessions straight off
         the share, downloads what you open, and deletes what you ask it to &mdash; unless it is declared
@@ -133,7 +133,7 @@ JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
         Each directory at the share's root (or under its configured <code>root-path</code>) is a
         <router-link to="/docs/connectors/workspaces">workspace</router-link>. Retention, cleanup and
         compression are not Microscope's: they are the scheduled jobs of a
-        <router-link to="/docs/hub">Jeffrey Hub</router-link> running on the same volume.
+        <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link> running on the same volume.
       </p>
 
       <DocsCodeBlock language="properties" :code="azureFilesPropertiesExample" />
@@ -142,13 +142,13 @@ JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
       <p>
         From a share your JVMs already write into to its workspaces on the Connector page. You need the
         Azure CLI (<code>az</code>) signed in to the subscription that holds the storage account, and
-        <code>kubectl</code> if the volume came from the Hub's Helm chart.
+        <code>kubectl</code> if the volume came from the Volume Scheduler's Helm chart.
       </p>
 
       <h3 id="step-share">1. Find the Share</h3>
       <p>
         Microscope must read the <strong>same share</strong> the provisioner writes into. If you deployed with the
-        <router-link to="/docs/hub/deployment/helm-chart">Helm chart</router-link> on an
+        <router-link to="/docs/deployment/helm-chart">Helm chart</router-link> on an
         <code>azurefile-csi</code> storage class, the share was created for its claim; its
         <code>volumeHandle</code> names the resource group, the storage account and the share:
       </p>
@@ -156,9 +156,10 @@ JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
       <p>Then read the storage account's file endpoint. The trailing <code>/</code> it prints is accepted:</p>
       <DocsCodeBlock language="bash" :code="endpointExample" />
       <p>
-        Finally, decide the <strong>root path</strong>. The provisioner and the Hub keep workspaces in a
-        <code>workspaces/</code> folder under the Jeffrey home directory, beside a <code>temp/</code> folder. When the
-        share is mounted as that home directory, which is the Helm chart's layout, set
+        Finally, decide the <strong>root path</strong>. The provisioner and the Volume Scheduler keep workspaces in a
+        <code>workspaces/</code> folder inside the mounted volume (the provisioner's <code>jeffrey-home</code>, the
+        Volume Scheduler's <code>volume.path</code>), beside a <code>temp/</code> folder. When the share is mounted
+        as that directory, which is the Helm chart's layout, set
         <code>root-path=workspaces</code>. Without it, Microscope lists <code>temp</code> and
         <code>workspaces</code> as two workspaces. If the share holds workspace folders at its root, leave
         <code>root-path</code> unset.
@@ -248,8 +249,9 @@ JEFFREY_MICROSCOPE_CONNECTOR_AZUREFILES_SASTOKEN=<sas-token>`;
             <td><code>jeffrey.<wbr>microscope.<wbr>connector.<wbr>azure-files.<wbr>root-path</code></td>
             <td>the share's root</td>
             <td>
-              Directory on the share that holds the workspaces — the same directory the Jeffrey Hub
-              uses as its volume. Every directory under it is shown as a workspace.
+              Directory on the share that holds the workspaces — the <code>workspaces/</code> folder inside
+              the directory the Volume Scheduler's <code>volume.path</code> points at. Every directory under it
+              is shown as a workspace, except the filesystem's own <code>lost+found</code>.
             </td>
           </tr>
           <tr>

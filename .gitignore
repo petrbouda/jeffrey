@@ -72,7 +72,7 @@ jmh-tests/dependency-reduced-pom.xml
 docs/superpowers/
 
 # Local IntelliJ HTTP Client test files
-jeffrey-hub/http-client/
+volume-scheduler/http-client/
 
 /azure-sf
 

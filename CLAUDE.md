@@ -2,9 +2,9 @@
 
 Self-hosted performance analyst for the JVM: ingests JFR recordings and heap dumps (pprof/OTLP too) and turns them into flamegraphs, timeseries, heap analysis and JVM dashboards, plus an MCP server so a coding agent can read the same profiles.
 
-Two deployments, released separately: **jeffrey-microscope** (single-user analysis app; GitHub release with the provisioner, on a `v<version>` tag — `release.yml`) and **jeffrey-hub** (the maintenance service of the shared recording volume: retention, cleanup and compression jobs, a JSON API under `/api/v1` and no UI; no API to Microscope; only its Docker image, by a manual run of `release-hub.yml`, tagged `hub-v<version>`, no GitHub release). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
+Two deployments, released separately: **jeffrey-microscope** (single-user analysis app; GitHub release with the provisioner, on a `v<version>` tag — `release.yml`) and **volume-scheduler** (a small maintenance service beside it on the shared recording volume: retention and compression jobs, a JSON API under `/api/v1` and no UI; no API to Microscope; only its Docker image, by a manual run of `release-volume-scheduler.yml`, tagged `volume-scheduler-v<version>`, no GitHub release). Java 25 · Spring Boot 4 · DuckDB · Vue 3 + TypeScript · Maven + Vite.
 
-Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `test-patterns`, `hub-repository`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
+Detailed conventions live in `.claude/rules/` and load only when you touch matching files: `backend-java`, `frontend-vue`, `test-patterns`, `volume-scheduler`, `mcp-server`, `recording-parsing`, `intellij-plugin`, `docs-sync`. This file holds only what applies to every session.
 
 ## Repository map
 
@@ -32,12 +32,13 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
                                        mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
                                        scoping, hints, findings)
-jeffrey-hub/                           one module: HubApplication (cafe.jeffrey.hub.core: scheduler/jobs over the shared
-                                       volume, web/ (the REST API: /api/v1 storage and jobs), volume/ — no database:
-                                       the volume is its only state) and its model (cafe.jeffrey.hub.model) — no UI
-shared/                                common (utilities + hub↔provisioner contract types only), persistence,
+volume-scheduler/                      one module: VolumeSchedulerApplication (cafe.jeffrey.volumescheduler: config/ (typed
+                                       jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
+                                       storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:
+                                       the volume (jeffrey.volume-scheduler.volume.path, required) is its only state
+shared/                                common (utilities + the volume's contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
-                                       folder names are the state: projects/instances/sessions/files; the hub's reader),
+                                       folder names are the state: projects/instances/sessions/files; the volume scheduler's reader),
                                        sql-builder, test (@DuckDBTest, VolumeWriter, RecordedSession: real chunks;
                                        TestappRecording, CheckoutRecording: real traced runs)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
@@ -53,8 +54,8 @@ utilities/                             release root (jeffrey-utilities-parent + 
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
 jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler (release-jib.yml)
 build/                                 build-microscope (microscope.jar — Microscope's only distribution, no container
-                                       image), build-hub (jar of jeffrey-hub), build-hub-native (GraalVM; the hub's only image,
-                                       docker/Dockerfile-hub), build-provisioner(-native)
+                                       image), build-volume-scheduler-native (GraalVM; the volume scheduler's only
+                                       distribution, docker/Dockerfile-volume-scheduler), build-provisioner(-native)
 ```
 
 ## Build, run, verify
@@ -63,7 +64,7 @@ build/                                 build-microscope (microscope.jar — Micr
 export JAVA_HOME=/home/pbouda/.sdkman/candidates/java/25.0.1-amzn   # default `java` on PATH is 26
 MVN=/home/pbouda/.sdkman/candidates/maven/current/bin/mvn
 $MVN -q compile                                    # whole reactor (runs the frontend build too)
-$MVN -q -pl jeffrey-hub -am test                   # one module — -am is required, siblings are not in ~/.m2
+$MVN -q -pl volume-scheduler -am test              # one module — -am is required, siblings are not in ~/.m2
 
 cd jeffrey-microscope/pages-microscope
 npm run dev | build | test | typecheck | format    # build = vue-tsc + vite; `npm run lint` is currently broken
@@ -93,11 +94,11 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 ## Architecture invariants (never)
 
 - **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
-- **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
-- **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-model`; the hub's `cafe.jeffrey.hub.model` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
-- **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks off the volume and reads them itself.
+- **The volume scheduler has no API to Microscope.** It runs its two jobs on the volume (retention, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
+- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
+- **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the volume scheduler — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
-- **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the hub's compression job, never on a read path.
+- **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
 - Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 117 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.

@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * The raw parser over realistic recordings: files a profiler with {@code jfrsync} wrote, each two
  * chains of chunks that overlap in time — the JDK's own and async-profiler's — read plain, as the
- * provisioner leaves the session's newest recording, and LZ4-compressed, as the hub leaves the rest.
+ * provisioner leaves the session's newest recording, and LZ4-compressed, as the volume scheduler leaves the rest.
  * Every figure is the file's own, as {@link TestappRecording} pins it.
  */
 class JfrParserRealisticRecordingTest {
@@ -56,7 +56,7 @@ class JfrParserRealisticRecordingTest {
         return Files.write(dir.resolve(recording.mode() + ".jfr"), recording.bytes());
     }
 
-    /** The same file, compressed as the hub's compression job leaves it. */
+    /** The same file, compressed as the volume scheduler's compression job leaves it. */
     private Path archive(TestappRecording recording) throws IOException {
         return Lz4Compressor.compress(plain(recording), dir.resolve(recording.mode() + ".jfr.lz4"));
     }

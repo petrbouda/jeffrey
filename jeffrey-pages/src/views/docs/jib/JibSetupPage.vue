@@ -110,7 +110,7 @@ const mavenFull = `<plugin>
           <enabled>\${jeffrey.profiling}</enabled>
           <!-- Baked as JEFFREY_HOME: the shared volume every pod mounts at the same path. -->
           <jeffreyHome>/mnt/jeffrey</jeffreyHome>
-          <!-- Pinned so a later artifactId rename does not start a new project on the Hub. -->
+          <!-- Pinned so a later artifactId rename does not start a new project on the volume. -->
           <projectName>my-service</projectName>
           <!-- Optional per-deployment override file, mounted from a ConfigMap. -->
           <overrideConfig>/etc/jeffrey/overrides.conf</overrideConfig>
@@ -187,7 +187,7 @@ jib {
         "enabled" to (findProperty("jeffreyProfiling") ?: "true").toString(),
         // Baked as JEFFREY_HOME: the shared volume every pod mounts at the same path.
         "jeffreyHome" to "/mnt/jeffrey",
-        // Pinned so a later project rename does not start a new project on the Hub.
+        // Pinned so a later project rename does not start a new project on the volume.
         "projectName" to "my-service",
         // Optional per-deployment override file, mounted from a ConfigMap.
         "overrideConfig" to "/etc/jeffrey/overrides.conf",
@@ -298,8 +298,8 @@ onMounted(() => {
           <strong><code>jeffreyHome</code> must point at a shared volume / disk.</strong>
           It is not where the binaries come from &mdash; those are in the image &mdash; but it is
           where the application writes its recordings, under
-          <code>${JEFFREY_HOME}/workspaces/</code>, and where Jeffrey Hub reads them from. Every
-          monitored pod and the Hub must see the same bytes, so a host-local directory or a per-pod
+          <code>${JEFFREY_HOME}/workspaces/</code>, and where Microscope and the Volume Scheduler read them
+          from. Every monitored pod and the Volume Scheduler must see the same bytes, so a host-local directory or a per-pod
           ephemeral volume will not work. Leave it out of the build and set <code>JEFFREY_HOME</code>
           on the pod instead when the mount path differs per cluster.
         </DocsCallout>

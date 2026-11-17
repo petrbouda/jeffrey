@@ -415,7 +415,7 @@
                         ones.
                       </div>
                       <div class="form-help">Methods: java.lang.Thread.*, *.&lt;init&gt;</div>
-                      <div class="form-help">All in a package: cafe.jeffrey.hub.core.grpc.*.*</div>
+                      <div class="form-help">All in a package: com.example.orders.grpc.*.*</div>
                       <div class="form-help">
                         One overload: java.lang.String.indexOf(Ljava/lang/String;)I
                       </div>

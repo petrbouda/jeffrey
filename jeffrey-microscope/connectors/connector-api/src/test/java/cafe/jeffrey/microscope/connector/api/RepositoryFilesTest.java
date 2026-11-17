@@ -48,9 +48,9 @@ class RepositoryFilesTest {
         }
 
         /**
-         * The hub used to refuse async-profiler's rotation cache file itself; that refusal moved
-         * here with the rest of the file-type domain. The hub reports it as a plain, non-recording
-         * file it lists and serves as it lies, and Microscope is the side that recognises the name
+         * The connector does not refuse async-profiler's rotation cache file itself; that refusal
+         * lives here with the rest of the file-type domain. The connector reports it as a plain,
+         * non-recording file it lists and serves as it lies, and Microscope is the side that recognises the name
          * as {@link ManagedFile#ASPROF_TEMP} and declines to treat it as anything fetchable.
          */
         @Test

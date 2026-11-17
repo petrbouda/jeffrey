@@ -24,7 +24,7 @@ import java.util.function.Function;
 
 /**
  * The two forms a recording chunk takes on the volume: the JFR async-profiler writes, and the LZ4
- * archive the hub's compression job turns it into. Every other file (logs, heap dumps, the
+ * archive the volume scheduler's compression job turns it into. Every other file (logs, heap dumps, the
  * profiler's scratch file) is listed and served as it lies; a reader classifies those names itself.
  *
  * <p>A recording reads its timestamp from its own name and drops its extension for its id, so
@@ -64,7 +64,7 @@ public enum RecordingFormat {
     }
 
     /**
-     * Which of two files sharing an id to serve: the archive. While the hub's compression job runs,
+     * Which of two files sharing an id to serve: the archive. While the compression job runs,
      * a recording and its archive share an id and both are whole (the archive is published by a
      * rename); the recording is about to be deleted, the archive stays.
      *

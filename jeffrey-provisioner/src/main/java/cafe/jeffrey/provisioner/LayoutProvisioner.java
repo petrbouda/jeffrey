@@ -28,7 +28,7 @@ import java.time.ZoneOffset;
 
 /**
  * Creates the directory tree a run needs, up to and including its session directory. The
- * workspaces root is always {@code <jeffrey-home>/workspaces}, where the hub reads it.
+ * workspaces root is always {@code <jeffrey-home>/workspaces}, where Microscope and the volume scheduler read it.
  */
 public class LayoutProvisioner {
 

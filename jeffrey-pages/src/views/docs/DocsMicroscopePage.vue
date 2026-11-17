@@ -44,7 +44,7 @@ onMounted(() => {
 
     <div class="docs-content">
       <h2 id="architecture">Architecture</h2>
-      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read from its one connector &mdash; the recording volume on an Azure file share or in a local directory &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by a Jeffrey Hub whose internals are documented separately. Microscope never connects to the hub itself.</p>
+      <p>Microscope analyzes recordings in two ways: it can load a JFR file directly, or read from its one connector &mdash; the recording volume on an Azure file share or in a local directory &mdash; to pull recordings from its workspaces. From Microscope's perspective, the share is an external dependency, kept within its retention limits by the Volume Scheduler, whose internals are documented separately. Microscope never connects to the volume scheduler itself.</p>
 
       <div class="arch-diagram">
         <div class="arch-apps">
@@ -96,13 +96,13 @@ onMounted(() => {
             <div class="arch-app-header server-header">
               <i class="bi bi-hdd-stack"></i>
               <span>Recording Volume</span>
-              <small>Azure file share</small>
+              <small>Azure file share · local directory</small>
             </div>
             <div class="arch-blackbox-body">
               <i class="bi bi-box"></i>
-              <p>The shared volume the provisioner writes into, maintained by a Jeffrey Hub.</p>
-              <router-link to="/docs/hub" class="arch-blackbox-link">
-                See Jeffrey Hub <i class="bi bi-arrow-right"></i>
+              <p>The shared volume the provisioner writes into, maintained by the Volume Scheduler.</p>
+              <router-link to="/docs/volume-scheduler" class="arch-blackbox-link">
+                See Volume Scheduler <i class="bi bi-arrow-right"></i>
               </router-link>
             </div>
           </div>

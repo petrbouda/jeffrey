@@ -59,7 +59,7 @@ public final class FilesystemVolume implements WritableVolume {
     }
 
     /**
-     * Where {@code path} lies on this filesystem. For what only the hub does on its own mount —
+     * Where {@code path} lies on this filesystem. For what only the volume scheduler does on its own mount —
      * compressing a recording, deleting single files — which the storage port does not offer.
      */
     public Path resolve(VolumePath path) {

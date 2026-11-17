@@ -36,9 +36,9 @@ import java.util.function.Predicate;
  * artifacts it keeps beside a profile, and the profiler's own scratch files it must not mistake
  * for either. Classified by name only.
  *
- * <p>Microscope's vocabulary, not the hub's. The hub decides what it does to a file — which it
- * compresses — with its own, much shorter enum, and forwards the rest by name; a file listed off
- * a hub is classified here again, from that name, so the two sides never have to agree on a type
+ * <p>Microscope's vocabulary, not the volume scheduler's. The volume scheduler decides what it does
+ * to a file — which finished chunks it compresses — from the file's name on its own; a file listed
+ * off the volume is classified here, from that name, so the two sides never have to agree on a type
  * they both spell.
  */
 public enum ManagedFile {

@@ -305,7 +305,7 @@ public final class JeffreyBuildPlanExtender {
                         LogLevel.WARN,
                         "jeffrey-jib: 'provisionerPath' is no longer configurable and is ignored. The "
                                 + "extension always bakes the provisioner, because the layout it writes is "
-                                + "the one Jeffrey Hub reads; the plugin dependency chooses native or jar.");
+                                + "the one Microscope and the Volume Scheduler read; the plugin dependency chooses native or jar.");
                 case REMOVED_PROVISIONER_SOURCE, REMOVED_PAYLOAD_VERSION -> logger.log(
                         LogLevel.WARN,
                         "jeffrey-jib: '" + key + "' is no longer a property and is ignored. The provisioner "
@@ -315,7 +315,7 @@ public final class JeffreyBuildPlanExtender {
                 case REMOVED_AGENT_PATH -> logger.log(
                         LogLevel.WARN,
                         "jeffrey-jib: 'agentPath' is no longer used and is ignored. Jeffrey no longer "
-                                + "ships an agent: the hub and Microscope read session order and file "
+                                + "ships an agent: Microscope and the Volume Scheduler read session order and file "
                                 + "names, not heartbeats.");
                 case JeffreyJibConfig.ARG_FILE -> config.setArgFile(value);
                 case JeffreyJibConfig.PROFILER_PATH -> config.setProfilerPath(value);

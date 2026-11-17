@@ -135,7 +135,7 @@ onMounted(() => {
           <code>native</code> ships every architecture's binary in every image of the index. The
           extension records its choice in the image as <code>JEFFREY_PROVISIONER_KIND</code>. This is
           the only choice you have over the provisioner: its path is not configurable, because the
-          layout it writes is the protocol Jeffrey Hub reads. The flavour's version is a jeffrey-jib
+          layout it writes is the session layout Microscope and the Volume Scheduler read off the volume. The flavour's version is a jeffrey-jib
           release, not a Jeffrey one; which Jeffrey release's provisioner and which
           async-profiler it bundles is recorded in the payload and printed in the build log.
         </DocsCallout>
@@ -148,7 +148,7 @@ onMounted(() => {
           second one costs you nothing in image size. async-profiler is the only binary you can
           substitute this way: the provisioner has no
           such property, because the session layout it writes on the recording volume is the
-          protocol Jeffrey Hub and Microscope read, and neither side version-checks it.</p>
+          session layout Microscope and the Volume Scheduler read off the volume, and neither side version-checks it.</p>
 
         <DocsCodeBlock
           language="xml"

@@ -19,7 +19,7 @@ package cafe.jeffrey.shared.volume.layout;
 
 /**
  * Why one file of a session is not handed over, in the words every reader of the volume uses —
- * the hub serving it, or Microscope reading the volume directly — so an agent gets the same
+ * whichever connector Microscope reads the volume through — so an agent gets the same
  * sentence whichever way the file was asked for.
  */
 public enum FileRefusal {

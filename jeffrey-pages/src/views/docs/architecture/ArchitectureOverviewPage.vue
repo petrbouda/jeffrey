@@ -41,10 +41,10 @@ onMounted(() => {
       />
 
       <div class="docs-content">
-        <p>Jeffrey consists of two applications: <strong>Jeffrey Microscope</strong> (an analysis tool for visualizing and exploring JFR profiles) and <strong>Jeffrey Hub</strong> (a maintenance service that runs scheduler jobs — retention and compression — on the shared recording volume). The two never talk to each other: Jeffrey Microscope reads the workspaces on its connector &mdash; the recording volume on an <router-link to="/docs/connectors/azure-files">Azure file share</router-link> &mdash; and also offers <strong>Recordings</strong> for analyzing JFR files directly without a connector.</p>
+        <p>Jeffrey is <strong>Jeffrey Microscope</strong>, the analysis app for visualizing and exploring JFR profiles, plus a small maintenance service, the <strong><router-link to="/docs/volume-scheduler">Volume Scheduler</router-link></strong>, which runs two scheduled jobs — retention and compression — on the shared recording volume. The two never talk to each other: Jeffrey Microscope reads the workspaces on its connector &mdash; the recording volume on an <router-link to="/docs/connectors/azure-files">Azure file share</router-link> or in a <router-link to="/docs/connectors/local">local directory</router-link> &mdash; and also offers <strong>Recordings</strong> for analyzing JFR files directly without a connector.</p>
 
         <h2 id="high-level-architecture">High-Level Architecture</h2>
-        <p>Jeffrey runs as two separate applications that meet only on the shared volume. Profiled Java applications write their recordings there, Jeffrey Hub keeps the volume within its retention limits and compresses its chunks, and Jeffrey Microscope provides the analysis UI and reads the volume from the Azure file share that holds it:</p>
+        <p>Microscope and the Volume Scheduler meet only on the shared volume. Profiled Java applications write their recordings there, the volume scheduler keeps the volume within its retention limits and compresses its chunks, and Jeffrey Microscope provides the analysis UI and reads the volume through its connector:</p>
 
         <DocsArchDiagram />
 

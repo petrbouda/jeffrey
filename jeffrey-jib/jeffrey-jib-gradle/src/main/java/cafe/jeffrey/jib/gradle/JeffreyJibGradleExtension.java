@@ -86,7 +86,7 @@ import java.util.Optional;
  *
  * <p>The provisioner build is not a property: it is chosen by which flavour the build script puts
  * on the {@code buildscript} classpath, and its path is not configurable because it writes the
- * layout Jeffrey Hub reads.
+ * layout Microscope and the Volume Scheduler read.
  */
 public class JeffreyJibGradleExtension implements JibGradlePluginExtension<JeffreyJibConfig> {
 

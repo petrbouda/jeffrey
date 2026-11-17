@@ -1,0 +1,179 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Release Volume Scheduler
+
+# The Volume Scheduler's release, independent of Microscope's (release.yml, tag-driven). It runs only
+# by hand: Actions -> Release Volume Scheduler -> Run workflow, with the version typed into the form.
+#
+# It publishes the service's image, a GraalVM native image, petrbouda/volume-scheduler:<version> (and
+# latest), and tags the commit it was built from as volume-scheduler-v<version>. It creates no GitHub
+# release: those belong to Microscope, whose update check reads GitHub's latest release. There is no
+# JVM image; the service does not profile itself (async-profiler is a JVM agent).
+#
+# The volume-scheduler-v prefix keeps the tag out of release.yml's v<version> patterns, and a tag
+# pushed with GITHUB_TOKEN starts no workflow anyway.
+#
+# native-image does not cross-compile, and compiling under qemu takes most of an hour, so each
+# architecture is built on its own runner, pushed by digest only, and the merge job joins the two
+# digests under the release's tags.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Volume Scheduler release version, with or without the leading v (e.g. 0.15.0, 0.15.0-b2).'
+        required: true
+        type: string
+
+env:
+  IMAGE: petrbouda/volume-scheduler
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.VERSION }}
+    steps:
+    - name: Resolve version
+      id: resolve
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        VERSION="${INPUT_VERSION#v}"
+        if [[ ! "${VERSION}" =~ ^([0-9]+\.[0-9]+-b[0-9]+|[0-9]+\.[0-9]+\.[0-9]+(-[a-z][a-z0-9-]*)?)$ ]]; then
+          echo "ERROR: version '${VERSION}' does not match [0-9]+.[0-9]+-b[0-9]+ or [0-9]+.[0-9]+.[0-9]+(-<suffix>)? where suffix is -bN or -[a-z][a-z0-9-]*" >&2
+          exit 1
+        fi
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Releasing Volume Scheduler ${VERSION}"
+
+  # The service's part of the reactor only (shared modules + volume-scheduler), with its tests:
+  # nothing is pushed unless they pass.
+  test:
+    needs: [version]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '25'
+        cache: maven
+
+    - name: Test the volume scheduler
+      run: mvn -B -pl volume-scheduler -am verify
+
+  build:
+    needs: [version, test]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build & push by digest
+      id: build
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        file: docker/Dockerfile-volume-scheduler
+        platforms: linux/${{ matrix.arch }}
+        outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+        cache-from: type=gha,scope=volume-scheduler-${{ matrix.arch }}
+        cache-to: type=gha,mode=max,scope=volume-scheduler-${{ matrix.arch }}
+
+    - name: Export digest
+      env:
+        DIGEST: ${{ steps.build.outputs.digest }}
+      run: |
+        mkdir -p "${RUNNER_TEMP}/digests"
+        touch "${RUNNER_TEMP}/digests/${DIGEST#sha256:}"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: volume-scheduler-digest-${{ matrix.arch }}
+        path: ${{ runner.temp }}/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+  merge:
+    needs: [version, build]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/download-artifact@v8
+      with:
+        pattern: volume-scheduler-digest-*
+        path: ${{ runner.temp }}/digests
+        merge-multiple: true
+
+    - uses: docker/setup-buildx-action@v3
+
+    - uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    # `latest` follows plain X.Y.Z releases only; betas and suffixed builds (e.g. 0.15.0-rc-native)
+    # must not move it.
+    - name: Create the multi-arch manifest
+      working-directory: ${{ runner.temp }}/digests
+      env:
+        VERSION: ${{ needs.version.outputs.version }}
+      run: |
+        TAGS=(-t "${IMAGE}:${VERSION}")
+        if [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          TAGS+=(-t "${IMAGE}:latest")
+        fi
+        docker buildx imagetools create "${TAGS[@]}" $(printf "${IMAGE}@sha256:%s " *)
+        docker buildx imagetools inspect "${IMAGE}:${VERSION}"
+
+  # Records which commit the image was built from. An existing tag is left alone, so that
+  # re-running a release does not move it.
+  tag:
+    needs: [version, merge]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Tag the released commit
+      env:
+        TAG: volume-scheduler-v${{ needs.version.outputs.version }}
+      run: |
+        if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+          echo "Tag ${TAG} already exists, keeping it as it is."
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "refs/tags/${TAG}"
+        fi

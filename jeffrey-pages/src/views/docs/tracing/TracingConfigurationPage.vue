@@ -76,7 +76,7 @@ jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms`;
     />
 
     <div class="docs-content">
-      <p>The events are recorded by whatever JFR recording is running, and they are enabled by default in any recording — so "configuration" means three things: how you record, how you control volume, and how the JDK's own events get thresholds fine enough for traces. This page is the hand-rolled path; for Provisioner-managed deployments see <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link>.</p>
+      <p>The events are recorded by whatever JFR recording is running, and they are enabled by default in any recording — so "configuration" means three things: how you record, how you control volume, and how the JDK's own events get thresholds fine enough for traces. This page is the hand-rolled path; for Provisioner-managed deployments see <router-link to="/docs/tracing/provisioner-volume">Provisioner &amp; Volume</router-link>.</p>
 
       <h2 id="recording">Recording Setup</h2>
 
@@ -120,7 +120,7 @@ jdk.ThreadPark#enabled=true,jdk.ThreadPark#threshold=1ms`;
       <DocsCodeBlock :code="jdkThresholds" language="bash" />
 
       <DocsCallout type="tip">
-        <strong>Provisioner-managed sessions get all of this from one switch.</strong> If your applications are started by the <router-link to="/docs/provisioner">Jeffrey Provisioner</router-link>, it generates these settings for you — see <router-link to="/docs/tracing/provisioner-hub">Provisioner &amp; Hub</router-link>, which also covers how the recording reaches Microscope.
+        <strong>Provisioner-managed sessions get all of this from one switch.</strong> If your applications are started by the <router-link to="/docs/provisioner">Jeffrey Provisioner</router-link>, it generates these settings for you — see <router-link to="/docs/tracing/provisioner-volume">Provisioner &amp; Volume</router-link>, which also covers how the recording reaches Microscope.
       </DocsCallout>
 
       <h2 id="jmc">JMC and jfr print Interop</h2>

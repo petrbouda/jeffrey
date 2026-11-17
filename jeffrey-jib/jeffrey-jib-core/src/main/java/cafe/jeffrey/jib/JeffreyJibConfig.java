@@ -28,9 +28,9 @@ package cafe.jeffrey.jib;
  *
  * <p>{@code profilerPath} carries a second meaning: setting it declares that the image already
  * provides async-profiler, so the extension does not bake that payload. The provisioner has no
- * such property. It is Jeffrey's own binary and the protocol it writes is the one Jeffrey Hub
- * reads, so the extension always bakes it; which build — native or jar — is chosen by the flavour
- * of the extension declared as the jib plugin dependency, not by configuration.
+ * such property. It is Jeffrey's own binary and the layout it writes is the one Microscope and
+ * the Volume Scheduler read, so the extension always bakes it; which build — native or jar — is
+ * chosen by the flavour of the extension declared as the jib plugin dependency, not by configuration.
  */
 public class JeffreyJibConfig {
 

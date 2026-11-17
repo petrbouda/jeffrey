@@ -281,7 +281,7 @@ public class InitConfig {
 
     /**
      * The root of the shared volume. Workspaces always live under {@code <jeffrey-home>/workspaces},
-     * the same place the hub reads them from.
+     * the same place Microscope and the volume scheduler read them from.
      */
     public String getJeffreyHome() {
         return jeffreyHome;

@@ -102,8 +102,6 @@ function getErrorTitle(error: ApiError): string {
         return 'Empty Recording Session';
       case 'INVALID_REQUEST':
         return 'Invalid Request';
-      case 'SCHEDULER_JOB_NOT_FOUND':
-        return 'Scheduler Job Not Found';
       case 'PROFILER_CONFIGURATION_ERROR':
         return 'Profiler Configuration Error';
       case 'CONNECTOR_OPERATION_FAILED':

@@ -43,7 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A project's sessions as the volume says they are when read: the one answer the hub and a
+ * A project's sessions as the volume says they are when read: the one answer the volume scheduler and a
  * Microscope reading the storage directly both take, so neither can take a session for its
  * instance's newest when a newer one has started.
  */

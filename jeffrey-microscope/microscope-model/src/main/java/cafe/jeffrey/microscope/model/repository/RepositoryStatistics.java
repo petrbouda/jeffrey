@@ -18,20 +18,20 @@
 package cafe.jeffrey.microscope.model.repository;
 
 /**
- * What a project's repository occupies on the hub.
+ * What a project's repository occupies on the recording volume.
  *
  * <p>One figure, because one figure is what anything actually read. This carried a status, a
  * session count, a file count, a last-activity timestamp, a biggest-session size and a count and
- * a size for each of six file-type buckets. The buckets were the last place anything on the hub
- * side decided what a file type <em>means</em>, and they decided wrong: pprof and OTLP recordings
+ * a size for each of six file-type buckets. The buckets were the last place anything outside
+ * Microscope decided what a file type <em>means</em>, and they decided wrong: pprof and OTLP recordings
  * landed in "other", beside the files nothing could classify at all. Of what remained, the status
  * had no reader anywhere, and the rest sat beside the same numbers the page already had.
  *
  * <p>Nothing here names a kind of file, so adding a kind of file changes nothing here. A caller
  * that wants to know what a particular file is reads it off the session's files.
  *
- * @param totalSizeBytes as the hub's last retention pass measured it, or {@code null} before the
- *                       first pass: the figure is read off that pass, never re-measured on request
+ * @param totalSizeBytes the project's size, or {@code null} when nothing has measured it: the
+ *                       figure is never measured on request
  */
 public record RepositoryStatistics(Long totalSizeBytes) {
 

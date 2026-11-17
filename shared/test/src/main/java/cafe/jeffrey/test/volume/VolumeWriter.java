@@ -33,7 +33,7 @@ import java.util.UUID;
 /**
  * Writes a recording volume the way the provisioner and the profiler do — directories named for
  * what they hold, and recordings named for when they were opened and at which UTC offset — so every
- * reader of a volume (the hub, the shared layout, Microscope reading storage directly) is tested
+ * reader of a volume (the volume scheduler, the shared layout, Microscope reading storage directly) is tested
  * against what production writes. Nothing below a workspace has a marker file.
  */
 public final class VolumeWriter {
@@ -47,6 +47,11 @@ public final class VolumeWriter {
     private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern(JeffreyLayout.TIMESTAMP_PATTERN);
 
     private VolumeWriter() {
+    }
+
+    /** A workspace's directory, named {@code id}, under the volume's {@code workspaces/} directory. */
+    public static Path workspace(Path workspacesDir, String id) {
+        return directories(workspacesDir.resolve(id));
     }
 
     /** A project's directory, named {@code name} — its id — under a workspace's directory. */

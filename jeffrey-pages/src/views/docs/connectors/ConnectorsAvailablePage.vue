@@ -74,7 +74,7 @@ onMounted(() => {
           <tr>
             <td><router-link to="/docs/connectors/local"><strong>Local Directory</strong></router-link></td>
             <td><code>local</code></td>
-            <td>A directory on the machine Microscope runs on, read live. For testing, a provisioner and hub on the same machine, or a copy of another volume.</td>
+            <td>A directory on the machine Microscope runs on, read live. For testing, a provisioner and Volume Scheduler on the same machine, or a copy of another volume.</td>
             <td>None &mdash; the rights of the user Microscope runs as</td>
             <td>Writable or read-only</td>
           </tr>
@@ -87,7 +87,7 @@ onMounted(() => {
         whichever one is declared:
       </p>
       <ul>
-        <li><strong>The volume layout</strong> &mdash; workspaces, projects, instances and UUIDv7-named sessions, the tree the <router-link to="/docs/provisioner">provisioner</router-link> writes and the <router-link to="/docs/hub">hub</router-link> maintains. Folder names are the state.</li>
+        <li><strong>The volume layout</strong> &mdash; workspaces, projects, instances and UUIDv7-named sessions, the tree the <router-link to="/docs/provisioner">provisioner</router-link> writes and the <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link> maintains. Folder names are the state.</li>
         <li><strong>The Connector page</strong> &mdash; <router-link to="/docs/connectors/workspaces">Workspaces</router-link>, <router-link to="/docs/connectors/projects">Projects</router-link> and <router-link to="/docs/connectors/projects/instances">Instances</router-link> work the same on every kind.</li>
         <li><strong>Downloads</strong> &mdash; a session lands on the Recordings page as a <router-link to="/docs/microscope/recordings#bundles">bundle</router-link>, pulled one file at a time, its chunks never joined.</li>
         <li><strong>The MCP tools</strong> &mdash; the <router-link to="/docs/microscope-mcp/tools#connector"><code>connector_</code> tools</router-link> list, download and fetch the same way.</li>
@@ -104,8 +104,8 @@ onMounted(() => {
       </ul>
 
       <DocsCallout type="info">
-        <strong>Hub and connector are independent.</strong> A connector is how Microscope reads the volume.
-        The <router-link to="/docs/hub">Jeffrey Hub</router-link> maintains that same volume with its own
+        <strong>The Volume Scheduler and the connector are independent.</strong> A connector is how Microscope reads the volume.
+        The <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link> maintains that same volume with its own
         jobs and has no API to Microscope, whichever connector kind you use.
       </DocsCallout>
 

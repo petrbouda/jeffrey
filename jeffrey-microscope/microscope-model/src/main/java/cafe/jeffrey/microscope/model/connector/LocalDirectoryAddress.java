@@ -21,7 +21,7 @@ import java.nio.file.Path;
 
 /**
  * The recording volume in a directory on this machine's filesystem — a scratch tree for testing, a
- * tree the provisioner and the hub keep on the same machine, or a copy of part of another volume.
+ * tree the provisioner and the volume scheduler keep on the same machine, or a copy of part of another volume.
  * The workspaces lie directly under {@code root}, read live on every call.
  *
  * @param root     the directory holding the workspaces; absolute, stored normalized

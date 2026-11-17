@@ -51,17 +51,17 @@ and Jeffrey builds a profile you can explore. That's it. 🎉
 
 ## 🧩 The Jeffrey ecosystem
 
-The complete toolbox — Microscope and Hub are the core, the rest round it out:
+The complete toolbox — Microscope is the core, the rest round it out:
 
 | Product                                                                                         | What it does |
 |-------------------------------------------------------------------------------------------------|---|
 | **[Jeffrey Microscope](https://www.jeffrey-analyst.cafe/docs/microscope)**                      | The standalone analyzer. Open a JFR recording or heap dump — or pull one from the recording volume on an Azure file share — and read flamegraphs, sub-second timelines and JVM & tech dashboards. Runs as a plain JAR. |
-| **[Jeffrey Hub](https://www.jeffrey-analyst.cafe/docs/hub)**                                    | A containerised maintenance service for Kubernetes. Runs on the shared recording volume your services write their JFR recordings and artifacts to, and keeps it in shape: retention, stale-instance cleanup and LZ4 compression, with a small JSON REST API for storage figures and the scheduler jobs. |
 | **[IntelliJ Plugin](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)**            | Jump from any flamegraph frame straight to the source line in your open IntelliJ — Java & Kotlin — or pull inline source back into the profile. |
 | **[Microscope MCP](https://www.jeffrey-analyst.cafe/docs/microscope-mcp)**                      | Analyse your profiles from an interactive coding-agent session in your own repository — list recordings, query their tables, and pull flamegraph, trace and heap-dump exports, so the profile and the source code sit in front of the same reader. Works with Claude Code (on its v2 MCP runtime) and Codex (v0.147.0+ with the `mcp_2026_07_28` feature flag) — one `/plugin install microscope@jeffrey` or `codex plugin marketplace add petrbouda/jeffrey` — and with Gemini CLI once it speaks MCP `2026-07-28`. |
-| **[Provisioner](https://www.jeffrey-analyst.cafe/docs/provisioner)**                            | One HOCON file lays out your workspace / project / session tree on the shared volume, writes its session markers, and generates the JVM argfile that starts your app under the profiler. |
+| **[Provisioner](https://www.jeffrey-analyst.cafe/docs/provisioner)**                            | One HOCON file lays out your workspace / project / session tree on the shared volume and generates the JVM argfile that starts your app under the profiler. |
 | **[Jeffrey JIB](https://www.jeffrey-analyst.cafe/docs/jib)**                                    | A Jib (Gradle/Maven) extension that wraps your container entrypoint so profiling starts before your app does — no command override, no binaries baked into the image. |
 | **[Jeffrey Events](https://central.sonatype.com/artifact/cafe.jeffrey-analyst/jeffrey-events)**  | A lightweight custom-JFR-event library (HTTP, gRPC, database, connection-pool) that powers the tech dashboards. |
+| **[Volume Scheduler](https://www.jeffrey-analyst.cafe/docs/volume-scheduler)**                  | A small maintenance service for the shared recording volume your services write their JFR recordings and artifacts to: it deletes what retention says is past keeping and LZ4-compresses finished chunks, with a small JSON API for storage figures and its jobs. |
 
 ## 📖 Links
 

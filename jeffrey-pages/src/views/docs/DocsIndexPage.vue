@@ -24,7 +24,8 @@ import { useDocHeadings } from '@/composables/useDocHeadings';
 const { setHeadings } = useDocHeadings();
 
 const microscopeComponents = ['Flamegraph', 'Timeseries', 'Heap dump', 'MCP server', 'Events'];
-const serverComponents = ['Retention', 'Compression', 'Scheduler', 'REST API'];
+const volumeSchedulerComponents = ['Retention', 'LZ4 compression', 'Scheduled jobs', 'REST API'];
+const deploymentComponents = ['JIB image', 'Shared volume', 'Provisioner', 'Helm chart'];
 const provisionerComponents = ['HOCON config', 'JVM argfile', 'Session layout', 'Native binary'];
 const jibComponents = ['Gradle/Maven', 'Entrypoint wrapper', 'Baked payloads', 'Kill switch'];
 const pluginComponents = ['Open in IDE', 'Inline source', 'Java & Kotlin', 'Auto-pairing'];
@@ -118,14 +119,24 @@ onMounted(() => {
           variant="senary"
         />
         <DocsProductCard
-          to="/docs/hub"
-          title="Hub"
-          role="Maintenance · Multi-workspace"
-          description="The maintenance service of the shared recording volume. Runs retention and compression as scheduled jobs, with a small JSON REST API for storage figures and the jobs; Microscope reads the volume itself."
-          icon="bi bi-cloud"
-          :components="serverComponents"
-          cta-text="Open Server docs"
+          to="/docs/volume-scheduler"
+          title="Volume Scheduler"
+          role="Maintenance · Shared volume"
+          description="A small maintenance service that runs beside Microscope on the shared recording volume: scheduled retention and LZ4 compression, and a small JSON API for storage figures and jobs. Microscope never talks to it."
+          icon="bi bi-clock-history"
+          :components="volumeSchedulerComponents"
+          cta-text="Open Volume Scheduler docs"
           variant="secondary"
+        />
+        <DocsProductCard
+          to="/docs/deployment"
+          title="Deployment by Example"
+          role="Walkthrough · Kubernetes"
+          description="A worked deployment across the products: a JIB-built image, the shared volume, the Provisioner that starts each JVM under the profiler, and the Helm chart that runs it all beside the Volume Scheduler."
+          icon="bi bi-cloud-upload"
+          :components="deploymentComponents"
+          cta-text="Open Deployment docs"
+          variant="nonary"
         />
       </div>
     </div>

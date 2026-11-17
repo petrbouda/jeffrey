@@ -521,7 +521,7 @@ class JeffreyBuildPlanExtenderTest {
 
         @Test
         void theProvisionerIsBakedEvenWhenTheProfilerIsSupplied() throws Exception {
-            // provisionerPath does not exist: the provisioner writes the layout Jeffrey Hub reads,
+            // provisionerPath does not exist: the provisioner writes the layout Microscope and the Volume Scheduler read,
             // so every image gets the one from the payload, and only its build is a choice.
             extender = extenderOver(jarPayloadJar());
             JeffreyJibConfig config = config();

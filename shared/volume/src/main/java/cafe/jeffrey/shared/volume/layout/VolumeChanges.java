@@ -25,12 +25,12 @@ import java.util.Optional;
 /**
  * The changes a user asks of the volume — deleting a session — with the rules each one keeps,
  * in one place for every process that may write it:
- * the hub on its mount, Microscope on a share it reaches directly. Removing a workspace's or a
+ * the volume scheduler on its mount, Microscope on a share it reaches directly. Removing a workspace's or a
  * project's whole directory needs no rule and is {@link WritableVolume#delete} itself.
  *
  * <p>Nothing here creates: a workspace, like everything under it, is the directory the
  * provisioner lays down. Upkeep (retention, compression) is not here either: that stays with the
- * hub that owns the volume.
+ * volume scheduler's jobs.
  */
 public final class VolumeChanges {
 

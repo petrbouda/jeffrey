@@ -54,7 +54,7 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      # Microscope is the one product with a frontend: the hub serves only its JSON API.
+      # Microscope is the one product with a frontend: the Volume Scheduler serves only its JSON API.
       matrix:
         include:
           - product: microscope

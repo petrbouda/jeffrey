@@ -36,7 +36,7 @@ import java.util.Optional;
 
 /**
  * One file of a session off the volume, refused in {@code FileRefusal}'s words: a file the session
- * does not hold, an empty recording, and one gone by the time it is opened — looked up once more first, since the hub's compression job may have just
+ * does not hold, an empty recording, and one gone by the time it is opened — looked up once more first, since the volume scheduler's compression job may have just
  * replaced a recording with its archive under the same id.
  */
 final class VolumeFileStreamClient implements FileStreamClient {

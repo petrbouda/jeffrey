@@ -32,8 +32,7 @@ import cafe.jeffrey.jfr.events.trace.EventAttributes;
  * }</pre>
  *
  * <h2>Why a builder rather than a method per event</h2>
- * The alternative is a class of static factories, one per kind, which is how the hub's emitter is
- * written. That shape puts the whole vocabulary in one file, but it also drags every caller's domain
+ * The alternative is a class of static factories, one per kind. That shape puts the whole vocabulary in one file, but it also drags every caller's domain
  * — pipelines, chunks, guards, downloads — into a module that should not know about any of them, and
  * it makes the attribute map an afterthought assembled behind the call. Here the call site owns its
  * own detail, and the vocabulary stays in {@link NotificationType}.
