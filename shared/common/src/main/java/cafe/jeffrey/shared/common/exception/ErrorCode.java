@@ -35,9 +35,6 @@ public enum ErrorCode {
     // Validation errors
     INVALID_REQUEST,
 
-    // Scheduler errors
-    SCHEDULER_JOB_NOT_FOUND,
-
     // Profiler errors
     PROFILER_CONFIGURATION_ERROR,
 
@@ -55,7 +52,6 @@ public enum ErrorCode {
             RECORDING_SESSION_NOT_FOUND,
             RECORDING_FILE_NOT_FOUND,
             REPOSITORY_NOT_FOUND,
-            SCHEDULER_JOB_NOT_FOUND,
             RESOURCE_NOT_FOUND);
 
     public boolean isNotFound() {

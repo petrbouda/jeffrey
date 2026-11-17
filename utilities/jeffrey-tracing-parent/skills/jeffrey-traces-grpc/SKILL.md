@@ -51,7 +51,7 @@ Both are stateless and thread-safe: one instance per server or channel is enough
 the same instance on several is fine.
 
 On **Spring gRPC**, the server side is a bean marked global so it applies to every registered
-service — which is how Jeffrey's own hub registers it:
+service:
 
 ```java
 @Bean

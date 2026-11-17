@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
  * the {@code ErrorFile} default, with the timestamp {@code %t} expands to allowed after the pid.
  *
  * <p>Both spellings end in {@code .log}, so the type using this matcher must stay declared before
- * {@code APP_LOG}: read the other way round, a crash is filed as an application log and the hub's
- * crash detection never sees it. Whole names only — a copy renamed {@code app-hs-jvm-err.log} or a
+ * {@code APP_LOG}: read the other way round, a crash is filed as an application log and nothing
+ * that looks for the session's crash file ever sees it. Whole names only — a copy renamed {@code app-hs-jvm-err.log} or a
  * compressed {@code hs-jvm-err.log.gz} is deliberately not claimed.
  */
 public class HsJvmErrorLogFileMatcher implements Predicate<String> {

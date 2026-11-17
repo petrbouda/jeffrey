@@ -25,7 +25,7 @@ import java.util.Set;
 
 /**
  * The recording volume on an Azure file share, reached over the Azure Files REST API, SMB and
- * NFS shares alike. The share holds the volume as the provisioner and the hub's jobs keep it, so
+ * NFS shares alike. The share holds the volume as the provisioner and the volume scheduler's jobs keep it, so
  * the workspaces lie directly under {@code rootPath}.
  *
  * @param endpoint the storage account's file endpoint, {@code https://<account>.file.core.windows.net}:

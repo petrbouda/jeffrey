@@ -38,7 +38,7 @@ import java.util.Optional;
  * left out of listings, reads as absent, and a delete leaves it alone. A link that stays inside the
  * root reads as what it points to.
  *
- * <p>The hub's mount is the volume itself and is trusted as it lies; a directory under {@code /tmp}
+ * <p>The volume scheduler's mount is the volume itself and is trusted as it lies; a directory under {@code /tmp}
  * or a copied tree is not, and a delete through a link must never reach the rest of the machine.
  * The check runs on every call, right before the delegate's, so the tree is read live.
  *

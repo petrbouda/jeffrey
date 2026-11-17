@@ -14,8 +14,9 @@
 # limitations under the License.
 
 # Microscope's release (with the provisioner): push a tag vX.Y.Z[-bN|-suffix] and the version
-# comes from the tag. Jeffrey Hub is released on its own, by hand, through release-hub.yml; its
-# tags are hub-v<version>, which the patterns below never match.
+# comes from the tag. The Volume Scheduler is released on its own, by hand, through
+# release-volume-scheduler.yml; its tags are volume-scheduler-v<version>, which the patterns below
+# never match.
 on:
   push:
     tags:

@@ -32,7 +32,7 @@ import java.util.OptionalLong;
  *                        one and for any other file: what a session's chunks are ordered by, so a
  *                        reader holding them orders them as the backend does
  * @param newestRecording whether it is the newest recording of its instance's newest session: the
- *                        one the hub keeps uncompressed, which may still be on its way onto the volume
+ *                        one the volume scheduler keeps uncompressed, which may still be on its way onto the volume
  */
 public record RepositoryFileResponse(
         String id,

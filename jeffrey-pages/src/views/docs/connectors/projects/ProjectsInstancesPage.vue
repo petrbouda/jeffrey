@@ -54,7 +54,7 @@ onMounted(() => {
         </DocsCallout>
 
         <h2 id="instance-sessions">Instances and Sessions</h2>
-        <p>An instance has no status. Its sessions are ordered by their UUIDv7 directory names, whose timestamp is each session's start; the <strong>newest</strong> session is the only one that may still grow, and every older one was ended by a newer one. See <router-link to="/docs/hub/recording-sessions/lifecycle">Session Lifecycle</router-link> for the details.</p>
+        <p>An instance has no status. Its sessions are ordered by their UUIDv7 directory names, whose timestamp is each session's start; the <strong>newest</strong> session is the only one that may still grow, and every older one was ended by a newer one. See <router-link to="/docs/connectors/recording-sessions/lifecycle">Session Lifecycle</router-link> for the details.</p>
 
         <p>When retention (or a manual delete) removes an instance's last session, the instance's directory goes with it, so an instance simply disappears from the list rather than lingering in an expired state.</p>
 

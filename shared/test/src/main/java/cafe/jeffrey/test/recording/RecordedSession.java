@@ -90,7 +90,7 @@ public final class RecordedSession {
             return VolumeWriter.recordingName(openedAt, OFFSET);
         }
 
-        /** The name the hub's compression job gives it: {@code rec-20251220-001224+0000.jfr.lz4}. */
+        /** The name the volume scheduler's compression job gives it: {@code rec-20251220-001224+0000.jfr.lz4}. */
         public String archivedName() {
             return volumeName() + ARCHIVE_SUFFIX;
         }
@@ -153,13 +153,13 @@ public final class RecordedSession {
     }
 
     /**
-     * Lays the session down as the hub's compression job leaves it: every chunk compressed to
-     * {@code <name>.jfr.lz4} with the hub's compressor and the original removed, but the newest,
+     * Lays the session down as the volume scheduler's compression job leaves it: every chunk compressed
+     * to {@code <name>.jfr.lz4} with its compressor and the original removed, but the newest,
      * which the newest-file guard keeps as the profiler wrote it.
      *
      * @return the session's directory
      */
-    public static Path writeAsTheHubLeavesIt(Path instanceDir) {
+    public static Path writeAsTheVolumeSchedulerLeavesIt(Path instanceDir) {
         Path sessionDir = writeTo(instanceDir);
         for (Chunk chunk : CHUNKS.subList(0, CHUNKS.size() - 1)) {
             Path plain = sessionDir.resolve(chunk.volumeName());

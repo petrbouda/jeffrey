@@ -132,10 +132,10 @@ public enum NotificationType {
     DOWNLOAD_ARTIFACT_MISSING(NotificationCategory.RECORDING, Severity.HIGH,
             "An artifact could not be downloaded; the rest of the download still succeeded"),
 
-    // ---------- Hub operations that only half happened ----------
+    // ---------- Connector operations that only half happened ----------
 
     WORKSPACE_DELETE_PARTIAL(NotificationCategory.WORKSPACE, Severity.HIGH,
-            "Workspace was removed locally, but the hub still holds it"),
+            "Workspace was removed locally, but it is still on the recording volume"),
 
     PROFILE_DIR_ORPHANED(NotificationCategory.PROFILE, Severity.MEDIUM,
             "Profile directory outlived the profile and is now orphaned on disk"),

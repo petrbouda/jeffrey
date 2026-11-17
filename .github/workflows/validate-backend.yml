@@ -37,8 +37,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - component: Hub
-            module: jeffrey-hub
+          - component: Volume Scheduler
+            module: volume-scheduler
             phase: test
           - component: Microscope
             module: jeffrey-microscope/core-microscope

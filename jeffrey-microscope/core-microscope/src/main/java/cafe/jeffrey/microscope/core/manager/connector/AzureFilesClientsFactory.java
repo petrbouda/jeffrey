@@ -42,7 +42,7 @@ public final class AzureFilesClientsFactory {
 
     private static final Logger LOG = LoggerFactory.getLogger(AzureFilesClientsFactory.class);
 
-    /** What a share reports where a hub reports its version. */
+    /** What a share reports as the version in its connector info. */
     private static final String DESCRIPTION = "azure-files";
 
     private final Optional<String> sasToken;

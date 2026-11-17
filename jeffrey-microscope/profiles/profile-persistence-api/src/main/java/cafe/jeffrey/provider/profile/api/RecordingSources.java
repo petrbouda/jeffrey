@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * The recording files one profile is built from, oldest first.
  * <p>
- * A hub session rolls a chunk every few minutes, so a profile is routinely made of many files.
+ * A session on the recording volume rolls a chunk every few minutes, so a profile is routinely made of many files.
  * They are never joined: each is a self-contained JFR, they are parsed independently into one
  * {@link EventWriter}, and the only thing that spans the set is the recording's window — the
  * earliest start and the latest end across their chunk headers. A single uploaded file is the

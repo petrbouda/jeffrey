@@ -21,7 +21,7 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * Several files that arrived together — a hub session download — kept as one row in the recordings
+ * Several files that arrived together — a session downloaded off the connector — kept as one row in the recordings
  * list. A bundle is never initialized itself: each initializable item in it is a {@link Recording} of
  * its own (all JFR chunks as one, each heap dump, the perf counters), pointing back here through
  * {@link Recording#bundleId()}. What cannot be initialized — logs, crash files — stays here as

@@ -19,7 +19,7 @@ import type RecordingFile from '@/services/api/model/recordings/RecordingFile';
 import type { RecordingTag } from '@/services/api/model/recordings/Recording';
 
 /**
- * Several files that arrived together — a hub session download — shown as one row. Each item that can
+ * Several files that arrived together — a session downloaded off the connector — shown as one row. Each item that can
  * be initialized is a recording of its own carrying this id as its bundleId; `files` are the rest
  * (logs, crash files), download-only.
  */

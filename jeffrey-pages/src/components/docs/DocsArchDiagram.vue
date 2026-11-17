@@ -19,14 +19,14 @@
 /**
  * The high-level architecture picture, shared by every page that shows it.
  *
- * `full` is the canonical one — Microscope and the Hub side by side, with no link between
- * them: both work on the shared recording volume the container writes into. `hub` drops the
- * Microscope column for pages written from the Hub's side. `tracing` is `full` with
- * Microscope's arrow spelling out what it pulls off the volume, which is the subject of the
- * Provisioner & Hub page.
+ * `full` is the canonical one — Microscope, the analysis app, with the Volume Scheduler, a small
+ * maintenance service, beside it and no link between them: both work on the shared recording
+ * volume the container writes into. `volume-scheduler` drops the Microscope column for pages
+ * written from the Volume Scheduler's side. `tracing` is `full` with Microscope's arrow spelling
+ * out what it pulls off the volume, which is the subject of the Provisioner & Volume page.
  */
 withDefaults(defineProps<{
-  variant?: 'full' | 'hub' | 'tracing';
+  variant?: 'full' | 'volume-scheduler' | 'tracing';
 }>(), {
   variant: 'full'
 });
@@ -34,10 +34,10 @@ withDefaults(defineProps<{
 
 <template>
   <div class="arch-diagram">
-    <div class="arch-apps" :class="{ 'server-only': variant === 'hub' }">
+    <div class="arch-apps" :class="{ 'scheduler-only': variant === 'volume-scheduler' }">
 
       <!-- Jeffrey Microscope -->
-      <div v-if="variant !== 'hub'" class="arch-app microscope">
+      <div v-if="variant !== 'volume-scheduler'" class="arch-app microscope">
         <div class="arch-app-header microscope-header">
           <i class="bi bi-pc-display"></i>
           <span>Jeffrey Microscope</span>
@@ -74,57 +74,44 @@ withDefaults(defineProps<{
       </div>
 
       <!-- No direct link: the two only meet on the shared volume -->
-      <div v-if="variant !== 'hub'" class="arch-no-link">
+      <div v-if="variant !== 'volume-scheduler'" class="arch-no-link">
         <small>no direct link</small>
       </div>
 
-      <!-- Jeffrey Hub -->
-      <div class="arch-app server">
-        <div class="arch-app-header server-header">
-          <i class="bi bi-cloud"></i>
-          <span>Jeffrey Hub</span>
-          <small>Kubernetes / Server</small>
+      <!-- Volume Scheduler: a small maintenance service on the same volume -->
+      <div class="arch-app scheduler-app">
+        <div class="arch-app-header scheduler-header">
+          <i class="bi bi-clock-history"></i>
+          <span>Volume Scheduler</span>
+          <small>maintenance service</small>
         </div>
         <div class="arch-app-body">
-          <div class="arch-section-label">Domain</div>
+          <div class="arch-section-label">Jobs</div>
           <div class="arch-layer">
-            <div class="arch-chip server-feat"><i class="bi bi-folder2-open"></i> Workspaces</div>
-            <div class="arch-chip server-feat"><i class="bi bi-kanban"></i> Projects</div>
-          </div>
-          <div class="arch-layer">
-            <div class="arch-chip server-feat"><i class="bi bi-server"></i> Instances</div>
-            <div class="arch-chip server-feat"><i class="bi bi-record-circle"></i> Sessions</div>
-          </div>
-          <div class="arch-section-label">Features</div>
-          <div class="arch-layer">
-            <div class="arch-chip scheduler"><i class="bi bi-clock"></i> Scheduler &amp; Jobs</div>
+            <div class="arch-chip scheduler"><i class="bi bi-hourglass-split"></i> Retention</div>
           </div>
           <div class="arch-layer">
-            <div v-if="variant !== 'hub'" class="arch-chip server-feat"><i class="bi bi-bell"></i> Notifications</div>
-            <div v-else class="arch-chip server-feat"><i class="bi bi-lock"></i> Blocking &amp; Lifecycle</div>
+            <div class="arch-chip scheduler"><i class="bi bi-file-zip"></i> LZ4 compression</div>
           </div>
-          <div v-if="variant !== 'hub'" class="arch-layer">
-            <div class="arch-chip server-feat"><i class="bi bi-lock"></i> Blocking &amp; Lifecycle</div>
-          </div>
-          <div class="arch-section-label">Storage</div>
-          <div class="arch-storage-row">
-            <div class="arch-storage"><i class="bi bi-folder"></i> Filesystem</div>
+          <div class="arch-section-label">Operators</div>
+          <div class="arch-layer">
+            <div class="arch-chip server-feat"><i class="bi bi-braces"></i> REST API</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Shared filesystem: Microscope reads it from the Azure file share, the Hub maintains it -->
-    <div class="arch-bottom" :class="{ 'server-only': variant === 'hub' }">
+    <!-- Shared filesystem: Microscope reads it, the Volume Scheduler maintains it -->
+    <div class="arch-bottom" :class="{ 'scheduler-only': variant === 'volume-scheduler' }">
       <div class="arch-arrows-row">
-        <div v-if="variant !== 'hub'" class="arch-arrow-col">
+        <div v-if="variant !== 'volume-scheduler'" class="arch-arrow-col microscope-col">
           <div class="arch-reads-arrow microscope-arrow">
             <small>{{ variant === 'tracing' ? 'lists + downloads chunks' : 'reads &amp; downloads' }}</small>
             <i class="bi bi-arrow-down"></i>
           </div>
         </div>
-        <div v-if="variant !== 'hub'" class="arch-bottom-connector-spacer"></div>
-        <div class="arch-arrow-col">
+        <div v-if="variant !== 'volume-scheduler'" class="arch-bottom-connector-spacer"></div>
+        <div class="arch-arrow-col scheduler-col">
           <div class="arch-reads-arrow">
             <small>retention &amp; compression</small>
             <i class="bi bi-arrow-down"></i>
@@ -134,7 +121,7 @@ withDefaults(defineProps<{
       <div class="arch-shared-fs">
         <i class="bi bi-hdd-stack"></i>
         <span>Shared Filesystem</span>
-        <small>{{ variant === 'hub' ? 'NFS / PVC' : 'NFS / PVC · Azure file share' }}</small>
+        <small>{{ variant === 'volume-scheduler' ? 'NFS / PVC' : 'NFS / PVC · Azure file share' }}</small>
       </div>
       <div class="arch-bottom-server-col">
         <div class="arch-write-labels-row">
@@ -221,7 +208,34 @@ withDefaults(defineProps<{
 }
 
 .microscope-header { background: linear-gradient(135deg, #5e64ff 0%, #4338ca 100%); }
-.server-header { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+.scheduler-header { background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); }
+
+/* Microscope is the product; the Volume Scheduler is a small box beside it. The arrow
+   columns below take the same proportions so each arrow sits under its app. */
+.arch-app.microscope,
+.arch-arrow-col.microscope-col {
+  flex: 2.4;
+}
+
+.arch-app.scheduler-app,
+.arch-arrow-col.scheduler-col {
+  flex: 1;
+}
+
+/* Beside Microscope the box is narrow: the subtitle drops under the name. */
+.arch-apps:not(.scheduler-only) .scheduler-header {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+.arch-apps:not(.scheduler-only) .scheduler-header span {
+  white-space: nowrap;
+}
+
+.arch-apps:not(.scheduler-only) .scheduler-header small {
+  flex-basis: 100%;
+  margin-left: 1.5rem;
+}
 
 .arch-app-body {
   display: flex;
@@ -313,7 +327,7 @@ withDefaults(defineProps<{
   width: 100%;
 }
 
-.arch-bottom.server-only {
+.arch-bottom.scheduler-only {
   max-width: 560px;
 }
 
@@ -514,13 +528,13 @@ withDefaults(defineProps<{
   }
 }
 
-/* Server-only variant: one app box, centred. */
-.arch-apps.server-only {
+/* Volume-Scheduler-only variant: one small app box, centred. */
+.arch-apps.scheduler-only {
   justify-content: center;
 }
 
-.arch-apps.server-only .arch-app {
-  flex: 0 1 520px;
-  max-width: 560px;
+.arch-apps.scheduler-only .arch-app {
+  flex: 0 1 320px;
+  max-width: 360px;
 }
 </style>

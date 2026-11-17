@@ -1,7 +1,7 @@
 # Create Scheduler Job
 
-Add a new scheduler job to Jeffrey Hub: a periodic task the hub runs on the shared recording
-volume, once per project of every workspace per tick (retention and compression are the two today).
+Add a new job to the Volume Scheduler: a periodic task it runs on the shared recording volume,
+once per project of every workspace per run (retention and compression are the two today).
 Microscope has no scheduler and no jobs.
 
 ## Usage
@@ -16,86 +16,85 @@ Microscope has no scheduler and no jobs.
 
 Ask the user, with AskUserQuestion:
 
-1. **Job name** — the `JobType` constant (`UPPER_SNAKE`, e.g. `REPOSITORY_LOG_CLEANUP`) and the
-   class name (`RepositoryLogCleanupProjectJob`).
+1. **Job name** — the `JobType` constant and its id (e.g. `LOG_CLEANUP("log-cleanup")`) and the
+   class name (`LogCleanupJob`).
 2. **What one project visit does** — on the project's sessions and files, through its
-   `RepositoryStorage` (`HubProject.repositoryStorage()`).
-3. **Parameters** — names (kebab-case), types and defaults, e.g. `max-age=7d`.
+   `VolumeProject`.
+3. **Settings** — names (kebab-case), types and defaults, e.g. `max-age=7d`.
 4. **Default period** and whether it is **enabled by default**.
-5. **Manual run** — whether an operator may run it now through `POST /api/v1/jobs/{key}/run` (`ManuallyTriggerable`).
 
-### Step 2: Backend (jeffrey-hub)
+Every job can be run on demand through `POST /api/v1/jobs/{id}/run`; there is nothing to opt into.
 
-Read `ProjectRetentionJob` and `RepositoryCompressionProjectJob` first: they are the reference jobs.
+### Step 2: Backend (volume-scheduler)
 
-1. **Job type** — add the constant to
-   `jeffrey-hub/src/main/java/cafe/jeffrey/hub/model/job/JobType.java`.
-2. **Job class** — `jeffrey-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJob.java`:
-   - implements `Job`; `execute()` hands the per-project work to a `ProjectFanOut` built in the
-     constructor (`fanOut.forEachProject(this::visit)`). The fan-out runs each visit isolated, so one
-     broken project does not abort the tick. There is no job base class: compose, don't extend;
-   - constructor takes `HubProjects`, the job's `JobConfig` and any collaborator (`Clock` for
-     anything time-based — never `Instant.now()`); read `config.period()` and parse every
-     `config.params()` entry into a typed field there, with each param name a `private static final`;
-   - `period()` returns the configured period, `jobType()` the new constant;
-   - for a manual run, also implement `ManuallyTriggerable.runManually()`, returning one line that
-     says what the run did. Nothing else names the job: the REST API picks it up from the interface
-     (`manualRun` in `GET /api/v1/jobs`).
-   - The job works only on the volume, through `shared/volume`; it never calls Microscope.
-3. **Bean** — add an `@Bean` method to
-   `jeffrey-hub/src/main/java/cafe/jeffrey/hub/core/configuration/SchedulerConfiguration.java`
-   passing `config(JobType.{JOB})`. The scheduler, `ManualJobRunner` and `JobRegistry` collect every
-   `Job` bean themselves; a disabled job is still built and listed, but never scheduled.
-4. **Defaults** — add the job to `jeffrey-hub/src/main/resources/scheduler-defaults.properties`:
-   ```properties
-   jeffrey.hub.scheduler.jobs.{job-key}.enabled=true
-   jeffrey.hub.scheduler.jobs.{job-key}.period=5m
-   jeffrey.hub.scheduler.jobs.{job-key}.params.{param}={default}
-   ```
-   `{job-key}` is the `JobType` constant in kebab-case (`REPOSITORY_LOG_CLEANUP` → `repository-log-cleanup`).
-   `application.properties` overrides these; `SchedulerJobsProperties` merges the two.
+Read `RetentionJob` and `CompressionJob` first: they are the reference jobs.
+
+1. **Job type** — add the constant, with its id, to
+   `volume-scheduler/src/main/java/cafe/jeffrey/volumescheduler/scheduler/JobType.java`.
+2. **Job class** — a package of its own, `volume-scheduler/src/main/java/cafe/jeffrey/volumescheduler/{job}/{JobName}Job.java`:
+   - implements `Job`; `run()` hands the per-project work to a `ProjectFanOut` built in the
+     constructor (`fanOut.forEachProject(...)`) and returns one line saying what the run did.
+     The fan-out runs each visit isolated, so one broken project does not abort the run. There is
+     no job base class: compose, don't extend;
+   - constructor takes `VolumeProjects`, a domain record of its settings (like `RetentionPolicy`:
+     no Spring type, validated in its compact constructor) and any collaborator (`Clock` for
+     anything time-based — never `Instant.now()`);
+   - it logs every line with the project's `ref().logScope()`;
+   - it works only on the volume, through `shared/volume`; it never calls Microscope.
+3. **Configuration** — add a nested record to
+   `volume-scheduler/src/main/java/cafe/jeffrey/volumescheduler/config/VolumeSchedulerProperties.java`,
+   `jeffrey.volume-scheduler.{id}.*`, with `enabled` and `period` and its settings, each with its
+   `@DefaultValue`, a `schedule()` → `JobSchedule` and a mapping to the job's domain record. Put
+   the commented defaults into the reference block of `application.properties`.
+4. **Bean** — an `@Bean` for the job in
+   `volume-scheduler/src/main/java/cafe/jeffrey/volumescheduler/config/VolumeSchedulerConfiguration.java`,
+   and a `ScheduledJob(job, properties.{id}().schedule())` in the `jobScheduler` bean's list. A
+   disabled job is listed and runs on demand, but is never scheduled.
 
 ### Step 3: REST API
 
-Nothing to add: `GET /api/v1/jobs` lists every `JobType`, and the job's key (`JobType.key()`, the
-constant in kebab case) addresses it in `/api/v1/jobs/{key}` and in its properties. The hub has no UI.
+Nothing to add: `GET /api/v1/jobs` lists every job the scheduler holds, and the job's id addresses
+it in `/api/v1/jobs/{id}` and in its properties. If the job has settings an operator should see,
+add them to `JobResponse` the way the retention settings are. The Volume Scheduler has no UI.
 
 ### Step 4: Tests
 
-- `jeffrey-hub/src/test/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJobTest.java`,
-  modelled on `RepositoryCompressionProjectJobTest` (Mockito, `@Nested` by scenario, `Clock.fixed`);
-  hand the job its projects as a lambda (`() -> List.of(new HubProject(info, storage))`);
-  use `VolumeWriter` from `shared/test` when the job reads a real session layout.
-- Extend `SchedulerJobsPropertiesTest` if the defaults or param parsing are new in kind, and
-  `ManualJobRunnerTest` for a manually triggerable job.
+- `volume-scheduler/src/test/java/cafe/jeffrey/volumescheduler/{job}/{JobName}JobTest.java`,
+  modelled on `CompressionJobTest` (Mockito mocks of `VolumeProjects` and `VolumeProject`,
+  `@Nested` by scenario, `Clock.fixed`); use `VolumeWriter` from `shared/test` and
+  `ProjectVolumeFixture` when the job reads a real session layout.
+- Extend `VolumeSchedulerPropertiesTest` for the new defaults and refusals, `JobTypeTest` for the
+  id, and `VolumeSchedulerApplicationTest` with a run on demand over a real volume.
 
 ### Step 5: Documentation
 
-Document the job and its properties on `jeffrey-pages/src/views/docs/hub/configuration/HubConfigurationPage.vue`
-(the `jeffrey.hub.scheduler.jobs` section) and in the job list of `docs/hub/HubOverviewPage.vue` /
-`docs/hub/HubArchitectureOverviewPage.vue`.
+Document the job and its properties on
+`jeffrey-pages/src/views/docs/volume-scheduler/configuration/VolumeSchedulerConfigurationPage.vue`
+and in the job lists of `docs/volume-scheduler/VolumeSchedulerOverviewPage.vue`,
+`docs/volume-scheduler/VolumeSchedulerArchitecturePage.vue` and the API page.
 
 ### Step 6: Verify
 
 ```bash
-$MVN -q -pl jeffrey-hub -am test
+$MVN -q -pl volume-scheduler -am test
 ```
 
 ## Files to Modify
 
 | File | Change |
 |---|---|
-| `jeffrey-hub/.../hub/model/job/JobType.java` | new constant |
-| `jeffrey-hub/.../hub/core/scheduler/job/{JobName}ProjectJob.java` | new job |
-| `jeffrey-hub/.../hub/core/configuration/SchedulerConfiguration.java` | `@Bean` |
-| `jeffrey-hub/src/main/resources/scheduler-defaults.properties` | enabled, period, params |
-| `jeffrey-hub/src/test/.../scheduler/job/{JobName}ProjectJobTest.java` | tests |
-| `jeffrey-pages/src/views/docs/hub/configuration/HubConfigurationPage.vue` | docs |
+| `volume-scheduler/.../scheduler/JobType.java` | new constant and id |
+| `volume-scheduler/.../{job}/{JobName}Job.java` | new job |
+| `volume-scheduler/.../config/VolumeSchedulerProperties.java` | its settings, with defaults |
+| `volume-scheduler/.../config/VolumeSchedulerConfiguration.java` | `@Bean`, `ScheduledJob` |
+| `volume-scheduler/src/main/resources/application.properties` | commented defaults |
+| `volume-scheduler/src/test/.../{job}/{JobName}JobTest.java` | tests |
+| `jeffrey-pages/src/views/docs/volume-scheduler/configuration/VolumeSchedulerConfigurationPage.vue` | docs |
 
 ## Existing Jobs
 
-- **`PROJECT_RETENTION`** (`ProjectRetentionJob`): ages out sessions, caps sessions per instance, trims
+- **`RETENTION`** (`retention/RetentionJob`): ages out sessions, caps sessions per instance, trims
   the newest session's old chunks, holds the project under `max-size` and deletes stale instances;
-  refreshes the storage dashboard. Manually triggerable.
-- **`REPOSITORY_JFR_COMPRESSION`** (`RepositoryCompressionProjectJob`):
-  LZ4-compresses the closed chunks of each instance's two newest sessions.
+  publishes the storage figures `GET /api/v1/storage` serves.
+- **`COMPRESSION`** (`compression/CompressionJob`): LZ4-compresses the closed chunks of each
+  instance's two newest sessions (`RecordingCompressor`).

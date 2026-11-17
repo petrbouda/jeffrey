@@ -1,0 +1,229 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.volumescheduler.volume;
+
+import cafe.jeffrey.shared.common.JeffreyLayout;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class RecordingSessionTest {
+
+    private static final Instant CREATED_AT = Instant.parse("2026-02-20T12:00:00Z");
+
+    private static RecordingSessionFile file(long size) {
+        return new RecordingSessionFile(
+                "file-1", "file-1", CREATED_AT, size, true, null);
+    }
+
+    private static RecordingSessionFile recording(String name, Instant createdAt) {
+        return new RecordingSessionFile(name, name, createdAt, 1L, true, null);
+    }
+
+    private static RecordingSessionFile artifact(String name, Instant createdAt) {
+        return new RecordingSessionFile(name, name, createdAt, 1L, false, null);
+    }
+
+    /** A chunk as the provisioner names it: started when its id says, at the offset it carries. */
+    private static RecordingSessionFile chunk(String id) {
+        return new RecordingSessionFile(id, id + ".jfr", JeffreyLayout.recordingStart(id).orElseThrow(), 1L, true, null);
+    }
+
+    private static List<String> namesOf(List<RecordingSessionFile> files) {
+        return files.stream().map(RecordingSessionFile::name).toList();
+    }
+
+    /** The instance's newest session: no newer one has started. */
+    private static RecordingSession newest(RecordingSessionFile... files) {
+        return new RecordingSession("session-1", "inst-1", CREATED_AT, true, List.of(files));
+    }
+
+    /** A session a newer one in its instance has ended. */
+    private static RecordingSession ended(RecordingSessionFile... files) {
+        return new RecordingSession("session-1", "inst-1", CREATED_AT, false, List.of(files));
+    }
+
+    @Nested
+    class TotalSizeBytes {
+
+        @Test
+        void sumsFileSizes() {
+            RecordingSession recordingSession = ended(file(100L), file(50L));
+
+            assertEquals(150L, recordingSession.totalSizeBytes());
+        }
+    }
+
+    @Nested
+    class IsFailedEmpty {
+
+        @Test
+        void anEndedSessionWithoutFilesIsFailed() {
+            assertTrue(ended().isFailedEmpty());
+        }
+
+        @Test
+        void anEndedSessionWithOnlyZeroSizeFilesIsFailed() {
+            assertTrue(ended(file(0L), file(0L)).isFailedEmpty());
+        }
+
+        @Test
+        void anEndedSessionWithDataIsNotFailed() {
+            assertFalse(ended(file(1L)).isFailedEmpty());
+        }
+
+        @Test
+        void theNewestSessionWithZeroBytesIsNotFailed() {
+            assertFalse(newest().isFailedEmpty());
+        }
+    }
+
+    /**
+     * The one rule the volume scheduler and Microscope must agree on: which recording may still be on its way
+     * onto the volume. Each side has its own copy of {@code RecordingSession}; these three cases
+     * are the same in both tests, so a change to one side's answer fails here before it disagrees
+     * in production.
+     */
+    @Nested
+    class OpenRecording {
+
+        /**
+         * Daylight saving ends: the clocks go back from 03:00 to 02:00 while the names keep the
+         * session's +0200, so the chunk written after the switch reads an hour older than the one
+         * before it. The file number in its name says it is the newest; the volume scheduler and Microscope
+         * must agree on it, so the same case is pinned on both sides.
+         */
+        @Test
+        void isTheHighestFileNumberWhenTheClockGoesBack() {
+            RecordingSessionFile beforeTheSwitch = chunk("rec-20261025-024500+0200_10");
+            RecordingSessionFile afterTheSwitch = chunk("rec-20261025-020000+0200_11");
+            RecordingSession recordingSession = newest(afterTheSwitch, beforeTheSwitch);
+
+            assertEquals(Optional.of(afterTheSwitch), recordingSession.openRecording());
+            assertEquals(List.of(beforeTheSwitch), recordingSession.trimmableRecordings());
+        }
+
+        @Test
+        void isTheNewestRecordingOfTheInstancesNewestSession() {
+            RecordingSessionFile older = recording("profile-1.jfr", CREATED_AT);
+            RecordingSessionFile newer = recording("profile-2.jfr", CREATED_AT.plusSeconds(60));
+            RecordingSession recordingSession = newest(older, newer);
+
+            assertEquals(Optional.of(newer), recordingSession.openRecording());
+            assertEquals(List.of(older), recordingSession.trimmableRecordings());
+        }
+
+        /**
+         * The listing arrives sorted by filename for presentation, and the two orders part
+         * company as soon as a file's name does not carry a parseable timestamp. Every reader of
+         * these files goes by the timestamp, so this one does too.
+         */
+        @Test
+        void isPickedByTimestampRatherThanByPositionInTheListing() {
+            RecordingSession recordingSession = newest(
+                    recording("zzz-oldest", CREATED_AT),
+                    recording("aaa-newest", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("aaa-newest", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        /**
+         * A compressed archive is a recording file like any other and is a candidate here. What
+         * keeps it from being mistaken for the open chunk is that it keeps the timestamp from its
+         * own name when the compression job rewrites it, rather than taking the time of the rewrite.
+         */
+        @Test
+        void isNotTheArchiveWrittenBesideAnEarlierChunk() {
+            RecordingSessionFile archive = new RecordingSessionFile(
+                    "c1", "c1.jfr.lz4", CREATED_AT, 1L, true, null);
+            RecordingSession recordingSession = newest(
+                    archive, recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals("c2", recordingSession.openRecording().orElseThrow().name());
+        }
+
+        @Test
+        void isNeverAnArtifactHoweverNewItIs() {
+            RecordingSessionFile chunk = recording("profile-1.jfr", CREATED_AT);
+            RecordingSessionFile log = artifact("gc.jvm-log", CREATED_AT.plusSeconds(600));
+            RecordingSession recordingSession = newest(chunk, log);
+
+            assertEquals(Optional.of(chunk), recordingSession.openRecording());
+        }
+
+        @Test
+        void isAbsentOnceANewerSessionHasStarted() {
+            RecordingSessionFile chunk = recording("profile-1.jfr", CREATED_AT);
+            RecordingSession recordingSession = ended(chunk);
+
+            assertEquals(Optional.empty(), recordingSession.openRecording());
+            assertEquals(List.of(chunk), recordingSession.trimmableRecordings());
+        }
+
+        @Test
+        void isEmptyForANewestSessionThatHasNoRecordingYet() {
+            assertTrue(newest(artifact("app.log", CREATED_AT)).openRecording().isEmpty());
+        }
+
+        @Test
+        void isEmptyForASessionLoadedWithoutFiles() {
+            assertTrue(newest().openRecording().isEmpty());
+        }
+    }
+
+    @Nested
+    class FinishedRecordings {
+
+        @Test
+        void areOrderedOldestFirstWhenNarrowedToRecordings() {
+            RecordingSession recordingSession = ended(
+                    recording("c3", CREATED_AT.plusSeconds(120)),
+                    artifact("app.log", CREATED_AT),
+                    recording("c1", CREATED_AT),
+                    recording("c2", CREATED_AT.plusSeconds(60)));
+
+            assertEquals(List.of("c1", "c2", "c3"), namesOf(recordingSession.trimmableRecordings()));
+        }
+    }
+
+    @Nested
+    class LastDataAt {
+
+        @Test
+        void isTheNewestRecordingsTimestamp() {
+            RecordingSession recordingSession = newest(
+                    recording("c1", CREATED_AT.plusSeconds(60)),
+                    recording("c2", CREATED_AT.plusSeconds(960)),
+                    artifact("app.log", CREATED_AT.plusSeconds(1200)));
+
+            assertEquals(CREATED_AT.plusSeconds(960), recordingSession.lastRecordingStart());
+        }
+
+        @Test
+        void isTheStartWhileThereIsNoRecording() {
+            assertEquals(CREATED_AT, newest(artifact("app.log", CREATED_AT.plusSeconds(30))).lastRecordingStart());
+        }
+    }
+}

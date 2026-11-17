@@ -108,12 +108,12 @@ public record RecordingSession(
      * <p>Newest in {@link JeffreyLayout#recordingOrder} — by the file number the profiler put in
      * the file's own name, else by the timestamp there — and emphatically not by position in a
      * listing, which is sorted for presentation, nor by the file being uncompressed, which only
-     * says the hub has not reached it yet. Not by the timestamp alone either: it goes back an hour
+     * says the volume scheduler's compression job has not reached it yet. Not by the timestamp alone either: it goes back an hour
      * when daylight saving ends, and the chunk being written would read older than the one before.
      * Every other reader of these files orders them the same way, and a second notion of "newest"
      * in the same tree is what let the two disagree.
      *
-     * <p>The hub never compresses or trims this file. Microscope lists it and hands it over; a
+     * <p>The volume scheduler never compresses or trims this file. Microscope lists it and hands it over; a
      * download that arrives incomplete is refused by the chunk check on arrival instead. Only
      * meaningful when the session was loaded WITH files.
      */

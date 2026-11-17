@@ -119,7 +119,7 @@ onMounted(() => {
         <li><i class="bi bi-check2-circle"></i> Quick ad-hoc profiling investigations directly on your laptop.</li>
         <li><i class="bi bi-check2-circle"></i> Deep, side-by-side comparisons with differential flame graphs and timeseries.</li>
         <li><i class="bi bi-check2-circle"></i> Hunting memory leaks and oversized retention with heap-dump tooling.</li>
-        <li><i class="bi bi-check2-circle"></i> Declaring the Azure file share that holds the recording volume as the connector, for centralised, production-grade recording collection (kept tidy by a Jeffrey Hub).</li>
+        <li><i class="bi bi-check2-circle"></i> Declaring the Azure file share that holds the recording volume as the connector, for production-grade recording collection (kept tidy by the <router-link to="/docs/volume-scheduler">Volume Scheduler</router-link>).</li>
       </ul>
 
     </div>

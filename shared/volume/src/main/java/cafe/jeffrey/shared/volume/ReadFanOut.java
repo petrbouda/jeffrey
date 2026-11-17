@@ -37,7 +37,7 @@ public interface ReadFanOut {
      */
     <T, R> List<R> map(List<T> items, Function<T, R> read);
 
-    /** One read after another, on the calling thread: the hub's, on its own mount. */
+    /** One read after another, on the calling thread: the volume scheduler's, on its own mount. */
     static ReadFanOut sequential() {
         return Sequential.INSTANCE;
     }

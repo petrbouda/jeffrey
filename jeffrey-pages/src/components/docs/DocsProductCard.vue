@@ -24,7 +24,7 @@ defineProps<{
   role: string
   components: string[]
   ctaText: string
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary' | 'septenary' | 'octonary'
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'quaternary' | 'quinary' | 'senary' | 'septenary' | 'octonary' | 'nonary'
 }>()
 </script>
 
@@ -39,7 +39,8 @@ defineProps<{
       'variant-quinary': variant === 'quinary',
       'variant-senary': variant === 'senary',
       'variant-septenary': variant === 'septenary',
-      'variant-octonary': variant === 'octonary'
+      'variant-octonary': variant === 'octonary',
+      'variant-nonary': variant === 'nonary'
     }"
   >
     <div class="card-rail"></div>
@@ -91,7 +92,7 @@ defineProps<{
 }
 
 .product-card.variant-secondary {
-  /* secondary: Server — purple/violet, matching the dual-hero on the home page */
+  /* secondary: Volume Scheduler — purple/violet, matching its sidebar accent */
   --accent: #8b5cf6;
   --accent-tint: #ede9fe;
   --accent-soft: #f5f3ff;
@@ -144,6 +145,14 @@ defineProps<{
   --accent-tint: #ecfccb;
   --accent-soft: #f7fee7;
   --accent-shadow: rgba(101, 163, 13, 0.35);
+}
+
+.product-card.variant-nonary {
+  /* nonary: Deployment by Example — slate, a neutral for the walkthrough across products */
+  --accent: #64748b;
+  --accent-tint: #e2e8f0;
+  --accent-soft: #f8fafc;
+  --accent-shadow: rgba(100, 116, 139, 0.35);
 }
 
 .product-card:hover {

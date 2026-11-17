@@ -62,7 +62,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The event parser over realistic recordings: files a profiler with {@code jfrsync} wrote, each two
  * chains of chunks overlapping in time — the JDK's own and async-profiler's — whose event types are
  * numbered differently. What reaches the writer is held to what {@link TestappRecording} pins, however
- * the file is read: as the provisioner left it, compressed as the hub leaves it, split, or as its
+ * the file is read: as the provisioner left it, compressed as the volume scheduler leaves it, split, or as its
  * chunks in files of their own.
  */
 @DisplayName("JfrRecordingEventParser over realistic recordings")
@@ -227,7 +227,7 @@ class JfrRecordingEventParserRealisticTest {
         assertEquals(expected.samples(), actual.samples());
     }
 
-    /** The run compressed as the hub leaves it: an archive is always split, its decompression in the same pass. */
+    /** The run compressed as the volume scheduler leaves it: an archive is always split, its decompression in the same pass. */
     private static EventTally archive(TestappRecording recording) {
         return reading("archive " + recording, () -> RecordingSources.of(archiveFile(recording)), ALWAYS_SPLIT);
     }

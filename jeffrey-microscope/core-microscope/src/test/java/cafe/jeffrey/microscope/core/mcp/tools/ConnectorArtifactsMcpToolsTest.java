@@ -203,8 +203,8 @@ class ConnectorArtifactsMcpToolsTest {
     }
 
     /**
-     * Microscope types a hub's file with {@link ManagedFile#of(String)} from the name the hub
-     * sent, and connector_fetchFile derives the type the same way when it answers off this disk. A
+     * Microscope types a connector's file with {@link ManagedFile#of(String)} from the name the
+     * connector sent, and connector_fetchFile derives the type the same way when it answers off this disk. A
      * fixture whose name does not classify to
      * the type it is handed is a file Jeffrey could never produce, and a test over it proves nothing
      * about the real path - which is how a GC log once came to be documented under a name that
@@ -460,7 +460,7 @@ class ConnectorArtifactsMcpToolsTest {
         /**
          * A client that declared the tasks extension is handed a long transfer as a task after the
          * task budget. Only the wait on the transfer is shortened: the preflight that finds the file
-         * on the hub keeps the whole response budget.
+         * on the connector keeps the whole response budget.
          */
         @Nested
         class TaskCapableClient {
@@ -713,7 +713,7 @@ class ConnectorArtifactsMcpToolsTest {
             when(repository.streamFile(SESSION_ID, "f-log")).thenReturn(streamed("service-app.log"));
             complete(tools.fetchFile(REF.encode(), "f-log", RESOURCE_READ));
 
-            // The hub is gone: the session lookup the preflight would make now fails.
+            // The connector is gone: the session lookup the preflight would make now fails.
             when(repository.recordingSession(SESSION_ID)).thenThrow(
                     new JeffreyException(ErrorType.INTERNAL, ErrorCode.CONNECTOR_UNAVAILABLE, "hub is down"));
 
@@ -736,7 +736,7 @@ class ConnectorArtifactsMcpToolsTest {
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
             JsonNode answer = Json.readTree(complete(tools.fetchFile(REF.encode(), "f-gc", RESOURCE_READ)));
 
-            // The retained path is stale, so the hub path runs and moves the file beside the profile.
+            // The retained path is stale, so the connector path runs and moves the file beside the profile.
             assertEquals(profileTarget("prof-1", "gc.jvm-log").toString(), answer.path("path").asText());
         }
 

@@ -72,9 +72,9 @@ const cosmosNodes: CosmosNode[] = [
     to: '/docs/jib', x: 85, y: 59, color: 'var(--amber)', delay: 2
   },
   {
-    id: 'hub', name: 'Hub', sub: 'shared volume', icon: 'bi-cloud', tier: 'companion', tipUp: true,
-    tip: 'Runs in Kubernetes. Retention, cleanup and LZ4 compression of the volume your services record into.',
-    to: '/docs/hub', x: 29, y: 84, color: 'var(--ember)', delay: 2.6
+    id: 'volume-scheduler', name: 'Volume Scheduler', sub: 'volume maintenance', icon: 'bi-clock-history', tier: 'companion', tipUp: true,
+    tip: 'A small maintenance service beside the volume your services record into: retention by age, a session cap per instance and a disk budget, plus LZ4 compression.',
+    to: '/docs/volume-scheduler', x: 29, y: 84, color: 'var(--ember)', delay: 2.6
   },
   {
     id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack', tier: 'companion', tipUp: true,
@@ -199,7 +199,7 @@ const ROUTE_DASHES = ['M110 208 L110 248', 'M370 88 L370 138', 'M630 208 L630 24
 
 const routeStations: RouteStation[] = [
   { name: 'Your services', sub: 'JFR · async-profiler', icon: 'bi-boxes', color: 'var(--ember)', x: 11, y: 60 },
-  { name: 'Shared volume', sub: '/mnt/jeffrey-home', icon: 'bi-hdd-stack', color: 'var(--amber)', x: 37, y: 20 },
+  { name: 'Shared volume', sub: '/mnt/jeffrey', icon: 'bi-hdd-stack', color: 'var(--amber)', x: 37, y: 20 },
   { name: 'Microscope', sub: 'flamegraphs · dashboards', icon: 'bi-search', color: 'var(--ms)', x: 63, y: 60 },
   { name: 'Coding agent', sub: 'Claude Code · Codex', icon: 'bi-stars', color: 'var(--mcp)', x: 89, y: 20 }
 ];
@@ -216,8 +216,8 @@ const routeNotes: RouteNote[] = [
     parts: [{ text: 'Provisioner', strong: true }, { text: ' or ' }, { text: 'JIB', strong: true }, { text: ' starts them' }]
   },
   {
-    icon: 'bi-cloud', color: 'var(--ember)', x: 37, y: 50,
-    parts: [{ text: 'Jeffrey Hub', strong: true }, { text: ' keeps it tidy' }]
+    icon: 'bi-clock-history', color: 'var(--ember)', x: 37, y: 50,
+    parts: [{ text: 'Volume Scheduler', strong: true }, { text: ' keeps it tidy' }]
   },
   {
     icon: 'bi-file-earmark-arrow-up', color: 'var(--ms)', x: 63, y: 86.7,
@@ -246,7 +246,7 @@ function positionStyle(item: { x: number; y: number; color?: string }): Record<s
 
 // ---------- Product showcase ----------
 
-type Tab = 'microscope' | 'mcp' | 'plugin' | 'hub';
+type Tab = 'microscope' | 'mcp' | 'plugin' | 'volume-scheduler';
 
 interface TopologyNode {
   icon: string;
@@ -301,7 +301,7 @@ const productTabs: ProductTab[] = [
     deployment: {
       eyebrow: 'Deployment',
       title: 'Runs as a plain JAR',
-      desc: 'No Hub required. Java 25+ on your laptop, drop in a JFR file, browse.',
+      desc: 'No Volume Scheduler required. Java 25+ on your laptop, drop in a JFR file, browse.',
       cmd: 'java -jar microscope.jar'
     },
     docsRoute: '/docs/microscope',
@@ -357,30 +357,30 @@ const productTabs: ProductTab[] = [
     cta: 'Read plugin docs'
   },
   {
-    id: 'hub',
-    name: 'Jeffrey Hub',
-    icon: 'bi-cloud-fill',
-    tagline: 'Maintenance service for the shared recording volume.',
-    oneLiner: 'Runs in Kubernetes next to the shared volume your services record into. Keeps it within its limits with scheduled jobs.',
+    id: 'volume-scheduler',
+    name: 'Volume Scheduler',
+    icon: 'bi-clock-history',
+    tagline: 'A small maintenance service for the shared recording volume.',
+    oneLiner: 'Runs beside Microscope, next to the shared volume your services record into, and keeps that volume within its limits with two scheduled jobs.',
     features: [
-      { icon: 'bi-trash3', title: 'Retention', desc: 'Drops sessions by age and per-project cap, trims each instance’s newest session, enforces a storage quota and cleans up stale instances.' },
+      { icon: 'bi-trash3', title: 'Retention', desc: 'Drops sessions by age and by a cap per instance, trims each instance’s newest session, keeps every project within its disk budget and cleans up stale instances.' },
       { icon: 'bi-file-zip', title: 'Compression', desc: 'LZ4-compresses finished JFR chunks in place.' },
       { icon: 'bi-speedometer2', title: 'Storage API', desc: 'Size, files and last activity per workspace and project, as JSON.' },
-      { icon: 'bi-calendar-check', title: 'Scheduler', desc: 'Lists the jobs over the REST API and runs retention now, without waiting for its next tick.' },
-      { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'No API to Microscope and no database — the volume is the only state; Microscope reads it from the Azure file share.' }
+      { icon: 'bi-calendar-check', title: 'Jobs API', desc: 'Lists both jobs over the REST API and runs either one now, without waiting for its next tick.' },
+      { icon: 'bi-hdd-stack', title: 'Integration based on Shared-volume', desc: 'No API to Microscope and no database — the volume is the only state; Microscope reads it through its connector.' }
     ],
     deployment: {
       eyebrow: 'Deployment',
-      title: 'Deploys to Kubernetes',
-      desc: 'Hub runs alongside your services on the shared volume they record into.',
+      title: 'One native container',
+      desc: 'The volume scheduler runs beside your services and mounts the shared volume they record into.',
       topology: [
         { icon: 'bi-app-indicator', label: 'Your services', em: '+ provisioner' },
-        { icon: 'bi-hdd-stack', code: '/mnt/jeffrey-home', label: 'shared volume' },
-        { icon: 'bi-cloud-fill', label: 'Jeffrey Hub', badge: 'Scheduler jobs' }
+        { icon: 'bi-hdd-stack', code: '/mnt/jeffrey', label: 'shared volume' },
+        { icon: 'bi-clock-history', label: 'volume-scheduler', badge: 'Scheduled jobs' }
       ]
     },
-    docsRoute: '/docs/hub/deployment',
-    cta: 'Read deployment guide'
+    docsRoute: '/docs/volume-scheduler',
+    cta: 'Read Volume Scheduler docs'
   }
 ];
 
@@ -1314,7 +1314,7 @@ async function copyCmd(): Promise<void> {
   --tab-accent: var(--ide);
 }
 
-.showcase[data-active='hub'] {
+.showcase[data-active='volume-scheduler'] {
   --tab-accent: var(--ember);
 }
 

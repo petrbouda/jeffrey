@@ -28,7 +28,7 @@
 
     <modules>
         <module>shared</module>
-        <module>jeffrey-hub</module>
+        <module>volume-scheduler</module>
         <module>jeffrey-microscope</module>
         <module>jeffrey-provisioner</module>
         <module>utilities</module>
@@ -186,7 +186,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jeffrey-hub</artifactId>
+                <artifactId>volume-scheduler</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

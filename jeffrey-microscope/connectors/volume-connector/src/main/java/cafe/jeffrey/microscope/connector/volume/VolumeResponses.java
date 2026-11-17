@@ -40,9 +40,9 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * The volume's types onto Microscope's own. What the hub's jobs decide from the same volume
- * (whether a session failed, which recording may still be on its way) is decided here by the same
- * rules, so Microscope and the hub never disagree about a session.
+ * The volume's types onto Microscope's own. What the volume scheduler's jobs decide from the same
+ * volume (whether a session failed, which recording may still be on its way) is decided here by the
+ * same rules, so Microscope and the volume scheduler never disagree about a session.
  */
 final class VolumeResponses {
 
@@ -99,7 +99,7 @@ final class VolumeResponses {
                 session.newest());
     }
 
-    /** A project as its directory names it; its size is never measured here, only by the hub's retention pass. */
+    /** A project as its directory names it; its size is never measured here. */
     static ConnectorProjectResponse project(ProjectTree project, String workspaceId) {
         return new ConnectorProjectResponse(
                 project.id(),
@@ -139,7 +139,7 @@ final class VolumeResponses {
     /**
      * A session a newer one ended before it produced any data — a crash before the first chunk.
      * The newest session is never failed: it may simply not have written anything yet. The rule
-     * the hub's retention applies too.
+     * the volume scheduler's retention applies too.
      */
     private static boolean failed(VolumeSession session, long bytes) {
         return !session.newest() && bytes == 0;

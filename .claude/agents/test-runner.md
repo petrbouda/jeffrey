@@ -23,7 +23,7 @@ Analyze changed files to determine affected modules and run only the relevant te
    - `jeffrey-microscope/profiles/heap-dump/` -> `-pl jeffrey-microscope/profiles/heap-dump`
    - `jeffrey-microscope/profiles/recording-parser/*/` -> `-pl` the specific parser module
    - `jeffrey-microscope/microscope-core-sql-persistence/` -> `-pl jeffrey-microscope/microscope-core-sql-persistence`
-   - `jeffrey-hub/` -> `-pl jeffrey-hub`
+   - `volume-scheduler/` -> `-pl volume-scheduler`
    - `shared/common/` -> `-pl shared/common`
    - `shared/persistence/` -> `-pl shared/persistence`
    - `shared/sql-builder/` -> `-pl shared/sql-builder`
@@ -31,9 +31,9 @@ Analyze changed files to determine affected modules and run only the relevant te
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `shared/common/` -> also test `jeffrey-hub`, `jeffrey-microscope/profiles/profile-management`
+   - `shared/common/` -> also test `volume-scheduler`, `jeffrey-microscope/profiles/profile-management`
    - `shared/persistence/` -> also test all `*-sql-persistence` modules
-   - `shared/volume/` -> also test `jeffrey-hub`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector`
+   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector`
 
 4. **Run targeted tests**:
    ```bash
@@ -54,6 +54,6 @@ Analyze changed files to determine affected modules and run only the relevant te
 Run this agent after making Java changes, especially:
 - Modifying business logic in managers or services
 - Changing persistence layer (repositories, SQL)
-- Modifying the hub's scheduler jobs or the volume layout
+- Modifying the volume scheduler's jobs or the volume layout
 - Changing shared utilities or models
 - Before committing to catch regressions early

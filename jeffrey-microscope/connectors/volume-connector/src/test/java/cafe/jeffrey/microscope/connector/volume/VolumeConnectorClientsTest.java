@@ -61,7 +61,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * A recording volume reached straight on its storage answers the connector clients the way a hub would:
+ * A recording volume reached straight on its storage answers the connector clients:
  * the same tree, the same newest and failed sessions, the same refusals, the same changes — or none at all
  * when it is declared read-only.
  */
@@ -156,11 +156,11 @@ class VolumeConnectorClientsTest {
         }
 
         @Test
-        void reportsItselfWhereAHubReportsItsVersion() {
+        void reportsItsDescriptionAsItsVersion() {
             assertEquals(DESCRIPTION, clients.discovery().info().version());
         }
 
-        /** An unreadable volume is reported like an unreachable hub, which every caller already handles. */
+        /** An unreadable volume is reported as an unavailable connector, which every caller already handles. */
         @Test
         void aVolumeThatCannotBeReadIsUnavailable() {
             ConnectorClients unreadable = clients(new UnreadableVolume());
@@ -240,7 +240,7 @@ class VolumeConnectorClientsTest {
         }
     }
 
-    /** The user's changes, made as the hub makes them on its own mount. */
+    /** The user's changes, made through the volume's layout as the volume scheduler makes its own on its mount. */
     @Nested
     class Changes {
 

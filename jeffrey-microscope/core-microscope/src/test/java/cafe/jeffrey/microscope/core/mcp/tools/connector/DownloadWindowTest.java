@@ -39,7 +39,7 @@ class DownloadWindowTest {
     private static final Instant NOW = Instant.parse("2026-03-01T12:00:00Z");
     private static final long AT = Instant.parse("2026-03-01T09:00:00Z").toEpochMilli();
 
-    /** A session the rule must not read: a window that needs nothing of it costs no call to the hub. */
+    /** A session the rule must not read: a window that needs nothing of it costs no call to the connector. */
     private static final Supplier<WindowSubject> NEVER_READ = () -> {
         throw new AssertionError("the session was read for a window that does not need it");
     };

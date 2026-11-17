@@ -84,7 +84,7 @@ help — it expands only variables declared earlier in the same container's `env
 `envFrom` or a webhook. Write `cluster=<<ENV:SF_CLUSTER>>` instead.
 
 **The project name is a stable identity** — it keys the project directory on the shared
-volume and links every session to the same project on Jeffrey Hub. Changing it creates a
+volume and links every session to the same project directory on the shared volume. Changing it creates a
 new project. If you rename the Maven artifactId / Gradle project, pin `projectName` in the
 jib configuration to keep the project's history continuous.
 
@@ -205,8 +205,8 @@ names. If that file does not exist at container start, the provisioner logs a wa
 application starts unprofiled.
 
 **There is no `provisionerPath`.** The provisioner is not a third-party component you can
-substitute. It is Jeffrey's own binary, and the session layout and workspace events it writes are
-the protocol Jeffrey Hub reads. Neither side version-checks that protocol, so an image carrying
+substitute. It is Jeffrey's own binary, and the session layout it writes is what Microscope and
+the Volume Scheduler read. Neither side version-checks that layout, so an image carrying
 someone else's copy would drift from it silently, with nothing recording which copy it had. The
 extension therefore always bakes the provisioner, and the flavour chooses only which build of it.
 A build still setting `provisionerPath`, `provisionerSource`, `payloadVersion` or `agentPath`

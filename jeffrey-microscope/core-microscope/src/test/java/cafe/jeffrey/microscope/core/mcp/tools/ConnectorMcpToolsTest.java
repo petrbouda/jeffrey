@@ -1191,7 +1191,7 @@ class ConnectorMcpToolsTest {
         }
 
         /**
-         * A part chosen by name: resolved on the session as the hub describes it, downloaded through
+         * A part chosen by name: resolved on the session as the connector describes it, downloaded through
          * the same paths a window or named files take, with what was picked and why in the answer.
          */
         @Nested

@@ -124,7 +124,7 @@ class ConnectorRecordingsDownloadManagerTest {
     }
 
     /**
-     * Serves every recording and artifact file the hub is asked for. Each transfer hands the
+     * Serves every recording and artifact file the connector is asked for. Each transfer hands the
      * consumer its own bytes, the way the real client does.
      */
     private void servesEveryFile() {
@@ -199,7 +199,7 @@ class ConnectorRecordingsDownloadManagerTest {
     }
 
     /**
-     * What the session's listing calls this file — which is the name the hub sends back when
+     * What the session's listing calls this file — which is the name the connector sends back when
      * nothing has renamed it since.
      */
     private String listedNameOf(String fileId) {
@@ -211,8 +211,8 @@ class ConnectorRecordingsDownloadManagerTest {
     }
 
     /**
-     * Serves the file under a name of the hub's choosing, the way the hub does once the
-     * compression job has replaced a chunk with its archive. A {@code .jfr} arrives as one whole
+     * Serves the file under a name of the volume's choosing, the way the connector does once the
+     * volume scheduler's compression job has replaced a chunk with its archive. A {@code .jfr} arrives as one whole
      * chunk, which is what the receiver checks before it keeps one.
      */
     private static Object feedAs(
@@ -265,7 +265,7 @@ class ConnectorRecordingsDownloadManagerTest {
                 newest, 60_000L, List.of(files), false, files.length, sizeOf(files));
     }
 
-    /** What the hub reports alongside the files, measured from them. */
+    /** What the connector reports alongside the files, measured from them. */
     private static long sizeOf(RepositoryFileResponse... files) {
         return Arrays.stream(files)
                 .map(RepositoryFileResponse::size)
@@ -340,7 +340,7 @@ class ConnectorRecordingsDownloadManagerTest {
          * recognised by the extension and nothing sniffs the frame.
          */
         @Test
-        @DisplayName("keeps a file under the name the hub sent, not the one the listing had")
+        @DisplayName("keeps a file under the name the connector sent, not the one the listing had")
         void keepsTheNameTheTransferCarried() {
             when(repositoryClient.recordingSession(SCOPE, SESSION_ID)).thenReturn(session(
                     file("f-1", "profile-1.jfr", ManagedFile.JFR)));
@@ -387,8 +387,8 @@ class ConnectorRecordingsDownloadManagerTest {
 
         /**
          * The heart of it: every chunk of the session reaches storage as a file of its own. Before,
-         * the hub concatenated them and this was one file — which is what made a skipped chunk
-         * invisible and what cost the hub a full decompress and recompress of the session.
+         * they were concatenated into one file on the serving side — which is what made a skipped
+         * chunk invisible and what cost a full decompress and recompress of the session.
          */
         @Test
         @DisplayName("fetches every recording file separately and keeps them all")
@@ -437,7 +437,7 @@ class ConnectorRecordingsDownloadManagerTest {
         /**
          * A zero-byte chunk is left behind by a profiler stopped before it wrote an event — a
          * killed container, a shutdown that was not graceful — and it is the last chunk that gets
-         * it. The hub refuses to serve one, so asking for it fails the whole session's download;
+         * it. The connector refuses to hand one over, so asking for it fails the whole session's download;
          * the rest of the session is worth having without it.
          */
         @Test
@@ -836,8 +836,8 @@ class ConnectorRecordingsDownloadManagerTest {
         /**
          * An id the session does not hold used to be dropped by the filter that picked the files,
          * returning a recording made of the rest with nothing saying a file had been asked for and
-         * not brought. The hub caught it while it still saw whole selections; it serves one file
-         * per call now, so the refusal lives here beside the gap check.
+         * not brought. The connector serves one file per call and never sees
+         * a whole selection, so the refusal lives here beside the gap check.
          */
         @Test
         void anIdTheSessionDoesNotHoldIsRefusedRatherThanDropped() {

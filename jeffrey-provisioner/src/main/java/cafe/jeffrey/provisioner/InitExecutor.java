@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Clock;
 
 /**
- * Provisions a Jeffrey session for one JVM: lays down its directories, declares it to the hub,
+ * Provisions a Jeffrey session for one JVM: lays down its directories
  * and writes the JVM options that arm the profiler.
  */
 public class InitExecutor {

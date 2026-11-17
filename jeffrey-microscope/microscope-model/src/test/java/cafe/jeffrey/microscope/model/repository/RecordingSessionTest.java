@@ -78,7 +78,7 @@ class RecordingSessionTest {
     }
 
     /**
-     * The one rule the hub and Microscope must agree on: which recording may still be on its way
+     * The one rule the volume scheduler and Microscope must agree on: which recording may still be on its way
      * onto the volume. Each side has its own copy of {@code RecordingSession}; these three cases
      * are the same in both tests, so a change to one side's answer fails here before it disagrees
      * in production.
@@ -89,8 +89,8 @@ class RecordingSessionTest {
         /**
          * Daylight saving ends: the clocks go back from 03:00 to 02:00 while the names keep the
          * session's +0200, so the chunk written after the switch reads an hour older than the one
-         * before it. The file number in its name says it is the newest; the hub and Microscope
-         * must agree on it, so the same case is pinned on both sides.
+         * before it. The file number in its name says it is the newest; the volume scheduler and
+         * Microscope must agree on it, so the same case is pinned on both sides.
          */
         @Test
         void isTheHighestFileNumberWhenTheClockGoesBack() {
@@ -129,7 +129,7 @@ class RecordingSessionTest {
         /**
          * A compressed archive is a recording file like any other and is a candidate here. What
          * keeps it from being mistaken for the open chunk is that it keeps the timestamp from its
-         * own name when the hub rewrites it, rather than taking the time of the rewrite.
+         * own name when the volume scheduler rewrites it, rather than taking the time of the rewrite.
          */
         @Test
         void isNotTheArchiveWrittenBesideAnEarlierChunk() {

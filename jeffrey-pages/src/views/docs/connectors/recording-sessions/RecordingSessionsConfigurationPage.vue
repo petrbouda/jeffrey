@@ -1,0 +1,157 @@
+<!--
+  - Jeffrey
+  - Copyright (C) 2025 Petr Bouda
+  -
+  - Licensed under the Apache License, Version 2.0 (the "License");
+  - you may not use this file except in compliance with the License.
+  - You may obtain a copy of the License at
+  -
+  -     https://www.apache.org/licenses/LICENSE-2.0
+  -
+  - Unless required by applicable law or agreed to in writing, software
+  - distributed under the License is distributed on an "AS IS" BASIS,
+  - WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  - See the License for the specific language governing permissions and
+  - limitations under the License.
+-->
+
+<script setup lang="ts">
+import { onMounted } from 'vue';
+import DocsLinkCard from '@/components/docs/DocsLinkCard.vue';
+import DocsNavFooter from '@/components/docs/DocsNavFooter.vue';
+import DocsPageHeader from '@/components/docs/DocsPageHeader.vue';
+import { useDocHeadings } from '@/composables/useDocHeadings';
+
+const { setHeadings } = useDocHeadings();
+
+const headings = [
+  { id: 'configuration-overview', text: 'Configuration Overview', level: 2 },
+  { id: 'provisioner-setup', text: 'Jeffrey Provisioner Setup', level: 2 }
+];
+
+onMounted(() => {
+  setHeadings(headings);
+});
+</script>
+
+<template>
+  <article class="docs-article">
+      <DocsPageHeader
+        title="Configuration"
+        icon="bi bi-gear"
+      />
+
+      <div class="docs-content">
+        <p>Recording sessions are configured using <router-link to="/docs/provisioner">Jeffrey Provisioner</router-link>, which generates the necessary JVM arguments to start Async-Profiler with proper output directories and settings.</p>
+
+        <h2 id="configuration-overview">Configuration Overview</h2>
+        <p>To create recording sessions, you need to configure your Java application with:</p>
+
+        <div class="config-steps">
+          <div class="config-step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h4>Profiler Command</h4>
+              <p>Define what events to capture (CPU, allocations, locks) and profiling parameters with <router-link to="/docs/microscope/profiler-builder">Profiler Builder</router-link>, then give the result to the provisioner as <code>profiler-command</code> or <code>JEFFREY_PROFILER_COMMAND</code>.</p>
+            </div>
+          </div>
+          <div class="config-step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h4>Jeffrey Provisioner</h4>
+              <p>Use Jeffrey Provisioner to generate JVM arguments that configure Async-Profiler with the correct output paths and settings.</p>
+            </div>
+          </div>
+          <div class="config-step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h4>Application Startup</h4>
+              <p>Start your Java application with the generated arguments. Recording sessions are created automatically as profiling begins.</p>
+            </div>
+          </div>
+        </div>
+
+        <h2 id="provisioner-setup">Jeffrey Provisioner Setup</h2>
+        <p>Jeffrey Provisioner talks to nothing over the network: it writes the session's directories on the shared volume and generates the JVM arguments needed to start profiling into them.</p>
+
+        <DocsLinkCard
+          to="/docs/provisioner"
+          icon="bi bi-terminal"
+          title="Jeffrey Provisioner"
+          description="Learn how to use Jeffrey Provisioner to generate JVM arguments, configure profiling options, and set up recording sessions for your applications."
+        />
+
+        <p>The generated configuration includes:</p>
+        <ul>
+          <li><strong>Agent path</strong> - Location of the Async-Profiler library</li>
+          <li><strong>Output directory</strong> - Where session files are written (monitored by Jeffrey)</li>
+          <li><strong>Chunk settings</strong> - Duration and size limits for JFR file rotation</li>
+          <li><strong>Event configuration</strong> - Which profiling events to capture</li>
+        </ul>
+
+        <DocsLinkCard
+          to="/docs/provisioner/directory-structure"
+          icon="bi bi-folder-fill"
+          title="Directory Structure"
+          description="Learn about the file and directory structure created by Jeffrey Provisioner for workspaces, projects, and recording sessions."
+          variant="secondary"
+        />
+      </div>
+
+      <DocsNavFooter />
+  </article>
+</template>
+
+<style scoped>
+@import '@/views/docs/docs-page.css';
+
+/* Config Steps */
+.config-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.config-step {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.step-number {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #5e64ff 0%, #7c3aed 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: 50%;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.step-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #5e6e82;
+  line-height: 1.4;
+}
+
+</style>

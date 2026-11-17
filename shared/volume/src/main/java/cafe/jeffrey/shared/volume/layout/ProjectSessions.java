@@ -26,7 +26,7 @@ import java.util.Optional;
 /**
  * A project's sessions as they are at the moment of reading: each one's directory, whether it is
  * its instance's newest and, when read, its listing. The one place every reader of a volume — the
- * hub, a Microscope reading the share directly — derives that from, so they cannot come to
+ * volume scheduler, a Microscope reading the share directly — derives that from, so they cannot come to
  * different answers.
  *
  * <p>Nothing is tracked about a session beyond its order: a newer session in its instance means it
@@ -45,7 +45,7 @@ public final class ProjectSessions {
     private final ProjectTree tree;
     private final ReadFanOut fanOut;
 
-    /** Reads one thing after another: the hub's, on its own mount. */
+    /** Reads one thing after another: the volume scheduler's, on its own mount. */
     public ProjectSessions(ProjectTree tree) {
         this(tree, ReadFanOut.sequential());
     }

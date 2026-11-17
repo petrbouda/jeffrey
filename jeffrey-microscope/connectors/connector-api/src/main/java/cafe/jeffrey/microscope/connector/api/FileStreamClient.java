@@ -34,13 +34,13 @@ public interface FileStreamClient {
     }
 
     /**
-     * What the hub said it was sending, before a byte of it is written.
+     * What the connector said it was sending, before a byte of it is written.
      *
-     * @param name the name the file has on the hub — which is the name the receiver writes, not
-     *             the one it asked for. A caller's listing is older than its request, and the hub
-     *             may have renamed the file since; written under the remembered name, the bytes
+     * @param name the name the file has on the volume — which is the name the receiver writes, not
+     *             the one it asked for. A caller's listing is older than its request, and the volume
+     *             scheduler's compression job may have renamed the file since; written under the remembered name, the bytes
      *             land as something a reader going by the name reads wrongly.
-     * @param size the file's size, or {@link #UNKNOWN_CONTENT_LENGTH} when the hub sent none
+     * @param size the file's size, or {@link #UNKNOWN_CONTENT_LENGTH} when the connector sent none
      */
     record TransferredFile(String name, long size) {
 
@@ -52,7 +52,7 @@ public interface FileStreamClient {
         public TransferredFile {
             if (name == null || name.isBlank()) {
                 throw new IllegalArgumentException(
-                        "The hub sent a file with no name; there is nothing to write it as.");
+                        "The connector sent a file with no name; there is nothing to write it as.");
             }
             name = Path.of(name).getFileName().toString();
             if (name.isBlank() || name.equals(".") || name.equals("..")) {
