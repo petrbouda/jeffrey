@@ -17,15 +17,14 @@
 
 package cafe.jeffrey.profile.manager.model.nmt;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,11 +44,10 @@ public class NmtCategoryTimeseriesBuilder implements RecordBuilder<GenericRecord
     private static final String COMMITTED_FIELD = "committed";
     private static final String UNKNOWN_CATEGORY = "Unknown";
     private static final String OTHER_SERIES_NAME = "Other";
-    private static final long CARRY_FORWARD_MARK = 0L;
     private static final int MAX_CATEGORIES = 8;
 
     private final RelativeTimeRange timeRange;
-    private final Map<String, LongLongHashMap> committedByCategory = new LinkedHashMap<>();
+    private final Map<String, MaxPerSecondSeries> committedByCategory = new LinkedHashMap<>();
 
     public NmtCategoryTimeseriesBuilder(RelativeTimeRange timeRange) {
         this.timeRange = timeRange;
@@ -67,39 +65,23 @@ public class NmtCategoryTimeseriesBuilder implements RecordBuilder<GenericRecord
             return;
         }
         long seconds = record.timestampFromStart().toSeconds();
-        LongLongHashMap series = committedByCategory.computeIfAbsent(category, key -> TimeseriesUtils.initWithZeros(timeRange));
-        series.updateValue(seconds, 0, existing -> Math.max(existing, committed));
+        committedByCategory.computeIfAbsent(category, name -> new MaxPerSecondSeries(name, timeRange))
+                .record(seconds, committed);
     }
 
     @Override
     public TimeseriesData build() {
-        List<String> ranked = new ArrayList<>(committedByCategory.keySet());
-        ranked.sort(Comparator.comparingLong((String category) -> committedByCategory.get(category).max()).reversed());
+        List<MaxPerSecondSeries> ranked = new ArrayList<>(committedByCategory.values());
+        ranked.sort(Comparator.comparingLong(MaxPerSecondSeries::peak).reversed());
 
         List<SingleSerie> series = new ArrayList<>();
-        LongLongHashMap other = null;
-        for (int i = 0; i < ranked.size(); i++) {
-            String category = ranked.get(i);
-            LongLongHashMap values = committedByCategory.get(category);
-            if (i < MAX_CATEGORIES) {
-                series.add(buildSerie(category, values));
-            } else {
-                if (other == null) {
-                    other = TimeseriesUtils.initWithZeros(timeRange);
-                }
-                LongLongHashMap target = other;
-                values.forEachKeyValue(target::addToValue);
-            }
+        for (MaxPerSecondSeries category : ranked.subList(0, Math.min(MAX_CATEGORIES, ranked.size()))) {
+            series.add(category.buildCarryingForward());
         }
-        if (other != null) {
-            series.add(buildSerie(OTHER_SERIES_NAME, other));
+        if (ranked.size() > MAX_CATEGORIES) {
+            List<MaxPerSecondSeries> rest = ranked.subList(MAX_CATEGORIES, ranked.size());
+            series.add(MaxPerSecondSeries.sumOf(OTHER_SERIES_NAME, rest).buildCarryingForward());
         }
         return new TimeseriesData(series);
-    }
-
-    private static SingleSerie buildSerie(String name, LongLongHashMap values) {
-        SingleSerie serie = TimeseriesUtils.buildSerie(name, values);
-        TimeseriesUtils.remapTimeseriesBySteps(serie, CARRY_FORWARD_MARK);
-        return serie;
     }
 }

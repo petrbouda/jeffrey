@@ -20,6 +20,8 @@ package cafe.jeffrey.timeseries;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 
+import java.util.List;
+
 /**
  * One series of per-second maxima over a recording's time range: every second of the range starts at
  * 0, and a second takes the largest value recorded in it. What a gauge sampled several times a second
@@ -34,12 +36,36 @@ public final class MaxPerSecondSeries {
     private final LongLongHashMap values;
 
     public MaxPerSecondSeries(String name, RelativeTimeRange timeRange) {
+        this(name, TimeseriesUtils.initWithZeros(timeRange));
+    }
+
+    private MaxPerSecondSeries(String name, LongLongHashMap values) {
         this.name = name;
-        this.values = TimeseriesUtils.initWithZeros(timeRange);
+        this.values = values;
+    }
+
+    /**
+     * One series whose every second holds the sum of the parts' values in that second — the parts kept
+     * apart folded into one, as a stacked chart's "Other" band. The parts cover the same time range.
+     */
+    public static MaxPerSecondSeries sumOf(String name, List<MaxPerSecondSeries> parts) {
+        if (parts.isEmpty()) {
+            throw new IllegalArgumentException("A sum needs at least one series: name=" + name);
+        }
+        LongLongHashMap sum = new LongLongHashMap();
+        for (MaxPerSecondSeries part : parts) {
+            part.values.forEachKeyValue(sum::addToValue);
+        }
+        return new MaxPerSecondSeries(name, sum);
     }
 
     public void record(long second, long value) {
         values.updateValue(second, NOTHING_RECORDED, existing -> Math.max(existing, value));
+    }
+
+    /** The largest value of any second, 0 for a series nothing was recorded in. */
+    public long peak() {
+        return values.max();
     }
 
     public SingleSerie build() {

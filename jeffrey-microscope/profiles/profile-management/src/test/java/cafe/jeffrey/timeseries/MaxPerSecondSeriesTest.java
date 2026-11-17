@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class MaxPerSecondSeriesTest {
 
@@ -51,5 +52,28 @@ class MaxPerSecondSeriesTest {
         SingleSerie serie = series().buildCarryingForward();
 
         assertEquals(List.of(List.of(0L, 0L), List.of(1L, 50L), List.of(2L, 50L), List.of(3L, 10L)), serie.data());
+    }
+
+    @Test
+    void peaksAtTheLargestValueOfAnySecond() {
+        assertEquals(50, series().peak());
+        assertEquals(0, new MaxPerSecondSeries("Empty", FOUR_SECONDS).peak());
+    }
+
+    @Test
+    void sumsTheValuesOfEachSecondAcrossTheParts() {
+        MaxPerSecondSeries other = new MaxPerSecondSeries("Code", FOUR_SECONDS);
+        other.record(1, 5);
+        other.record(2, 7);
+
+        SingleSerie sum = MaxPerSecondSeries.sumOf("Other", List.of(series(), other)).build();
+
+        assertEquals("Other", sum.name());
+        assertEquals(List.of(List.of(0L, 0L), List.of(1L, 55L), List.of(2L, 7L), List.of(3L, 10L)), sum.data());
+    }
+
+    @Test
+    void refusesASumOfNothing() {
+        assertThrows(IllegalArgumentException.class, () -> MaxPerSecondSeries.sumOf("Other", List.of()));
     }
 }
