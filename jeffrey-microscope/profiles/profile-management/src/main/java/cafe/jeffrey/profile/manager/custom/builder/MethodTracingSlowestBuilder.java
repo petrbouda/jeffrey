@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.profile.manager.custom.builder;
 
-import org.HdrHistogram.Histogram;
 import cafe.jeffrey.jfrparser.api.type.JfrMethod;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
 import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestHeader;
@@ -37,7 +36,7 @@ import java.util.*;
  *
  * <p>This builder is optimized for the Slowest Traces page and computes:
  * - Top N slowest individual method invocations (actual slow calls, not aggregated)
- * - P99 and P95 duration percentiles using HdrHistogram
+ * - P99 and P95 duration percentiles ({@link LatencyStats})
  * - Unique method count
  */
 public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord, MethodTracingSlowestData> {
@@ -47,8 +46,7 @@ public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord,
     // Track unique methods
     private final Set<String> uniqueMethods = new HashSet<>();
 
-    // HdrHistogram for accurate percentile calculation
-    private final Histogram durationHistogram = new Histogram(3);
+    private final LatencyStats durations = new LatencyStats();
 
     // For slowest methods tracking (min-heap by duration)
     private final PriorityQueue<SlowestMethodTrace> slowestMethods = new PriorityQueue<>(
@@ -84,8 +82,7 @@ public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord,
         // Track unique methods
         uniqueMethods.add(key);
 
-        // Record in histogram for accurate percentiles
-        durationHistogram.recordValue(duration);
+        durations.record(duration);
 
         // Track for slowest methods list
         String threadName = record.thread() != null ? record.thread().name() : SlowestMethodTrace.UNKNOWN_THREAD;
@@ -110,15 +107,9 @@ public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord,
 
     @Override
     public MethodTracingSlowestData build() {
-        // Get accurate percentiles from HdrHistogram
-        long p99Duration = durationHistogram.getTotalCount() > 0
-                ? durationHistogram.getValueAtPercentile(99.0) : 0;
-        long p95Duration = durationHistogram.getTotalCount() > 0
-                ? durationHistogram.getValueAtPercentile(95.0) : 0;
-
         MethodTracingSlowestHeader header = new MethodTracingSlowestHeader(
-                p99Duration,
-                p95Duration,
+                durations.p99(),
+                durations.p95(),
                 uniqueMethods.size()
         );
 

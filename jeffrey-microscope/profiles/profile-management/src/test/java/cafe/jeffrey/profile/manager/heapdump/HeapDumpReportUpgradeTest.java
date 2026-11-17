@@ -59,13 +59,13 @@ class HeapDumpReportUpgradeTest {
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
             assertTrue(manager.isCacheReady());
-            assertFalse(manager.threadAnalysisExists());
+            assertFalse(manager.reportExists(new ThreadHeapAnalysis()));
 
-            ThreadAnalysisReport migrated = manager.getThreadAnalysis();
+            ThreadAnalysisReport migrated = manager.report(new ThreadHeapAnalysis()).orElseThrow();
 
             assertNotNull(migrated, "opening an existing report must repair its stale cache");
             assertTrue(migrated.totalRetainedSize() > 0);
-            assertTrue(manager.threadAnalysisExists());
+            assertTrue(manager.reportExists(new ThreadHeapAnalysis()));
             assertFalse(Files.exists(directory.resolve("thread-analysis.json")));
             cache.withSession(dump, session -> {
                 assertEquals(CREATED.toEpochMilli(), session.view().metadata().parsedAtMs(),
@@ -74,7 +74,7 @@ class HeapDumpReportUpgradeTest {
             });
         }
         try (HeapDumpSessionCache restarted = new HeapDumpSessionCache(LATER)) {
-            assertTrue(manager(restarted).getThreadAnalysis().totalRetainedSize() > 0,
+            assertTrue(manager(restarted).report(new ThreadHeapAnalysis()).orElseThrow().totalRetainedSize() > 0,
                     "the migrated report remains readable after a restart");
         }
     }
@@ -86,12 +86,12 @@ class HeapDumpReportUpgradeTest {
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
 
-            assertNull(manager.getLeakSuspects(), "a page load must not build the dominator tree");
+            assertTrue(manager.report(new LeakSuspectsAnalysis()).isEmpty(), "a page load must not build the dominator tree");
             assertFalse(hasCurrentTree(cache, dump), "the read left the obsolete tree alone");
 
-            manager.runLeakSuspects();
+            manager.runReport(new LeakSuspectsAnalysis());
 
-            assertNotNull(manager.getLeakSuspects());
+            assertTrue(manager.report(new LeakSuspectsAnalysis()).isPresent());
             assertTrue(hasCurrentTree(cache, dump), "preparing the report rebuilds the tree it needs");
             cache.withSession(dump, session -> {
                 assertEquals(CREATED.toEpochMilli(), session.view().metadata().parsedAtMs(),
@@ -108,7 +108,7 @@ class HeapDumpReportUpgradeTest {
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
 
-            ThreadAnalysisReport withoutTree = manager.getThreadAnalysis();
+            ThreadAnalysisReport withoutTree = manager.report(new ThreadHeapAnalysis()).orElseThrow();
 
             assertNotNull(withoutTree, "the threads are a report without the tree");
             assertNull(withoutTree.threads().getFirst().retainedSize(), "unknown, not read from the obsolete tree");
@@ -116,7 +116,7 @@ class HeapDumpReportUpgradeTest {
             assertTrue(Files.exists(directory.resolve(HeapDumpReportStore.treelessName(new ThreadHeapAnalysis()))));
 
             manager.runComputeDominator();
-            ThreadAnalysisReport withTree = manager.getThreadAnalysis();
+            ThreadAnalysisReport withTree = manager.report(new ThreadHeapAnalysis()).orElseThrow();
 
             assertNotNull(withTree.threads().getFirst().retainedSize(), "recomputed over the tree now there");
             assertEquals(manager.getThreads(true).getFirst().retainedSize(), withTree.threads().getFirst().retainedSize());
@@ -132,15 +132,15 @@ class HeapDumpReportUpgradeTest {
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(LATER)) {
             HeapDumpManager manager = manager(cache);
 
-            manager.runThreadAnalysis();
-            ThreadAnalysisReport report = manager.getThreadAnalysis();
+            manager.runReport(new ThreadHeapAnalysis());
+            ThreadAnalysisReport report = manager.report(new ThreadHeapAnalysis()).orElseThrow();
 
             assertFalse(hasCurrentTree(cache, dump), "preparing the threads costs no tree build");
             assertNull(report.threads().getFirst().retainedSize(),
                     "an obsolete tree's retained sizes are never cached");
             manager.runComputeDominator();
             assertEquals(manager.getThreads(true).getFirst().retainedSize(),
-                    manager.getThreadAnalysis().threads().getFirst().retainedSize());
+                    manager.report(new ThreadHeapAnalysis()).orElseThrow().threads().getFirst().retainedSize());
         }
     }
 
@@ -151,8 +151,8 @@ class HeapDumpReportUpgradeTest {
             HeapDumpManager manager = manager(cache);
             manager.initialize(null, phase -> {});
 
-            assertNull(manager.getThreadAnalysis());
-            assertFalse(manager.threadAnalysisExists());
+            assertTrue(manager.report(new ThreadHeapAnalysis()).isEmpty());
+            assertFalse(manager.reportExists(new ThreadHeapAnalysis()));
         }
     }
 
@@ -163,12 +163,12 @@ class HeapDumpReportUpgradeTest {
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(CLOCK)) {
             HeapDumpManager manager = manager(cache);
             manager.runComputeDominator();
-            manager.runThreadAnalysis();
+            manager.runReport(new ThreadHeapAnalysis());
             Path report = directory.resolve(HeapDumpReportStore.storedName(new ThreadHeapAnalysis()));
             Files.writeString(report, payload);
 
-            assertFalse(assertDoesNotThrow(manager::threadAnalysisExists));
-            assertTrue(manager.getThreadAnalysis().totalRetainedSize() > 0);
+            assertFalse(assertDoesNotThrow(() -> manager.reportExists(new ThreadHeapAnalysis())));
+            assertTrue(manager.report(new ThreadHeapAnalysis()).orElseThrow().totalRetainedSize() > 0);
         }
     }
 
@@ -179,8 +179,8 @@ class HeapDumpReportUpgradeTest {
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(CLOCK)) {
             HeapDumpManager manager = manager(cache);
             manager.runComputeDominator();
-            manager.runThreadAnalysis();
-            oldReport = manager.getThreadAnalysis();
+            manager.runReport(new ThreadHeapAnalysis());
+            oldReport = manager.report(new ThreadHeapAnalysis()).orElseThrow();
         }
         HeapDumpReportStore reports = new HeapDumpReportStore(directory);
         reports.delete(new ThreadHeapAnalysis());
@@ -196,7 +196,7 @@ class HeapDumpReportUpgradeTest {
     private Path legacyLeakReport() throws Exception {
         Path dump = SyntheticHeapDumps.writeThreadDump(directory, "dump.hprof");
         try (HeapDumpSessionCache cache = new HeapDumpSessionCache(CLOCK)) {
-            manager(cache).runLeakSuspects();
+            manager(cache).runReport(new LeakSuspectsAnalysis());
         }
         Path current = directory.resolve(HeapDumpReportStore.storedName(new LeakSuspectsAnalysis()));
         Files.move(current, directory.resolve("leak-suspects.json"));

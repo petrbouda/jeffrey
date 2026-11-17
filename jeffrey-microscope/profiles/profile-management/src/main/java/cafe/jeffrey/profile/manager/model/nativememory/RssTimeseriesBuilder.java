@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.profile.manager.model.nativememory;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
@@ -25,7 +25,6 @@ import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the RSS-vs-heap timeline from a mixed stream of {@code jdk.ResidentSetSize} (process
@@ -39,14 +38,13 @@ public class RssTimeseriesBuilder implements RecordBuilder<GenericRecord, Timese
     private static final String HEAP_USED_SERIES_NAME = "Heap Used";
     private static final String SIZE_FIELD = "size";
     private static final String HEAP_USED_FIELD = "heapUsed";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap rssTimeseries;
-    private final LongLongHashMap heapUsedTimeseries;
+    private final MaxPerSecondSeries rssTimeseries;
+    private final MaxPerSecondSeries heapUsedTimeseries;
 
     public RssTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.rssTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.heapUsedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.rssTimeseries = new MaxPerSecondSeries(RSS_SERIES_NAME, timeRange);
+        this.heapUsedTimeseries = new MaxPerSecondSeries(HEAP_USED_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -55,22 +53,20 @@ public class RssTimeseriesBuilder implements RecordBuilder<GenericRecord, Timese
         if (Type.RESIDENT_SET_SIZE.equals(record.type())) {
             long size = Json.readLong(record.jsonFields(), SIZE_FIELD);
             if (size >= 0) {
-                rssTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, size));
+                rssTimeseries.record(seconds, size);
             }
         } else {
             long heapUsed = Json.readLong(record.jsonFields(), HEAP_USED_FIELD);
             if (heapUsed >= 0) {
-                heapUsedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, heapUsed));
+                heapUsedTimeseries.record(seconds, heapUsed);
             }
         }
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie rssSerie = TimeseriesUtils.buildSerie(RSS_SERIES_NAME, rssTimeseries);
-        SingleSerie heapSerie = TimeseriesUtils.buildSerie(HEAP_USED_SERIES_NAME, heapUsedTimeseries);
-        TimeseriesUtils.remapTimeseriesBySteps(rssSerie, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(heapSerie, CARRY_FORWARD_MARK);
+        SingleSerie rssSerie = rssTimeseries.buildCarryingForward();
+        SingleSerie heapSerie = heapUsedTimeseries.buildCarryingForward();
         return new TimeseriesData(rssSerie, heapSerie);
     }
 }

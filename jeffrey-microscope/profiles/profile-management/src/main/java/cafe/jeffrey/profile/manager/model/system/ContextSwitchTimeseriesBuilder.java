@@ -17,14 +17,12 @@
 
 package cafe.jeffrey.profile.manager.model.system;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the thread context-switch rate timeline from {@code jdk.ThreadContextSwitchRate} events.
@@ -36,10 +34,10 @@ public class ContextSwitchTimeseriesBuilder implements RecordBuilder<GenericReco
     private static final String SERIES_NAME = "Context Switches / sec";
     private static final String SWITCH_RATE_FIELD = "switchRate";
 
-    private final LongLongHashMap rateTimeseries;
+    private final MaxPerSecondSeries rateTimeseries;
 
     public ContextSwitchTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.rateTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.rateTimeseries = new MaxPerSecondSeries(SERIES_NAME, timeRange);
     }
 
     @Override
@@ -50,11 +48,11 @@ public class ContextSwitchTimeseriesBuilder implements RecordBuilder<GenericReco
         }
         long seconds = record.timestampFromStart().toSeconds();
         long roundedRate = Math.round(rate);
-        rateTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, roundedRate));
+        rateTimeseries.record(seconds, roundedRate);
     }
 
     @Override
     public TimeseriesData build() {
-        return new TimeseriesData(TimeseriesUtils.buildSerie(SERIES_NAME, rateTimeseries));
+        return new TimeseriesData(rateTimeseries.build());
     }
 }

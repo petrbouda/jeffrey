@@ -17,15 +17,14 @@
 
 package cafe.jeffrey.profile.manager.model.nmt;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the total reserved-vs-committed native-memory timeline from {@code jdk.NativeMemoryUsageTotal}.
@@ -37,14 +36,13 @@ public class NmtTotalTimeseriesBuilder implements RecordBuilder<GenericRecord, T
     private static final String RESERVED_SERIES_NAME = "Reserved";
     private static final String RESERVED_FIELD = "reserved";
     private static final String COMMITTED_FIELD = "committed";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap committedTimeseries;
-    private final LongLongHashMap reservedTimeseries;
+    private final MaxPerSecondSeries committedTimeseries;
+    private final MaxPerSecondSeries reservedTimeseries;
 
     public NmtTotalTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.committedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.reservedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.committedTimeseries = new MaxPerSecondSeries(COMMITTED_SERIES_NAME, timeRange);
+        this.reservedTimeseries = new MaxPerSecondSeries(RESERVED_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -53,20 +51,18 @@ public class NmtTotalTimeseriesBuilder implements RecordBuilder<GenericRecord, T
         long seconds = record.timestampFromStart().toSeconds();
         long committed = Json.readLong(fields, COMMITTED_FIELD);
         if (committed >= 0) {
-            committedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, committed));
+            committedTimeseries.record(seconds, committed);
         }
         long reserved = Json.readLong(fields, RESERVED_FIELD);
         if (reserved >= 0) {
-            reservedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, reserved));
+            reservedTimeseries.record(seconds, reserved);
         }
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie committedSerie = TimeseriesUtils.buildSerie(COMMITTED_SERIES_NAME, committedTimeseries);
-        SingleSerie reservedSerie = TimeseriesUtils.buildSerie(RESERVED_SERIES_NAME, reservedTimeseries);
-        TimeseriesUtils.remapTimeseriesBySteps(committedSerie, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(reservedSerie, CARRY_FORWARD_MARK);
+        SingleSerie committedSerie = committedTimeseries.buildCarryingForward();
+        SingleSerie reservedSerie = reservedTimeseries.buildCarryingForward();
         return new TimeseriesData(committedSerie, reservedSerie);
     }
 }

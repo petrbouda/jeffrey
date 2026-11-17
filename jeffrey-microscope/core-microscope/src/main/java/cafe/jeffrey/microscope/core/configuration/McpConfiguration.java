@@ -47,7 +47,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
 import cafe.jeffrey.shared.common.Schedulers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -136,9 +136,9 @@ public class McpConfiguration {
     @Bean(destroyMethod = "close")
     public McpProfileContextCache mcpProfileContextCache(
             ProfileManagerResolver profileManagerResolver,
-            DatabaseManagerResolver databaseManagerResolver,
+            ProfileDatabases profileDatabases,
             Clock applicationClock) {
-        return new McpProfileContextCache(profileManagerResolver, databaseManagerResolver, applicationClock,
+        return new McpProfileContextCache(profileManagerResolver, profileDatabases, applicationClock,
                 McpProfileContextCache.DEFAULT_IDLE_TIMEOUT, SWEEP_IDLE_PROFILE_CONTEXTS);
     }
 

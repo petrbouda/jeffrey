@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public final class ClassLoaderHeapAnalysis implements CachedAnalysis<ClassLoaderReport> {
+public record ClassLoaderHeapAnalysis() implements CachedAnalysis<ClassLoaderReport> {
 
     private static final String FILE_NAME = "classloader-analysis.json";
 

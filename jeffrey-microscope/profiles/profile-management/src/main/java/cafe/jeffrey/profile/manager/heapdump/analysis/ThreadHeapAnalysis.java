@@ -34,7 +34,7 @@ import java.util.List;
  * tree-less copy is recomputed over it on the next read (see
  * {@code CachedAnalysisRunner#read}).
  */
-public final class ThreadHeapAnalysis implements CachedAnalysis<ThreadAnalysisReport> {
+public record ThreadHeapAnalysis() implements CachedAnalysis<ThreadAnalysisReport> {
 
     private static final String FILE_NAME = "thread-analysis.json";
 

@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.manager.custom.builder;
 
 import tools.jackson.databind.node.ObjectNode;
-import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
@@ -41,16 +40,16 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
     private static class GroupBuilder {
         private final String name;
-        private final Histogram executionHisto = new Histogram(3);
+        private final LatencyStats executionTimes = new LatencyStats();
 
         private final ObjectLongHashMap<String> operationCounts = new ObjectLongHashMap<>();
         private final ObjectLongHashMap<String> statementNameCounts = new ObjectLongHashMap<>();
-        private final Map<String, Histogram> statementNameHistograms = new HashMap<>();
+        private final Map<String, LatencyStats> statementNameTimes = new HashMap<>();
 
         private long errorCount = 0;
         private long totalExecutionTime = 0;
         private long totalRowsProcessed = 0;
-        private long maxExecutionTime = -1;
+        private long maxExecutionTime = 0;
 
         public GroupBuilder(String name) {
             this.name = name;
@@ -63,7 +62,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
                 errorCount++;
             }
             maxExecutionTime = Math.max(maxExecutionTime, executionTime);
-            executionHisto.recordValue(executionTime);
+            executionTimes.record(executionTime);
         }
 
         public void incrementOperationCount(String operation) {
@@ -72,26 +71,21 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
         public void addStatementNameExecution(String statementName, long executionTime) {
             statementNameCounts.addToValue(statementName, 1);
-            statementNameHistograms.computeIfAbsent(statementName, _ -> new Histogram(3))
-                    .recordValue(executionTime);
-        }
-
-        public Histogram executionHisto() {
-            return executionHisto;
+            statementNameTimes.computeIfAbsent(statementName, _ -> new LatencyStats()).record(executionTime);
         }
 
         public JdbcGroup build() {
-            long requestCount = executionHisto.getTotalCount();
+            long requestCount = executionTimes.count();
             return new JdbcGroup(
                     name,
                     requestCount,
                     totalRowsProcessed,
                     totalExecutionTime,
                     maxExecutionTime,
-                    executionHisto.getValueAtPercentile(99.0),
-                    executionHisto.getValueAtPercentile(95.0),
+                    executionTimes.p99(),
+                    executionTimes.p95(),
                     errorCount,
-                    toJdbcStatementNameStats(statementNameCounts, statementNameHistograms));
+                    toJdbcStatementNameStats(statementNameCounts, statementNameTimes));
         }
     }
 
@@ -173,8 +167,8 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
     public JdbcOverviewData build() {
         long executionCount = 0;
         long errors = 0;
-        long maxExecutionTime = -1;
-        Histogram executionHistogram = new Histogram(3);
+        long maxExecutionTime = 0;
+        LatencyStats executionTimes = new LatencyStats();
 
         ObjectLongHashMap<String> operationCounts = new ObjectLongHashMap<>();
 
@@ -183,7 +177,7 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
             JdbcGroup group = builder.build();
             builtGroups.add(group);
 
-            executionHistogram.add(builder.executionHisto());
+            executionTimes.add(builder.executionTimes);
             executionCount += group.count();
             maxExecutionTime = Math.max(maxExecutionTime, group.maxExecutionTime());
             errors += group.errorCount();
@@ -195,8 +189,8 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
         JdbcHeader header = new JdbcHeader(
                 executionCount,
                 maxExecutionTime,
-                executionHistogram.getValueAtPercentile(99.0),
-                executionHistogram.getValueAtPercentile(95.0),
+                executionTimes.p99(),
+                executionTimes.p95(),
                 calculateSuccessRate(executionCount, errors),
                 errors);
 
@@ -217,12 +211,12 @@ public class JdbcOverviewEventBuilder implements RecordBuilder<GenericRecord, Jd
 
     private static List<JdbcStatementNameStats> toJdbcStatementNameStats(
             ObjectLongHashMap<String> counts,
-            Map<String, Histogram> histograms) {
+            Map<String, LatencyStats> latencies) {
 
         List<JdbcStatementNameStats> stats = new ArrayList<>(counts.size());
         counts.forEachKeyValue((name, count) -> {
-            Histogram histo = histograms.get(name);
-            long p99 = histo != null ? histo.getValueAtPercentile(99.0) : 0;
+            LatencyStats latency = latencies.get(name);
+            long p99 = latency != null ? latency.p99() : 0;
             stats.add(new JdbcStatementNameStats(name, count, p99));
         });
         return stats;

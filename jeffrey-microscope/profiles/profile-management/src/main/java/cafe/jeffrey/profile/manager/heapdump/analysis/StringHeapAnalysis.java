@@ -23,17 +23,11 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 
-public final class StringHeapAnalysis implements CachedAnalysis<StringAnalysisReport> {
+public record StringHeapAnalysis(int topN) implements CachedAnalysis<StringAnalysisReport> {
 
     private static final String FILE_NAME = "string-analysis.json";
 
     private static final String DISPLAY_NAME = "String analysis";
-
-    private final int topN;
-
-    public StringHeapAnalysis(int topN) {
-        this.topN = topN;
-    }
 
     public StringHeapAnalysis() {
         this(0);

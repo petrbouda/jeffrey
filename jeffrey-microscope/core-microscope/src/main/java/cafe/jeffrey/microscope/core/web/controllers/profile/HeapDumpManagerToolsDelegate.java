@@ -17,6 +17,12 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
+import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpToolsDelegate;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
@@ -92,34 +98,34 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
 
     @Override
     public BiggestObjectsReport getBiggestObjects(int topN) {
-        if (!manager.biggestObjectsExists()) {
+        if (!manager.reportExists(new BiggestObjectsAnalysis())) {
             return null;
         }
-        return manager.getBiggestObjects();
+        return manager.report(new BiggestObjectsAnalysis()).orElse(null);
     }
 
     @Override
     public LeakSuspectsReport getLeakSuspects() {
-        if (!manager.leakSuspectsExists()) {
+        if (!manager.reportExists(new LeakSuspectsAnalysis())) {
             return null;
         }
-        return manager.getLeakSuspects();
+        return manager.report(new LeakSuspectsAnalysis()).orElse(null);
     }
 
     @Override
     public StringAnalysisReport getStringAnalysis() {
-        if (!manager.stringAnalysisExists()) {
+        if (!manager.reportExists(new StringHeapAnalysis())) {
             return null;
         }
-        return manager.getStringAnalysis();
+        return manager.report(new StringHeapAnalysis()).orElse(null);
     }
 
     @Override
     public CollectionAnalysisReport getCollectionAnalysis() {
-        if (!manager.collectionAnalysisExists()) {
+        if (!manager.reportExists(new CollectionHeapAnalysis())) {
             return null;
         }
-        return manager.getCollectionAnalysis();
+        return manager.report(new CollectionHeapAnalysis()).orElse(null);
     }
 
     @Override
@@ -174,17 +180,17 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
 
     @Override
     public ClassLoaderReport getClassLoaderAnalysis() {
-        if (!manager.classLoaderAnalysisExists()) {
+        if (!manager.reportExists(new ClassLoaderHeapAnalysis())) {
             return null;
         }
-        return manager.getClassLoaderAnalysis();
+        return manager.report(new ClassLoaderHeapAnalysis()).orElse(null);
     }
 
     @Override
     public ConsumerReport getConsumerReport() {
-        if (!manager.consumerReportExists()) {
+        if (!manager.reportExists(new ConsumerReportAnalysis())) {
             return null;
         }
-        return manager.getConsumerReport();
+        return manager.report(new ConsumerReportAnalysis()).orElse(null);
     }
 }

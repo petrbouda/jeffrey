@@ -23,19 +23,13 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 
-public final class DuplicateDataAnalysis implements CachedAnalysis<DuplicateDataReport> {
+public record DuplicateDataAnalysis(int topN) implements CachedAnalysis<DuplicateDataReport> {
 
     private static final String FILE_NAME = "duplicate-data.json";
 
     private static final String DISPLAY_NAME = "Duplicate data";
 
     private static final int DEFAULT_TOP_N = 50;
-
-    private final int topN;
-
-    public DuplicateDataAnalysis(int topN) {
-        this.topN = topN;
-    }
 
     public DuplicateDataAnalysis() {
         this(DEFAULT_TOP_N);

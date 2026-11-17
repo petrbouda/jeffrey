@@ -17,15 +17,14 @@
 
 package cafe.jeffrey.profile.manager.model.gc.tuning;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the G1 IHOP timeline from {@code jdk.G1AdaptiveIHOP} events: the marking-start threshold
@@ -39,14 +38,13 @@ public class IhopTimeseriesBuilder implements RecordBuilder<GenericRecord, Times
     private static final String OCCUPANCY_SERIES_NAME = "Old Gen Occupancy";
     private static final String THRESHOLD_FIELD = "threshold";
     private static final String CURRENT_OCCUPANCY_FIELD = "currentOccupancy";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap thresholdTimeseries;
-    private final LongLongHashMap occupancyTimeseries;
+    private final MaxPerSecondSeries thresholdTimeseries;
+    private final MaxPerSecondSeries occupancyTimeseries;
 
     public IhopTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.thresholdTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.occupancyTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.thresholdTimeseries = new MaxPerSecondSeries(THRESHOLD_SERIES_NAME, timeRange);
+        this.occupancyTimeseries = new MaxPerSecondSeries(OCCUPANCY_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -56,20 +54,18 @@ public class IhopTimeseriesBuilder implements RecordBuilder<GenericRecord, Times
 
         long threshold = Json.readLong(fields, THRESHOLD_FIELD);
         if (threshold >= 0) {
-            thresholdTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, threshold));
+            thresholdTimeseries.record(seconds, threshold);
         }
         long occupancy = Json.readLong(fields, CURRENT_OCCUPANCY_FIELD);
         if (occupancy >= 0) {
-            occupancyTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, occupancy));
+            occupancyTimeseries.record(seconds, occupancy);
         }
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie thresholdSerie = TimeseriesUtils.buildSerie(THRESHOLD_SERIES_NAME, thresholdTimeseries);
-        SingleSerie occupancySerie = TimeseriesUtils.buildSerie(OCCUPANCY_SERIES_NAME, occupancyTimeseries);
-        TimeseriesUtils.remapTimeseriesBySteps(thresholdSerie, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(occupancySerie, CARRY_FORWARD_MARK);
+        SingleSerie thresholdSerie = thresholdTimeseries.buildCarryingForward();
+        SingleSerie occupancySerie = occupancyTimeseries.buildCarryingForward();
         return new TimeseriesData(thresholdSerie, occupancySerie);
     }
 }

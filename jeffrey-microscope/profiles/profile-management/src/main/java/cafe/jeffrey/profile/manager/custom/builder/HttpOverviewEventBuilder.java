@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.manager.custom.builder;
 
 import tools.jackson.databind.node.ObjectNode;
-import org.HdrHistogram.Histogram;
 import org.eclipse.collections.api.tuple.primitive.IntLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.IntLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
@@ -38,13 +37,13 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
 
     private static class UriInfoBuilder {
         private final String uri;
-        private final Histogram responseTimes = new Histogram(3);
+        private final LatencyStats responseTimes = new LatencyStats();
         private final ObjectLongHashMap<String> methodCounts = new ObjectLongHashMap<>();
         private final IntLongHashMap statusCodeCounts = new IntLongHashMap();
 
         private long totalReceivedBytes = -1;
         private long totalSentBytes = -1;
-        private long maxResponseTime = -1;
+        private long maxResponseTime = 0;
 
         public UriInfoBuilder(String uri) {
             this.uri = uri;
@@ -52,7 +51,7 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
 
         public void addResponseTime(long responseTime) {
             maxResponseTime = Math.max(maxResponseTime, responseTime);
-            responseTimes.recordValue(responseTime);
+            responseTimes.record(responseTime);
         }
 
         public void addReceivedBytes(long bytes) {
@@ -86,13 +85,13 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         public HttpUriInfo build() {
             long count4xx = countErrors(statusCodeCounts, 400, 500);
             long count5xx = countErrors(statusCodeCounts, 500, 600);
-            long requestCount = responseTimes.getTotalCount();
+            long requestCount = responseTimes.count();
             return new HttpUriInfo(
                     uri,
                     requestCount,
                     maxResponseTime,
-                    responseTimes.getValueAtPercentile(99.0),
-                    responseTimes.getValueAtPercentile(95.0),
+                    responseTimes.p99(),
+                    responseTimes.p95(),
                     calculateSuccessRate(requestCount, count4xx, count5xx),
                     count4xx,
                     count5xx,
@@ -190,13 +189,11 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
         long requestCount = 0;
         long count4xx = 0;
         long count5xx = 0;
-        long maxResponseTime = -1;
+        long maxResponseTime = 0;
         long totalBytesReceived = -1;
         long totalBytesSent = -1;
 
-        // Merge the per-URI histograms to compute true global percentiles —
-        // a maximum of per-URI percentiles is not a global percentile.
-        Histogram globalResponseTimes = new Histogram(3);
+        LatencyStats globalResponseTimes = new LatencyStats();
 
         ObjectLongHashMap<String> methodCounts = new ObjectLongHashMap<>();
         IntLongHashMap statusCodeCounts = new IntLongHashMap();
@@ -224,17 +221,12 @@ public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, Ht
             uris.add(uri);
         }
 
-        long p99ResponseTime = globalResponseTimes.getTotalCount() > 0
-                ? globalResponseTimes.getValueAtPercentile(99.0) : -1;
-        long p95ResponseTime = globalResponseTimes.getTotalCount() > 0
-                ? globalResponseTimes.getValueAtPercentile(95.0) : -1;
-
         // Build HTTP header
         HttpHeader header = new HttpHeader(
                 requestCount,
                 maxResponseTime,
-                p99ResponseTime,
-                p95ResponseTime,
+                globalResponseTimes.p99(),
+                globalResponseTimes.p95(),
                 calculateSuccessRate(requestCount, count4xx, count5xx),
                 count5xx,
                 count4xx,

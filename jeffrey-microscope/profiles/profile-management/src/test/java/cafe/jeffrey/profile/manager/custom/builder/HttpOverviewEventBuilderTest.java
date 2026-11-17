@@ -178,9 +178,10 @@ class HttpOverviewEventBuilderTest {
             assertTrue(result.slowRequests().isEmpty());
 
             assertEquals(0, result.header().requestCount());
-            assertEquals(-1, result.header().maxResponseTime());
-            assertEquals(-1, result.header().p99ResponseTime());
-            assertEquals(-1, result.header().p95ResponseTime());
+            // No request answers 0 for every latency figure, as the gRPC and JDBC overviews do
+            assertEquals(0, result.header().maxResponseTime());
+            assertEquals(0, result.header().p99ResponseTime());
+            assertEquals(0, result.header().p95ResponseTime());
         }
     }
 

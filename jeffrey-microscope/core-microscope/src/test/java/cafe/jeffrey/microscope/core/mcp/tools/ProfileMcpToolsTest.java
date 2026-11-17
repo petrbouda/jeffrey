@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.SourceRevision;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
@@ -677,7 +678,7 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.HEAP_DUMP);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
-            when(heapDumpManager.leakSuspectsExists()).thenReturn(true);
+            when(heapDumpManager.reportExists(new LeakSuspectsAnalysis())).thenReturn(true);
 
             JsonNode areas = conforming("summary", tools().summary()).get("investigationAreas");
 

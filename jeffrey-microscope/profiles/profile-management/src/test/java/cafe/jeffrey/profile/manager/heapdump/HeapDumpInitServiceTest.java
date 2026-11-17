@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
@@ -84,7 +85,7 @@ class HeapDumpInitServiceTest {
             assertEquals(requested.equals("all") ? HeapDumpStages.REPORTS : List.of(requested), second.reports());
             await().atMost(5, SECONDS).until(() -> second.operation().finishedAt() != null);
             assertEquals(OperationState.COMPLETED, second.operation().snapshot().state());
-            verify(manager).runLeakSuspects();
+            verify(manager).runReport(new LeakSuspectsAnalysis());
         } else {
             assertSame(first.operation(), second.operation());
             assertEquals(first.reports(), second.reports());
@@ -108,7 +109,7 @@ class HeapDumpInitServiceTest {
             assertFalse(second.started());
             assertSame(first.operation(), second.operation());
             assertEquals(List.of("dominator"), second.reports());
-            verify(manager, never()).runLeakSuspects();
+            verify(manager, never()).runReport(new LeakSuspectsAnalysis());
         } finally {
             release.countDown();
             await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
@@ -127,7 +128,7 @@ class HeapDumpInitServiceTest {
 
         assertFalse(second.started());
         assertSame(first.operation(), second.operation());
-        verify(manager, never()).runLeakSuspects();
+        verify(manager, never()).runReport(new LeakSuspectsAnalysis());
     }
 
     @Test

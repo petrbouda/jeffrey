@@ -47,30 +47,25 @@ import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.profile.manager.thread.VirtualThreadManagerImpl;
 import cafe.jeffrey.profile.thread.CachingThreadProvider;
 import cafe.jeffrey.profile.thread.DbBasedThreadProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfileDatabase;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
 import cafe.jeffrey.provider.profile.api.ProfileEventRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
-import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.SpanRepository;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.TraceRepository;
 
-import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
 
 public class ProfileJvmInsightConfiguration {
 
-    private final ProfileRepositories profileRepositories;
-    private final DatabaseManagerResolver databaseManagerResolver;
+    private final ProfileDatabases profileDatabases;
 
     public ProfileJvmInsightConfiguration(
-            ProfilePersistenceProvider persistenceProvider,
-            DatabaseManagerResolver databaseManagerResolver) {
-        this.profileRepositories = persistenceProvider.repositories();
-        this.databaseManagerResolver = databaseManagerResolver;
+            ProfileDatabases profileDatabases) {
+        this.profileDatabases = profileDatabases;
     }
 
     @Bean
@@ -127,43 +122,43 @@ public class ProfileJvmInsightConfiguration {
     public GarbageCollectionManager.Factory gcManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new GarbageCollectionManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public JITCompilationManager.Factory jitCompilationManager() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new JITCompilationManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventTypes(),
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public JITDeoptimizationManager.Factory jitDeoptimizationManager() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new JITDeoptimizationManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public ThreadManager.Factory threadInfoFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            ProfileEventRepository eventRepository = profileRepositories.newEventRepository(profileDb);
-            ProfileEventStreamRepository eventStreamRepository = profileRepositories.newEventStreamRepository(profileDb);
-            ProfileEventTypeRepository eventTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            ProfileEventRepository eventRepository = profileDb.events();
+            ProfileEventStreamRepository eventStreamRepository = profileDb.eventStream();
+            ProfileEventTypeRepository eventTypeRepository = profileDb.eventTypes();
 
             return new ThreadManagerImpl(
                     profileInfo,
@@ -172,7 +167,7 @@ public class ProfileJvmInsightConfiguration {
                     eventTypeRepository,
                     new CachingThreadProvider(
                             new DbBasedThreadProvider(profileInfo, eventRepository, eventStreamRepository),
-                            profileRepositories.newProfileCacheRepository(profileDb)));
+                            profileDb.cache()));
         };
     }
 
@@ -180,21 +175,21 @@ public class ProfileJvmInsightConfiguration {
     public VirtualThreadManager.Factory virtualThreadManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new VirtualThreadManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public HeapMemoryManager.Factory heapMemoryManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new HeapMemoryManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -215,13 +210,13 @@ public class ProfileJvmInsightConfiguration {
             OqlEngine oqlEngine) {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new HeapDumpManagerImpl(
                     profileInfo,
                     HeapDumpFiles.inProfileDir(profilesPath.resolve(profileInfo.id())),
                     heapDumpSessionCache,
                     oqlEngine,
-                    profileRepositories.newPipelineRunRepository(profileDb));
+                    profileDb.pipelineRuns());
         };
     }
 
@@ -229,8 +224,8 @@ public class ProfileJvmInsightConfiguration {
     public LeakCandidatesManager.Factory leakCandidatesManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            return new LeakCandidatesManagerImpl(profileRepositories.newEventRepository(profileDb));
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            return new LeakCandidatesManagerImpl(profileDb.events());
         };
     }
 
@@ -238,11 +233,11 @@ public class ProfileJvmInsightConfiguration {
     public ClassLoadingManager.Factory classLoadingManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new ClassLoadingManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -250,12 +245,12 @@ public class ProfileJvmInsightConfiguration {
     public ExceptionsManager.Factory exceptionsManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new ExceptionsManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb),
-                    profileRepositories.newExceptionRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream(),
+                    profileDb.exceptions());
         };
     }
 
@@ -263,11 +258,11 @@ public class ProfileJvmInsightConfiguration {
     public NativeMemoryManager.Factory nativeMemoryManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new NativeMemoryManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -275,11 +270,11 @@ public class ProfileJvmInsightConfiguration {
     public NativeMemoryTrackingManager.Factory nativeMemoryTrackingManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new NativeMemoryTrackingManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -287,10 +282,10 @@ public class ProfileJvmInsightConfiguration {
     public SystemResourcesManager.Factory systemResourcesManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new SystemResourcesManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventStream());
         };
     }
 
@@ -298,11 +293,11 @@ public class ProfileJvmInsightConfiguration {
     public VmOperationManager.Factory vmOperationManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new VmOperationManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -310,11 +305,11 @@ public class ProfileJvmInsightConfiguration {
     public BlockingManager.Factory blockingManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new BlockingManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -322,18 +317,18 @@ public class ProfileJvmInsightConfiguration {
     public SecurityManager.Factory securityManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new SecurityManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public ContainerManager.Factory containerManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            return new ContainerManagerImpl(profileRepositories.newEventStreamRepository(profileDb));
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            return new ContainerManagerImpl(profileDb.eventStream());
         };
     }
 
@@ -341,11 +336,11 @@ public class ProfileJvmInsightConfiguration {
     public IoManager.Factory ioManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new IoManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -353,11 +348,11 @@ public class ProfileJvmInsightConfiguration {
     public AllocationManager.Factory allocationManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new AllocationManagerImpl(
                     profileInfo,
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventStream());
         };
     }
 
@@ -368,8 +363,8 @@ public class ProfileJvmInsightConfiguration {
     @Bean
     public SpanManager.Factory spanManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            SpanRepository repository = profileRepositories.newSpanRepository(profileDb);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            SpanRepository repository = profileDb.spans();
             return new SpanManagerImpl(repository);
         };
     }
@@ -381,8 +376,8 @@ public class ProfileJvmInsightConfiguration {
     @Bean
     public TraceManager.Factory traceManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            TraceRepository repository = profileRepositories.newTraceRepository(profileDb);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            TraceRepository repository = profileDb.traces();
             return new TraceManagerImpl(repository);
         };
     }
@@ -394,9 +389,9 @@ public class ProfileJvmInsightConfiguration {
     @Bean
     public TraceAttributesManager.Factory traceAttributesManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             TraceAttributeRepository repository =
-                    profileRepositories.newTraceAttributeRepository(profileDb);
+                    profileDb.traceAttributes();
             return new TraceAttributesManagerImpl(repository);
         };
     }

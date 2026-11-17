@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.profile.manager.model.gc.g1;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.EvacuationEntry;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.EvacuationFailure;
 import cafe.jeffrey.profile.manager.model.gc.g1.G1AnalysisData.G1Header;
@@ -32,9 +32,7 @@ import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -79,7 +77,6 @@ public class G1AnalysisBuilder implements RecordBuilder<GenericRecord, G1Analysi
     private static final String EDEN_SERIES = "Eden";
     private static final String SURVIVOR_SERIES = "Survivor";
     private static final String OLD_SERIES = "Old";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
     private static final int MAX_PAUSE_PHASES = 25;
     private static final int MAX_REGION_SNAPSHOTS = 8;
@@ -109,9 +106,9 @@ public class G1AnalysisBuilder implements RecordBuilder<GenericRecord, G1Analysi
     private final Map<Long, Long> gcPauseNanos = new HashMap<>();
     private final Map<Long, String> g1Types = new HashMap<>();
     private final Map<String, PhaseAcc> phases = new HashMap<>();
-    private final LongLongHashMap edenSeries;
-    private final LongLongHashMap survivorSeries;
-    private final LongLongHashMap oldSeries;
+    private final MaxPerSecondSeries edenSeries;
+    private final MaxPerSecondSeries survivorSeries;
+    private final MaxPerSecondSeries oldSeries;
     private final TreeMap<Long, List<RegionCell>> regionSnapshots = new TreeMap<>();
     private final List<EvacuationEntry> evacuations = new ArrayList<>();
     private final Map<Long, Long> evacuationFailures = new HashMap<>();
@@ -120,9 +117,9 @@ public class G1AnalysisBuilder implements RecordBuilder<GenericRecord, G1Analysi
     private int regionCount;
 
     public G1AnalysisBuilder(RelativeTimeRange timeRange) {
-        this.edenSeries = TimeseriesUtils.initWithZeros(timeRange);
-        this.survivorSeries = TimeseriesUtils.initWithZeros(timeRange);
-        this.oldSeries = TimeseriesUtils.initWithZeros(timeRange);
+        this.edenSeries = new MaxPerSecondSeries(EDEN_SERIES, timeRange);
+        this.survivorSeries = new MaxPerSecondSeries(SURVIVOR_SERIES, timeRange);
+        this.oldSeries = new MaxPerSecondSeries(OLD_SERIES, timeRange);
     }
 
     @Override
@@ -188,9 +185,9 @@ public class G1AnalysisBuilder implements RecordBuilder<GenericRecord, G1Analysi
         accumulateMax(oldSeries, seconds, Json.readLong(fields, OLD_USED_FIELD));
     }
 
-    private static void accumulateMax(LongLongHashMap series, long seconds, long value) {
+    private static void accumulateMax(MaxPerSecondSeries series, long seconds, long value) {
         if (value >= 0) {
-            series.updateValue(seconds, 0, existing -> Math.max(existing, value));
+            series.record(seconds, value);
         }
     }
 
@@ -302,13 +299,8 @@ public class G1AnalysisBuilder implements RecordBuilder<GenericRecord, G1Analysi
     }
 
     private TimeseriesData buildComposition() {
-        SingleSerie eden = TimeseriesUtils.buildSerie(EDEN_SERIES, edenSeries);
-        SingleSerie survivor = TimeseriesUtils.buildSerie(SURVIVOR_SERIES, survivorSeries);
-        SingleSerie old = TimeseriesUtils.buildSerie(OLD_SERIES, oldSeries);
-        TimeseriesUtils.remapTimeseriesBySteps(eden, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(survivor, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(old, CARRY_FORWARD_MARK);
-        return new TimeseriesData(eden, survivor, old);
+        return new TimeseriesData(
+                edenSeries.buildCarryingForward(), survivorSeries.buildCarryingForward(), oldSeries.buildCarryingForward());
     }
 
     private List<RegionSnapshot> buildSnapshots() {

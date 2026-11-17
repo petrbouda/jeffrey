@@ -23,17 +23,11 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 
-public final class BiggestCollectionsAnalysis implements CachedAnalysis<BiggestCollectionsReport> {
+public record BiggestCollectionsAnalysis(int topN) implements CachedAnalysis<BiggestCollectionsReport> {
 
     private static final String FILE_NAME = "biggest-collections.json";
 
     private static final String DISPLAY_NAME = "Biggest collections";
-
-    private final int topN;
-
-    public BiggestCollectionsAnalysis(int topN) {
-        this.topN = topN;
-    }
 
     public BiggestCollectionsAnalysis() {
         this(0);

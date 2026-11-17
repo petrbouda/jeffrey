@@ -17,14 +17,13 @@
 
 package cafe.jeffrey.profile.manager.model.nativememory;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the direct (off-heap NIO) buffer timeline from periodic {@code jdk.DirectBufferStatistics}
@@ -37,14 +36,13 @@ public class DirectBufferTimeseriesBuilder implements RecordBuilder<GenericRecor
     private static final String COUNT_SERIES_NAME = "Buffer Count";
     private static final String MEMORY_USED_FIELD = "memoryUsed";
     private static final String COUNT_FIELD = "count";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap memoryUsedTimeseries;
-    private final LongLongHashMap countTimeseries;
+    private final MaxPerSecondSeries memoryUsedTimeseries;
+    private final MaxPerSecondSeries countTimeseries;
 
     public DirectBufferTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.memoryUsedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.countTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.memoryUsedTimeseries = new MaxPerSecondSeries(MEMORY_USED_SERIES_NAME, timeRange);
+        this.countTimeseries = new MaxPerSecondSeries(COUNT_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -52,20 +50,18 @@ public class DirectBufferTimeseriesBuilder implements RecordBuilder<GenericRecor
         long seconds = record.timestampFromStart().toSeconds();
         long memoryUsed = Json.readLong(record.jsonFields(), MEMORY_USED_FIELD);
         if (memoryUsed >= 0) {
-            memoryUsedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, memoryUsed));
+            memoryUsedTimeseries.record(seconds, memoryUsed);
         }
         long count = Json.readLong(record.jsonFields(), COUNT_FIELD);
         if (count >= 0) {
-            countTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, count));
+            countTimeseries.record(seconds, count);
         }
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie memorySerie = TimeseriesUtils.buildSerie(MEMORY_USED_SERIES_NAME, memoryUsedTimeseries);
-        SingleSerie countSerie = TimeseriesUtils.buildSerie(COUNT_SERIES_NAME, countTimeseries);
-        TimeseriesUtils.remapTimeseriesBySteps(memorySerie, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(countSerie, CARRY_FORWARD_MARK);
+        SingleSerie memorySerie = memoryUsedTimeseries.buildCarryingForward();
+        SingleSerie countSerie = countTimeseries.buildCarryingForward();
         return new TimeseriesData(memorySerie, countSerie);
     }
 }

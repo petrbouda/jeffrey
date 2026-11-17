@@ -18,6 +18,16 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.heap;
 
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
 
@@ -26,7 +36,6 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -76,16 +85,16 @@ public enum HeapReport {
      * The stored-report check behind each report that is kept on disk; the dominator tree has none, it is
      * built on demand by the first reader that needs it.
      */
-    private static final Map<HeapReport, Predicate<HeapDumpManager>> STORED = Map.of(
-            STRINGS, HeapDumpManager::stringAnalysisExists,
-            THREADS, HeapDumpManager::threadAnalysisExists,
-            BIGGEST, HeapDumpManager::biggestObjectsExists,
-            COLLECTIONS, HeapDumpManager::collectionAnalysisExists,
-            LEAKS, HeapDumpManager::leakSuspectsExists,
-            CLASSLOADERS, HeapDumpManager::classLoaderAnalysisExists,
-            BIGGEST_COLLECTIONS, HeapDumpManager::biggestCollectionsExists,
-            CONSUMERS, HeapDumpManager::consumerReportExists,
-            DUPLICATES, HeapDumpManager::duplicateDataExists);
+    private static final Map<HeapReport, CachedAnalysis<?>> STORED = Map.of(
+            STRINGS, new StringHeapAnalysis(),
+            THREADS, new ThreadHeapAnalysis(),
+            BIGGEST, new BiggestObjectsAnalysis(),
+            COLLECTIONS, new CollectionHeapAnalysis(),
+            LEAKS, new LeakSuspectsAnalysis(),
+            CLASSLOADERS, new ClassLoaderHeapAnalysis(),
+            BIGGEST_COLLECTIONS, new BiggestCollectionsAnalysis(),
+            CONSUMERS, new ConsumerReportAnalysis(),
+            DUPLICATES, new DuplicateDataAnalysis());
 
     /** Every report kept on disk, whether or not it is built yet: all but the dominator tree. */
     public static Set<HeapReport> storedKinds() {
@@ -95,8 +104,8 @@ public enum HeapReport {
     /** The reports {@code manager}'s dump has on disk now: a look at what is stored, never a computation. */
     public static Set<HeapReport> storedIn(HeapDumpManager manager) {
         Set<HeapReport> stored = EnumSet.noneOf(HeapReport.class);
-        STORED.forEach((report, exists) -> {
-            if (exists.test(manager)) {
+        STORED.forEach((report, analysis) -> {
+            if (manager.reportExists(analysis)) {
                 stored.add(report);
             }
         });

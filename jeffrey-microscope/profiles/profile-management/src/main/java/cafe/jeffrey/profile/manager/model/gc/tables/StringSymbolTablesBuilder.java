@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.profile.manager.model.gc.tables;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData.Deduplication;
 import cafe.jeffrey.profile.manager.model.gc.tables.StringSymbolTablesData.Header;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
@@ -26,9 +26,7 @@ import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds entry-count and footprint timelines for the String and Symbol intern tables from the
@@ -41,22 +39,21 @@ public class StringSymbolTablesBuilder implements RecordBuilder<GenericRecord, S
     private static final String TOTAL_FOOTPRINT_FIELD = "totalFootprint";
     private static final String STRING_TABLE_SERIES = "String Table";
     private static final String SYMBOL_TABLE_SERIES = "Symbol Table";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap stringEntries;
-    private final LongLongHashMap symbolEntries;
-    private final LongLongHashMap stringFootprint;
-    private final LongLongHashMap symbolFootprint;
+    private final MaxPerSecondSeries stringEntries;
+    private final MaxPerSecondSeries symbolEntries;
+    private final MaxPerSecondSeries stringFootprint;
+    private final MaxPerSecondSeries symbolFootprint;
     private long peakStringEntries;
     private long peakStringFootprint;
     private long peakSymbolEntries;
     private long peakSymbolFootprint;
 
     public StringSymbolTablesBuilder(RelativeTimeRange timeRange) {
-        this.stringEntries = TimeseriesUtils.initWithZeros(timeRange);
-        this.symbolEntries = TimeseriesUtils.initWithZeros(timeRange);
-        this.stringFootprint = TimeseriesUtils.initWithZeros(timeRange);
-        this.symbolFootprint = TimeseriesUtils.initWithZeros(timeRange);
+        this.stringEntries = new MaxPerSecondSeries(STRING_TABLE_SERIES, timeRange);
+        this.symbolEntries = new MaxPerSecondSeries(SYMBOL_TABLE_SERIES, timeRange);
+        this.stringFootprint = new MaxPerSecondSeries(STRING_TABLE_SERIES, timeRange);
+        this.symbolFootprint = new MaxPerSecondSeries(SYMBOL_TABLE_SERIES, timeRange);
     }
 
     @Override
@@ -67,34 +64,24 @@ public class StringSymbolTablesBuilder implements RecordBuilder<GenericRecord, S
         long footprint = Math.max(0, Json.readLong(fields, TOTAL_FOOTPRINT_FIELD));
 
         if (EventTypeName.STRING_TABLE_STATISTICS.equals(record.type().code())) {
-            accumulateMax(stringEntries, seconds, entries);
-            accumulateMax(stringFootprint, seconds, footprint);
+            stringEntries.record(seconds, entries);
+            stringFootprint.record(seconds, footprint);
             peakStringEntries = Math.max(peakStringEntries, entries);
             peakStringFootprint = Math.max(peakStringFootprint, footprint);
         } else if (EventTypeName.SYMBOL_TABLE_STATISTICS.equals(record.type().code())) {
-            accumulateMax(symbolEntries, seconds, entries);
-            accumulateMax(symbolFootprint, seconds, footprint);
+            symbolEntries.record(seconds, entries);
+            symbolFootprint.record(seconds, footprint);
             peakSymbolEntries = Math.max(peakSymbolEntries, entries);
             peakSymbolFootprint = Math.max(peakSymbolFootprint, footprint);
         }
-    }
-
-    private static void accumulateMax(LongLongHashMap series, long seconds, long value) {
-        series.updateValue(seconds, 0, existing -> Math.max(existing, value));
     }
 
     @Override
     public StringSymbolTablesData build() {
         return new StringSymbolTablesData(
                 new Header(peakStringEntries, peakStringFootprint, peakSymbolEntries, peakSymbolFootprint),
-                new TimeseriesData(carried(STRING_TABLE_SERIES, stringEntries), carried(SYMBOL_TABLE_SERIES, symbolEntries)),
-                new TimeseriesData(carried(STRING_TABLE_SERIES, stringFootprint), carried(SYMBOL_TABLE_SERIES, symbolFootprint)),
+                new TimeseriesData(stringEntries.buildCarryingForward(), symbolEntries.buildCarryingForward()),
+                new TimeseriesData(stringFootprint.buildCarryingForward(), symbolFootprint.buildCarryingForward()),
                 Deduplication.empty());
-    }
-
-    private static SingleSerie carried(String name, LongLongHashMap values) {
-        SingleSerie serie = TimeseriesUtils.buildSerie(name, values);
-        TimeseriesUtils.remapTimeseriesBySteps(serie, CARRY_FORWARD_MARK);
-        return serie;
     }
 }

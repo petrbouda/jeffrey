@@ -34,13 +34,11 @@ import cafe.jeffrey.profile.manager.TimeseriesManager;
 import cafe.jeffrey.profile.manager.registry.VisualizationFactories;
 import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfileDatabase;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
 import cafe.jeffrey.provider.profile.api.ProfileEventStreamRepository;
 import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
-import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 
-import javax.sql.DataSource;
 
 public class ProfileVisualizationConfiguration {
 
@@ -50,14 +48,11 @@ public class ProfileVisualizationConfiguration {
     private static final String AI_EXPORT_MIN_FRAME_THRESHOLD_PCT_PROPERTY =
             "${jeffrey.microscope.ai-export.flamegraph.min-frame-threshold-pct:2.0}";
 
-    private final ProfileRepositories profileRepositories;
-    private final DatabaseManagerResolver databaseManagerResolver;
+    private final ProfileDatabases profileDatabases;
 
     public ProfileVisualizationConfiguration(
-            ProfilePersistenceProvider persistenceProvider,
-            DatabaseManagerResolver databaseManagerResolver) {
-        this.profileRepositories = persistenceProvider.repositories();
-        this.databaseManagerResolver = databaseManagerResolver;
+            ProfileDatabases profileDatabases) {
+        this.profileDatabases = profileDatabases;
     }
 
     @Bean
@@ -98,9 +93,9 @@ public class ProfileVisualizationConfiguration {
 
         AiExportConfig aiExportConfig = new AiExportConfig(aiExportMinFrameThresholdPct);
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            ProfileEventTypeRepository eventTypeRepository = profileRepositories.newEventTypeRepository(profileDb);
-            ProfileEventStreamRepository eventRepository = profileRepositories.newEventStreamRepository(profileDb);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            ProfileEventTypeRepository eventTypeRepository = profileDb.eventTypes();
+            ProfileEventStreamRepository eventRepository = profileDb.eventStream();
             return new PrimaryFlamegraphManager(eventTypeRepository,
                     new DbBasedFlamegraphGenerator(
                             eventRepository, minFrameThresholdPct, aiExportConfig),
@@ -115,16 +110,16 @@ public class ProfileVisualizationConfiguration {
 
         AiExportConfig aiExportConfig = new AiExportConfig(aiExportMinFrameThresholdPct);
         return (primary, secondary) -> {
-            DataSource primaryDb = databaseManagerResolver.open(primary);
-            DataSource secondaryDb = databaseManagerResolver.open(secondary);
+            ProfileDatabase primaryDb = profileDatabases.open(primary);
+            ProfileDatabase secondaryDb = profileDatabases.open(secondary);
             return new DiffFlamegraphManagerImpl(
                     primary,
                     secondary,
-                    profileRepositories.newEventTypeRepository(primaryDb),
-                    profileRepositories.newEventTypeRepository(secondaryDb),
+                    primaryDb.eventTypes(),
+                    secondaryDb.eventTypes(),
                     new DbBasedDiffgraphGenerator(
-                            profileRepositories.newEventStreamRepository(primaryDb),
-                            profileRepositories.newEventStreamRepository(secondaryDb),
+                            primaryDb.eventStream(),
+                            secondaryDb.eventStream(),
                             minFrameThresholdPct),
                     aiExportConfig
             );
@@ -134,10 +129,10 @@ public class ProfileVisualizationConfiguration {
     @Bean
     public SubSecondManager.Factory subSecondFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new SubSecondManagerImpl(
                     profileInfo,
-                    new DbBasedSubSecondGeneratorImpl(profileRepositories.newEventStreamRepository(profileDb)));
+                    new DbBasedSubSecondGeneratorImpl(profileDb.eventStream()));
         };
     }
 
@@ -145,23 +140,23 @@ public class ProfileVisualizationConfiguration {
     public TimeseriesManager.Factory timeseriesFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new PrimaryTimeseriesManager(
                     profileInfo.profilingStartEnd(),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public TimeseriesManager.DifferentialFactory differentialTimeseriesFactory() {
         return (primary, secondary) -> {
-            DataSource primaryDb = databaseManagerResolver.open(primary);
-            DataSource secondaryDb = databaseManagerResolver.open(secondary);
+            ProfileDatabase primaryDb = profileDatabases.open(primary);
+            ProfileDatabase secondaryDb = profileDatabases.open(secondary);
             return new DiffTimeseriesManager(
                     primary.profilingStartEnd(),
                     secondary.profilingStartEnd(),
-                    profileRepositories.newEventStreamRepository(primaryDb),
-                    profileRepositories.newEventStreamRepository(secondaryDb));
+                    primaryDb.eventStream(),
+                    secondaryDb.eventStream());
         };
     }
 }

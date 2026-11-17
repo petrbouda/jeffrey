@@ -30,19 +30,13 @@ import java.util.List;
  * Top-N biggest retained objects, derived from the dominator tree's top-level
  * children. Requires the dominator tree.
  */
-public final class BiggestObjectsAnalysis implements CachedAnalysis<BiggestObjectsReport> {
+public record BiggestObjectsAnalysis(int topN) implements CachedAnalysis<BiggestObjectsReport> {
 
     private static final String FILE_NAME = "biggest-objects.json";
 
     private static final String DISPLAY_NAME = "Biggest objects";
 
     private static final long DOMINATOR_ROOT_ID = 0L;
-
-    private final int topN;
-
-    public BiggestObjectsAnalysis(int topN) {
-        this.topN = topN;
-    }
 
     public BiggestObjectsAnalysis() {
         this(0);

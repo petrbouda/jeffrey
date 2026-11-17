@@ -17,15 +17,14 @@
 
 package cafe.jeffrey.profile.manager.model.system;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the OS swap-space timeline from periodic {@code jdk.SwapSpace} events: total swap and used swap
@@ -38,12 +37,12 @@ public class SwapTimeseriesBuilder implements RecordBuilder<GenericRecord, Times
     private static final String TOTAL_SIZE_FIELD = "totalSize";
     private static final String FREE_SIZE_FIELD = "freeSize";
 
-    private final LongLongHashMap totalTimeseries;
-    private final LongLongHashMap usedTimeseries;
+    private final MaxPerSecondSeries totalTimeseries;
+    private final MaxPerSecondSeries usedTimeseries;
 
     public SwapTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.totalTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.usedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.totalTimeseries = new MaxPerSecondSeries(TOTAL_SERIES_NAME, timeRange);
+        this.usedTimeseries = new MaxPerSecondSeries(USED_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -55,14 +54,14 @@ public class SwapTimeseriesBuilder implements RecordBuilder<GenericRecord, Times
         long free = Math.max(0, Json.readLong(fields, FREE_SIZE_FIELD));
         long used = Math.max(0, total - free);
 
-        totalTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, total));
-        usedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, used));
+        totalTimeseries.record(seconds, total);
+        usedTimeseries.record(seconds, used);
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie totalSerie = TimeseriesUtils.buildSerie(TOTAL_SERIES_NAME, totalTimeseries);
-        SingleSerie usedSerie = TimeseriesUtils.buildSerie(USED_SERIES_NAME, usedTimeseries);
+        SingleSerie totalSerie = totalTimeseries.build();
+        SingleSerie usedSerie = usedTimeseries.build();
         return new TimeseriesData(totalSerie, usedSerie);
     }
 }

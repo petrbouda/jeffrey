@@ -27,8 +27,7 @@ import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
-import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
@@ -160,10 +159,8 @@ public class AppConfiguration {
     }
 
     @Bean
-    public DatabaseManagerResolver databaseManagerResolver(
-            ProfilePersistenceProvider profilePersistenceProvider) {
-
-        return new DatabaseManagerResolverImpl(profilePersistenceProvider.databaseManager());
+    public ProfileDatabases profileDatabases(ProfilePersistenceProvider profilePersistenceProvider) {
+        return new ProfileDatabases(profilePersistenceProvider.databaseManager(), profilePersistenceProvider.repositories());
     }
 
     @Bean

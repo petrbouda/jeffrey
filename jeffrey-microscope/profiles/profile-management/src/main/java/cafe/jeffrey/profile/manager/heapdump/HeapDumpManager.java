@@ -21,8 +21,6 @@ import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
-import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
-import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassAggregate;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
@@ -38,20 +36,14 @@ import cafe.jeffrey.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
-import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
-import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
-import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
-import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
-import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
-import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
-import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
 
 import java.util.List;
 import java.util.Optional;
@@ -209,48 +201,25 @@ public interface HeapDumpManager {
     void deleteCache();
 
     /**
-     * Check if string analysis results exist for this profile.
-     *
-     * @return true if string-analysis.json exists
+     * Whether the report is stored for this dump, under the current tree where it reads one. A look at
+     * what is on disk; it never computes the report.
      */
-    boolean stringAnalysisExists();
+    boolean reportExists(CachedAnalysis<?> analysis);
 
     /**
-     * Get the pre-computed string analysis results.
+     * The stored report. An obsolete one is computed again over the current dominator tree, but a read
+     * never builds the tree itself.
      *
-     * @return string analysis report, or null if not yet computed
+     * @return the report, or empty when it has not been computed yet
      */
-    StringAnalysisReport getStringAnalysis();
+    <T> Optional<T> report(CachedAnalysis<T> analysis);
 
     /**
-     * Run string analysis and save results to JSON file.
-     *
-     * @param topN number of top entries to include in the report
+     * Computes the report and stores it beside the dump. A report that reads the dominator tree only
+     * when it is built (the threads) carries no retained sizes until {@link #runComputeDominator()} has
+     * built it.
      */
-    void runStringAnalysis(int topN);
-
-    /**
-     * Check if thread analysis results exist for this profile.
-     *
-     * @return true if thread-analysis.json exists
-     */
-    boolean threadAnalysisExists();
-
-    /**
-     * Get the pre-computed thread analysis results.
-     *
-     * @return thread analysis report, or null if not yet computed
-     */
-    ThreadAnalysisReport getThreadAnalysis();
-
-    /**
-     * Run thread analysis with retained heap calculation and save results to JSON file.
-     *
-     * <p>Assumes the dominator tree has already been built (call
-     * {@link #runComputeDominator()} first). Without it, retained sizes are
-     * reported as {@code null} on every thread.
-     */
-    void runThreadAnalysis();
+    void runReport(CachedAnalysis<?> analysis);
 
     /**
      * Build the dominator tree and retained-size table for this profile, if
@@ -368,23 +337,6 @@ public interface HeapDumpManager {
      */
     DominatorTreeResponse getDominatorTreeChildren(long objectId, int offset, int limit);
 
-    // --- Collection Analysis ---
-
-    /**
-     * Check if collection analysis results exist for this profile.
-     */
-    boolean collectionAnalysisExists();
-
-    /**
-     * Get the pre-computed collection analysis results.
-     */
-    CollectionAnalysisReport getCollectionAnalysis();
-
-    /**
-     * Run collection analysis and save results to JSON file.
-     */
-    void runCollectionAnalysis();
-
     // --- Class Instance Browser ---
 
     /**
@@ -413,77 +365,7 @@ public interface HeapDumpManager {
     ClassInstancesResponse getClassInstances(
             String className, int limit, int offset, boolean includeRetainedSize, InstanceSortBy sortBy);
 
-    // --- Leak Suspects ---
-
-    /**
-     * Check if leak suspects analysis results exist for this profile.
-     */
-    boolean leakSuspectsExists();
-
-    /**
-     * Get the pre-computed leak suspects report.
-     */
-    LeakSuspectsReport getLeakSuspects();
-
-    /**
-     * Run leak suspects analysis and save results to JSON file.
-     */
-    void runLeakSuspects();
-
-    // --- Biggest Objects ---
-
-    /**
-     * Check if biggest objects analysis results exist for this profile.
-     */
-    boolean biggestObjectsExists();
-
-    /**
-     * Get the pre-computed biggest objects report.
-     */
-    BiggestObjectsReport getBiggestObjects();
-
-    /**
-     * Run biggest objects analysis and save results to JSON file.
-     *
-     * @param topN number of biggest objects to include
-     */
-    void runBiggestObjects(int topN);
-
-    // --- Biggest Collections ---
-
-    /**
-     * Check if biggest collections analysis results exist for this profile.
-     */
-    boolean biggestCollectionsExists();
-
-    /**
-     * Get the pre-computed biggest collections report.
-     */
-    BiggestCollectionsReport getBiggestCollections();
-
-    /**
-     * Run biggest collections analysis and save results to JSON file.
-     *
-     * @param topN number of top entries to include in each ranking
-     */
-    void runBiggestCollections(int topN);
-
     // --- Class Loader Analysis ---
-
-    /**
-     * Check if class loader analysis results exist for this profile.
-     */
-    boolean classLoaderAnalysisExists();
-
-    /**
-     * Get the pre-computed class loader analysis report.
-     */
-    ClassLoaderReport getClassLoaderAnalysis();
-
-    /**
-     * Run class loader analysis and save results to JSON file.
-     */
-    void runClassLoaderAnalysis();
 
     /**
      * Load the per-loader detail panel served by the Class Loader Detail
@@ -493,39 +375,4 @@ public interface HeapDumpManager {
      * @return populated detail when the loader exists, {@link Optional#empty()} otherwise
      */
     Optional<ClassLoaderDetail> getClassLoaderDetail(long loaderId);
-
-    // --- Consumer Report ---
-
-    /**
-     * Check if the consumer report (top consumers + component report) exists for this profile.
-     */
-    boolean consumerReportExists();
-
-    /**
-     * Get the pre-computed consumer report.
-     */
-    ConsumerReport getConsumerReport();
-
-    /**
-     * Run the consumer / component analysis and save results to JSON file.
-     */
-    void runConsumerReport();
-
-    // --- Duplicate Data ---
-
-    /**
-     * Check if the duplicate-data (byte-identical primitive arrays) report exists for this profile.
-     */
-    boolean duplicateDataExists();
-
-    /**
-     * Get the pre-computed duplicate-data report.
-     */
-    DuplicateDataReport getDuplicateData();
-
-    /**
-     * Run the duplicate-data analysis and save results to JSON file.
-     */
-    void runDuplicateData(int topN);
-
 }

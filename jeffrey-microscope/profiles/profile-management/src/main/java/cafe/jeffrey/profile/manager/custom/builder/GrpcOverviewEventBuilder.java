@@ -18,7 +18,6 @@
 package cafe.jeffrey.profile.manager.custom.builder;
 
 import tools.jackson.databind.node.ObjectNode;
-import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import cafe.jeffrey.profile.manager.custom.model.grpc.*;
@@ -46,7 +45,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
 
     private static class MethodInfoBuilder {
         private final String method;
-        private final Histogram responseTimes = new Histogram(3);
+        private final LatencyStats responseTimes = new LatencyStats();
         private long totalRequestSize = 0;
         private long totalResponseSize = 0;
         private long errorCount = 0;
@@ -56,7 +55,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         }
 
         public void addRecord(long responseTime, long requestSize, long responseSize, boolean isError) {
-            responseTimes.recordValue(responseTime);
+            responseTimes.record(responseTime);
             totalRequestSize += Math.max(requestSize, 0);
             totalResponseSize += Math.max(responseSize, 0);
             if (isError) {
@@ -65,16 +64,16 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         }
 
         public GrpcMethodInfo build() {
-            long callCount = responseTimes.getTotalCount();
+            long callCount = responseTimes.count();
             long avgReqSize = callCount > 0 ? totalRequestSize / callCount : 0;
             long avgRespSize = callCount > 0 ? totalResponseSize / callCount : 0;
 
             return new GrpcMethodInfo(
                     method,
                     callCount,
-                    responseTimes.getMaxValue(),
-                    responseTimes.getValueAtPercentile(99.0),
-                    responseTimes.getValueAtPercentile(95.0),
+                    responseTimes.max(),
+                    responseTimes.p99(),
+                    responseTimes.p95(),
                     calculateSuccessRate(callCount, errorCount),
                     avgReqSize,
                     avgRespSize);
@@ -83,7 +82,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
 
     private static class ServiceInfoBuilder {
         private final String service;
-        private final Histogram responseTimes = new Histogram(3);
+        private final LatencyStats responseTimes = new LatencyStats();
         private final ObjectLongHashMap<String> statusCodeCounts = new ObjectLongHashMap<>();
         private final Map<String, MethodInfoBuilder> methodBuilders = new HashMap<>();
 
@@ -100,7 +99,7 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         public void addRecord(String method, long responseTime, String status,
                               long requestSize, long responseSize) {
 
-            responseTimes.recordValue(responseTime);
+            responseTimes.record(responseTime);
             statusCodeCounts.addToValue(status, 1);
 
             long safeRequestSize = Math.max(requestSize, 0);
@@ -122,16 +121,16 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         }
 
         public GrpcServiceInfo buildServiceInfo() {
-            long callCount = responseTimes.getTotalCount();
+            long callCount = responseTimes.count();
             long avgReqSize = callCount > 0 ? totalRequestSize / callCount : 0;
             long avgRespSize = callCount > 0 ? totalResponseSize / callCount : 0;
 
             return new GrpcServiceInfo(
                     service,
                     callCount,
-                    responseTimes.getMaxValue(),
-                    responseTimes.getValueAtPercentile(99.0),
-                    responseTimes.getValueAtPercentile(95.0),
+                    responseTimes.max(),
+                    responseTimes.p99(),
+                    responseTimes.p95(),
                     calculateSuccessRate(callCount, errorCount),
                     avgReqSize,
                     avgRespSize);
@@ -357,17 +356,17 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
         long maxRequestSize = 0;
         long maxResponseSize = 0;
 
-        Histogram globalHistogram = new Histogram(3);
+        LatencyStats globalResponseTimes = new LatencyStats();
 
         for (ServiceInfoBuilder builder : serviceInfos.values()) {
-            long serviceCallCount = builder.responseTimes.getTotalCount();
+            long serviceCallCount = builder.responseTimes.count();
             callCount += serviceCallCount;
             errorCount += builder.errorCount;
             totalBytesSent += builder.totalRequestSize;
             totalBytesReceived += builder.totalResponseSize;
             maxRequestSize = Math.max(maxRequestSize, builder.maxRequestSize);
             maxResponseSize = Math.max(maxResponseSize, builder.maxResponseSize);
-            globalHistogram.add(builder.responseTimes);
+            globalResponseTimes.add(builder.responseTimes);
         }
 
         long avgReqSize = callCount > 0 ? totalBytesSent / callCount : 0;
@@ -375,9 +374,9 @@ public class GrpcOverviewEventBuilder implements RecordBuilder<GenericRecord, Gr
 
         return new GrpcHeader(
                 callCount,
-                globalHistogram.getTotalCount() > 0 ? globalHistogram.getMaxValue() : 0,
-                globalHistogram.getTotalCount() > 0 ? globalHistogram.getValueAtPercentile(99.0) : 0,
-                globalHistogram.getTotalCount() > 0 ? globalHistogram.getValueAtPercentile(95.0) : 0,
+                globalResponseTimes.max(),
+                globalResponseTimes.p99(),
+                globalResponseTimes.p95(),
                 calculateSuccessRate(callCount, errorCount),
                 errorCount,
                 totalBytesSent,

@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 
-public final class CollectionHeapAnalysis implements CachedAnalysis<CollectionAnalysisReport> {
+public record CollectionHeapAnalysis() implements CachedAnalysis<CollectionAnalysisReport> {
 
     private static final String FILE_NAME = "collection-analysis.json";
 

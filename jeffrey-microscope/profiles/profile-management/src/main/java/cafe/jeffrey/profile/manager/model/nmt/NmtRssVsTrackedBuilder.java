@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.profile.manager.model.nmt;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
@@ -25,7 +25,6 @@ import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the RSS-vs-NMT-committed overlay from a mixed stream of {@code jdk.ResidentSetSize}
@@ -39,14 +38,13 @@ public class NmtRssVsTrackedBuilder implements RecordBuilder<GenericRecord, Time
     private static final String COMMITTED_SERIES_NAME = "NMT Committed";
     private static final String SIZE_FIELD = "size";
     private static final String COMMITTED_FIELD = "committed";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap rssTimeseries;
-    private final LongLongHashMap committedTimeseries;
+    private final MaxPerSecondSeries rssTimeseries;
+    private final MaxPerSecondSeries committedTimeseries;
 
     public NmtRssVsTrackedBuilder(RelativeTimeRange timeRange) {
-        this.rssTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.committedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.rssTimeseries = new MaxPerSecondSeries(RSS_SERIES_NAME, timeRange);
+        this.committedTimeseries = new MaxPerSecondSeries(COMMITTED_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -55,22 +53,20 @@ public class NmtRssVsTrackedBuilder implements RecordBuilder<GenericRecord, Time
         if (Type.RESIDENT_SET_SIZE.equals(record.type())) {
             long size = Json.readLong(record.jsonFields(), SIZE_FIELD);
             if (size >= 0) {
-                rssTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, size));
+                rssTimeseries.record(seconds, size);
             }
         } else {
             long committed = Json.readLong(record.jsonFields(), COMMITTED_FIELD);
             if (committed >= 0) {
-                committedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, committed));
+                committedTimeseries.record(seconds, committed);
             }
         }
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie rssSerie = TimeseriesUtils.buildSerie(RSS_SERIES_NAME, rssTimeseries);
-        SingleSerie committedSerie = TimeseriesUtils.buildSerie(COMMITTED_SERIES_NAME, committedTimeseries);
-        TimeseriesUtils.remapTimeseriesBySteps(rssSerie, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(committedSerie, CARRY_FORWARD_MARK);
+        SingleSerie rssSerie = rssTimeseries.buildCarryingForward();
+        SingleSerie committedSerie = committedTimeseries.buildCarryingForward();
         return new TimeseriesData(rssSerie, committedSerie);
     }
 }

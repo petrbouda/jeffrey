@@ -17,15 +17,14 @@
 
 package cafe.jeffrey.profile.manager.model.jit;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the compiler-queue backlog timeline from {@code jdk.CompilerQueueUtilization} events, one
@@ -40,12 +39,12 @@ public class CompilerQueueTimeseriesBuilder implements RecordBuilder<GenericReco
     private static final String QUEUE_SIZE_FIELD = "queueSize";
     private static final String C1_COMPILER = "c1";
 
-    private final LongLongHashMap c1Timeseries;
-    private final LongLongHashMap c2Timeseries;
+    private final MaxPerSecondSeries c1Timeseries;
+    private final MaxPerSecondSeries c2Timeseries;
 
     public CompilerQueueTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.c1Timeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.c2Timeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.c1Timeseries = new MaxPerSecondSeries(C1_SERIES_NAME, timeRange);
+        this.c2Timeseries = new MaxPerSecondSeries(C2_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -58,14 +57,14 @@ public class CompilerQueueTimeseriesBuilder implements RecordBuilder<GenericReco
         long seconds = record.timestampFromStart().toSeconds();
         String compiler = Json.readString(fields, COMPILER_FIELD);
 
-        LongLongHashMap target = C1_COMPILER.equalsIgnoreCase(compiler) ? c1Timeseries : c2Timeseries;
-        target.updateValue(seconds, 0, existing -> Math.max(existing, queueSize));
+        MaxPerSecondSeries target = C1_COMPILER.equalsIgnoreCase(compiler) ? c1Timeseries : c2Timeseries;
+        target.record(seconds, queueSize);
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie c1Serie = TimeseriesUtils.buildSerie(C1_SERIES_NAME, c1Timeseries);
-        SingleSerie c2Serie = TimeseriesUtils.buildSerie(C2_SERIES_NAME, c2Timeseries);
+        SingleSerie c1Serie = c1Timeseries.build();
+        SingleSerie c2Serie = c2Timeseries.build();
         return new TimeseriesData(c1Serie, c2Serie);
     }
 }

@@ -17,15 +17,13 @@
 
 package cafe.jeffrey.profile.manager.model.system;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the machine-vs-JVM CPU timeline from periodic {@code jdk.CPULoad} events. The event's
@@ -43,14 +41,14 @@ public class CpuLoadTimeseriesBuilder implements RecordBuilder<GenericRecord, Ti
     private static final String MACHINE_TOTAL_FIELD = "machineTotal";
     private static final double BASIS_POINTS_FACTOR = 10_000d;
 
-    private final LongLongHashMap machineTimeseries;
-    private final LongLongHashMap jvmUserTimeseries;
-    private final LongLongHashMap jvmSystemTimeseries;
+    private final MaxPerSecondSeries machineTimeseries;
+    private final MaxPerSecondSeries jvmUserTimeseries;
+    private final MaxPerSecondSeries jvmSystemTimeseries;
 
     public CpuLoadTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.machineTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.jvmUserTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.jvmSystemTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.machineTimeseries = new MaxPerSecondSeries(MACHINE_SERIES_NAME, timeRange);
+        this.jvmUserTimeseries = new MaxPerSecondSeries(JVM_USER_SERIES_NAME, timeRange);
+        this.jvmSystemTimeseries = new MaxPerSecondSeries(JVM_SYSTEM_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -63,19 +61,16 @@ public class CpuLoadTimeseriesBuilder implements RecordBuilder<GenericRecord, Ti
         update(jvmSystemTimeseries, seconds, Json.readDouble(fields, JVM_SYSTEM_FIELD));
     }
 
-    private static void update(LongLongHashMap timeseries, long seconds, double fraction) {
+    private static void update(MaxPerSecondSeries timeseries, long seconds, double fraction) {
         if (fraction < 0) {
             return;
         }
         long basisPoints = Math.round(fraction * BASIS_POINTS_FACTOR);
-        timeseries.updateValue(seconds, 0, existing -> Math.max(existing, basisPoints));
+        timeseries.record(seconds, basisPoints);
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie machineSerie = TimeseriesUtils.buildSerie(MACHINE_SERIES_NAME, machineTimeseries);
-        SingleSerie userSerie = TimeseriesUtils.buildSerie(JVM_USER_SERIES_NAME, jvmUserTimeseries);
-        SingleSerie systemSerie = TimeseriesUtils.buildSerie(JVM_SYSTEM_SERIES_NAME, jvmSystemTimeseries);
-        return new TimeseriesData(machineSerie, userSerie, systemSerie);
+        return new TimeseriesData(machineTimeseries.build(), jvmUserTimeseries.build(), jvmSystemTimeseries.build());
     }
 }

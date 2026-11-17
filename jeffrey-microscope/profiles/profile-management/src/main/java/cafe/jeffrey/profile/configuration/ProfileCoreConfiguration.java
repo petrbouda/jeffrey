@@ -56,12 +56,13 @@ import cafe.jeffrey.profile.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.profile.tools.pprof.PprofExportManager;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfileDatabase;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
+import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
-import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
@@ -70,23 +71,23 @@ import cafe.jeffrey.shared.persistence.DatabaseManager;
 
 import java.util.Map;
 
-import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.time.Clock;
 
 public class ProfileCoreConfiguration {
 
+    // The initializer builds the repositories over the database it holds a lease on, not one opened here
     private final ProfileRepositories profileRepositories;
     private final DatabaseManager profileDatabaseProvider;
-    private final DatabaseManagerResolver databaseManagerResolver;
+    private final ProfileDatabases profileDatabases;
     private final EventWriter.Factory eventWriterFactory;
 
     public ProfileCoreConfiguration(
             ProfilePersistenceProvider persistenceProvider,
-            DatabaseManagerResolver databaseManagerResolver) {
+            ProfileDatabases profileDatabases) {
         this.profileRepositories = persistenceProvider.repositories();
         this.profileDatabaseProvider = persistenceProvider.databaseManager();
-        this.databaseManagerResolver = databaseManagerResolver;
+        this.profileDatabases = profileDatabases;
         this.eventWriterFactory = persistenceProvider.eventWriterFactory();
     }
 
@@ -134,22 +135,22 @@ public class ProfileCoreConfiguration {
     @Bean
     public PprofExportManager.Factory pprofExportManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new PprofExportManager(
                     profileInfo,
-                    profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventTypes(),
+                    profileDb.eventStream());
         };
     }
 
     @Bean
     public OtlpExportManager.Factory otlpExportManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new OtlpExportManager(
                     profileInfo,
-                    profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newEventStreamRepository(profileDb));
+                    profileDb.eventTypes(),
+                    profileDb.eventStream());
         };
     }
 
@@ -173,31 +174,31 @@ public class ProfileCoreConfiguration {
     @Bean
     public ProfileToolsManager.Factory toolsManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new ProfileToolsManagerImpl(
-                    profileRepositories.newFrameRepository(profileDb),
-                    profileRepositories.newProfileCacheRepository(profileDb));
+                    profileDb.frames(),
+                    profileDb.cache());
         };
     }
 
     @Bean
     public CollapseFramesManager.Factory collapseFramesManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new CollapseFramesManager(
-                    profileRepositories.newToolsRepository(profileDb),
-                    profileRepositories.newProfileCacheRepository(profileDb));
+                    profileDb.tools(),
+                    profileDb.cache());
         };
     }
 
     @Bean
     public ProfileFeaturesManager.Factory featuresManagerFactory() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new ProfileFeaturesManagerImpl(
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newTraceRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventTypes(),
+                    profileDb.traces());
         };
     }
 
@@ -206,7 +207,7 @@ public class ProfileCoreConfiguration {
     public PerfCountersManager.Factory perfCountersManagerFactory() {
         PerfCountersCatalog catalog = PerfCountersCatalog.load();
         return profileInfo -> new PerfCountersManagerImpl(
-                profileRepositories.newProfileCacheRepository(databaseManagerResolver.open(profileInfo)),
+                profileDatabases.open(profileInfo).cache(),
                 catalog);
     }
 

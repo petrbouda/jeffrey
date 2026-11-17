@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
@@ -76,7 +76,7 @@ public final class McpProfileContextCache implements AutoCloseable {
             "Profile not found: %s. Call profiles_list to see the analysed profiles.";
 
     private final ProfileManagerResolver profileManagerResolver;
-    private final DatabaseManagerResolver databaseManagerResolver;
+    private final ProfileDatabases profileDatabases;
     private final Clock clock;
     private final Duration idleTimeout;
 
@@ -92,7 +92,7 @@ public final class McpProfileContextCache implements AutoCloseable {
      */
     public McpProfileContextCache(
             ProfileManagerResolver profileManagerResolver,
-            DatabaseManagerResolver databaseManagerResolver,
+            ProfileDatabases profileDatabases,
             Clock clock,
             Duration idleTimeout,
             boolean sweeping) {
@@ -100,7 +100,7 @@ public final class McpProfileContextCache implements AutoCloseable {
             throw new IllegalArgumentException("idleTimeout must be positive: idleTimeout=" + idleTimeout);
         }
         this.profileManagerResolver = profileManagerResolver;
-        this.databaseManagerResolver = databaseManagerResolver;
+        this.profileDatabases = profileDatabases;
         this.clock = clock;
         this.idleTimeout = idleTimeout;
         this.evictor = sweeping ? startEvictor() : null;
@@ -168,7 +168,7 @@ public final class McpProfileContextCache implements AutoCloseable {
                 ProfileManager profileManager = resolveProfile(id);
                 LOG.debug("Opening MCP profile context: profile_id={}", id);
                 context = new McpProfileContext(
-                        profileManager, databaseManagerResolver.acquire(profileManager.info()), now);
+                        profileManager, profileDatabases.acquire(profileManager.info()), now);
             }
             context.acquire(now);
             acquired.set(context);

@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
+import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;
@@ -32,16 +33,10 @@ import cafe.jeffrey.profile.heapdump.analyzer.heapview.InstanceTreeAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadAnalyzer;
 import cafe.jeffrey.profile.heapdump.analyzer.heapview.ThreadStackAnalyzer;
-import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
 import cafe.jeffrey.profile.heapdump.model.IndexBuildProgressListener;
-import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
-import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
-import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
-import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
-import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
 import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassAggregate;
 import cafe.jeffrey.profile.heapdump.model.GCRootClassLoaderAggregate;
@@ -59,14 +54,11 @@ import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
-import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.profile.heapdump.model.SortBy;
-import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
 import cafe.jeffrey.profile.common.pipeline.SubPhaseTiming;
-import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.profile.heapdump.oql.OqlEngine;
 import cafe.jeffrey.profile.heapdump.oql.ast.OqlStatement;
@@ -81,15 +73,6 @@ import cafe.jeffrey.profile.manager.heapdump.CachedAnalysisRunner;
 import cafe.jeffrey.profile.manager.heapdump.CompressedOopsResolver;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpReportStore;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpSessionTemplate;
-import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
-import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
 import cafe.jeffrey.shared.common.measure.Measuring;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import org.slf4j.Logger;
@@ -119,7 +102,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
 
     /** The init pipeline runs once per profile, so its run has no sub-scope. */
     private static final String PROFILE_SCOPE = "";
-
 
     private static final int MAX_QUERY_LIMIT = 100;
 
@@ -350,39 +332,24 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         pipelineRuns.deleteAll(HeapDumpStages.PIPELINE_ID);
     }
 
-    // --- String analysis -------------------------------------------------
+    // --- Stored reports --------------------------------------------------
 
     @Override
-    public boolean stringAnalysisExists() {
-        return reports.exists(new StringHeapAnalysis());
+    public boolean reportExists(CachedAnalysis<?> analysis) {
+        return reports.exists(analysis);
     }
 
     @Override
-    public StringAnalysisReport getStringAnalysis() {
-        return runner.read(new StringHeapAnalysis()).orElse(null);
+    public <T> Optional<T> report(CachedAnalysis<T> analysis) {
+        return runner.read(analysis);
     }
 
     @Override
-    public void runStringAnalysis(int topN) {
-        runner.run(new StringHeapAnalysis(topN));
+    public void runReport(CachedAnalysis<?> analysis) {
+        runner.run(analysis);
     }
 
-    // --- Thread analysis -------------------------------------------------
-
-    @Override
-    public boolean threadAnalysisExists() {
-        return reports.exists(new ThreadHeapAnalysis());
-    }
-
-    @Override
-    public ThreadAnalysisReport getThreadAnalysis() {
-        return runner.read(new ThreadHeapAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runThreadAnalysis() {
-        runner.run(new ThreadHeapAnalysis());
-    }
+    // --- Dominator tree build --------------------------------------------
 
     @Override
     public List<SubPhaseTiming> runComputeDominator() {
@@ -477,23 +444,6 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         }).orElse(EMPTY_DOMINATOR_TREE);
     }
 
-    // --- Collection Analysis ---------------------------------------------
-
-    @Override
-    public boolean collectionAnalysisExists() {
-        return reports.exists(new CollectionHeapAnalysis());
-    }
-
-    @Override
-    public CollectionAnalysisReport getCollectionAnalysis() {
-        return runner.read(new CollectionHeapAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runCollectionAnalysis() {
-        runner.run(new CollectionHeapAnalysis());
-    }
-
     // --- Class Instance Browser ------------------------------------------
 
     @Override
@@ -518,73 +468,7 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
         }).orElse(new ClassInstancesResponse(className, 0, List.of(), false));
     }
 
-    // --- Leak Suspects ---------------------------------------------------
-
-    @Override
-    public boolean leakSuspectsExists() {
-        return reports.exists(new LeakSuspectsAnalysis());
-    }
-
-    @Override
-    public LeakSuspectsReport getLeakSuspects() {
-        return runner.read(new LeakSuspectsAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runLeakSuspects() {
-        runner.run(new LeakSuspectsAnalysis());
-    }
-
-    // --- Biggest Objects -------------------------------------------------
-
-    @Override
-    public boolean biggestObjectsExists() {
-        return reports.exists(new BiggestObjectsAnalysis());
-    }
-
-    @Override
-    public BiggestObjectsReport getBiggestObjects() {
-        return runner.read(new BiggestObjectsAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runBiggestObjects(int topN) {
-        runner.run(new BiggestObjectsAnalysis(topN));
-    }
-
-    // --- Biggest Collections ---------------------------------------------
-
-    @Override
-    public boolean biggestCollectionsExists() {
-        return reports.exists(new BiggestCollectionsAnalysis());
-    }
-
-    @Override
-    public BiggestCollectionsReport getBiggestCollections() {
-        return runner.read(new BiggestCollectionsAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runBiggestCollections(int topN) {
-        runner.run(new BiggestCollectionsAnalysis(topN));
-    }
-
-    // --- Class Loader Analysis (base + leak chains) ----------------------
-
-    @Override
-    public boolean classLoaderAnalysisExists() {
-        return reports.exists(new ClassLoaderHeapAnalysis());
-    }
-
-    @Override
-    public ClassLoaderReport getClassLoaderAnalysis() {
-        return runner.read(new ClassLoaderHeapAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runClassLoaderAnalysis() {
-        runner.run(new ClassLoaderHeapAnalysis());
-    }
+    // --- Class loader detail ---------------------------------------------
 
     @Override
     public Optional<ClassLoaderDetail> getClassLoaderDetail(long loaderId) {
@@ -592,39 +476,5 @@ public class HeapDumpManagerImpl implements HeapDumpManager {
             session.buildDominatorTreeIfNeeded();
             return ClassLoaderDetailService.loadDetail(session.view(), loaderId).orElse(null);
         });
-    }
-
-    // --- Consumer Report -------------------------------------------------
-
-    @Override
-    public boolean consumerReportExists() {
-        return reports.exists(new ConsumerReportAnalysis());
-    }
-
-    @Override
-    public ConsumerReport getConsumerReport() {
-        return runner.read(new ConsumerReportAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runConsumerReport() {
-        runner.run(new ConsumerReportAnalysis());
-    }
-
-    // --- Duplicate Data --------------------------------------------------
-
-    @Override
-    public boolean duplicateDataExists() {
-        return reports.exists(new DuplicateDataAnalysis());
-    }
-
-    @Override
-    public DuplicateDataReport getDuplicateData() {
-        return runner.read(new DuplicateDataAnalysis()).orElse(null);
-    }
-
-    @Override
-    public void runDuplicateData(int topN) {
-        runner.run(new DuplicateDataAnalysis(topN));
     }
 }

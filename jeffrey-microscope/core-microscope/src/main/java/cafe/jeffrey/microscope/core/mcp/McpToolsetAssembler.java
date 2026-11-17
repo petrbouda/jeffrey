@@ -75,7 +75,29 @@ import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Function;
+
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.BLOCKING;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.CODE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.COMPARE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.CONNECTOR;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.FLAMEGRAPH;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.GRPC;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HEAP;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HTTP;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.IDE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.IO;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JDBC;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JFR;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JVM;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.MEMORY;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.METHOD_TRACING;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.OPERATIONS;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.PROFILES;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.RECORDINGS;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TIMELINE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TRACES;
 
 /**
  * Assembles the tool families the external MCP server advertises.
@@ -115,26 +137,6 @@ import java.util.function.Function;
  */
 public class McpToolsetAssembler {
 
-    private static final String PREFIX_PROFILES = "profiles";
-    private static final String PREFIX_OPERATIONS = "operations";
-    private static final String PREFIX_JFR = "jfr";
-    private static final String PREFIX_FLAMEGRAPH = "flamegraph";
-    private static final String PREFIX_CODE = "code";
-    private static final String PREFIX_COMPARE = "compare";
-    private static final String PREFIX_TRACES = "traces";
-    private static final String PREFIX_JVM = "jvm";
-    private static final String PREFIX_HTTP = "http";
-    private static final String PREFIX_JDBC = "jdbc";
-    private static final String PREFIX_GRPC = "grpc";
-    private static final String PREFIX_METHOD_TRACING = "methodtracing";
-    private static final String PREFIX_IO = "io";
-    private static final String PREFIX_BLOCKING = "blocking";
-    private static final String PREFIX_TIMELINE = "timeline";
-    private static final String PREFIX_MEMORY = "memory";
-    private static final String PREFIX_HEAP = "heap";
-    private static final String PREFIX_RECORDINGS = "recordings";
-    private static final String PREFIX_CONNECTOR = "connector";
-    private static final String PREFIX_IDE = "ide";
 
     private final McpToolProvider toolset;
     private final McpProfileDocuments documents;
@@ -162,119 +164,69 @@ public class McpToolsetAssembler {
         BoundedOperation<OQLQueryResult> retainedOqlRuns =
                 BoundedOperation.standard(OperationKind.HEAP_OQL, operations, answers, clock);
 
+        ProfileFamilies onProfile = new ProfileFamilies(contextCache, advertised);
         List<McpToolProvider> families = new ArrayList<>(List.of(
-                new ReflectiveToolset(profilesMcpTools, PREFIX_PROFILES),
-                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> reachable(kind, properties)), PREFIX_OPERATIONS),
-                ProfileScopedToolset.leased(ProfileEvidenceMcpTools.class, PREFIX_PROFILES,
-                        profileId -> scoped(contextCache, profileId, scope -> new ProfileEvidenceMcpTools(
-                                scope.profileManager(), recordingCommitResolver, jfrPanelProvider,
-                                stackSamplePanelProvider, clock, advertised))),
-                ProfileScopedToolset.leased(ProfileMcpTools.class, PREFIX_PROFILES,
-                        profileId -> scoped(contextCache, profileId, scope -> new ProfileMcpTools(
-                                scope.profileManager(),
-                                recordingCommitResolver,
-                                jfrPanelProvider,
-                                stackSamplePanelProvider,
-                                advertised))),
-                ProfileScopedToolset.leased(EventTypeMcpTools.class, PREFIX_JFR,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new EventTypeMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(DuckDbMcpTools.class, PREFIX_JFR,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new DuckDbMcpTools(scope.dataSource(), profileId, advertised))),
-                ProfileScopedToolset.leased(FlamegraphMcpTools.class, PREFIX_FLAMEGRAPH,
-                        profileId -> scoped(contextCache, profileId, scope -> new FlamegraphMcpTools(
-                                scope.profileManager(),
-                                jfrPanelProvider,
-                                stackSamplePanelProvider,
-                                advertised))),
-                ProfileScopedToolset.leased(CodeMcpTools.class, PREFIX_CODE,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new CodeMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(CodeSurfaceMcpTools.class, PREFIX_CODE,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new CodeSurfaceMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(CompareMcpTools.class, PREFIX_COMPARE,
-                        profileId -> scoped(contextCache, profileId, scope -> new CompareMcpTools(
-                                scope.profileManager(), scope::profileManager, clock, advertised))),
-                ProfileScopedToolset.leased(TracesMcpTools.class, PREFIX_TRACES,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new TracesMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(JvmMcpTools.class, PREFIX_JVM,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new JvmMcpTools(scope.profileManager(), autoAnalysisRuns,
-                                        () -> contextCache.acquire(profileId), advertised))),
-                ProfileScopedToolset.leased(HttpMcpTools.class, PREFIX_HTTP,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new HttpMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(JdbcMcpTools.class, PREFIX_JDBC,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new JdbcMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(GrpcMcpTools.class, PREFIX_GRPC,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new GrpcMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(MethodTracingMcpTools.class, PREFIX_METHOD_TRACING,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new MethodTracingMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(IoMcpTools.class, PREFIX_IO,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new IoMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(BlockingMcpTools.class, PREFIX_BLOCKING,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new BlockingMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(TimelineMcpTools.class, PREFIX_TIMELINE,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new TimelineMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(MemoryMcpTools.class, PREFIX_MEMORY,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new MemoryMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(TraceAttributesMcpTools.class, PREFIX_TRACES,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new TraceAttributesMcpTools(scope.profileManager(), advertised))),
-                ProfileScopedToolset.leased(HeapDiffMcpTools.class, PREFIX_HEAP,
-                        profileId -> scoped(contextCache, profileId, scope -> new HeapDiffMcpTools(
-                                scope.profileManager(), scope::profileManager, advertised))),
-                ProfileScopedToolset.leased(HeapOqlMcpTools.class, PREFIX_HEAP,
-                        profileId -> scoped(contextCache, profileId, scope -> {
-                            // OQL reads the same index, so it is refused on the same terms.
-                            requireIndexedHeapDump(scope.profileManager(), profileId);
-                            return new HeapOqlMcpTools(scope.profileManager(), retainedOqlRuns,
-                                    () -> contextCache.acquire(profileId), advertised);
-                        })),
-                ProfileScopedToolset.leased(HeapDumpMcpTools.class, PREFIX_HEAP,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> heapTools(scope.profileManager(), profileId, advertised))),
-                ProfileScopedToolset.leased(HeapComputeMcpTools.class, PREFIX_HEAP,
-                        profileId -> scoped(contextCache, profileId,
-                                scope -> new HeapComputeMcpTools(
-                                        scope.profileManager(),
-                                        heapDumpInitService,
-                                        () -> contextCache.acquire(profileId), operations, answers, advertised)),
+                new ReflectiveToolset(profilesMcpTools, PROFILES),
+                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> reachable(kind, properties)), OPERATIONS),
+                onProfile.of(ProfileEvidenceMcpTools.class, PROFILES, (scope, profileId) -> new ProfileEvidenceMcpTools(
+                        scope.profileManager(), recordingCommitResolver, jfrPanelProvider,
+                        stackSamplePanelProvider, clock, advertised)),
+                onProfile.of(ProfileMcpTools.class, PROFILES, (scope, profileId) -> new ProfileMcpTools(
+                        scope.profileManager(), recordingCommitResolver, jfrPanelProvider,
+                        stackSamplePanelProvider, advertised)),
+                onProfile.onManager(EventTypeMcpTools.class, JFR, EventTypeMcpTools::new),
+                onProfile.of(DuckDbMcpTools.class, JFR,
+                        (scope, profileId) -> new DuckDbMcpTools(scope.dataSource(), profileId, advertised)),
+                onProfile.of(FlamegraphMcpTools.class, FLAMEGRAPH, (scope, profileId) -> new FlamegraphMcpTools(
+                        scope.profileManager(), jfrPanelProvider, stackSamplePanelProvider, advertised)),
+                onProfile.onManager(CodeMcpTools.class, CODE, CodeMcpTools::new),
+                onProfile.onManager(CodeSurfaceMcpTools.class, CODE, CodeSurfaceMcpTools::new),
+                onProfile.of(CompareMcpTools.class, COMPARE, (scope, profileId) -> new CompareMcpTools(
+                        scope.profileManager(), scope::profileManager, clock, advertised)),
+                onProfile.onManager(TracesMcpTools.class, TRACES, TracesMcpTools::new),
+                onProfile.of(JvmMcpTools.class, JVM, (scope, profileId) -> new JvmMcpTools(
+                        scope.profileManager(), autoAnalysisRuns, () -> contextCache.acquire(profileId), advertised)),
+                onProfile.onManager(HttpMcpTools.class, HTTP, HttpMcpTools::new),
+                onProfile.onManager(JdbcMcpTools.class, JDBC, JdbcMcpTools::new),
+                onProfile.onManager(GrpcMcpTools.class, GRPC, GrpcMcpTools::new),
+                onProfile.onManager(MethodTracingMcpTools.class, METHOD_TRACING, MethodTracingMcpTools::new),
+                onProfile.onManager(IoMcpTools.class, IO, IoMcpTools::new),
+                onProfile.onManager(BlockingMcpTools.class, BLOCKING, BlockingMcpTools::new),
+                onProfile.onManager(TimelineMcpTools.class, TIMELINE, TimelineMcpTools::new),
+                onProfile.onManager(MemoryMcpTools.class, MEMORY, MemoryMcpTools::new),
+                onProfile.onManager(TraceAttributesMcpTools.class, TRACES, TraceAttributesMcpTools::new),
+                onProfile.of(HeapDiffMcpTools.class, HEAP, (scope, profileId) -> new HeapDiffMcpTools(
+                        scope.profileManager(), scope::profileManager, advertised)),
+                onProfile.of(HeapOqlMcpTools.class, HEAP, (scope, profileId) -> {
+                    // OQL reads the same index, so it is refused on the same terms.
+                    requireIndexedHeapDump(scope.profileManager(), profileId);
+                    return new HeapOqlMcpTools(scope.profileManager(), retainedOqlRuns,
+                            () -> contextCache.acquire(profileId), advertised);
+                }),
+                onProfile.of(HeapDumpMcpTools.class, HEAP,
+                        (scope, profileId) -> heapTools(scope.profileManager(), profileId, advertised)),
+                onProfile.of(HeapComputeMcpTools.class, HEAP, (scope, profileId) -> new HeapComputeMcpTools(
+                                scope.profileManager(), heapDumpInitService,
+                                () -> contextCache.acquire(profileId), operations, answers, advertised),
                         McpToolAnnotations.CREATES),
-                new ReflectiveToolset(
-                        recordingsMcpTools, PREFIX_RECORDINGS, McpToolAnnotations.CREATES)));
+                new ReflectiveToolset(recordingsMcpTools, RECORDINGS, McpToolAnnotations.CREATES)));
 
         if (properties.ideEnabled()) {
             // Read-only as a family: three of its five tools observe. The two that do not — linking
             // a window and opening a file — say so themselves with @McpToolHints, which is what that
             // annotation is for.
-            families.add(ProfileScopedToolset.leased(IdeMcpTools.class, PREFIX_IDE,
-                    profileId -> scoped(contextCache, profileId, scope -> new IdeMcpTools(
-                            ideBridge,
-                            scope.profileManager(),
-                            recordingCommitResolver,
-                            profileId,
-                            advertised)),
+            families.add(onProfile.of(IdeMcpTools.class, IDE, (scope, profileId) -> new IdeMcpTools(
+                            ideBridge, scope.profileManager(), recordingCommitResolver, profileId, advertised),
                     McpToolAnnotations.READS_OUTSIDE));
         }
 
         if (properties.connectorEnabled()) {
             families.add(new ReflectiveToolset(
-                    connectorMcpTools, PREFIX_CONNECTOR, McpToolAnnotations.READS_OUTSIDE));
+                    connectorMcpTools, CONNECTOR, McpToolAnnotations.READS_OUTSIDE));
             // Read-only as a family: connector_files observes. connector_fetchFile puts a file on this disk and
             // says so itself with @McpToolHints, the way connector_download does.
             families.add(new ReflectiveToolset(
-                    connectorArtifactsMcpTools, PREFIX_CONNECTOR, McpToolAnnotations.READS_OUTSIDE));
+                    connectorArtifactsMcpTools, CONNECTOR, McpToolAnnotations.READS_OUTSIDE));
         }
 
         this.toolset = new CompositeToolset(retained(families, properties));
@@ -403,6 +355,38 @@ public class McpToolsetAssembler {
                             + "and heap_status to follow it; the tools answer once it reports ready.");
         }
         return heapDumpManager;
+    }
+
+    /**
+     * Builds the families that read one profile: every call leases the profile for as long as it runs and
+     * builds the family's tool object over it.
+     */
+    private record ProfileFamilies(McpProfileContextCache contextCache, AdvertisedFamilies advertised) {
+
+        <T> ProfileScopedToolset<T> of(Class<T> type, String family, ProfileToolFactory<T> factory) {
+            return ProfileScopedToolset.leased(type, family, resolver(factory));
+        }
+
+        <T> ProfileScopedToolset<T> of(
+                Class<T> type, String family, ProfileToolFactory<T> factory, McpToolAnnotations annotations) {
+            return ProfileScopedToolset.leased(type, family, resolver(factory), annotations);
+        }
+
+        /** A family whose tools read nothing but the profile's manager and the families advertised. */
+        <T> ProfileScopedToolset<T> onManager(
+                Class<T> type, String family, BiFunction<ProfileManager, AdvertisedFamilies, T> constructor) {
+            return of(type, family, (scope, profileId) -> constructor.apply(scope.profileManager(), advertised));
+        }
+
+        private <T> ProfileScopedToolset.ScopedTargetResolver<T> resolver(ProfileToolFactory<T> factory) {
+            return profileId -> scoped(contextCache, profileId, scope -> factory.create(scope, profileId));
+        }
+    }
+
+    /** The tool object of a family, built over the scope of one call on one profile. */
+    @FunctionalInterface
+    private interface ProfileToolFactory<T> {
+        T create(ProfileCallScope scope, String profileId);
     }
 
     static final class ProfileCallScope implements AutoCloseable {

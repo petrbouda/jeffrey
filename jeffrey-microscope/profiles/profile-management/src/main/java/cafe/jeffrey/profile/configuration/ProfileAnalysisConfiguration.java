@@ -35,27 +35,22 @@ import cafe.jeffrey.profile.manager.SamplerHealthManagerImpl;
 import cafe.jeffrey.profile.manager.registry.AnalysisFactories;
 import cafe.jeffrey.profile.settings.ActiveSettingsProvider;
 import cafe.jeffrey.profile.settings.CachedActiveSettingsProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.provider.profile.api.ProfileDatabase;
+import cafe.jeffrey.provider.profile.api.ProfileDatabases;
 import cafe.jeffrey.provider.profile.api.ProfileCacheRepository;
-import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.profile.recording.RecordingFileLookup;
 
-import javax.sql.DataSource;
 import java.nio.file.Path;
 
 public class ProfileAnalysisConfiguration {
 
-    private final ProfileRepositories profileRepositories;
-    private final DatabaseManagerResolver databaseManagerResolver;
+    private final ProfileDatabases profileDatabases;
 
     public ProfileAnalysisConfiguration(
-            ProfilePersistenceProvider persistenceProvider,
-            DatabaseManagerResolver databaseManagerResolver) {
-        this.profileRepositories = persistenceProvider.repositories();
-        this.databaseManagerResolver = databaseManagerResolver;
+            ProfileDatabases profileDatabases) {
+        this.profileDatabases = profileDatabases;
     }
 
     @Bean
@@ -86,8 +81,8 @@ public class ProfileAnalysisConfiguration {
             RecordingFileLookup recordingLookup, TempDirFactory tempDirFactory) {
         AutoAnalysisDataProvider ruleSet = new AutoAnalysisDataProvider(tempDirFactory);
         return profileInfo -> {
-            var profileDb = databaseManagerResolver.open(profileInfo);
-            ProfileCacheRepository cacheRepository = profileRepositories.newProfileCacheRepository(profileDb);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            ProfileCacheRepository cacheRepository = profileDb.cache();
 
             return new AutoAnalysisManagerImpl(
                     cacheRepository,
@@ -99,10 +94,10 @@ public class ProfileAnalysisConfiguration {
     @Bean
     public EventViewerManager.Factory eventViewerManager() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new EventViewerManagerImpl(
-                    profileRepositories.newEventRepository(profileDb),
-                    profileRepositories.newEventTypeRepository(profileDb));
+                    profileDb.events(),
+                    profileDb.eventTypes());
         };
     }
 
@@ -114,9 +109,9 @@ public class ProfileAnalysisConfiguration {
     @Bean
     public FlagsManager.Factory flagsManager(JvmFlagDescriptionProvider descriptionProvider) {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new FlagsManagerImpl(
-                    profileRepositories.newEventRepository(profileDb),
+                    profileDb.events(),
                     descriptionProvider);
         };
     }
@@ -124,8 +119,8 @@ public class ProfileAnalysisConfiguration {
     @Bean
     public SamplerHealthManager.Factory samplerHealthManager() {
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            return new SamplerHealthManagerImpl(profileRepositories.newEventRepository(profileDb));
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            return new SamplerHealthManagerImpl(profileDb.events());
         };
     }
 
@@ -133,10 +128,10 @@ public class ProfileAnalysisConfiguration {
     public ActiveSettingsProvider.Factory settingsProviderFactory() {
 
         return (ProfileInfo profileInfo) -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
             return new CachedActiveSettingsProvider(
-                    profileRepositories.newEventTypeRepository(profileDb),
-                    profileRepositories.newProfileCacheRepository(profileDb));
+                    profileDb.eventTypes(),
+                    profileDb.cache());
         };
     }
 
@@ -144,8 +139,8 @@ public class ProfileAnalysisConfiguration {
     public ProfileConfigurationManager.Factory profileConfigurationManagerFactory() {
 
         return profileInfo -> {
-            DataSource profileDb = databaseManagerResolver.open(profileInfo);
-            return new ProfileConfigurationManagerImpl(profileRepositories.newEventTypeRepository(profileDb));
+            ProfileDatabase profileDb = profileDatabases.open(profileInfo);
+            return new ProfileConfigurationManagerImpl(profileDb.eventTypes());
         };
     }
 }

@@ -17,15 +17,14 @@
 
 package cafe.jeffrey.profile.manager.model.system;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds the per-interface network utilization timeline from {@code jdk.NetworkUtilization} events.
@@ -41,12 +40,12 @@ public class NetworkRateTimeseriesBuilder implements RecordBuilder<GenericRecord
     private static final String WRITE_RATE_FIELD = "writeRate";
     private static final long BITS_PER_BYTE = 8;
 
-    private final LongLongHashMap readTimeseries;
-    private final LongLongHashMap writeTimeseries;
+    private final MaxPerSecondSeries readTimeseries;
+    private final MaxPerSecondSeries writeTimeseries;
 
     public NetworkRateTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.readTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.writeTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.readTimeseries = new MaxPerSecondSeries(READ_SERIES_NAME, timeRange);
+        this.writeTimeseries = new MaxPerSecondSeries(WRITE_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -57,19 +56,19 @@ public class NetworkRateTimeseriesBuilder implements RecordBuilder<GenericRecord
         long readBitsPerSec = Json.readLong(fields, READ_RATE_FIELD);
         if (readBitsPerSec >= 0) {
             long bytesPerSec = readBitsPerSec / BITS_PER_BYTE;
-            readTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, bytesPerSec));
+            readTimeseries.record(seconds, bytesPerSec);
         }
         long writeBitsPerSec = Json.readLong(fields, WRITE_RATE_FIELD);
         if (writeBitsPerSec >= 0) {
             long bytesPerSec = writeBitsPerSec / BITS_PER_BYTE;
-            writeTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, bytesPerSec));
+            writeTimeseries.record(seconds, bytesPerSec);
         }
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie readSerie = TimeseriesUtils.buildSerie(READ_SERIES_NAME, readTimeseries);
-        SingleSerie writeSerie = TimeseriesUtils.buildSerie(WRITE_SERIES_NAME, writeTimeseries);
+        SingleSerie readSerie = readTimeseries.build();
+        SingleSerie writeSerie = writeTimeseries.build();
         return new TimeseriesData(readSerie, writeSerie);
     }
 }

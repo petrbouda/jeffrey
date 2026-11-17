@@ -17,6 +17,16 @@
 
 package cafe.jeffrey.profile.manager.heapdump;
 
+import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.operation.OperationHandle;
 import cafe.jeffrey.profile.common.operation.OperationState;
@@ -140,17 +150,9 @@ public final class HeapDumpInitService {
             PipelineRun run, HeapDumpManager manager, Boolean compressedOopsOverride) {
 
         runIndexGroup(run, manager, compressedOopsOverride);
-        run.runStage(HeapDumpStages.STRINGS, () -> manager.runStringAnalysis(STRING_ANALYSIS_TOP_N));
-        run.runStage(HeapDumpStages.DOMINATOR, manager::runComputeDominator);
-        run.runStage(HeapDumpStages.THREADS, manager::runThreadAnalysis);
-        run.runStage(HeapDumpStages.BIGGEST, () -> manager.runBiggestObjects(BIGGEST_OBJECTS_TOP_N));
-        run.runStage(HeapDumpStages.COLLECTIONS, manager::runCollectionAnalysis);
-        run.runStage(HeapDumpStages.LEAKS, manager::runLeakSuspects);
-        run.runStage(HeapDumpStages.CLASSLOADERS, manager::runClassLoaderAnalysis);
-        run.runStage(HeapDumpStages.BIGGEST_COLLECTIONS,
-                () -> manager.runBiggestCollections(BIGGEST_COLLECTIONS_TOP_N));
-        run.runStage(HeapDumpStages.CONSUMERS, manager::runConsumerReport);
-        run.runStage(HeapDumpStages.DUPLICATES, () -> manager.runDuplicateData(DUPLICATE_DATA_TOP_N));
+        for (String stage : HeapDumpStages.REPORTS) {
+            run.runStage(stage, () -> runReport(manager, stage));
+        }
     }
 
 
@@ -246,17 +248,20 @@ public final class HeapDumpInitService {
     }
 
     private static final Map<String, Consumer<HeapDumpManager>> REPORT_WORK = Map.of(
-            HeapDumpStages.STRINGS, manager -> manager.runStringAnalysis(STRING_ANALYSIS_TOP_N),
+            HeapDumpStages.STRINGS, stored(new StringHeapAnalysis(STRING_ANALYSIS_TOP_N)),
             HeapDumpStages.DOMINATOR, HeapDumpManager::runComputeDominator,
-            HeapDumpStages.THREADS, HeapDumpManager::runThreadAnalysis,
-            HeapDumpStages.BIGGEST, manager -> manager.runBiggestObjects(BIGGEST_OBJECTS_TOP_N),
-            HeapDumpStages.COLLECTIONS, HeapDumpManager::runCollectionAnalysis,
-            HeapDumpStages.LEAKS, HeapDumpManager::runLeakSuspects,
-            HeapDumpStages.CLASSLOADERS, HeapDumpManager::runClassLoaderAnalysis,
-            HeapDumpStages.BIGGEST_COLLECTIONS,
-                    manager -> manager.runBiggestCollections(BIGGEST_COLLECTIONS_TOP_N),
-            HeapDumpStages.CONSUMERS, HeapDumpManager::runConsumerReport,
-            HeapDumpStages.DUPLICATES, manager -> manager.runDuplicateData(DUPLICATE_DATA_TOP_N));
+            HeapDumpStages.THREADS, stored(new ThreadHeapAnalysis()),
+            HeapDumpStages.BIGGEST, stored(new BiggestObjectsAnalysis(BIGGEST_OBJECTS_TOP_N)),
+            HeapDumpStages.COLLECTIONS, stored(new CollectionHeapAnalysis()),
+            HeapDumpStages.LEAKS, stored(new LeakSuspectsAnalysis()),
+            HeapDumpStages.CLASSLOADERS, stored(new ClassLoaderHeapAnalysis()),
+            HeapDumpStages.BIGGEST_COLLECTIONS, stored(new BiggestCollectionsAnalysis(BIGGEST_COLLECTIONS_TOP_N)),
+            HeapDumpStages.CONSUMERS, stored(new ConsumerReportAnalysis()),
+            HeapDumpStages.DUPLICATES, stored(new DuplicateDataAnalysis(DUPLICATE_DATA_TOP_N)));
+
+    private static Consumer<HeapDumpManager> stored(CachedAnalysis<?> analysis) {
+        return manager -> manager.runReport(analysis);
+    }
 
     /**
      * Runs the atomic index build once, advancing the three {@link HeapDumpStages#INDEX_GROUP} stages

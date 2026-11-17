@@ -21,6 +21,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.BLOCKING;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.CODE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.COMPARE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.CONNECTOR;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.FLAMEGRAPH;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.GRPC;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HEAP;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.HTTP;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.IDE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.IO;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JDBC;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JFR;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JVM;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.MEMORY;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.METHOD_TRACING;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.OPERATIONS;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.PROFILES;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.RECORDINGS;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TIMELINE;
+import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TRACES;
+
 /**
  * Static configuration of the external MCP server at {@code /api/mcp}.
  * <p>
@@ -67,28 +88,21 @@ public record ExternalMcpProperties(
     private static final String DEFAULT_PRESET = "all";
 
     private static final Map<String, Set<String>> PRESETS = Map.of(
-            DEFAULT_PRESET, Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "compare", "traces",
-                    "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
-                    "memory", "heap", "connector", "ide", "operations"),
+            DEFAULT_PRESET, Set.of(PROFILES, RECORDINGS, JFR, FLAMEGRAPH, CODE, COMPARE, TRACES, JVM, HTTP, JDBC, GRPC,
+                    METHOD_TRACING, IO, BLOCKING, TIMELINE, MEMORY, HEAP, CONNECTOR, IDE, OPERATIONS),
             // Everything analyze-jfr routes to: the per-domain families it hands a trace, an HTTP,
             // JDBC, gRPC, method-tracing, I/O, blocking, timeline or memory question to.
-            "jfr", Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "jvm", "compare", "traces",
-                    "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory",
-                    "operations"),
-            "heap", Set.of("profiles", "recordings", "heap", "operations"),
-            "connector", Set.of("profiles", "recordings", "connector", "operations"));
-
-    private static final String OPERATIONS_FAMILY = "operations";
+            "jfr", Set.of(PROFILES, RECORDINGS, JFR, FLAMEGRAPH, CODE, JVM, COMPARE, TRACES, HTTP, JDBC, GRPC,
+                    METHOD_TRACING, IO, BLOCKING, TIMELINE, MEMORY, OPERATIONS),
+            "heap", Set.of(PROFILES, RECORDINGS, HEAP, OPERATIONS),
+            "connector", Set.of(PROFILES, RECORDINGS, CONNECTOR, OPERATIONS));
 
     /**
      * The families with a tool that is not read-only. Each one either starts work that only
      * {@code operations_status} can follow and {@code operations_cancel} can stop, or sits beside
      * those that do, so an explicit list that serves one of them has to serve {@code operations} too.
      */
-    private static final Set<String> WRITER_FAMILIES = Set.of("recordings", "heap", "connector", "ide", "jvm");
-
-    private static final String CONNECTOR_FAMILY = "connector";
-    private static final String RECORDINGS_FAMILY = "recordings";
+    private static final Set<String> WRITER_FAMILIES = Set.of(RECORDINGS, HEAP, CONNECTOR, IDE, JVM);
 
     private static final String NO_TOKEN = "";
     private static final String REDACTED = "<redacted>";
@@ -109,13 +123,13 @@ public record ExternalMcpProperties(
                     + knownFamilies.stream().sorted().toList());
         }
         List<String> writers = families.stream().filter(WRITER_FAMILIES::contains).sorted().toList();
-        if (!writers.isEmpty() && !families.contains(OPERATIONS_FAMILY)) {
+        if (!writers.isEmpty() && !families.contains(OPERATIONS)) {
             throw new IllegalArgumentException("MCP families " + writers + " write, and the operations "
                     + "family must be selected wherever a writer is: add 'operations' to the families list "
                     + "so their operationIds can be polled with operations_status and stopped with "
                     + "operations_cancel.");
         }
-        if (families.contains(CONNECTOR_FAMILY) && !families.contains(RECORDINGS_FAMILY)) {
+        if (families.contains(CONNECTOR) && !families.contains(RECORDINGS)) {
             throw new IllegalArgumentException("MCP family 'connector' downloads recordings, and the recordings "
                     + "family must be selected wherever connector is: add 'recordings' to the families list so a "
                     + "downloaded session can be analysed with recordings_analyzeRecording.");

@@ -24,22 +24,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.heapdump.model.BiggestCollectionsReport;
-import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
 import cafe.jeffrey.profile.heapdump.model.ClassLoaderDetail;
-import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
-import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
-import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
-import cafe.jeffrey.profile.heapdump.model.DuplicateDataReport;
-import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
-import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
-import cafe.jeffrey.profile.heapdump.model.ThreadAnalysisReport;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.StringHeapAnalysis;
+import cafe.jeffrey.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
+
+import java.util.Map;
+import java.util.function.IntFunction;
 
 /**
- * Heap-dump analysis-report endpoints: string, thread, collection, class-loader,
- * leak-suspects, biggest-objects/collections and consumer reports — each with the
- * exists/get/run triple.
+ * Heap-dump analysis-report endpoints. Every stored report answers the same three:
+ * {@code /<report>/exists}, {@code /<report>} (null until it is computed) and {@code /<report>/run}.
  * <p>
  * Lifecycle endpoints live in {@link HeapDumpController}; object-graph browsing
  * lives in {@link HeapDumpObjectsController}.
@@ -48,121 +51,69 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 @RequestMapping("/api/internal/profiles/{profileId}/heap")
 public class HeapDumpAnalysisController {
 
+    /** The report path variable admits exactly the slugs of {@link #REPORTS}, so no other route is shadowed. */
+    static final String REPORT = "{report:string-analysis|thread-analysis|collection-analysis|leak-suspects"
+            + "|biggest-objects|biggest-collections|classloader-analysis|consumers|duplicate-data}";
+
+    private static final String TOP_N = "topN";
+
+    /**
+     * A stored report as the UI names it.
+     *
+     * @param stored      the analysis whose stored report is looked up and read
+     * @param run         the analysis a run computes, for the requested {@code topN}
+     * @param defaultTopN the {@code topN} a run takes when the request names none
+     */
+    record StoredReport(CachedAnalysis<?> stored, IntFunction<CachedAnalysis<?>> run, int defaultTopN) {
+
+        static StoredReport of(CachedAnalysis<?> analysis) {
+            return new StoredReport(analysis, topN -> analysis, 0);
+        }
+    }
+
+    static final Map<String, StoredReport> REPORTS = Map.of(
+            "string-analysis", new StoredReport(new StringHeapAnalysis(), StringHeapAnalysis::new, 100),
+            "thread-analysis", StoredReport.of(new ThreadHeapAnalysis()),
+            "collection-analysis", StoredReport.of(new CollectionHeapAnalysis()),
+            "leak-suspects", StoredReport.of(new LeakSuspectsAnalysis()),
+            "biggest-objects", new StoredReport(new BiggestObjectsAnalysis(), BiggestObjectsAnalysis::new, 20),
+            "biggest-collections",
+            new StoredReport(new BiggestCollectionsAnalysis(), BiggestCollectionsAnalysis::new, 50),
+            "classloader-analysis", StoredReport.of(new ClassLoaderHeapAnalysis()),
+            "consumers", StoredReport.of(new ConsumerReportAnalysis()),
+            "duplicate-data", new StoredReport(new DuplicateDataAnalysis(), DuplicateDataAnalysis::new, 50));
+
     private final ProfileManagerResolver resolver;
 
     public HeapDumpAnalysisController(ProfileManagerResolver resolver) {
         this.resolver = resolver;
     }
 
-    @GetMapping("/string-analysis/exists")
-    public boolean stringAnalysisExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).stringAnalysisExists();
+    private HeapDumpManager mgr(String profileId) {
+        return resolver.resolve(profileId).heapDumpManager();
     }
 
-    @GetMapping("/string-analysis")
-    public StringAnalysisReport getStringAnalysis(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getStringAnalysis();
-    }
-
-    @PostMapping("/string-analysis/run")
-    public void runStringAnalysis(
+    @GetMapping("/" + REPORT + "/exists")
+    public boolean reportExists(
             @PathVariable("profileId") String profileId,
-            @RequestParam(value = "topN", defaultValue = "100") int topN) {
-        mgr(profileId).runStringAnalysis(topN);
+            @PathVariable("report") String report) {
+        return mgr(profileId).reportExists(REPORTS.get(report).stored());
     }
 
-    @GetMapping("/thread-analysis/exists")
-    public boolean threadAnalysisExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).threadAnalysisExists();
-    }
-
-    @GetMapping("/thread-analysis")
-    public ThreadAnalysisReport getThreadAnalysis(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getThreadAnalysis();
-    }
-
-    @PostMapping("/thread-analysis/run")
-    public void runThreadAnalysis(@PathVariable("profileId") String profileId) {
-        mgr(profileId).runThreadAnalysis();
-    }
-
-    @GetMapping("/collection-analysis/exists")
-    public boolean collectionAnalysisExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).collectionAnalysisExists();
-    }
-
-    @GetMapping("/collection-analysis")
-    public CollectionAnalysisReport getCollectionAnalysis(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getCollectionAnalysis();
-    }
-
-    @PostMapping("/collection-analysis/run")
-    public void runCollectionAnalysis(@PathVariable("profileId") String profileId) {
-        mgr(profileId).runCollectionAnalysis();
-    }
-
-    @GetMapping("/leak-suspects/exists")
-    public boolean leakSuspectsExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).leakSuspectsExists();
-    }
-
-    @GetMapping("/leak-suspects")
-    public LeakSuspectsReport getLeakSuspects(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getLeakSuspects();
-    }
-
-    @PostMapping("/leak-suspects/run")
-    public void runLeakSuspects(@PathVariable("profileId") String profileId) {
-        mgr(profileId).runLeakSuspects();
-    }
-
-    @GetMapping("/biggest-objects/exists")
-    public boolean biggestObjectsExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).biggestObjectsExists();
-    }
-
-    @GetMapping("/biggest-objects")
-    public BiggestObjectsReport getBiggestObjects(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getBiggestObjects();
-    }
-
-    @PostMapping("/biggest-objects/run")
-    public void runBiggestObjects(
+    @GetMapping("/" + REPORT)
+    public Object report(
             @PathVariable("profileId") String profileId,
-            @RequestParam(value = "topN", defaultValue = "20") int topN) {
-        mgr(profileId).runBiggestObjects(topN);
+            @PathVariable("report") String report) {
+        return mgr(profileId).report(REPORTS.get(report).stored()).orElse(null);
     }
 
-    @GetMapping("/biggest-collections/exists")
-    public boolean biggestCollectionsExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).biggestCollectionsExists();
-    }
-
-    @GetMapping("/biggest-collections")
-    public BiggestCollectionsReport getBiggestCollections(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getBiggestCollections();
-    }
-
-    @PostMapping("/biggest-collections/run")
-    public void runBiggestCollections(
+    @PostMapping("/" + REPORT + "/run")
+    public void runReport(
             @PathVariable("profileId") String profileId,
-            @RequestParam(value = "topN", defaultValue = "50") int topN) {
-        mgr(profileId).runBiggestCollections(topN);
-    }
-
-    @GetMapping("/classloader-analysis/exists")
-    public boolean classLoaderAnalysisExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).classLoaderAnalysisExists();
-    }
-
-    @GetMapping("/classloader-analysis")
-    public ClassLoaderReport getClassLoaderAnalysis(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getClassLoaderAnalysis();
-    }
-
-    @PostMapping("/classloader-analysis/run")
-    public void runClassLoaderAnalysis(@PathVariable("profileId") String profileId) {
-        mgr(profileId).runClassLoaderAnalysis();
+            @PathVariable("report") String report,
+            @RequestParam(value = TOP_N, required = false) Integer topN) {
+        StoredReport stored = REPORTS.get(report);
+        mgr(profileId).runReport(stored.run().apply(topN == null ? stored.defaultTopN() : topN));
     }
 
     @GetMapping("/classloader-detail/{loaderId}")
@@ -170,41 +121,5 @@ public class HeapDumpAnalysisController {
             @PathVariable("profileId") String profileId,
             @PathVariable("loaderId") long loaderId) {
         return mgr(profileId).getClassLoaderDetail(loaderId).orElse(null);
-    }
-
-    @GetMapping("/consumers/exists")
-    public boolean consumerReportExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).consumerReportExists();
-    }
-
-    @GetMapping("/consumers")
-    public ConsumerReport getConsumerReport(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getConsumerReport();
-    }
-
-    @PostMapping("/consumers/run")
-    public void runConsumerReport(@PathVariable("profileId") String profileId) {
-        mgr(profileId).runConsumerReport();
-    }
-
-    @GetMapping("/duplicate-data/exists")
-    public boolean duplicateDataExists(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).duplicateDataExists();
-    }
-
-    @GetMapping("/duplicate-data")
-    public DuplicateDataReport getDuplicateData(@PathVariable("profileId") String profileId) {
-        return mgr(profileId).getDuplicateData();
-    }
-
-    @PostMapping("/duplicate-data/run")
-    public void runDuplicateData(
-            @PathVariable("profileId") String profileId,
-            @RequestParam(value = "topN", defaultValue = "50") int topN) {
-        mgr(profileId).runDuplicateData(topN);
-    }
-
-    private HeapDumpManager mgr(String profileId) {
-        return resolver.resolve(profileId).heapDumpManager();
     }
 }

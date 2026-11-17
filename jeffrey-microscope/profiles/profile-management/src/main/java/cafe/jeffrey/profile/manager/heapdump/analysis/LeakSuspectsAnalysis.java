@@ -23,7 +23,7 @@ import cafe.jeffrey.profile.heapdump.view.HeapView;
 
 import java.sql.SQLException;
 
-public final class LeakSuspectsAnalysis implements CachedAnalysis<LeakSuspectsReport> {
+public record LeakSuspectsAnalysis() implements CachedAnalysis<LeakSuspectsReport> {
 
     private static final String FILE_NAME = "leak-suspects.json";
 

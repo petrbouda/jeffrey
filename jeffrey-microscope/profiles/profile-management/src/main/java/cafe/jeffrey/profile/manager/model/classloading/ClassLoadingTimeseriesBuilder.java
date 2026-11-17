@@ -17,14 +17,12 @@
 
 package cafe.jeffrey.profile.manager.model.classloading;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import cafe.jeffrey.timeseries.MaxPerSecondSeries;
 import cafe.jeffrey.provider.profile.api.GenericRecord;
 import cafe.jeffrey.provider.profile.api.RecordBuilder;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.timeseries.SingleSerie;
 import cafe.jeffrey.timeseries.TimeseriesData;
-import cafe.jeffrey.timeseries.TimeseriesUtils;
 
 /**
  * Builds a class-loading timeline from periodic {@code jdk.ClassLoadingStatistics} events. The event
@@ -38,14 +36,13 @@ public class ClassLoadingTimeseriesBuilder implements RecordBuilder<GenericRecor
     private static final String UNLOADED_SERIES_NAME = "Unloaded Classes";
     private static final String LOADED_CLASS_COUNT_FIELD = "loadedClassCount";
     private static final String UNLOADED_CLASS_COUNT_FIELD = "unloadedClassCount";
-    private static final long CARRY_FORWARD_MARK = 0L;
 
-    private final LongLongHashMap loadedTimeseries;
-    private final LongLongHashMap unloadedTimeseries;
+    private final MaxPerSecondSeries loadedTimeseries;
+    private final MaxPerSecondSeries unloadedTimeseries;
 
     public ClassLoadingTimeseriesBuilder(RelativeTimeRange timeRange) {
-        this.loadedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
-        this.unloadedTimeseries = TimeseriesUtils.initWithZeros(timeRange);
+        this.loadedTimeseries = new MaxPerSecondSeries(LOADED_SERIES_NAME, timeRange);
+        this.unloadedTimeseries = new MaxPerSecondSeries(UNLOADED_SERIES_NAME, timeRange);
     }
 
     @Override
@@ -58,17 +55,13 @@ public class ClassLoadingTimeseriesBuilder implements RecordBuilder<GenericRecor
         long currentlyLoaded = Math.max(0, loaded - unloaded);
 
         long seconds = record.timestampFromStart().toSeconds();
-        loadedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, currentlyLoaded));
-        unloadedTimeseries.updateValue(seconds, 0, existing -> Math.max(existing, unloaded));
+        loadedTimeseries.record(seconds, currentlyLoaded);
+        unloadedTimeseries.record(seconds, unloaded);
     }
 
     @Override
     public TimeseriesData build() {
-        SingleSerie loadedSerie = TimeseriesUtils.buildSerie(LOADED_SERIES_NAME, loadedTimeseries);
-        SingleSerie unloadedSerie = TimeseriesUtils.buildSerie(UNLOADED_SERIES_NAME, unloadedTimeseries);
         // Carry the last sampled gauge value across seconds that had no statistics event.
-        TimeseriesUtils.remapTimeseriesBySteps(loadedSerie, CARRY_FORWARD_MARK);
-        TimeseriesUtils.remapTimeseriesBySteps(unloadedSerie, CARRY_FORWARD_MARK);
-        return new TimeseriesData(loadedSerie, unloadedSerie);
+        return new TimeseriesData(loadedTimeseries.buildCarryingForward(), unloadedTimeseries.buildCarryingForward());
     }
 }
