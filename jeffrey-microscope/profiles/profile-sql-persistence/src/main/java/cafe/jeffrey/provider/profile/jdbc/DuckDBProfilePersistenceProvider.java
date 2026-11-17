@@ -35,7 +35,7 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     private final int batchSize;
     private final DatabaseManager databaseManager;
-    private final FrameResolutionMode frameResolutionMode;
+    private final ProfileRepositories repositories;
 
     public DuckDBProfilePersistenceProvider(Path profilesDir, FrameResolutionMode frameResolutionMode, Clock clock) {
         this(profilesDir, frameResolutionMode, clock, DEFAULT_BATCH_SIZE);
@@ -49,7 +49,10 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
         // profile cannot tear down a pool the first profile is still writing to. A running
         // initialization holds a DatabaseLease that keeps its pool from being idle-evicted mid-parse.
         this.databaseManager = new CachingDatabaseManager(new DuckDBProfileDatabaseManager(profilesDir), clock);
-        this.frameResolutionMode = frameResolutionMode;
+        // Built once: the repositories share one frames cache, and a frame edit (rename, collapse)
+        // invalidates only the cache it goes through. Separate instances would leave every other
+        // reader, the flamegraph among them, serving the frames from before the edit.
+        this.repositories = createRepositories(frameResolutionMode);
     }
 
     @Override
@@ -72,6 +75,10 @@ public class DuckDBProfilePersistenceProvider implements ProfilePersistenceProvi
 
     @Override
     public ProfileRepositories repositories() {
+        return repositories;
+    }
+
+    private static ProfileRepositories createRepositories(FrameResolutionMode frameResolutionMode) {
         ComplexQueries defaultComplexQueries = new SimpleComplexQueries(
                 DuckDBFlamegraphQueries.of(),
                 DuckDBTimeseriesQueries.of(),

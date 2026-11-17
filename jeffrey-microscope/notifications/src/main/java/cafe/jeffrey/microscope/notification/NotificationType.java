@@ -135,7 +135,7 @@ public enum NotificationType {
     // ---------- Connector operations that only half happened ----------
 
     WORKSPACE_DELETE_PARTIAL(NotificationCategory.WORKSPACE, Severity.HIGH,
-            "Workspace was removed locally, but it is still on the recording volume"),
+            "Workspace delete failed on the recording volume, which still holds it"),
 
     PROFILE_DIR_ORPHANED(NotificationCategory.PROFILE, Severity.MEDIUM,
             "Profile directory outlived the profile and is now orphaned on disk"),

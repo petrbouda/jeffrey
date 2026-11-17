@@ -57,9 +57,4 @@ public class DuckDBMicroscopeCorePersistenceProvider implements MicroscopeCorePe
     public MicroscopeCoreRepositories localCoreRepositories() {
         return new JdbcMicroscopeCoreRepositories(new DatabaseClientProvider(dataSource), clock);
     }
-
-    @Override
-    public DatabaseClientProvider databaseClientProvider() {
-        return new DatabaseClientProvider(dataSource);
-    }
 }

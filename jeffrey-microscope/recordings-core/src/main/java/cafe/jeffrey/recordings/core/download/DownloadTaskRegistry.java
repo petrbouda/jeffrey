@@ -28,14 +28,15 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 /**
- * Global singleton registry for download tasks.
- * Tasks are stored in memory and automatically cleaned up after completion.
+ * The in-memory registry of download tasks, one per application (a {@code @Bean}). Completed tasks
+ * are dropped a while after they finish; {@link #close()} stops that cleanup.
  */
-public final class DownloadTaskRegistry {
+public final class DownloadTaskRegistry implements AutoCloseable {
 
     private static final Logger LOG = LoggerFactory.getLogger(DownloadTaskRegistry.class);
 
@@ -49,23 +50,17 @@ public final class DownloadTaskRegistry {
      */
     private static final Duration CLEANUP_INTERVAL = Duration.ofMinutes(1);
 
-    private static final DownloadTaskRegistry INSTANCE = new DownloadTaskRegistry();
-
     private final Map<String, DownloadTask> tasks = new ConcurrentHashMap<>();
-    private final Clock clock = Clock.systemUTC();
+    private final Clock clock;
+    private final ScheduledFuture<?> cleanup;
 
-    private DownloadTaskRegistry() {
-        // Schedule periodic cleanup of completed tasks
-        Schedulers.sharedSingleScheduled().scheduleAtFixedRate(
+    public DownloadTaskRegistry(Clock clock) {
+        this.clock = clock;
+        this.cleanup = Schedulers.sharedSingleScheduled().scheduleAtFixedRate(
                 this::cleanupCompletedTasks,
                 CLEANUP_INTERVAL.toMillis(),
                 CLEANUP_INTERVAL.toMillis(),
-                TimeUnit.MILLISECONDS
-        );
-    }
-
-    public static DownloadTaskRegistry getInstance() {
-        return INSTANCE;
+                TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -138,9 +133,17 @@ public final class DownloadTaskRegistry {
     }
 
     /**
+     * Stops the periodic cleanup; the scheduler is shared, so it outlives this registry.
+     */
+    @Override
+    public void close() {
+        cleanup.cancel(false);
+    }
+
+    /**
      * Removes completed tasks that are older than the TTL.
      */
-    private void cleanupCompletedTasks() {
+    void cleanupCompletedTasks() {
         Instant cutoff = clock.instant().minus(COMPLETED_TASK_TTL);
         Iterator<Map.Entry<String, DownloadTask>> iterator = tasks.entrySet().iterator();
 
@@ -159,7 +162,7 @@ public final class DownloadTaskRegistry {
         }
 
         if (cleaned > 0) {
-            LOG.debug("Cleaned up {} completed download tasks", cleaned);
+            LOG.debug("Cleaned up completed download tasks: count={}", cleaned);
         }
     }
 }

@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -61,9 +60,7 @@ import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
 import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 
@@ -93,10 +90,9 @@ public class MicroscopeAppConfiguration {
             HeapDumpInitService heapDumpInitService,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             ObjectProvider<McpProfileContextCache> contextCacheProvider,
-            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
-
-        ProfilePersistenceProvider quickProvider =
-                new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode, clock);
+            // The one provider every profile reader uses: its own would open a second pool per
+            // profile file and a second frames cache that reader-side frame edits never reach.
+            ProfilePersistenceProvider profilePersistenceProvider) {
 
         RecordingEventParser jfrParser =
                 new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs));
@@ -107,10 +103,10 @@ public class MicroscopeAppConfiguration {
                 jfrParser);
 
         ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(
-                quickProvider.repositories(),
-                quickProvider.databaseManager(),
+                profilePersistenceProvider.repositories(),
+                profilePersistenceProvider.databaseManager(),
                 parserResolver,
-                quickProvider.eventWriterFactory(),
+                profilePersistenceProvider.eventWriterFactory(),
                 profileManagerFactory,
                 profileDataInitializer,
                 profileInitRunRegistry,

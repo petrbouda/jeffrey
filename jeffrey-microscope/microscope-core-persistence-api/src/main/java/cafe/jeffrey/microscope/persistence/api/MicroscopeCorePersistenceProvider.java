@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.persistence.api;
 
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
 
 import java.time.Clock;
 
@@ -39,12 +38,4 @@ public interface MicroscopeCorePersistenceProvider {
      * @return platform repositories factory
      */
     MicroscopeCoreRepositories localCoreRepositories();
-
-    /**
-     * Get the database client provider for direct database access.
-     * Must be called after {@link #initialize(String, Clock)}.
-     *
-     * @return database client provider
-     */
-    DatabaseClientProvider databaseClientProvider();
 }

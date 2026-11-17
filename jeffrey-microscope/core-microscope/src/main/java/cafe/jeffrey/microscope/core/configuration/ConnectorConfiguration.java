@@ -29,12 +29,13 @@ import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.connector.LocalClientsFactory;
 import cafe.jeffrey.microscope.core.manager.workspace.ConnectorWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.persistence.jdbc.JdbcWorkspaceRepository;
+import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+
+import java.time.Clock;
 
 
 @Configuration
@@ -66,16 +67,10 @@ public class ConnectorConfiguration {
     }
 
     @Bean
-    public WorkspaceManagerFactory workspaceManagerFactory(
-            MicroscopeJeffreyDirs jeffreyDirs,
-            MicroscopeCorePersistenceProvider persistenceProvider,
-            ConnectorProjectManagerFactory connectorProjectManagerFactory) {
-
+    public WorkspaceManagerFactory workspaceManagerFactory(ConnectorProjectManagerFactory connectorProjectManagerFactory) {
         return (connector, workspaceInfo, clients) -> new ConnectorWorkspaceManager(
-                jeffreyDirs,
                 connector,
                 workspaceInfo,
-                new JdbcWorkspaceRepository(workspaceInfo.id(), persistenceProvider.databaseClientProvider()),
                 clients,
                 connectorProjectManagerFactory);
     }
@@ -91,6 +86,12 @@ public class ConnectorConfiguration {
                 connectorClientsFactory.apply(connector.address()),
                 workspaceManagerFactory,
                 connectorProjectManagerFactory);
+    }
+
+    /** The download tasks the connector's project pages start and follow; closed with the context. */
+    @Bean
+    public DownloadTaskRegistry downloadTaskRegistry(Clock clock) {
+        return new DownloadTaskRegistry(clock);
     }
 
     /** The connector configuration declares, read once; nothing connects or disconnects one while Microscope runs. */

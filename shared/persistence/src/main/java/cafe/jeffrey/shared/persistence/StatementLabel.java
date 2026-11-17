@@ -187,11 +187,6 @@ public enum StatementLabel {
     MALLOC_AND_FREE_EXISTS,
 
     /**
-     * {@link GroupLabel#WORKSPACES}
-     */
-    DELETE_WORKSPACE,
-
-    /**
      * {@link GroupLabel#PROFILE_FRAMES}
      */
     COUNT_FRAMES_BY_CLASS_NAME,

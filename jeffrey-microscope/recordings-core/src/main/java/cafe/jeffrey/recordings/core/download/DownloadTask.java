@@ -57,6 +57,8 @@ public class DownloadTask implements ProgressCallback {
     private volatile CompletableFuture<Void> downloadFuture;
     private volatile DownloadTaskStatus status;
     private volatile String errorMessage;
+    // Set once, when the task reaches a terminal status: the registry ages finished tasks by it
+    private volatile Instant completedAt;
 
     public DownloadTask(
             String sessionId,
@@ -129,8 +131,7 @@ public class DownloadTask implements ProgressCallback {
             if (downloadFuture != null) {
                 downloadFuture.cancel(true);
             }
-            status = DownloadTaskStatus.CANCELLED;
-            notifyListeners();
+            finish(DownloadTaskStatus.CANCELLED);
         }
     }
 
@@ -162,8 +163,6 @@ public class DownloadTask implements ProgressCallback {
         if (total > 0) {
             percentComplete = (int) Math.min(100, (downloadedBytes * 100) / total);
         }
-
-        Instant completedAt = status.isTerminal() ? clock.instant() : null;
 
         return new DownloadProgress(
                 taskId,
@@ -261,16 +260,20 @@ public class DownloadTask implements ProgressCallback {
 
     @Override
     public void onComplete() {
-        status = DownloadTaskStatus.COMPLETED;
         activeFiles.clear();
         pendingFiles.clear();
-        notifyListeners();
+        finish(DownloadTaskStatus.COMPLETED);
     }
 
     @Override
     public void onError(String errorMessage) {
         this.errorMessage = errorMessage;
-        status = DownloadTaskStatus.FAILED;
+        finish(DownloadTaskStatus.FAILED);
+    }
+
+    private void finish(DownloadTaskStatus terminalStatus) {
+        completedAt = clock.instant();
+        status = terminalStatus;
         notifyListeners();
     }
 }

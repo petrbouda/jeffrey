@@ -22,7 +22,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -228,6 +230,54 @@ class DownloadTaskTest {
             assertFalse(task.isCancelled());
             task.cancel();
             assertTrue(task.isCancelled());
+        }
+    }
+
+    /** The registry ages finished tasks by this instant, so it must not move once the task ended. */
+    @Nested
+    class CompletionTime {
+
+        /** A clock the test moves on, so a read after the finish happens at another instant. */
+        private static final class MovableClock extends Clock {
+
+            private Instant now = NOW;
+
+            void advance(Duration duration) {
+                now = now.plus(duration);
+            }
+
+            @Override
+            public ZoneId getZone() {
+                return ZoneOffset.UTC;
+            }
+
+            @Override
+            public Clock withZone(ZoneId zone) {
+                return this;
+            }
+
+            @Override
+            public Instant instant() {
+                return now;
+            }
+        }
+
+        @Test
+        void isWhenTheTaskFinishedHoweverLaterItIsRead() {
+            MovableClock clock = new MovableClock();
+            DownloadTask finished = new DownloadTask("session-1", List.of("f1"), clock);
+            finished.onComplete();
+
+            clock.advance(Duration.ofMinutes(10));
+
+            assertEquals(NOW, finished.getCurrentProgress().completedAt());
+        }
+
+        @Test
+        void isAbsentWhileTheTaskRuns() {
+            task.onStart(2, 100);
+
+            assertNull(task.getCurrentProgress().completedAt());
         }
     }
 }

@@ -48,7 +48,7 @@ import java.util.function.Consumer;
 
 /**
  * Downloads a connector project's recordings (SSE). Downloads run on the shared virtual-thread
- * executor and report progress via the shared {@link DownloadTaskRegistry}.
+ * executor and report progress via the {@link DownloadTaskRegistry} bean.
  */
 @RestController
 @RequestMapping("/api/internal/connector/workspaces/{workspaceId}/projects/{projectId}/download")
@@ -58,10 +58,11 @@ public class ProjectDownloadTaskController {
     private static final long SSE_TIMEOUT_MS = 0L; // never time out by Spring
 
     private final ProjectManagerResolver resolver;
-    private final DownloadTaskRegistry taskRegistry = DownloadTaskRegistry.getInstance();
+    private final DownloadTaskRegistry taskRegistry;
 
-    public ProjectDownloadTaskController(ProjectManagerResolver resolver) {
+    public ProjectDownloadTaskController(ProjectManagerResolver resolver, DownloadTaskRegistry taskRegistry) {
         this.resolver = resolver;
+        this.taskRegistry = taskRegistry;
     }
 
     @PostMapping(value = "/start",
