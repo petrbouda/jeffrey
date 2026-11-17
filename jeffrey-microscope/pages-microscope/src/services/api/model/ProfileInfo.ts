@@ -20,7 +20,6 @@ export default class ProfileInfo {
   constructor(
     public id: string,
     public name: string,
-    public projectId: string,
     public createdAt: number,
     public profilingStartedAt: number | null,
     public profilingFinishedAt: number | null,

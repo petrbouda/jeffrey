@@ -59,7 +59,7 @@ class ProfileSchemaReaderTest {
     /** Every relation {@code V001__init.sql} creates, the one view included. */
     private static final Set<String> PROFILE_RELATIONS = Set.of(
             "cache", "event_types", "frames", "stacktraces", "events_raw", "field_texts", "events",
-            "threads", "profile_info", "pipeline_runs", "trace_spans", "traces", "trace_notifications",
+            "threads", "pipeline_runs", "trace_spans", "traces", "trace_notifications",
             "trace_notification_messages", "trace_exceptions", "trace_span_payloads",
             "trace_span_attributes", "trace_notification_attributes", "trace_attribute_values",
             "trace_attribute_keys", "trace_attribute_key_event_types");

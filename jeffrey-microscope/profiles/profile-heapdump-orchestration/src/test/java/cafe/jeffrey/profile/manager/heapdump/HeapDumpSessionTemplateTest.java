@@ -104,7 +104,7 @@ class HeapDumpSessionTemplateTest {
 
     private static ProfileInfo profileInfo() {
         return new ProfileInfo(
-                "test-profile", "test-project", "test-workspace", "Test Profile",
+                "test-profile", "Test Profile",
                 RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH, Instant.EPOCH,
                 true, false, "test-recording");

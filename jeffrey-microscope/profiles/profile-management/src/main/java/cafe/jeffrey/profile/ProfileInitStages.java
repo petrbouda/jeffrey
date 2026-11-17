@@ -32,9 +32,6 @@ public final class ProfileInitStages {
 
     public static final String PIPELINE_ID = "profile-init";
 
-    /** Writes the workspace and project the profile belongs to. Absent for Recordings profiles. */
-    public static final String PROFILE_INFO = "profile-info";
-
     /** Reads the recording and writes its events. Nearly always the longest stage. */
     public static final String PARSE = "parse";
 
@@ -69,7 +66,7 @@ public final class ProfileInitStages {
 
     public static final PipelineDefinition DEFINITION = new PipelineDefinition(
             PIPELINE_ID,
-            List.of(PROFILE_INFO, PARSE, FLUSH, METHOD_TRACE_WEIGHTS, RECLUSTER, TRACES, CHECKPOINT, WARMUP));
+            List.of(PARSE, FLUSH, METHOD_TRACE_WEIGHTS, RECLUSTER, TRACES, CHECKPOINT, WARMUP));
 
     private ProfileInitStages() {
     }

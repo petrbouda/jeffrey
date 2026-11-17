@@ -101,7 +101,7 @@ class ProfileFeaturesControllerTest {
 
     private static ProfileInfo profileInfo(RecordingEventSource eventSource) {
         return new ProfileInfo(
-                "p-1", "proj-1", "ws-1", "profile", eventSource,
+                "p-1", "profile", eventSource,
                 Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "rec-1");
     }
 }

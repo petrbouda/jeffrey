@@ -162,8 +162,6 @@ public class ProfileMcpTools {
         return McpToolResult.of(new ProfileDetail(
                 info.id(),
                 info.name(),
-                info.projectId(),
-                info.workspaceId(),
                 info.eventSource().name(),
                 epochMillis(info.profilingStartedAt()),
                 epochMillis(info.profilingFinishedAt()),
@@ -511,10 +509,6 @@ public class ProfileMcpTools {
             String profileId,
             @McpNullable
             String name,
-            @McpNullable
-            String projectId,
-            @McpNullable
-            String workspaceId,
             String eventSource,
             @McpNullable
             @McpDescription("When the recording started, as UTC epoch milliseconds; null when unknown")

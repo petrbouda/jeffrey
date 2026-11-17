@@ -206,14 +206,10 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
     }
 
     /**
-     * The same download, reporting as it goes. The progress channel is the only difference — both
-     * this and the silent entry points run the one transfer below.
-     *
-     * @param recordingSessionId the recording session ID
-     * @param fileIds            the list of file IDs to download
-     * @param progressCallback   callback for receiving progress updates
-     * @return id of the recording created in the local store
+     * The progress channel is the only difference: this and the silent entry points run the one
+     * transfer below.
      */
+    @Override
     public String downloadRecordingsWithProgress(
             String recordingSessionId,
             List<String> fileIds,

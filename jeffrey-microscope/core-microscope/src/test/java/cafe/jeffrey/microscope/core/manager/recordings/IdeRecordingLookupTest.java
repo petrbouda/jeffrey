@@ -423,8 +423,6 @@ class IdeRecordingLookupTest {
     private static ProfileInfo profileInfo(RecordingEventSource eventSource) {
         return new ProfileInfo(
                 PROFILE_ID,
-                null,
-                null,
                 "jeffrey-20260904-180108",
                 eventSource,
                 Instant.parse("2026-09-04T18:01:00Z"),

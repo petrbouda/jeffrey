@@ -186,7 +186,7 @@ class ConnectorArtifactsMcpToolsTest {
                 new RecordingTag("origin.projectId", PROJECT_ID),
                 new RecordingTag("origin.recordingId", SESSION_ID))));
         if (profileId != null) {
-            ProfileInfo info = new ProfileInfo(profileId, null, null, profileId, RecordingEventSource.JFR,
+            ProfileInfo info = new ProfileInfo(profileId, profileId, RecordingEventSource.JFR,
                     PROFILE_START, PROFILE_START.plusSeconds(60), NOW, true, false, recordingId);
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(info);
@@ -441,7 +441,7 @@ class ConnectorArtifactsMcpToolsTest {
         void aProfileWithNoStartInstantDoesNotPrintANullZeroPoint() {
             connectorHolds(session(finished("f-jfr", "profile-1.jfr", ManagedFile.JFR)));
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
-            ProfileInfo noStart = new ProfileInfo("prof-1", null, null, "prof-1", RecordingEventSource.JFR,
+            ProfileInfo noStart = new ProfileInfo("prof-1", "prof-1", RecordingEventSource.JFR,
                     null, null, NOW, true, false, "rec-1");
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(noStart);

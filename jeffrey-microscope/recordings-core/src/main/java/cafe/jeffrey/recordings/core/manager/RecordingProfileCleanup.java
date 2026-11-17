@@ -20,15 +20,11 @@ package cafe.jeffrey.recordings.core.manager;
 import cafe.jeffrey.storage.recording.api.file.Recording;
 
 /**
- * Optional SPI invoked when a recording is being deleted, so deployments that attach analysis
- * profiles to recordings can clean those up. {@code recordings-core} itself never touches profiles;
- * the {@link #NOOP} default is used by deployments that have no profiles.
+ * Called when a recording is deleted, so the profiles built from it go with it. The implementation
+ * lives in core-microscope; {@code recordings-core} itself never touches profiles.
  */
 @FunctionalInterface
 public interface RecordingProfileCleanup {
 
     void onRecordingDeleted(Recording recording);
-
-    RecordingProfileCleanup NOOP = recording -> {
-    };
 }

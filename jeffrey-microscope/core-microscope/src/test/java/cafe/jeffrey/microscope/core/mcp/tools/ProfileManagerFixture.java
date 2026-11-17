@@ -53,7 +53,7 @@ public final class ProfileManagerFixture {
         // Lenient: these are defaults most tests never reach, and a strict session would call them unused.
         ProfileManager manager = mock(ProfileManager.class,
                 withSettings().defaultAnswer(RETURNS_DEEP_STUBS).strictness(Strictness.LENIENT));
-        when(manager.info()).thenReturn(new ProfileInfo(profileId, "project", "workspace", profileId,
+        when(manager.info()).thenReturn(new ProfileInfo(profileId, profileId,
                 source, STARTED, FINISHED, STARTED, true, false, "recording-" + profileId));
         when(manager.samplerHealthManager().cpuTimeSampleLoss()).thenReturn(CpuTimeSampleLoss.EMPTY);
         when(manager.featuresManager().getDisabledFeatures()).thenReturn(List.of());

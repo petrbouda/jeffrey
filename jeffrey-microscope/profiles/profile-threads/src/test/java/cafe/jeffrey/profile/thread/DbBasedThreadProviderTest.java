@@ -84,8 +84,6 @@ class DbBasedThreadProviderTest {
         streams(events);
         ProfileInfo profileInfo = new ProfileInfo(
                 "p-1",
-                "project-1",
-                "workspace-1",
                 "recording",
                 RecordingEventSource.JFR,
                 RECORDING_START,

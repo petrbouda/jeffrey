@@ -138,7 +138,7 @@ class ProfileMcpToolsTest {
 
     private void stubProfile(RecordingEventSource eventSource) {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                "p-1", "proj-1", "ws-1", "Checkout run", eventSource,
+                "p-1", "Checkout run", eventSource,
                 START, START.plusSeconds(120), START, true, false, "rec-1"));
         when(profileManager.featuresManager()).thenReturn(featuresManager);
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
@@ -202,7 +202,7 @@ class ProfileMcpToolsTest {
         void answersForAProfileWithoutTimestamps() {
             stubProfile(RecordingEventSource.JFR);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-1", "proj-1", "ws-1", "Checkout run", RecordingEventSource.JFR,
+                    "p-1", "Checkout run", RecordingEventSource.JFR,
                     null, null, null, true, false, "rec-1"));
 
             String result = tools().get().text();
@@ -510,7 +510,7 @@ class ProfileMcpToolsTest {
         void getOfAProfileWithoutTimestampsStillConforms() {
             stubProfile(RecordingEventSource.JFR);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-1", null, null, null, RecordingEventSource.JFR, null, null, null, true, false, "rec-1"));
+                    "p-1", null, RecordingEventSource.JFR, null, null, null, true, false, "rec-1"));
 
             JsonNode detail = conforming("get", tools().get());
 

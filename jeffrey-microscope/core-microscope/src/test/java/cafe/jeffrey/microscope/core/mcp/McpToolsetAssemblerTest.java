@@ -385,7 +385,7 @@ class McpToolsetAssemblerTest {
             McpProfileContextCache.Lease lease = mock(McpProfileContextCache.Lease.class);
             when(lease.profileManager()).thenReturn(profileManager);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-oql", "project-1", "workspace-1", "Profile", source,
+                    "p-oql", "Profile", source,
                     Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "recording-1"));
             if (source == RecordingEventSource.HEAP_DUMP) {
                 HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
@@ -643,7 +643,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 117;
+        private static final int ADVERTISED_TOOLS = 116;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {
@@ -957,7 +957,7 @@ class McpToolsetAssemblerTest {
 
         /** The heap dump a heap tool's answer names and links, as the profile reports it. */
         private static ProfileInfo heapDumpProfile() {
-            return new ProfileInfo(UNINDEXED_PROFILE, "project-1", "workspace-1", "Heap dump",
+            return new ProfileInfo(UNINDEXED_PROFILE, "Heap dump",
                     RecordingEventSource.HEAP_DUMP, Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH,
                     true, false, "recording-1");
         }
@@ -1291,7 +1291,7 @@ class McpToolsetAssemblerTest {
             lenient().when(lease.dataSource()).thenReturn(dataSource);
             lenient().when(contextCache.acquire(PROFILE_ID)).thenReturn(lease);
             lenient().when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                    PROFILE_ID, "Profile", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(600), Instant.EPOCH, true, false, "recording-1"));
 
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
@@ -1318,7 +1318,7 @@ class McpToolsetAssemblerTest {
             lenient().when(heapLease.dataSource()).thenReturn(dataSource);
             lenient().when(contextCache.acquire(HEAP_PROFILE_ID)).thenReturn(heapLease);
             lenient().when(heapProfileManager.info()).thenReturn(new ProfileInfo(
-                    HEAP_PROFILE_ID, "project-1", "workspace-1", "Heap dump", RecordingEventSource.HEAP_DUMP,
+                    HEAP_PROFILE_ID, "Heap dump", RecordingEventSource.HEAP_DUMP,
                     Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "recording-2"));
             HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
             lenient().when(heapProfileManager.heapDumpManager()).thenReturn(heapDumpManager);
@@ -1347,7 +1347,7 @@ class McpToolsetAssemblerTest {
             lenient().when(contextCache.acquire(BASELINE_PROFILE_ID)).thenReturn(baselineLease);
             // The answer names the baseline it compared against, and links the pair's page with it.
             lenient().when(baselineManager.info()).thenReturn(new ProfileInfo(
-                    BASELINE_PROFILE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.JFR,
+                    BASELINE_PROFILE_ID, "Baseline", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plus(RECORDING_LENGTH), Instant.EPOCH, true, false, "recording-0"));
 
             DifferentialFlamegraphManager diffManager = mock(DifferentialFlamegraphManager.class);
@@ -1723,7 +1723,7 @@ class McpToolsetAssemblerTest {
             McpProfileContextCache.Lease lease = mock(McpProfileContextCache.Lease.class);
             when(lease.profileManager()).thenReturn(profileManager);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                    "profile-1", "Profile", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             when(flamegraphManager.eventSummaries()).thenReturn(List.of(executionSamples()));

@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import java.util.List;
 
 /**
- * Factory interface for platform-level repositories shared between local and server deployments.
- * Provides access to repositories for profiles and recordings.
+ * The repositories over Microscope's core database: its recordings, their tags, the profiles built
+ * from them and the IDE targets linked to those profiles.
  */
 public interface MicroscopeCoreRepositories {
 
@@ -39,14 +39,8 @@ public interface MicroscopeCoreRepositories {
 
     IdeTargetsRepository ideTargetsRepository();
 
-    List<ProfileInfo> findAllProfilesByProject(String projectId);
-
     /**
-     * Every profile this microscope knows about, whichever project or workspace it belongs to and
-     * including the Quick Analysis ones that belong to none.
-     * <p>
-     * {@link #findAllProfilesByProject} cannot answer this: it matches {@code project_id = :project_id},
-     * and a Quick Analysis profile stores a null there, which no equality comparison matches.
+     * Every profile this microscope knows about, newest first.
      */
     List<ProfileInfo> findAllProfiles();
 

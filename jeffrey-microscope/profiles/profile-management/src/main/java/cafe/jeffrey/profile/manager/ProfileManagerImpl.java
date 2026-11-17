@@ -267,8 +267,7 @@ public class ProfileManagerImpl implements ProfileManager {
         LOG.debug("Updating profile name: profileId={} newName={}", profileInfo.id(), name);
         ProfileInfo updatedProfile = this.profileRepository.update(name);
 
-        LOG.info("Profile updated: project_id={} profile_id={} old_name={} new_name={}",
-                profileInfo.projectId(), profileInfo.id(), profileInfo.name(), name);
+        LOG.info("Profile updated: profileId={} oldName={} newName={}", profileInfo.id(), profileInfo.name(), name);
 
         return updatedProfile;
     }
@@ -288,13 +287,12 @@ public class ProfileManagerImpl implements ProfileManager {
     @Override
     public void delete() {
         LOG.debug("Deleting profile: profileId={} name={}", profileInfo.id(), profileInfo.name());
-        // 1. Delete profile metadata from platform database
+        // 1. Delete profile metadata from the core database
         this.profileRepository.delete();
         // 2. Delete profile database and directory
         Path profileDirectory = profilesBaseDir.resolve(profileInfo.id());
         FileSystemUtils.removeDirectory(profileDirectory);
 
-        LOG.info("Profile deleted: project_id={} profile_id={} name={}",
-                profileInfo.projectId(), profileInfo.id(), profileInfo.name());
+        LOG.info("Profile deleted: profileId={} name={}", profileInfo.id(), profileInfo.name());
     }
 }

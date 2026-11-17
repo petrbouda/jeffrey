@@ -51,7 +51,7 @@ final class ProfileEvidence {
     }
 
     static Identity identity(ProfileInfo info, String commit) {
-        return new Identity(info.id(), info.recordingId(), info.projectId(), info.workspaceId(), info.name(),
+        return new Identity(info.id(), info.recordingId(), info.name(),
                 info.eventSource().name(), commit, info.modified(), info.enabled(),
                 epochMillis(info.createdAt()), epochMillis(info.profilingStartedAt()),
                 epochMillis(info.profilingFinishedAt()), durationMillis(info));
@@ -130,10 +130,6 @@ final class ProfileEvidence {
             String profileId,
             @McpNullable
             String recordingId,
-            @McpNullable
-            String projectId,
-            @McpNullable
-            String workspaceId,
             @McpNullable
             String name,
             String eventSource,

@@ -31,8 +31,6 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
  */
 public record ProfileDetailResponse(
         String id,
-        String projectId,
-        String workspaceId,
         String name,
         RecordingEventSource eventSource,
         Long profilingStartedAt,
@@ -45,8 +43,6 @@ public record ProfileDetailResponse(
     public static ProfileDetailResponse from(ProfileInfo profileInfo) {
         return new ProfileDetailResponse(
                 profileInfo.id(),
-                profileInfo.projectId(),
-                profileInfo.workspaceId(),
                 profileInfo.name(),
                 profileInfo.eventSource(),
                 InstantUtils.toEpochMilli(profileInfo.profilingStartedAt()),

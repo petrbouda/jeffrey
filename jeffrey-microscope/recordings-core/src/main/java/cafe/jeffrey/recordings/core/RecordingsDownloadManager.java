@@ -18,6 +18,7 @@
 package cafe.jeffrey.recordings.core;
 
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.recordings.core.download.ProgressCallback;
 
 import java.util.List;
 
@@ -40,6 +41,17 @@ public interface RecordingsDownloadManager {
      * @return id of the recording created in the local store
      */
     String downloadRecordings(String recordingSessionId, List<String> rawRecordingIds);
+
+    /**
+     * The same download as {@link #downloadRecordings}, reporting its progress as it goes.
+     *
+     * @param recordingSessionId the upstream session to download
+     * @param fileIds            ids of the files to take from that session
+     * @param progressCallback   receives the progress of the transfer
+     * @return id of the recording created in the local store
+     */
+    String downloadRecordingsWithProgress(
+            String recordingSessionId, List<String> fileIds, ProgressCallback progressCallback);
 
     /**
      * Downloads the recording files of the session that cover the window and stores them as one

@@ -74,7 +74,8 @@ class RecordingsCoreManagerImplTest {
         Path recordingsDir = Files.createDirectories(tempDir.resolve("recordings"));
         sourceDir = Files.createDirectories(tempDir.resolve("project"));
         manager = new RecordingsCoreManagerImpl(
-                CLOCK, recordingsDir, recordingRepository, recordingTagsRepository, null, null);
+                CLOCK, recordingsDir, recordingRepository, recordingTagsRepository,
+                files -> Optional.empty(), recording -> { });
     }
 
     private Path sourceFile(String filename) throws IOException {

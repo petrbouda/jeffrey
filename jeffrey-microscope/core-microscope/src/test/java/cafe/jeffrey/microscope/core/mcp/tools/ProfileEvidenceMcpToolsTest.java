@@ -245,7 +245,7 @@ class ProfileEvidenceMcpToolsTest {
     void qualityOfAProfileWithAnUnknownSpanHasNoScaleFactor() {
         ProfileManager primary = manager("primary");
         ProfileManager baseline = manager("baseline");
-        when(baseline.info()).thenReturn(new ProfileInfo("baseline", null, null, null, RecordingEventSource.JFR,
+        when(baseline.info()).thenReturn(new ProfileInfo("baseline", null, RecordingEventSource.JFR,
                 Instant.EPOCH, null, Instant.EPOCH, true, false, null));
 
         JsonNode result = new CompareMcpTools(primary, id -> baseline, CLOCK, EVERY_FAMILY)
@@ -473,7 +473,7 @@ class ProfileEvidenceMcpToolsTest {
 
     static ProfileManager manager(String id) {
         ProfileManager manager = mock(ProfileManager.class, RETURNS_DEEP_STUBS);
-        when(manager.info()).thenReturn(new ProfileInfo(id, "project", "workspace", id,
+        when(manager.info()).thenReturn(new ProfileInfo(id, id,
                 RecordingEventSource.JFR, Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
                 Instant.EPOCH, true, false, "recording-" + id));
         when(manager.samplerHealthManager().cpuTimeSampleLoss()).thenReturn(CpuTimeSampleLoss.EMPTY);

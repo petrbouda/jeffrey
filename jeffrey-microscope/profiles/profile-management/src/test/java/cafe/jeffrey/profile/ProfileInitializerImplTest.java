@@ -343,17 +343,6 @@ class ProfileInitializerImplTest {
             verify(methodTraceWeightRepository).deriveSelfWeights();
         }
 
-        @Test
-        @DisplayName("a profile with no project skips the context stage rather than pretending to run it")
-        void reportsSkippedProfileInfo() {
-            ProfileInfo profileInfo = mock(ProfileInfo.class);
-            when(profileInfo.id()).thenReturn(PROFILE_ID);
-
-            initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
-
-            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.PROFILE_INFO).status());
-        }
-
         /**
          * The gap this closes: a failed initialization used to leave the profile row disabled with
          * nothing anywhere recording why, because the exception went into a future nobody held.

@@ -26,8 +26,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Delegate interface for heap dump operations used by AI MCP tools.
- * Abstracts the HeapDumpManager so the tools module doesn't depend on profile-management.
+ * What the {@code heap_} MCP tools read of a heap dump. A stored report the dump does not have yet
+ * reads as {@code null} rather than being computed, and an object id is checked before it is read;
+ * {@link cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate} answers it
+ * from the profile's {@code HeapDumpManager}.
  */
 public interface HeapDumpToolsDelegate {
 

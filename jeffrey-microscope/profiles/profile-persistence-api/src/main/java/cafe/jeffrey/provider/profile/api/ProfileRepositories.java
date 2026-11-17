@@ -68,15 +68,6 @@ public interface ProfileRepositories {
     ProfileCacheRepository newProfileCacheRepository(DataSource dataSource);
 
     /**
-     * Creates a profile info repository for accessing profile context information
-     * (workspace_id, project_id).
-     *
-     * @param dataSource the profile database connection
-     * @return a new profile info repository for the profile
-     */
-    ProfileInfoRepository newProfileInfoRepository(DataSource dataSource);
-
-    /**
      * Creates a frame repository for accessing and manipulating profile frame data.
      *
      * @param dataSource the profile database connection

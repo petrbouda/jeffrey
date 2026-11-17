@@ -76,7 +76,6 @@
         <div v-for="(group, index) in groups" :key="group.key" class="thread-row-wrapper">
           <ThreadComponent
             :index="index"
-            :project-id="projectId"
             :primary-profile-id="profileId"
             :thread-common="threadCommon as ThreadCommon"
             :thread-row="group.lane"
@@ -95,7 +94,6 @@
             >
               <ThreadComponent
                 :index="1000 * (index + 1) + memberIndex"
-                :project-id="projectId"
                 :primary-profile-id="profileId"
                 :thread-common="threadCommon as ThreadCommon"
                 :thread-row="member"
@@ -377,7 +375,6 @@
 
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
-import { useNavigation } from '@/composables/useNavigation';
 import { onBeforeMount, ref, computed } from 'vue';
 import ProfileThreadClient from '@/services/api/ProfileThreadClient.ts';
 import ThreadComponent from '@/components/ThreadComponent.vue';
@@ -419,7 +416,6 @@ const props = defineProps({
 });
 
 const route = useRoute();
-const { projectId } = useNavigation();
 
 /**
  * How many threads a request asks for. Each row is a lane's worth of bands, so this is the knob

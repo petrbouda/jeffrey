@@ -46,7 +46,6 @@ import TimeseriesEventAxeFormatter from '@/services/timeseries/TimeseriesEventAx
 const props = withDefaults(
   defineProps<{
     index: number;
-    projectId: string;
     primaryProfileId: string;
     threadCommon: ThreadCommon;
     threadRow: ThreadRowData;

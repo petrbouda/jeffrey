@@ -97,7 +97,7 @@ class MicroscopeProfileCleanupTest {
     }
 
     private static ProfileInfo profile(String profileId) {
-        return new ProfileInfo(profileId, null, null, "app.jfr", RecordingEventSource.JFR,
+        return new ProfileInfo(profileId, "app.jfr", RecordingEventSource.JFR,
                 NOW, NOW, NOW, true, false, RECORDING_ID);
     }
 }

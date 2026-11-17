@@ -420,47 +420,6 @@ class DuckDbMcpToolsTest {
                     StructuredAnswers.call(answer, "jfr_executeQuery").get("query").asString());
             assertTrue(answer.get("note").isNull());
         }
-
-        @Test
-        @DisplayName("the profile's identity says where it belongs and links its page")
-        void identifiesTheProfile(DataSource dataSource) throws SQLException {
-            try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
-                stmt.execute("CREATE TABLE profile_info (profile_id VARCHAR, project_id VARCHAR, workspace_id VARCHAR)");
-                stmt.execute("INSERT INTO profile_info VALUES ('p-1', NULL, NULL)");
-            }
-
-            JsonNode answer = StructuredAnswers.json(DuckDbMcpTools.class, "getProfileInfo",
-                    tools(dataSource).getProfileInfo());
-
-            assertEquals("QUICK_ANALYSIS", answer.get("kind").asString());
-            assertTrue(answer.get("projectId").isNull());
-            assertTrue(answer.get("uiLink").asString().endsWith("/profiles/p-1"), answer.toString());
-            assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(answer));
-        }
-
-        /**
-         * What the import leaves for a profile built from a recording: the table, and no row, since
-         * the row is written only for a profile with a project. It is a Quick Analysis profile, not
-         * one with nothing known about it.
-         */
-        @Test
-        @DisplayName("a profile with no project row is a Quick Analysis profile")
-        void aProfileWithNoRowIsAQuickAnalysisProfile(DataSource dataSource) throws SQLException {
-            try (Connection conn = dataSource.getConnection();
-                 Statement stmt = conn.createStatement()) {
-                stmt.execute("CREATE TABLE profile_info (profile_id VARCHAR, project_id VARCHAR, workspace_id VARCHAR)");
-            }
-
-            JsonNode answer = StructuredAnswers.json(DuckDbMcpTools.class, "getProfileInfo",
-                    tools(dataSource).getProfileInfo());
-
-            assertEquals(PROFILE_ID, answer.get("profileId").asString());
-            assertEquals("QUICK_ANALYSIS", answer.get("kind").asString());
-            assertTrue(answer.get("projectId").isNull());
-            assertTrue(answer.get("workspaceId").isNull());
-            assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(answer));
-        }
     }
 
     /*

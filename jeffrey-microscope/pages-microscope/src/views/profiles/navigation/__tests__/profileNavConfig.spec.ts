@@ -152,30 +152,6 @@ describe('profileNavConfig', () => {
     }
   });
 
-  // Pages that moved or were renamed: old sub-path -> new sub-path
-  const LEGACY_REDIRECTS: Array<[string, string]> = [
-    ['leak-candidates', 'memory-issues/leak-candidates'],
-    ['garbage-collection/finalizers', 'memory-issues/finalizers'],
-    ['garbage-collection/reference-processing', 'memory-issues/reference-processing']
-  ];
-
-  it('legacy paths redirect to their new location', () => {
-    for (const [oldSubPath, newSubPath] of LEGACY_REDIRECTS) {
-      const record = profileChildRoutes.find(route => route.path === oldSubPath);
-      expect(record, oldSubPath).toBeDefined();
-
-      const redirect = (
-        record as unknown as {
-          redirect: (to: { params: { profileId: string } }) => string;
-        }
-      ).redirect;
-      expect(redirect, `${oldSubPath} must be a redirect record`).toBeTypeOf('function');
-
-      const target = redirect({ params: { profileId: SAMPLE_PROFILE_ID } });
-      expect(target, oldSubPath).toBe(`/profiles/${SAMPLE_PROFILE_ID}/${newSubPath}`);
-    }
-  });
-
   it('derives the mode pill from a route path', () => {
     const profilePath = (subPath: string) => `/profiles/${SAMPLE_PROFILE_ID}${subPath}`;
 

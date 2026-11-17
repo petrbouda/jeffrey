@@ -24,7 +24,7 @@ import java.time.Instant;
 import java.util.Optional;
 
 /**
- * Repository for managing profile metadata in the platform database.
+ * Repository for managing profile metadata in the core database.
  * Handles both creation and management of profile records.
  */
 public interface ProfileRepository {
@@ -65,7 +65,7 @@ public interface ProfileRepository {
     void markModified();
 
     /**
-     * Delete the profile metadata from the platform database.
+     * Delete the profile metadata from the core database.
      */
     void delete();
 

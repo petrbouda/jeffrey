@@ -82,21 +82,21 @@ class ProfilesMcpToolsTest {
         RequestContextHolder.resetRequestAttributes();
     }
 
-    private static ProfileInfo profile(String id, String name, String projectId) {
-        return profile(id, name, projectId, true);
+    private static ProfileInfo profile(String id, String name) {
+        return profile(id, name, true);
     }
 
     private static ProfileInfo profile(String id, boolean enabled) {
-        return profile(id, "Profile " + id, null, enabled);
+        return profile(id, "Profile " + id, enabled);
     }
 
     /**
      * @param enabled whether the profile has finished being built; false is a row whose recording is
      *                still being parsed
      */
-    private static ProfileInfo profile(String id, String name, String projectId, boolean enabled) {
+    private static ProfileInfo profile(String id, String name, boolean enabled) {
         return new ProfileInfo(
-                id, projectId, projectId == null ? null : "ws-1", name, RecordingEventSource.JFR,
+                id, name, RecordingEventSource.JFR,
                 START, START.plusSeconds(120), START, enabled, false, "rec-" + id);
     }
 
@@ -137,7 +137,7 @@ class ProfilesMcpToolsTest {
         @Test
         void listsEveryProfileWithItsId() {
             when(coreRepositories.findAllProfiles())
-                    .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+                    .thenReturn(List.of(profile("p-1", "Checkout run")));
 
             String result = tools.list(null, null, null).text();
 
@@ -152,7 +152,7 @@ class ProfilesMcpToolsTest {
         @Test
         void eachRowLinksItsProfile() {
             when(coreRepositories.findAllProfiles())
-                    .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1"), profile("p-2", true)));
+                    .thenReturn(List.of(profile("p-1", "Checkout run"), profile("p-2", true)));
 
             JsonNode data = tools.list(null, null, null).structuredContent();
 
@@ -171,7 +171,7 @@ class ProfilesMcpToolsTest {
         @Test
         void carriesTimeAsEpochMillisecondsAndLeavesTheIsoStringsToTheText() {
             when(coreRepositories.findAllProfiles())
-                    .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+                    .thenReturn(List.of(profile("p-1", "Checkout run")));
 
             Page page = page(null, null, null);
             JsonNode row = page.data().path("profiles").get(0);
@@ -199,10 +199,10 @@ class ProfilesMcpToolsTest {
         @Test
         void everyPageConformsToTheGeneratedSchema() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    new ProfileInfo("p-3", null, null, null, RecordingEventSource.JFR,
+                    new ProfileInfo("p-3", null, RecordingEventSource.JFR,
                             null, null, START, false, false, null),
-                    profile("p-2", "N".repeat(4_000), null),
-                    profile("p-1", "Checkout run", "proj-1")));
+                    profile("p-2", "N".repeat(4_000)),
+                    profile("p-1", "Checkout run")));
 
             for (Integer limit : List.of(1, 3)) {
                 McpSchemaConformance.assertConforms(page(null, limit, null).data(), SCHEMA);
@@ -222,7 +222,7 @@ class ProfilesMcpToolsTest {
             assertEquals("EMPTY", empty.path("status").asString());
             assertTrue(empty.path("reason").asString().contains("No profiles have been analysed yet"), empty.toString());
 
-            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run")));
             JsonNode unmatched = page("nothing like it", null, null).data();
 
             assertEquals("EMPTY", unmatched.path("status").asString());
@@ -231,7 +231,7 @@ class ProfilesMcpToolsTest {
 
         @Test
         void saysOkWithoutAReasonWhenProfilesAreListed() {
-            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run")));
 
             JsonNode data = page(null, null, null).data();
 
@@ -246,7 +246,7 @@ class ProfilesMcpToolsTest {
         @Test
         void theTableEndsWithTheFooterOfItsRecord() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "Checkout run", "proj-1"), profile("p-2", "Search run", "proj-1")));
+                    profile("p-1", "Checkout run"), profile("p-2", "Search run")));
 
             Page page = page(null, 1, null);
 
@@ -266,7 +266,7 @@ class ProfilesMcpToolsTest {
         /** The catalogue's page for the user is the recordings list, which shows every profile. */
         @Test
         void linksTheRecordingsPage() {
-            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+            when(coreRepositories.findAllProfiles()).thenReturn(List.of(profile("p-1", "Checkout run")));
 
             String uiLink = page(null, null, null).data().path("uiLink").asString();
 
@@ -320,23 +320,23 @@ class ProfilesMcpToolsTest {
             assertEquals(0, data.path("followUp").path("nextTools").size());
         }
 
-        /**
-         * A Quick Analysis profile belongs to no project. It has to appear anyway — it is how a
-         * locally opened recording shows up, and it would otherwise be invisible to a client.
-         */
+        /** A locally opened recording's profile is listed like any other; nothing scopes the list. */
         @Test
-        void labelsQuickAnalysisProfiles() {
+        void listsALocallyOpenedProfile() {
             when(coreRepositories.findAllProfiles())
-                    .thenReturn(List.of(profile("p-2", "Local dump", null)));
+                    .thenReturn(List.of(profile("p-2", "Local dump")));
 
-            assertTrue(tools.list(null, null, null).text().contains("quick analysis"));
+            String text = tools.list(null, null, null).text();
+
+            assertTrue(text.contains("p-2"), text);
+            assertTrue(text.contains("Local dump"), text);
         }
 
         @Test
         void filtersByNameCaseInsensitively() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "Checkout run", "proj-1"),
-                    profile("p-2", "Search run", "proj-1")));
+                    profile("p-1", "Checkout run"),
+                    profile("p-2", "Search run")));
 
             String result = tools.list("CHECKOUT", null, null).text();
 
@@ -347,8 +347,8 @@ class ProfilesMcpToolsTest {
         @Test
         void reportsWhenTheLimitOmitsMatchingProfiles() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "One", "proj-1"),
-                    profile("p-2", "Two", "proj-1")));
+                    profile("p-1", "One"),
+                    profile("p-2", "Two")));
 
             String result = tools.list(null, 1, null).text();
 
@@ -365,8 +365,8 @@ class ProfilesMcpToolsTest {
         @Test
         void reportsWhenTheLimitReturnsEveryMatchingProfile() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "One", "proj-1"),
-                    profile("p-2", "Two", "proj-1")));
+                    profile("p-1", "One"),
+                    profile("p-2", "Two")));
 
             String result = tools.list(null, 2, null).text();
 
@@ -377,9 +377,9 @@ class ProfilesMcpToolsTest {
         @Test
         void countsMatchesBeforeApplyingTheLimit() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "Checkout before", "proj-1"),
-                    profile("p-2", "Unrelated", "proj-1"),
-                    profile("p-3", "Checkout after", "proj-1")));
+                    profile("p-1", "Checkout before"),
+                    profile("p-2", "Unrelated"),
+                    profile("p-3", "Checkout after")));
 
             String result = tools.list("checkout", 1, null).text();
 
@@ -389,7 +389,7 @@ class ProfilesMcpToolsTest {
         @Test
         void reportsWhenTheDefaultLimitOmitsMatchingProfiles() {
             List<ProfileInfo> profiles = IntStream.rangeClosed(1, 101)
-                    .mapToObj(index -> profile("p-" + index, "Profile " + index, "proj-1"))
+                    .mapToObj(index -> profile("p-" + index, "Profile " + index))
                     .toList();
             when(coreRepositories.findAllProfiles()).thenReturn(profiles);
 
@@ -417,7 +417,7 @@ class ProfilesMcpToolsTest {
         @Test
         void saysWhenNothingMatchedTheSearch() {
             when(coreRepositories.findAllProfiles())
-                    .thenReturn(List.of(profile("p-1", "Checkout run", "proj-1")));
+                    .thenReturn(List.of(profile("p-1", "Checkout run")));
 
             assertTrue(tools.list("nothing-like-this", null, null).text().contains("No profile matches"));
         }
@@ -429,7 +429,7 @@ class ProfilesMcpToolsTest {
         @Test
         void keepsAPipeInANameOffTheColumnBoundaries() {
             when(coreRepositories.findAllProfiles())
-                    .thenReturn(List.of(profile("p-1", "before|after", "proj-1")));
+                    .thenReturn(List.of(profile("p-1", "before|after")));
 
             String row = tools.list(null, null, null).text().lines()
                     .filter(line -> line.contains("p-1"))
@@ -447,7 +447,7 @@ class ProfilesMcpToolsTest {
         @Test
         void traversesBeyondMaximumWithoutDuplicates() {
             List<ProfileInfo> profiles = IntStream.range(0, 1103)
-                    .mapToObj(index -> profile("p-%04d".formatted(index), "Profile " + index, null))
+                    .mapToObj(index -> profile("p-%04d".formatted(index), "Profile " + index))
                     .toList().reversed();
             when(coreRepositories.findAllProfiles()).thenReturn(profiles);
             List<String> ids = new ArrayList<>();
@@ -492,7 +492,7 @@ class ProfilesMcpToolsTest {
         @Test
         void bindsTheCursorToNormalizedSearch() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "Checkout before", null), profile("p-2", "Checkout after", null)));
+                    profile("p-1", "Checkout before"), profile("p-2", "Checkout after")));
             String cursor = nextCursor(page(" CHECKOUT ", 1, null));
             assertEquals("p-1", page("checkout", 1, cursor).data()
                     .path("profiles").get(0).path("profileId").asString());
@@ -510,7 +510,7 @@ class ProfilesMcpToolsTest {
         @Test
         void aRefusedCursorSaysToStartAgainWithoutOne() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-1", "Checkout before", null), profile("p-2", "Checkout after", null)));
+                    profile("p-1", "Checkout before"), profile("p-2", "Checkout after")));
             String cursor = nextCursor(page("checkout", 1, null));
 
             for (String refused : List.of("not-a-cursor", cursor)) {
@@ -544,7 +544,7 @@ class ProfilesMcpToolsTest {
         @Test
         void boundsLongNamesWithoutLosingIdentifiers() {
             when(coreRepositories.findAllProfiles()).thenReturn(List.of(
-                    profile("p-2", "\"\n".repeat(120_001), null), profile("p-1", true)));
+                    profile("p-2", "\"\n".repeat(120_001)), profile("p-1", true)));
             Page first = page(null, 1, null);
             McpSchemaConformance.assertConforms(first.data(), SCHEMA);
             JsonNode row = first.data().path("profiles").get(0);
@@ -561,7 +561,7 @@ class ProfilesMcpToolsTest {
         @Test
         void boundsEscapedJsonAndReportsOnlyRowsPresentInBothRepresentations() {
             when(coreRepositories.findAllProfiles()).thenReturn(IntStream.range(0, 1000)
-                    .mapToObj(index -> profile("p-%04d".formatted(index), "\u0001".repeat(256), null)).toList());
+                    .mapToObj(index -> profile("p-%04d".formatted(index), "\u0001".repeat(256))).toList());
             Page first = page(null, 1000, null);
             int returned = first.data().path("returned").asInt();
             assertTrue(returned > 0 && returned < 1000);

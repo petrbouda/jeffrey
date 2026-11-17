@@ -18,7 +18,6 @@
 --
 -- PER-PROFILE DATABASE SCHEMA
 -- Each profile has its own isolated database file.
--- Profile context (workspace, project) is stored in profile_info table.
 --
 
 --
@@ -164,18 +163,6 @@ CREATE TABLE IF NOT EXISTS threads
     os_id       BIGINT,
     java_id     BIGINT,
     is_virtual  BOOLEAN  NOT NULL
-);
-
---
--- PROFILE INFO TABLE
--- Stores profile context (workspace, project) - always exactly one row per profile database.
--- Populated when the profile database is created.
---
-CREATE TABLE IF NOT EXISTS profile_info
-(
-    profile_id   VARCHAR NOT NULL PRIMARY KEY,
-    project_id   VARCHAR,
-    workspace_id VARCHAR
 );
 
 --

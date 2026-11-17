@@ -16,19 +16,19 @@
  */
 
 --
--- LOCAL CORE DATABASE SCHEMA
--- Contains tables used by the local deployment. Profile event data is stored in per-profile databases.
+-- CORE DATABASE SCHEMA
+-- Microscope's catalogue of recordings and the profiles built from them. Profile event data is stored
+-- in per-profile databases.
 --
 
 --
 -- RECORDING TABLES
--- Used by both project recordings (project_id set) and quick analysis recordings (project_id NULL).
+-- Every recording, whether uploaded, imported from a file or downloaded from the connector.
 --
 
 CREATE TABLE IF NOT EXISTS recordings
 (
     id                    VARCHAR NOT NULL PRIMARY KEY,
-    project_id            VARCHAR,
     recording_name        VARCHAR NOT NULL,
     group_id              VARCHAR,
     event_source          VARCHAR NOT NULL,
@@ -42,7 +42,6 @@ CREATE TABLE IF NOT EXISTS recordings
 CREATE TABLE IF NOT EXISTS recording_files
 (
     id             VARCHAR NOT NULL PRIMARY KEY,
-    project_id     VARCHAR,
     recording_id   VARCHAR NOT NULL,
     filename       VARCHAR NOT NULL,
     supported_type VARCHAR NOT NULL,
@@ -61,7 +60,6 @@ CREATE TABLE IF NOT EXISTS recording_files
 CREATE TABLE IF NOT EXISTS bundles
 (
     id          VARCHAR NOT NULL PRIMARY KEY,
-    project_id  VARCHAR,
     bundle_name VARCHAR NOT NULL,
     group_id    VARCHAR,
     created_at  TIMESTAMPTZ NOT NULL
@@ -70,7 +68,6 @@ CREATE TABLE IF NOT EXISTS bundles
 CREATE TABLE IF NOT EXISTS bundle_files
 (
     id             VARCHAR NOT NULL PRIMARY KEY,
-    project_id     VARCHAR,
     bundle_id      VARCHAR NOT NULL,
     filename       VARCHAR NOT NULL,
     supported_type VARCHAR NOT NULL,
@@ -81,7 +78,6 @@ CREATE TABLE IF NOT EXISTS bundle_files
 CREATE TABLE IF NOT EXISTS recording_groups
 (
     id         VARCHAR NOT NULL PRIMARY KEY,
-    project_id VARCHAR,
     name       VARCHAR NOT NULL,
     created_at TIMESTAMPTZ
 );
@@ -112,8 +108,6 @@ CREATE INDEX IF NOT EXISTS recording_tags_key_value_idx
 CREATE TABLE IF NOT EXISTS profiles
 (
     profile_id            VARCHAR NOT NULL,
-    project_id            VARCHAR,
-    workspace_id          VARCHAR,
     profile_name          VARCHAR NOT NULL,
     event_source          VARCHAR NOT NULL,
     created_at            TIMESTAMPTZ  NOT NULL,

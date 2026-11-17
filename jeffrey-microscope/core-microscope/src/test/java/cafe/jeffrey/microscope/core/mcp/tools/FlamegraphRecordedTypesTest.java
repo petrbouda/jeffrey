@@ -92,7 +92,7 @@ class FlamegraphRecordedTypesTest {
     private static FlamegraphMcpTools toolsOver(PrimaryFlamegraphManager manager, RecordingEventSource source) {
         Instant start = Instant.parse("2026-10-01T12:00:00Z");
         ProfileManager profile = mock(ProfileManager.class);
-        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "project", "workspace", "Review", source,
+        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "Review", source,
                 start, start.plusSeconds(60), start, true, false, "recording"));
         when(profile.flamegraphManager()).thenReturn(manager);
         return new FlamegraphMcpTools(profile, new JfrFlamegraphPanelProvider(),
@@ -117,7 +117,7 @@ class FlamegraphRecordedTypesTest {
 
         Instant start = Instant.parse("2026-10-01T12:00:00Z");
         ProfileManager profile = mock(ProfileManager.class);
-        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "project", "workspace", "Review", source,
+        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "Review", source,
                 start, start.plusSeconds(60), start, true, false, "recording"));
         when(profile.flamegraphManager()).thenReturn(manager);
         FlamegraphMcpTools tools = new FlamegraphMcpTools(profile, new JfrFlamegraphPanelProvider(),

@@ -104,48 +104,6 @@ class JdbcRecordingRepositoryTest {
         }
     }
 
-    /**
-     * Rows an older build wrote into a project. Nothing can open them any more, so they must not
-     * surface in any listing or lookup beside the recordings this repository writes.
-     */
-    @Nested
-    class LegacyProjectRows {
-
-        @Test
-        void areLeftOutOfListings(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
-            TestUtils.executeSql(dataSource, "sql/recording/insert-legacy-project-recording.sql");
-            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
-
-            assertEquals(
-                    List.of("rec-001", "rec-002"),
-                    repository.findAllRecordings().stream().map(Recording::id).sorted().toList());
-            assertTrue(repository.findRecording("legacy-rec").isEmpty());
-            assertTrue(repository.findById("legacy-rec").isEmpty());
-            assertFalse(repository.groupExists("legacy-group"));
-            assertEquals(1, repository.findAllRecordingGroups().size());
-        }
-
-        @Test
-        void newRecordingsAreStoredWithoutAProject(DataSource dataSource) throws SQLException {
-            var provider = new DatabaseClientProvider(dataSource);
-            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
-
-            repository.insertRecording(
-                    new Recording("new-rec", "New", null, RecordingEventSource.JFR, FIXED_TIME,
-                            FIXED_TIME, FIXED_TIME, false, null, null, List.of()),
-                    new RecordingFile("new-file", "new-rec", "new.jfr", ManagedFile.JFR, FIXED_TIME, 1));
-            String groupId = repository.insertGroup("Group");
-
-            assertEquals(0L, countRows(dataSource,
-                    "SELECT count(*) FROM recordings WHERE project_id IS NOT NULL"));
-            assertEquals(0L, countRows(dataSource,
-                    "SELECT count(*) FROM recording_files WHERE project_id IS NOT NULL"));
-            assertTrue(repository.groupExists(groupId));
-        }
-    }
-
     @Nested
     class FindRecordingMethod {
 

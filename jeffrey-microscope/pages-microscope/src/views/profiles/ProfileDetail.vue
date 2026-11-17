@@ -179,11 +179,8 @@
         <!-- Secondary Profile Selection Modal -->
         <SecondaryProfileSelectionModal
           v-model:show="showSecondaryProfileSelectionModal"
-          :current-project-id="projectId"
           :current-profile-id="profileId"
           :current-secondary-profile-id="selectedSecondaryProfileId"
-          :current-secondary-project-id="selectedSecondaryProjectId"
-          :workspace-id="workspaceId"
           :heap-dump-baseline="selectedMode === 'HeapDump'"
           @profile-selected="handleSecondaryProfileSelected"
           @profile-cleared="handleSecondaryProfileCleared"
@@ -228,7 +225,7 @@ import Badge from '@shared/components/Badge.vue';
 import MessageBus from '@/services/MessageBus.ts';
 import ProfileFeaturesClient from '@/services/api/ProfileFeaturesClient';
 import FeatureType from '@/services/api/model/FeatureType';
-import { profileStore, ProfileWithContext } from '@/stores/profileStore';
+import { profileStore } from '@/stores/profileStore';
 import IdeTargetBar from '@/components/IdeTargetBar.vue';
 import ideConfigStore from '@/stores/ideConfigStore';
 import ideProfileTargetStore from '@/stores/ideProfileTargetStore';
@@ -242,13 +239,12 @@ import {
 import { profileKindOf } from '@/services/ProfileKind';
 const route = useRoute();
 const router = useRouter();
-const { workspaceId, projectId, navigateToRecordings } = useNavigation();
+const { navigateToRecordings } = useNavigation();
 const profileId = route.params.profileId as string;
 
 const profile = ref<Profile | null>(null);
 const secondaryProfile = ref<Profile | null>(null);
 const selectedSecondaryProfileId = ref<string>('');
-const selectedSecondaryProjectId = ref<string>('');
 const loadingProfiles = ref(false);
 const loading = ref(true);
 const sidebarCollapsed = ref(false);
@@ -456,25 +452,24 @@ onMounted(async () => {
     // Fetch profile details using direct profile client (simplified URL). The disabled features are
     // fetched alongside and assigned first: the child views mount the moment `profile` is set and
     // decide on mount whether to call endpoints whose events the recording lacks.
-    const [profileWithContext, features] = await Promise.all([
-      directProfileClient.getById(profileId) as Promise<ProfileWithContext>,
+    const [loadedProfile, features] = await Promise.all([
+      directProfileClient.getById(profileId),
       loadDisabledFeatures()
     ]);
     // A profile offers only the modes of its kind: a URL that landed anywhere else -- the bare
     // profile URL's /dashboard default on a heap dump, a JFR page on a pprof import -- goes to the
     // kind's landing page instead. Before `profile` is set, so the wrong page never mounts and
     // calls endpoints this kind of profile cannot answer.
-    const kind = profileKindOf(profileWithContext.eventSource);
+    const kind = profileKindOf(loadedProfile.eventSource);
     if (!kind.modes.has(getModeForPath(route.path))) {
       await router.replace(`/profiles/${profileId}/${kind.landing}`);
     }
     selectedMode.value = getModeForPath(route.path);
 
     disabledFeatures.value = features;
-    profile.value = profileWithContext;
+    profile.value = loadedProfile;
 
-    // Store profile context in profileStore for navigation
-    profileStore.setProfile(profileWithContext);
+    profileStore.setProfile(loadedProfile);
 
     // Restore the baseline picked for this profile earlier in the session; retainFor above has
     // already discarded any that belonged to another one.
@@ -482,13 +477,11 @@ onMounted(async () => {
 
     if (savedProfile && savedProfile.id !== profileId) {
       selectedSecondaryProfileId.value = savedProfile.id;
-      selectedSecondaryProjectId.value = savedProfile.projectId;
 
       try {
         loadingProfiles.value = true;
         // Load secondary profile using direct client
-        const secondaryWithContext = await directProfileClient.getById(savedProfile.id);
-        secondaryProfile.value = secondaryWithContext;
+        secondaryProfile.value = await directProfileClient.getById(savedProfile.id);
       } catch (error) {
         console.error('Failed to load secondary profile:', error);
         SecondaryProfileService.remove(); // Clear invalid secondary profile
@@ -579,16 +572,14 @@ const navigateToDifferentialPage = (type: DifferentialType) => {
 };
 
 // Handle secondary profile selection from modal
-const handleSecondaryProfileSelected = async (profile: Profile, projectId: string) => {
+const handleSecondaryProfileSelected = async (profile: Profile) => {
   try {
     selectedSecondaryProfileId.value = profile.id;
-    selectedSecondaryProjectId.value = projectId;
     secondaryProfile.value = profile;
 
     // Save the secondary profile using SecondaryProfileService
     const profileInfo: ProfileInfo = {
       id: profile.id,
-      projectId: projectId,
       name: profile.name,
       createdAt: profile.createdAt,
       // The list payload the baseline was picked from carries no recording bounds; nothing reads
@@ -607,7 +598,6 @@ const handleSecondaryProfileSelected = async (profile: Profile, projectId: strin
 // Handle secondary profile cleared from modal
 const handleSecondaryProfileCleared = () => {
   selectedSecondaryProfileId.value = '';
-  selectedSecondaryProjectId.value = '';
   secondaryProfile.value = null;
   SecondaryProfileService.remove();
 };

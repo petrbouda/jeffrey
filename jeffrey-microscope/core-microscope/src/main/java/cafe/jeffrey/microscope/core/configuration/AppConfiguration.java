@@ -24,13 +24,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.manager.ProfilesManager;
-import cafe.jeffrey.microscope.core.manager.ProfilesManagerImpl;
 import cafe.jeffrey.microscope.persistence.jdbc.DuckDBMicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
-import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
 import cafe.jeffrey.provider.profile.jdbc.DatabaseManagerResolverImpl;
 import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
@@ -183,16 +179,6 @@ public class AppConfiguration {
         jeffreyDirs.initialize();
         LOG.info("Using Jeffrey directory: HOME={} TEMP={}", jeffreyDirs.homeDir(), jeffreyDirs.temp());
         return jeffreyDirs;
-    }
-
-    @Bean
-    public ProfilesManager.Factory profilesManager(
-            MicroscopeCorePersistenceProvider localCorePersistenceProvider,
-            ProfileManager.Factory profileFactory) {
-
-        MicroscopeCoreRepositories localCoreRepositories = localCorePersistenceProvider.localCoreRepositories();
-        return projectInfo ->
-                new ProfilesManagerImpl(projectInfo, localCoreRepositories, profileFactory);
     }
 
     @Bean(ProfilesConfiguration.PROFILES_PATH)

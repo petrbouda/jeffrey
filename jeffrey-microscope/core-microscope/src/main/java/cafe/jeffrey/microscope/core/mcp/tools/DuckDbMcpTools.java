@@ -102,9 +102,6 @@ public class DuckDbMcpTools {
     private static final String EVENT_TYPE_KNOWN =
             "SELECT 1 FROM event_types WHERE name = ? LIMIT 1";
 
-    private static final String PROFILE_INFO =
-            "SELECT profile_id, project_id, workspace_id FROM profile_info LIMIT 1";
-
     private static final String READ_PREFIX_SELECT = "select";
     private static final String READ_PREFIX_WITH = "with";
 
@@ -125,7 +122,6 @@ public class DuckDbMcpTools {
     private static final String LIST_EVENT_TYPES = "jfr_listEventTypes";
     private static final String QUERY_EVENTS = "jfr_queryEvents";
     private static final String DESCRIBE_EVENT_TYPE = "jfr_describeEventType";
-    private static final String PROFILES_SUMMARY = "profiles_summary";
     private static final String PROFILE_ID = "profileId";
     private static final String TABLE_NAME = "tableName";
     private static final String QUERY = "query";
@@ -139,7 +135,6 @@ public class DuckDbMcpTools {
     private static final String FIELDS_WHY = "names the keys of this event type's JSON fields column";
     private static final String SAMPLE_EVENTS_WHY = "reads the ten latest events of the most frequent type";
     private static final String UNFILTERED_WHY = "reads the latest events of the type without the filter";
-    private static final String SUMMARY_WHY = "orients in the profile: what was recorded and what stands out";
 
     private static final String ROW_LIMIT_GUIDANCE =
             "The row cap was reached and more rows remain. Aggregate in SQL rather than pulling rows back to count them.";
@@ -482,36 +477,6 @@ public class DuckDbMcpTools {
         T run() throws SQLException;
     }
 
-    @Tool(description = "Returns the identity of the JFR profile: its profile ID, project ID and "
-            + "workspace ID, and whether it belongs to a connector project or to the Quick Analysis store.")
-    @McpOutputSchema(ProfileIdentity.class)
-    @McpToolMeta(cost = McpToolCost.CHEAP)
-    public McpToolResult getProfileInfo() {
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(PROFILE_INFO)) {
-            stmt.setQueryTimeout(QUERY_TIMEOUT_SECONDS);
-            try (ResultSet rs = stmt.executeQuery()) {
-                // The import writes the row only for a profile with a project; one built from a
-                // recording has none, so no row is what a Quick Analysis profile looks like.
-                if (!rs.next()) {
-                    return identity(profileId, null, null);
-                }
-                return identity(rs.getString("profile_id"), rs.getString("project_id"), rs.getString("workspace_id"));
-            }
-        } catch (SQLException e) {
-            LOG.error("Failed to get profile info: message={}", e.getMessage(), e);
-            throw new ToolExecutionException("Failed to get profile info: " + e.getMessage(), e);
-        }
-    }
-
-    private McpToolResult identity(String id, String projectId, String workspaceId) {
-        McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(onProfile(PROFILES_SUMMARY).why(SUMMARY_WHY))
-                .followUp();
-        ProfileKind kind = projectId != null ? ProfileKind.PROJECT : ProfileKind.QUICK_ANALYSIS;
-        return McpToolResult.of(new ProfileIdentity(id, projectId, workspaceId, kind, followUp, UiLinks.profile(id)));
-    }
-
     private McpNextTool.Call onProfile(String tool) {
         return NextCalls.to(tool).with(PROFILE_ID, profileId);
     }
@@ -644,14 +609,6 @@ public class DuckDbMcpTools {
         NO_MATCH
     }
 
-    /** Where the profile belongs. */
-    enum ProfileKind {
-        /** A profile of a connector project's recording. */
-        PROJECT,
-        /** A profile of a recording in the Quick Analysis store. */
-        QUICK_ANALYSIS
-    }
-
     record Table(
             String name,
             @McpDescription("Whether it is a view rather than a stored table")
@@ -717,20 +674,6 @@ public class DuckDbMcpTools {
             TruncationReason truncation,
             McpFollowUp followUp,
             @McpDescription("The event viewer on this event type in the Microscope UI, for the user")
-            String uiLink) {
-    }
-
-    record ProfileIdentity(
-            String profileId,
-            @McpNullable
-            @McpDescription("The connector project; null for a Quick Analysis profile")
-            String projectId,
-            @McpNullable
-            @McpDescription("The workspace of that project; null for a Quick Analysis profile")
-            String workspaceId,
-            ProfileKind kind,
-            McpFollowUp followUp,
-            @McpDescription("The profile's page in the Microscope UI, for the user")
             String uiLink) {
     }
 

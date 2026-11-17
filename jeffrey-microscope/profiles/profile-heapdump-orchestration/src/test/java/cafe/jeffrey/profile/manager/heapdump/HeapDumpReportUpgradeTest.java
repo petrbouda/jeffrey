@@ -217,7 +217,7 @@ class HeapDumpReportUpgradeTest {
     }
 
     private HeapDumpManager manager(HeapDumpSessionCache cache) {
-        ProfileInfo profile = new ProfileInfo("upgrade-profile", "project", "workspace", "Upgrade",
+        ProfileInfo profile = new ProfileInfo("upgrade-profile", "Upgrade",
                 RecordingEventSource.HEAP_DUMP, CREATED, CREATED, CREATED, true, false, "recording");
         return new HeapDumpManagerImpl(profile, new HeapDumpFiles(directory), cache, null, null);
     }

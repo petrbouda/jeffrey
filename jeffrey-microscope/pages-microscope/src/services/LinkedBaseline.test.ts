@@ -16,7 +16,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ProfileWithContext } from '@/stores/profileStore';
+import type Profile from '@/services/api/model/Profile';
 
 // SecondaryProfileService reads sessionStorage and dispatches on window at import time, neither of
 // which exists in the node test environment. Both are stubbed before the dynamic imports below.
@@ -45,17 +45,15 @@ const PRIMARY = 'profile-primary';
 const LINKED = 'profile-linked-baseline';
 const PICKED = 'profile-picked-earlier';
 
-function profile(id: string): ProfileWithContext {
+function profile(id: string): Profile {
   return {
     id,
-    projectId: 'project-1',
-    workspaceId: 'workspace-1',
     name: `${id}.jfr`,
     createdAt: Date.UTC(2026, 0, 1),
     profilingStartedAt: Date.UTC(2026, 0, 1),
     profilingFinishedAt: Date.UTC(2026, 0, 1, 1),
     enabled: true
-  } as ProfileWithContext;
+  } as Profile;
 }
 
 describe('adoptLinkedBaseline', () => {
@@ -78,7 +76,6 @@ describe('adoptLinkedBaseline', () => {
     SecondaryProfileService.update(
       {
         id: picked.id,
-        projectId: picked.projectId,
         name: picked.name,
         createdAt: picked.createdAt,
         profilingStartedAt: null,
@@ -97,7 +94,6 @@ describe('adoptLinkedBaseline', () => {
     SecondaryProfileService.update(
       {
         id: PICKED,
-        projectId: 'project-1',
         name: `${PICKED}.jfr`,
         createdAt: 0,
         profilingStartedAt: null,

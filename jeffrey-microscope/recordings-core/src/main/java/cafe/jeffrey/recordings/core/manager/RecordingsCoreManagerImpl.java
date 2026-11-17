@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Objects;
 
 /**
  * Deployment-agnostic implementation of the recording store. Holds NO profile coupling — optional
@@ -84,8 +85,8 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         this.recordingsDir = recordingsDir;
         this.recordingRepository = recordingRepository;
         this.recordingTagsRepository = recordingTagsRepository;
-        this.metadataParser = metadataParser == null ? RecordingMetadataParser.NOOP : metadataParser;
-        this.profileCleanup = profileCleanup == null ? RecordingProfileCleanup.NOOP : profileCleanup;
+        this.metadataParser = Objects.requireNonNull(metadataParser, "metadataParser");
+        this.profileCleanup = Objects.requireNonNull(profileCleanup, "profileCleanup");
     }
 
     // --- Group operations ---

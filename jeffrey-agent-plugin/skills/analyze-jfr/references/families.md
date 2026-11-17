@@ -20,6 +20,6 @@ says what each of its tools answers.
 | `blocking_` | `overview`, `monitors`, `pinnedThreads` — contended locks, waits, parks, virtual-thread pinning |
 | `timeline_` | `hotWindows` (when the samples landed), `zoom` (sub-second, inside one window) |
 | `memory_` | `allocations` (by type, not call site), `leakCandidates` (JFR-side, needs no heap dump) |
-| `jfr_` | `listTables`, `describeTable`, `describeEventType` (the fields inside one event type), `listEventTypes`, `queryEvents`, `executeQuery`, `getProfileInfo` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
+| `jfr_` | `listTables`, `describeTable`, `describeEventType` (the fields inside one event type), `listEventTypes`, `queryEvents`, `executeQuery` — raw DuckDB when no purpose-built tool fits; the `jfr-sql` skill has the schema |
 | `heap_` | Everything a heap dump answers — the `analyze-heap` skill has the order to run it in |
 | `recordings_` | `analyzeFile` (a file not in Jeffrey yet), `analyzeRecording` (uploaded but never analysed), `status` (whether a slow analysis has finished), `list` (the Quick Analysis store) |

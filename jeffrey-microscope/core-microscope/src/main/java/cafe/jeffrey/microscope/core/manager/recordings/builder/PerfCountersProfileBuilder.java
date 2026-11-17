@@ -105,7 +105,7 @@ public final class PerfCountersProfileBuilder implements ProfileBuilder {
         Instant createdAt = clock.instant();
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, profileName, RecordingEventSource.PERF_COUNTERS,
+                profileId, profileName, RecordingEventSource.PERF_COUNTERS,
                 null, null, createdAt, false, false, recording.id());
 
         PerfCountersOverview overview;

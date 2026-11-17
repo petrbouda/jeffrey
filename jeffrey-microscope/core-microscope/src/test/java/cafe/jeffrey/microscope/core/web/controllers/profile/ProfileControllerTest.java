@@ -98,8 +98,6 @@ class ProfileControllerTest {
     static ProfileInfo sampleProfile() {
         return new ProfileInfo(
                 "p-1",
-                "project-1",
-                "ws-1",
                 "Demo profile",
                 RecordingEventSource.JFR,
                 Instant.parse("2026-04-01T10:00:00Z"),

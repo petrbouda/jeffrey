@@ -132,7 +132,7 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
         RecordingInformation recordingInfo = resolveRecordingInformation(recording, sources);
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, profileName,
+                profileId, profileName,
                 recordingInfo.eventSource(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt(),

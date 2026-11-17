@@ -109,7 +109,7 @@ class HeapOqlMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.HEAP_DUMP,
+                PROFILE_ID, "Profile", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
     }

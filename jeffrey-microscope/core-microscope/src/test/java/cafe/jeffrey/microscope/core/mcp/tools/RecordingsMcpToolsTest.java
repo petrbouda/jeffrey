@@ -154,7 +154,7 @@ class RecordingsMcpToolsTest {
     private void profileIs(boolean enabled, String name) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, null, null, name, RecordingEventSource.JFR,
+                PROFILE_ID, name, RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, enabled, false,
                 RECORDING_ID));
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.of(profileManager));
@@ -321,7 +321,7 @@ class RecordingsMcpToolsTest {
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
         ProfileManager replacement = mock(ProfileManager.class);
         when(replacement.info()).thenReturn(new ProfileInfo(
-                "replacement-profile", null, null, "app.jfr", RecordingEventSource.JFR,
+                "replacement-profile", "app.jfr", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, RECORDING_ID));
         when(recordingsManager.profile("replacement-profile")).thenReturn(Optional.of(replacement));
         String response = complete(tools.analyzeRecording(RECORDING_ID, true, RESOURCE_READ));

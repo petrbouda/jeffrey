@@ -29,7 +29,6 @@ import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
 import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser.RecordingMetadata;
-import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
 import cafe.jeffrey.storage.recording.api.file.Bundle;
 import cafe.jeffrey.storage.recording.api.file.BundleFile;
@@ -82,7 +81,7 @@ class RecordingsCoreManagerImplTest {
         manager = new RecordingsCoreManagerImpl(
                 FIXED_CLOCK, recordingsDir,
                 recordingRepository, recordingTagsRepository,
-                recordingMetadataParser, RecordingProfileCleanup.NOOP);
+                recordingMetadataParser, recording -> { });
     }
 
     @Nested

@@ -31,7 +31,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.recordings.core.ConnectorRecordingsDownloadManager;
 import cafe.jeffrey.recordings.core.download.DownloadProgress;
 import cafe.jeffrey.recordings.core.download.DownloadTask;
 import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
@@ -158,23 +157,9 @@ public class ProjectDownloadTaskController {
     }
 
     private CompletableFuture<Void> startDownloadAsync(DownloadTask task, RecordingsDownloadManager downloadManager) {
-        if (downloadManager instanceof ConnectorRecordingsDownloadManager connectorManager) {
-            return CompletableFuture.runAsync(() -> {
-                try {
-                    connectorManager.downloadRecordingsWithProgress(
-                            task.getSessionId(), task.getFileIds(), task);
-                } catch (Exception e) {
-                    LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
-                    task.onError(e.getMessage());
-                    throw e;
-                }
-            }, Schedulers.sharedVirtual());
-        }
         return CompletableFuture.runAsync(() -> {
             try {
-                task.onStart(task.getFileIds().size(), 0);
-                downloadManager.downloadRecordings(task.getSessionId(), task.getFileIds());
-                task.onComplete();
+                downloadManager.downloadRecordingsWithProgress(task.getSessionId(), task.getFileIds(), task);
             } catch (Exception e) {
                 LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
                 task.onError(e.getMessage());

@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredConnectorProperties;
-import cafe.jeffrey.microscope.core.manager.ProfilesManager;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.connector.AzureFilesClientsFactory;
@@ -60,10 +59,9 @@ public class ConnectorConfiguration {
     @Bean
     public ConnectorProjectManagerFactory connectorProjectManagerFactory(
             MicroscopeJeffreyDirs jeffreyDirs,
-            ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager) {
 
-        return new ConnectorProjectManagerFactory(jeffreyDirs, profilesManagerFactory, recordingsManager);
+        return new ConnectorProjectManagerFactory(jeffreyDirs, recordingsManager);
     }
 
     @Bean

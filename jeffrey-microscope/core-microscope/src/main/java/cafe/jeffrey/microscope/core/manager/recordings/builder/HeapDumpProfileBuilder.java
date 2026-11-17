@@ -124,7 +124,7 @@ public final class HeapDumpProfileBuilder implements ProfileBuilder {
         }
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, profileName,
+                profileId, profileName,
                 RecordingEventSource.HEAP_DUMP,
                 createdAt, createdAt, createdAt, true, false, recording.id());
 

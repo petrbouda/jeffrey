@@ -24,10 +24,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Optional SPI that enriches a freshly ingested recording with metadata parsed from the file
- * (its profiling start/end). Implementations that depend on the profile parsing stack
- * live in the deployment module; the {@link #NOOP} default keeps {@code recordings-core} free of
- * any profile coupling; the recording's format is always read off its filename.
+ * Reads a freshly ingested recording's profiling start and end from its files. The implementation
+ * needs the profile parsing stack, so it lives in core-microscope and {@code recordings-core} stays
+ * free of it; the recording's format is always read off its filename.
  */
 @FunctionalInterface
 public interface RecordingMetadataParser {
@@ -43,6 +42,4 @@ public interface RecordingMetadataParser {
             Instant recordingStartedAt,
             Instant recordingFinishedAt) {
     }
-
-    RecordingMetadataParser NOOP = files -> Optional.empty();
 }

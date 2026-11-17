@@ -130,7 +130,7 @@ class TracesMcpToolsTest {
         when(flamegraphManager.generateAiExport(any())).thenReturn(MARKDOWN);
         recorded(CPU);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                "p-1", "Profile", RecordingEventSource.JFR,
                 Instant.ofEpochMilli(RECORDING_START_MS), Instant.ofEpochMilli(RECORDING_START_MS).plusSeconds(600),
                 Instant.EPOCH, true, false, "recording-1"));
     }

@@ -91,11 +91,11 @@ class HeapDiffMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.HEAP_DUMP,
+                PROFILE_ID, "Profile", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.heapDumpManager()).thenReturn(primaryDump);
         when(baselineProfileManager.info()).thenReturn(new ProfileInfo(
-                BASELINE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.HEAP_DUMP,
+                BASELINE_ID, "Baseline", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-0"));
         when(baselineProfileManager.heapDumpManager()).thenReturn(baselineDump);
         when(baselineResolver.apply(any())).thenReturn(baselineProfileManager);
@@ -273,7 +273,7 @@ class HeapDiffMcpToolsTest {
         @Test
         void saysWhichProfilesAreHeapDumpsWhenThisOneIsNot() {
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JFR,
+                    PROFILE_ID, "Session", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
 
             JsonNode out = conforming(tools().diff(BASELINE_ID, null));

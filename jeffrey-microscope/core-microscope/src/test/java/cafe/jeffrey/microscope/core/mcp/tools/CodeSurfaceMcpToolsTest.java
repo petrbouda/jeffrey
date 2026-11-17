@@ -84,7 +84,7 @@ class CodeSurfaceMcpToolsTest {
     @BeforeEach
     void bindRequest() {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()));
-        when(manager.info()).thenReturn(new ProfileInfo("profile", "project", "workspace", "name",
+        when(manager.info()).thenReturn(new ProfileInfo("profile", "name",
                 RecordingEventSource.JFR, START, START.plusSeconds(60), START, true, false, "recording"));
         when(manager.flamegraphManager()).thenReturn(flamegraphs);
         when(manager.traceManager()).thenReturn(traces);

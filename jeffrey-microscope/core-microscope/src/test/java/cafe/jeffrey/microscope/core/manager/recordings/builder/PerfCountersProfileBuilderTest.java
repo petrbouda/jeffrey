@@ -159,7 +159,7 @@ class PerfCountersProfileBuilderTest {
     class Reuse {
 
         private static ProfileInfo profile(boolean enabled) {
-            return new ProfileInfo("p-1", null, null, FILENAME, RecordingEventSource.PERF_COUNTERS,
+            return new ProfileInfo("p-1", FILENAME, RecordingEventSource.PERF_COUNTERS,
                     null, null, NOW, enabled, false, RECORDING_ID);
         }
 

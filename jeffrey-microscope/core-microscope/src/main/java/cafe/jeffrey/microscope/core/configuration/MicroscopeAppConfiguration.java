@@ -65,7 +65,6 @@ import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 
 import java.util.Map;
-import java.util.Optional;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -169,14 +168,8 @@ public class MicroscopeAppConfiguration {
     }
 
     @Bean
-    public ProfileManagerResolver profileManagerResolver(
-            ConnectorManager connectorManager,
-            Optional<RecordingsManager> recordingsManager,
-            MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
-        return new ProfileManagerResolver(
-                connectorManager,
-                recordingsManager.orElse(null),
-                localCorePersistenceProvider.localCoreRepositories());
+    public ProfileManagerResolver profileManagerResolver(RecordingsManager recordingsManager) {
+        return new ProfileManagerResolver(recordingsManager);
     }
 
 }

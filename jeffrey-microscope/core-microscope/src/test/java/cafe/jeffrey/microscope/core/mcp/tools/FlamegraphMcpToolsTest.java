@@ -128,7 +128,7 @@ class FlamegraphMcpToolsTest {
 
     private static ProfileInfo info(RecordingEventSource source) {
         return new ProfileInfo(
-                "profile-1", "project-1", "workspace-1", "Profile", source,
+                "profile-1", "Profile", source,
                 START, START.plusSeconds(60), START, true, false, "recording-1");
     }
 
@@ -692,7 +692,7 @@ class FlamegraphMcpToolsTest {
         @BeforeEach
         void subMillisecondRecording() {
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                    "profile-1", "Profile", RecordingEventSource.JFR,
                     SUB_MS_START, SUB_MS_END, SUB_MS_START, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             lenient().when(flamegraphManager.eventSummaries()).thenReturn(List.of(summary(CPU, 100, 100)));

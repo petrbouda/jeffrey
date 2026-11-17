@@ -288,8 +288,8 @@ What the mocks cannot do, so the cases stay away from it:
 - **State.** A mock answers the same for the same arguments: the heap dump is recorded already
   prepared, and `jvm_autoAnalysis` as not yet computed.
 - **Free-text arguments.** A tool whose required argument is a SQL query or a path other than the
-  recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql`,
-  `jfr_getProfileInfo` and the like are absent from the runs. The SQL cases run against a real Jeffrey
+  recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql` and the
+  like are absent from the runs. The SQL cases run against a real Jeffrey
   for that reason. A name or URI copied from an answer (`http_endpoint`, the trace tools) is relayed,
   above.
 - **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class

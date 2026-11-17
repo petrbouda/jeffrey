@@ -18,36 +18,23 @@
 import { ref, computed } from 'vue';
 import Profile from '@/services/api/model/Profile';
 
-/**
- * Profile with workspace and project context.
- * This is what we receive from the new /profiles/{profileId} endpoint.
- */
 /** Where a recording starts on the wall clock, and how long it lasted. */
 export interface RecordingWindow {
   startEpochMillis: number;
   durationMillis: number;
 }
 
-export interface ProfileWithContext extends Profile {
-  workspaceId: string;
-  projectId: string;
-}
-
 /**
- * Global profile store for managing current profile context.
- * When using simplified URLs (/profiles/{profileId}/...), this store
- * provides the workspace and project context that was previously in the URL.
+ * Global profile store: the profile the current /profiles/{profileId}/... page shows.
  */
 
 // Reactive state
-const currentProfile = ref<ProfileWithContext | null>(null);
+const currentProfile = ref<Profile | null>(null);
 const loading = ref(false);
 const error = ref<string | null>(null);
 
 // Computed properties for easy access
 const profileId = computed(() => currentProfile.value?.id ?? '');
-const projectId = computed(() => currentProfile.value?.projectId ?? '');
-const workspaceId = computed(() => currentProfile.value?.workspaceId ?? '');
 const profileName = computed(() => currentProfile.value?.name ?? '');
 const isLoaded = computed(() => currentProfile.value !== null);
 
@@ -69,9 +56,9 @@ const recordingWindow = computed<RecordingWindow | null>(() => {
 });
 
 /**
- * Sets the current profile with its workspace and project context.
+ * Sets the current profile.
  */
-const setProfile = (profile: ProfileWithContext) => {
+const setProfile = (profile: Profile) => {
   currentProfile.value = profile;
   error.value = null;
 };
@@ -111,8 +98,6 @@ export const profileStore = {
 
   // Computed properties
   profileId,
-  projectId,
-  workspaceId,
   profileName,
   isLoaded,
   recordingWindow,

@@ -273,7 +273,7 @@ class JvmMcpToolsTest {
 
     private JvmMcpTools tools(AdvertisedFamilies advertised) {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 START, START.plusSeconds(60), START, true, false, "recording-1"));
         BoundedOperation<AutoAnalysisSection.AutoAnalysisDashboard> autoAnalysis = new BoundedOperation<>(
                 OperationKind.JVM_AUTO_ANALYSIS,

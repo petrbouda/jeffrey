@@ -29,7 +29,6 @@ import cafe.jeffrey.provider.profile.api.EventWriter;
 import cafe.jeffrey.provider.profile.api.RecordingEventParser;
 import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.provider.profile.api.ProfileInfoRepository;
 import cafe.jeffrey.provider.profile.api.ProfileRepositories;
 import cafe.jeffrey.provider.profile.api.TraceAttributeRepository;
 import cafe.jeffrey.provider.profile.api.MethodTraceWeightRepository;
@@ -141,21 +140,6 @@ public class ProfileInitializerImpl implements ProfileInitializer {
         // the end, which is also where the findings it produced are written.
         CompletableFuture<List<AutoAnalysisResult>> autoAnalysis =
                 profileDataInitializer.startAutoAnalysis(profileInfo, sources);
-
-        // Store profile context (workspace_id, project_id) in the profile database.
-        // Skipped for Recordings profiles, where workspace and project are null.
-        if (profileInfo.projectId() != null && profileInfo.workspaceId() != null) {
-            run.runStage(ProfileInitStages.PROFILE_INFO, () -> {
-                ProfileInfoRepository profileInfoRepository =
-                        profileRepositories.newProfileInfoRepository(dataSource);
-                profileInfoRepository.insert(new ProfileInfoRepository.ProfileContext(
-                        profileInfo.id(),
-                        profileInfo.projectId(),
-                        profileInfo.workspaceId()));
-            });
-        } else {
-            run.skipStage(ProfileInitStages.PROFILE_INFO);
-        }
 
         // Parse recording and store events into the database.
         // The profiling start is the zero point of the relative event timeline persisted with every event.

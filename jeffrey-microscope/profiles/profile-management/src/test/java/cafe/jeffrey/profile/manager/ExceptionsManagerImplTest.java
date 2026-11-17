@@ -79,7 +79,7 @@ class ExceptionsManagerImplTest {
     private static final Instant END = Instant.parse("2024-01-01T00:01:00Z");
 
     private static final ProfileInfo PROFILE_INFO = new ProfileInfo(
-            "test-id", "project-1", "workspace-1", "test-profile",
+            "test-id", "test-profile",
             null, START, END, START, true, false, null);
 
     private ExceptionsManagerImpl manager() {

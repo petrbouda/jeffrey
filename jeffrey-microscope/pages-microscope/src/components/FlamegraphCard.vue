@@ -435,8 +435,6 @@ const navigateToFlamegraph = () => {
   router.push({
     name: props.routeName || 'flamegraph',
     params: {
-      workspaceId: route.params.workspaceId,
-      projectId: route.params.projectId,
       profileId: route.params.profileId
     },
     query

@@ -31,10 +31,6 @@ import java.util.List;
 public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositories {
 
     //language=SQL
-    private static final String SELECT_ALL_PROFILES =
-            "SELECT * FROM profiles WHERE project_id = :project_id";
-
-    //language=SQL
     private static final String SELECT_EVERY_PROFILE =
             "SELECT * FROM profiles ORDER BY created_at DESC";
 
@@ -74,15 +70,6 @@ public class JdbcMicroscopeCoreRepositories implements MicroscopeCoreRepositorie
     @Override
     public IdeTargetsRepository ideTargetsRepository() {
         return ideTargetsRepository;
-    }
-
-    @Override
-    public List<ProfileInfo> findAllProfilesByProject(String projectId) {
-        MapSqlParameterSource paramSource = new MapSqlParameterSource()
-                .addValue("project_id", projectId);
-
-        return profilesDatabaseClient.query(
-                StatementLabel.FIND_ALL_PROFILES, SELECT_ALL_PROFILES, paramSource, Mappers.profileInfoMapper());
     }
 
     @Override

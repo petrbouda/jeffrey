@@ -159,8 +159,6 @@ public enum StatementLabel {
     UPDATE_PROFILE_NAME,
     MARK_PROFILE_MODIFIED,
     DELETE_PROFILE,
-    INSERT_PROFILE_INFO,
-    FIND_PROFILE_INFO,
 
     /**
      * {@link GroupLabel#SINGLE_PROJECT}
