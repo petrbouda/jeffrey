@@ -47,7 +47,7 @@ ENV PATH="/opt/apache-maven-${MAVEN_VERSION}/bin:${PATH}"
 WORKDIR /build
 COPY . .
 
-# Only the hub's part of the reactor: shared/common, shared/volume, the hub modules and
+# Only the hub's part of the reactor: shared/common, shared/volume, the jeffrey-hub module and
 # build-hub-native (Spring AOT + native-image). No frontend, no Microscope.
 RUN --mount=type=cache,target=/root/.m2 \
     JEFFREY_TAG_VERSION="${JEFFREY_TAG_VERSION}" \

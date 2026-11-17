@@ -27,7 +27,7 @@
     </parent>
 
     <!--
-        Jeffrey Hub as a GraalVM native image, the one the hub's Docker image ships: the same core-hub
+        Jeffrey Hub as a GraalVM native image, the one the hub's Docker image ships: the same jeffrey-hub
         as build-hub, run through Spring's AOT pass and compiled ahead of time. Starts in a fraction of
         a second and needs a fraction of the JVM's memory. It does not profile itself: async-profiler
         is a JVMTI agent, and a native image takes none.
@@ -47,7 +47,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>core-hub</artifactId>
+            <artifactId>jeffrey-hub</artifactId>
         </dependency>
     </dependencies>
 

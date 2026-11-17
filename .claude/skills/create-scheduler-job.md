@@ -29,8 +29,8 @@ Ask the user, with AskUserQuestion:
 Read `ProjectRetentionJob` and `RepositoryCompressionProjectJob` first: they are the reference jobs.
 
 1. **Job type** — add the constant to
-   `jeffrey-hub/hub-model/src/main/java/cafe/jeffrey/hub/model/job/JobType.java`.
-2. **Job class** — `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJob.java`:
+   `jeffrey-hub/src/main/java/cafe/jeffrey/hub/model/job/JobType.java`.
+2. **Job class** — `jeffrey-hub/src/main/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJob.java`:
    - implements `Job`; `execute()` hands the per-project work to a `ProjectFanOut` built in the
      constructor (`fanOut.forEachProject(this::visit)`). The fan-out runs each visit isolated, so one
      broken project does not abort the tick. There is no job base class: compose, don't extend;
@@ -43,10 +43,10 @@ Read `ProjectRetentionJob` and `RepositoryCompressionProjectJob` first: they are
      (`manualRun` in `GET /api/v1/jobs`).
    - The job works only on the volume, through `shared/volume`; it never calls Microscope.
 3. **Bean** — add an `@Bean` method to
-   `jeffrey-hub/core-hub/src/main/java/cafe/jeffrey/hub/core/configuration/SchedulerConfiguration.java`
+   `jeffrey-hub/src/main/java/cafe/jeffrey/hub/core/configuration/SchedulerConfiguration.java`
    passing `config(JobType.{JOB})`. The scheduler, `ManualJobRunner` and `JobRegistry` collect every
    `Job` bean themselves; a disabled job is still built and listed, but never scheduled.
-4. **Defaults** — add the job to `jeffrey-hub/core-hub/src/main/resources/scheduler-defaults.properties`:
+4. **Defaults** — add the job to `jeffrey-hub/src/main/resources/scheduler-defaults.properties`:
    ```properties
    jeffrey.hub.scheduler.jobs.{job-key}.enabled=true
    jeffrey.hub.scheduler.jobs.{job-key}.period=5m
@@ -62,7 +62,7 @@ constant in kebab case) addresses it in `/api/v1/jobs/{key}` and in its properti
 
 ### Step 4: Tests
 
-- `jeffrey-hub/core-hub/src/test/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJobTest.java`,
+- `jeffrey-hub/src/test/java/cafe/jeffrey/hub/core/scheduler/job/{JobName}ProjectJobTest.java`,
   modelled on `RepositoryCompressionProjectJobTest` (Mockito, `@Nested` by scenario, `Clock.fixed`);
   hand the job its projects as a lambda (`() -> List.of(new HubProject(info, storage))`);
   use `VolumeWriter` from `shared/test` when the job reads a real session layout.
@@ -78,18 +78,18 @@ Document the job and its properties on `jeffrey-pages/src/views/docs/hub/configu
 ### Step 6: Verify
 
 ```bash
-$MVN -q -pl jeffrey-hub/core-hub -am test
+$MVN -q -pl jeffrey-hub -am test
 ```
 
 ## Files to Modify
 
 | File | Change |
 |---|---|
-| `jeffrey-hub/hub-model/.../model/job/JobType.java` | new constant |
-| `jeffrey-hub/core-hub/.../scheduler/job/{JobName}ProjectJob.java` | new job |
-| `jeffrey-hub/core-hub/.../configuration/SchedulerConfiguration.java` | `@Bean` |
-| `jeffrey-hub/core-hub/src/main/resources/scheduler-defaults.properties` | enabled, period, params |
-| `jeffrey-hub/core-hub/src/test/.../scheduler/job/{JobName}ProjectJobTest.java` | tests |
+| `jeffrey-hub/.../hub/model/job/JobType.java` | new constant |
+| `jeffrey-hub/.../hub/core/scheduler/job/{JobName}ProjectJob.java` | new job |
+| `jeffrey-hub/.../hub/core/configuration/SchedulerConfiguration.java` | `@Bean` |
+| `jeffrey-hub/src/main/resources/scheduler-defaults.properties` | enabled, period, params |
+| `jeffrey-hub/src/test/.../scheduler/job/{JobName}ProjectJobTest.java` | tests |
 | `jeffrey-pages/src/views/docs/hub/configuration/HubConfigurationPage.vue` | docs |
 
 ## Existing Jobs

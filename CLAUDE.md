@@ -32,9 +32,9 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
                                        mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
                                        scoping, hints, findings)
-jeffrey-hub/                           HubApplication (core-hub: scheduler/jobs over the shared volume, web/ (the REST
-                                       API: /api/v1 storage and jobs), volume/ — no database: the volume is its
-                                       only state), hub-model — no UI
+jeffrey-hub/                           one module: HubApplication (cafe.jeffrey.hub.core: scheduler/jobs over the shared
+                                       volume, web/ (the REST API: /api/v1 storage and jobs), volume/ — no database:
+                                       the volume is its only state) and its model (cafe.jeffrey.hub.model) — no UI
 shared/                                common (utilities + hub↔provisioner contract types only), persistence,
                                        volume (the recording volume's layout read through a storage port:
                                        folder names are the state: projects/instances/sessions/files; the hub's reader),
@@ -53,7 +53,7 @@ utilities/                             release root (jeffrey-utilities-parent + 
                                        jeffrey-tracing-thread-local (21, the starter's) — + instrumentation
 jeffrey-jib/                           JIB extensions + payloads: provisioner, async-profiler (release-jib.yml)
 build/                                 build-microscope (microscope.jar — Microscope's only distribution, no container
-                                       image), build-hub (jar), build-hub-native (GraalVM; the hub's only image,
+                                       image), build-hub (jar of jeffrey-hub), build-hub-native (GraalVM; the hub's only image,
                                        docker/Dockerfile-hub), build-provisioner(-native)
 ```
 
@@ -63,7 +63,7 @@ build/                                 build-microscope (microscope.jar — Micr
 export JAVA_HOME=/home/pbouda/.sdkman/candidates/java/25.0.1-amzn   # default `java` on PATH is 26
 MVN=/home/pbouda/.sdkman/candidates/maven/current/bin/mvn
 $MVN -q compile                                    # whole reactor (runs the frontend build too)
-$MVN -q -pl jeffrey-hub/core-hub -am test          # one module — -am is required, siblings are not in ~/.m2
+$MVN -q -pl jeffrey-hub -am test                   # one module — -am is required, siblings are not in ~/.m2
 
 cd jeffrey-microscope/pages-microscope
 npm run dev | build | test | typecheck | format    # build = vue-tsc + vite; `npm run lint` is currently broken
@@ -94,7 +94,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 - **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
 - **The hub has no API to Microscope.** It runs its scheduler jobs on the volume (retention, cleanup, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
-- **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model module; `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
+- **Hub and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-model`; the hub's `cafe.jeffrey.hub.model` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the hub — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the hub's compression job, never on a read path.

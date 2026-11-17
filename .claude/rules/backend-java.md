@@ -7,7 +7,7 @@ paths:
 
 ### Packages and layout
 - `cafe.jeffrey.microscope.*` (microscope), `cafe.jeffrey.hub.*` (hub), `cafe.jeffrey.profile.*` (profiles), `cafe.jeffrey.*` (shared).
-- REST: Spring MVC `@RestController` + class-level `@RequestMapping`, picked up by component scan — never declared as `@Bean`. Microscope controllers: `/api/internal/**`; profile-scoped ones live in `core-microscope/.../web/controllers/profile/` (`profiles/profile-management/.../resources/` holds request DTOs only). Hub controllers in `core-hub/.../web/controllers/`, DTOs in `.../web/response/`.
+- REST: Spring MVC `@RestController` + class-level `@RequestMapping`, picked up by component scan — never declared as `@Bean`. Microscope controllers: `/api/internal/**`; profile-scoped ones live in `core-microscope/.../web/controllers/profile/` (`profiles/profile-management/.../resources/` holds request DTOs only). Hub controllers in `jeffrey-hub/.../hub/core/web/controllers/`, DTOs in `.../web/response/`.
 - Manager pattern with service-layer separation; errors are custom exceptions mapped to HTTP status by `JeffreyExceptionHandler`.
 
 ### Bean registration

@@ -21,7 +21,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 
 /**
- * One file of a recording session, as a repository reports it.
+ * One file of a recording session, as the hub's repository lists it.
  *
  * <p>A file on its own carries no status. Whether it may still be on its way onto the volume is a
  * fact about its session — only the newest recording of an instance's newest session can be — so
@@ -29,11 +29,9 @@ import java.time.Instant;
  * instead meant every producer of a listing had to work it out and every consumer had to trust
  * that it had.
  *
- * <p>Nor does it carry a type. The hub, which lists a session, and Microscope, which reads the
- * listing, each classify a file's name with an enum of their own — the hub's says what it does to
- * the file, Microscope's says what it can read — and the one fact they must agree on is whether
- * the file is a recording, because that is what a download takes and a session's window spans.
- * That fact travels as a flag; everything else either side wants it takes from the name.
+ * <p>Nor does it carry a type. The one fact the hub's jobs need beyond the name is whether the
+ * file is a recording ({@code RecordingFormat} in {@code shared/volume} decides it): only a
+ * recording is compressed, trimmed or counted as a session's data.
  *
  * @param id        the file's identity within its session: its own name with the recording
  *                  extension stripped, so it survives the hub compressing the file
@@ -52,23 +50,4 @@ public record RepositoryFile(
         long size,
         boolean recording,
         Path filePath) {
-
-    public boolean isRecordingFile() {
-        return recording;
-    }
-
-    /**
-     * Whether the file holds anything at all.
-     *
-     * <p>A profiler stopped before it wrote an event — a container killed, a shutdown that was
-     * not graceful — leaves a zero-byte recording behind, and a recording of no bytes is not
-     * something any reader can parse. The hub refuses to serve one and a download must not ask
-     * for one; the question is asked here so the two cannot come to different answers.
-     *
-     * <p>Worth asking of a recording only — an empty log is an answer, and a reader wanting
-     * one wants to be handed the nothing it holds.
-     */
-    public boolean hasContent() {
-        return size > 0;
-    }
 }
