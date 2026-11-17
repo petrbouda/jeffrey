@@ -33,22 +33,11 @@
 
     <modules>
         <module>common-profile</module>
-        <module>frame-ir</module>
         <module>recording-parser</module>
-        <module>profile-threads</module>
-        <module>profile-gc</module>
-        <module>profile-memory</module>
-        <module>profile-custom-events</module>
-        <module>profile-heapdump-orchestration</module>
-        <module>flamegraph</module>
-        <module>subsecond</module>
-        <module>timeseries</module>
         <module>heap-dump</module>
         <module>heapdump-oql</module>
-        <module>profile-persistence-api</module>
-        <module>profile-sql-persistence</module>
+        <module>profile-persistence</module>
         <module>profile-management</module>
-        <module>mcp-server</module>
     </modules>
 
     <properties>
@@ -77,62 +66,7 @@
             <!-- Profile modules -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>jfr-parser-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>jdk-jfr-parser</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>raw-jfr-parser</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>flamegraph</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>subsecond</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>timeseries</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-threads</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-gc</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-memory</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-custom-events</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-heapdump-orchestration</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>frame-ir</artifactId>
+                <artifactId>recording-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -145,25 +79,15 @@
                 <artifactId>heapdump-oql</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>mcp-server</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <!-- Service modules that profile depends on -->
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>profile-persistence-api</artifactId>
+                <artifactId>profile-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-core-persistence-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>profile-sql-persistence</artifactId>
+                <artifactId>microscope-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

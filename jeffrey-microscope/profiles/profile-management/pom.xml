@@ -33,6 +33,24 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!-- The flamegraph wire format: generated from src/main/proto/flamegraph.proto -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
         </dependency>
         <dependency>
@@ -57,14 +75,9 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-core-persistence-api</artifactId>
+            <artifactId>microscope-persistence</artifactId>
         </dependency>
 
-        <!-- Analysis modules -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>flamegraph</artifactId>
-        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>heap-dump</artifactId>
@@ -73,57 +86,17 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>heapdump-oql</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>subsecond</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-threads</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-gc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-memory</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-custom-events</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-heapdump-orchestration</artifactId>
-        </dependency>
 
-        <!-- Persistence (transitive: profile-persistence-api) -->
+        <!-- Persistence -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>profile-sql-persistence</artifactId>
+            <artifactId>profile-persistence</artifactId>
         </dependency>
 
         <!-- JFR Parsing -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>jfr-parser-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>raw-jfr-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>jdk-jfr-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>pprof-parser</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>otlp-parser</artifactId>
+            <artifactId>recording-parser</artifactId>
         </dependency>
         <dependency>
             <groupId>org.openjdk.jmc</groupId>
@@ -131,10 +104,6 @@
         </dependency>
 
         <!-- Recording Storage -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>recording-storage-api</artifactId>
-        </dependency>
 
         <!-- Spring Boot Web for HTTP boundary types used by managers -->
         <dependency>
@@ -182,4 +151,31 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
+        <plugins>
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -29,7 +29,7 @@ side of each finding.
    | Code module | Documentation pages |
    |---|---|
    | `jeffrey-microscope/core-microscope`, `jeffrey-microscope/pages-microscope` | `microscope/` (overview, quick start, recordings, storage, profiler builder), `microscope/configuration/`, `connectors/` (workspaces, projects, instances) |
-   | `jeffrey-microscope/connectors/**` (connector-api, volume-connector, azure-files-connector) | `connectors/` (overview, declaring, the available-connectors catalog, one page per connector kind with its `jeffrey.microscope.connector.<kind>.*` block — `ConnectorAzureFilesPage.vue` — workspaces, `projects/`; every kind module must appear in the catalog table and the sidebar group), plus the pointers in `microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector` and `DocsMicroscopePage.vue#connector` |
+   | `jeffrey-microscope/connectors/**` (volume-connector, azure-files-connector) | `connectors/` (overview, declaring, the available-connectors catalog, one page per connector kind with its `jeffrey.microscope.connector.<kind>.*` block — `ConnectorAzureFilesPage.vue` — workspaces, `projects/`; every kind module must appear in the catalog table and the sidebar group), plus the pointers in `microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector` and `DocsMicroscopePage.vue#connector` |
    | `jeffrey-microscope/profiles/**` | `microscope/profiles/` — one page per analysis feature, plus the feature cards on `microscope/profiles/ProfilesPage.vue` |
    | `volume-scheduler` | `volume-scheduler/` (overview, architecture, storage, `configuration/`, the REST API page) |
    | Recording sessions (layout and ageing on the volume) | `connectors/recording-sessions/` |
@@ -37,7 +37,7 @@ side of each finding.
    | tracing instrumentation (`utilities/`) | `tracing/`, `tracing/tracer-api/` |
    | `jeffrey-provisioner/` | `provisioner/` |
    | Jib build/deployment | `jib/` |
-   | External MCP server (`core-microscope/.../mcp/`, `profiles/mcp-server`) + `jeffrey-agent-plugin/` | `microscope-mcp/` |
+   | External MCP server (`core-microscope/.../mcp/`, `mcp-server`) + `jeffrey-agent-plugin/` | `microscope-mcp/` |
    | IntelliJ plugin | `intellij-plugin/` |
    | Architecture changes | `architecture/ArchitectureOverviewPage.vue` |
    | Install/onboarding changes | `microscope/MicroscopeQuickStartPage.vue`, `DocsIndexPage.vue` |
@@ -47,7 +47,7 @@ side of each finding.
    - every tool name the docs mention must exist, and every tool must appear in the tool reference
    - the non-read-only set is the `WRITES` set in `McpToolsetAssemblerTest`; check every page that names the writers, and that the agent pages describe each agent's allow/deny lists as `jeffrey-agent-plugin/agents/*.md` actually declares them
    - every `jeffrey.microscope.mcp.*` key in `core-microscope/src/main/resources/application.properties` is documented with the same default, and no documented property is missing from the code — a switch the docs describe that the code does not have is a finding
-   - methods, capabilities and error codes in `mcp-protocol`'s `McpDispatcher` and `profiles/mcp-server/.../AbstractMcpStreamableHttpController.java` match `McpOtherClientsPage.vue`. There is no `initialize` method: the page shows it only as a refused request, which must match `McpRequestValidator`
+   - methods, capabilities and error codes in `mcp-protocol`'s `McpDispatcher` and `mcp-server/.../AbstractMcpStreamableHttpController.java` match `McpOtherClientsPage.vue`. There is no `initialize` method: the page shows it only as a refused request, which must match `McpRequestValidator`
    - skills in `jeffrey-agent-plugin/skills/` match the skills page and the `prompts/list` example
 
 5. **Check configuration pages** — every `jeffrey.microscope.*` key in Microscope's `application.properties` appears on its configuration page with the right default, and vice versa. For the Volume Scheduler, the `jeffrey.volume-scheduler.*` keys are the record components of `VolumeSchedulerProperties` (`volume-scheduler/src/main/java/cafe/jeffrey/volumescheduler/config/`) with their `@DefaultValue`s, plus the commented reference block in `volume-scheduler/src/main/resources/application.properties`; compare them, the job ids in `JobType`, the `/api/v1` responses and the `ApiErrorCode` values with `docs/volume-scheduler/configuration/VolumeSchedulerConfigurationPage.vue` and `VolumeSchedulerApiPage.vue`. Report any mention of a removed source of defaults such as a `scheduler-defaults.properties` file, and any `jeffrey.hub.*` key, as stale.

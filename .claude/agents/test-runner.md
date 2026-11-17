@@ -16,13 +16,10 @@ Analyze changed files to determine affected modules and run only the relevant te
 2. **Map changed files to Maven modules**:
    - `jeffrey-microscope/core-microscope/` -> `-pl jeffrey-microscope/core-microscope`
    - `jeffrey-microscope/profiles/profile-management/` -> `-pl jeffrey-microscope/profiles/profile-management`
-   - `jeffrey-microscope/profiles/profile-sql-persistence/` -> `-pl jeffrey-microscope/profiles/profile-sql-persistence`
-   - `jeffrey-microscope/profiles/frame-ir/` -> `-pl jeffrey-microscope/profiles/frame-ir`
-   - `jeffrey-microscope/profiles/timeseries/` -> `-pl jeffrey-microscope/profiles/timeseries`
-   - `jeffrey-microscope/profiles/subsecond/` -> `-pl jeffrey-microscope/profiles/subsecond`
+   - `jeffrey-microscope/profiles/profile-persistence/` -> `-pl jeffrey-microscope/profiles/profile-persistence`
    - `jeffrey-microscope/profiles/heap-dump/` -> `-pl jeffrey-microscope/profiles/heap-dump`
-   - `jeffrey-microscope/profiles/recording-parser/*/` -> `-pl` the specific parser module
-   - `jeffrey-microscope/microscope-core-sql-persistence/` -> `-pl jeffrey-microscope/microscope-core-sql-persistence`
+   - `jeffrey-microscope/profiles/recording-parser/` -> `-pl jeffrey-microscope/profiles/recording-parser`
+   - `jeffrey-microscope/microscope-persistence/` -> `-pl jeffrey-microscope/microscope-persistence`
    - `volume-scheduler/` -> `-pl volume-scheduler`
    - `shared/common/` -> `-pl shared/common`
    - `shared/persistence/` -> `-pl shared/persistence`

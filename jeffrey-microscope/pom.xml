@@ -33,14 +33,12 @@
     <modules>
         <module>microscope-model</module>
         <module>notifications</module>
-        <module>recording-storage-api</module>
         <module>connectors</module>
-        <module>recordings-core</module>
-        <module>microscope-core-persistence-api</module>
-        <module>microscope-core-sql-persistence</module>
+        <module>microscope-persistence</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>
         <module>mcp-protocol</module>
+        <module>mcp-server</module>
         <module>profiles</module>
     </modules>
 
@@ -68,12 +66,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-core-persistence-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-core-sql-persistence</artifactId>
+                <artifactId>microscope-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

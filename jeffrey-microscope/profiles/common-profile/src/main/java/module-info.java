@@ -30,4 +30,6 @@ module cafe.jeffrey.microscope.profile.common {
     exports cafe.jeffrey.profile.common.pipeline;
     exports cafe.jeffrey.profile.common.operation;
     exports cafe.jeffrey.profile.common.treetable;
+    // The JFR model types (frames, stack traces, threads, methods) a parsed recording is read as
+    exports cafe.jeffrey.jfrparser.api.type;
 }

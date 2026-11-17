@@ -36,10 +36,17 @@
     </description>
 
     <dependencies>
-        <!-- The client interfaces and the DTOs they answer with -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>connector-api</artifactId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-model</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

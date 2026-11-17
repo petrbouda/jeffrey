@@ -177,7 +177,7 @@ And remove the now-unused property:
 ### 4.2 Rename the on-disk directory (done)
 
 `heap-dump-analysis` → `heap-dump`. Done: `HeapDumpFiles.ANALYSIS_DIR` in
-`jeffrey-microscope/profiles/profile-heapdump-orchestration/.../HeapDumpFiles.java` is the one place the
+`jeffrey-microscope/profiles/profile-management/.../HeapDumpFiles.java` is the one place the
 directory is named.
 
 ### 4.3 Rewrite `HeapDumpManagerImpl.java` (~911 lines)

@@ -15,10 +15,19 @@
  * limitations under the License.
  */
 
+/**
+ * Microscope's connector to the recording volume: the client interfaces and DTOs every caller uses
+ * ({@code api}) and the clients over a volume ({@code volume}). The volume's backends, a local
+ * directory and an Azure file share, are modules of their own, so either can be used without the other.
+ */
 module cafe.jeffrey.microscope.connector.volume {
-    requires transitive cafe.jeffrey.microscope.connector.api;
+    requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.shared.volume;
     requires org.slf4j;
 
+    exports cafe.jeffrey.microscope.connector.api;
+    exports cafe.jeffrey.microscope.connector.api.dto;
+    exports cafe.jeffrey.microscope.connector.api.manager;
     exports cafe.jeffrey.microscope.connector.volume;
 }

@@ -30,7 +30,7 @@ import java.util.Optional;
 
 /**
  * Adapts microscope's profile-stack {@link RecordingInformationParser} to the
- * {@code recordings-core} {@link RecordingMetadataParser} SPI, swallowing parse failures
+ * {@link RecordingMetadataParser} the recordings manager reads, swallowing parse failures
  * (so ingestion falls back to filename-based event-source detection, matching prior behavior).
  */
 public class JfrRecordingMetadataParserAdapter implements RecordingMetadataParser {

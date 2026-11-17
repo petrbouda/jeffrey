@@ -14,31 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// protobuf-java is an automatic module (its jar carries no module-info), so javac warns that
+// re-exporting it is fragile. Re-exported deliberately: the exported flamegraph API returns its messages.
+@SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.management {
     // Intra-monorepo
     requires transitive cafe.jeffrey.microscope.profile.common;
     requires cafe.jeffrey.shared.notifications;
-    requires transitive cafe.jeffrey.microscope.persistence.api;
-    requires transitive cafe.jeffrey.microscope.profile.persistence.api;
-    requires cafe.jeffrey.microscope.profile.persistence.jdbc;
-    requires cafe.jeffrey.microscope.profile.flamegraph;
-    requires cafe.jeffrey.microscope.profile.heapdump.oql;
-    requires cafe.jeffrey.microscope.profile.subsecond;
-    requires transitive cafe.jeffrey.microscope.profile.threads;
-    requires transitive cafe.jeffrey.microscope.profile.gc;
-    requires transitive cafe.jeffrey.microscope.profile.memory;
-    requires transitive cafe.jeffrey.microscope.profile.custom.events;
-    requires transitive cafe.jeffrey.microscope.profile.heapdump.orchestration;
-    requires cafe.jeffrey.microscope.profile.timeseries;
-    requires cafe.jeffrey.microscope.profile.parser.jdk;
-    requires cafe.jeffrey.microscope.profile.parser.api;
-    requires cafe.jeffrey.microscope.profile.parser.raw;
-    requires cafe.jeffrey.microscope.profile.parser.pprof;
-    requires cafe.jeffrey.microscope.profile.parser.otlp;
-    requires cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.persistence;
+    requires transitive cafe.jeffrey.microscope.profile.persistence;
+    requires transitive cafe.jeffrey.microscope.profile.heapdump;
+    requires transitive cafe.jeffrey.microscope.profile.heapdump.oql;
+    requires cafe.jeffrey.microscope.profile.parser;
+    requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires cafe.jeffrey.shared.persistence;
-    requires cafe.jeffrey.shared.storage.recording.api;
     requires cafe.jeffrey.jfr.events;
 
     // 3rd-party
@@ -54,11 +44,11 @@ module cafe.jeffrey.microscope.profile.management {
     requires spring.core;
     requires spring.web;
     requires spring.webmvc;
-    requires org.eclipse.collections.api;
+    requires transitive org.eclipse.collections.api;
     requires org.eclipse.collections.impl;
     requires tools.jackson.databind;
     requires tools.jackson.core;
-    requires com.google.protobuf;
+    requires transitive com.google.protobuf;
     requires java.sql;
     requires jdk.jfr;
     requires org.slf4j;
@@ -84,6 +74,49 @@ module cafe.jeffrey.microscope.profile.management {
     exports cafe.jeffrey.profile.resources.request;
     exports cafe.jeffrey.profile.settings;
     exports cafe.jeffrey.profile.tools.collapse;
+
+    // Features, one package tree each
+    exports cafe.jeffrey.flamegraph;
+    exports cafe.jeffrey.flamegraph.api;
+    exports cafe.jeffrey.flamegraph.code;
+    exports cafe.jeffrey.flamegraph.diff;
+    exports cafe.jeffrey.flamegraph.export;
+    exports cafe.jeffrey.flamegraph.provider;
+    exports cafe.jeffrey.frameir;
+    exports cafe.jeffrey.frameir.frame;
+    exports cafe.jeffrey.timeseries;
+    exports cafe.jeffrey.subsecond.db;
+    exports cafe.jeffrey.subsecond.db.api;
+    exports cafe.jeffrey.profile.thread;
+    exports cafe.jeffrey.profile.manager.thread;
+    exports cafe.jeffrey.profile.manager.thread.builder;
+    exports cafe.jeffrey.profile.manager.model.thread;
+    exports cafe.jeffrey.profile.manager.model.thread.dump;
+    exports cafe.jeffrey.profile.manager.model.virtualthread;
+    exports cafe.jeffrey.profile.manager.gc;
+    exports cafe.jeffrey.profile.manager.gc.builder;
+    exports cafe.jeffrey.profile.manager.model.gc;
+    exports cafe.jeffrey.profile.manager.model.gc.configuration;
+    exports cafe.jeffrey.profile.manager.model.gc.finalizer;
+    exports cafe.jeffrey.profile.manager.model.gc.g1;
+    exports cafe.jeffrey.profile.manager.model.gc.tables;
+    exports cafe.jeffrey.profile.manager.model.gc.tuning;
+    exports cafe.jeffrey.profile.manager.model.gc.zgc;
+    exports cafe.jeffrey.profile.manager.memory;
+    exports cafe.jeffrey.profile.manager.model.allocation;
+    exports cafe.jeffrey.profile.manager.model.heap;
+    exports cafe.jeffrey.profile.manager.model.leak;
+    exports cafe.jeffrey.profile.manager.model.nativememory;
+    exports cafe.jeffrey.profile.manager.model.nmt;
+    exports cafe.jeffrey.profile.manager.custom;
+    exports cafe.jeffrey.profile.manager.custom.builder;
+    exports cafe.jeffrey.profile.manager.custom.model.grpc;
+    exports cafe.jeffrey.profile.manager.custom.model.http;
+    exports cafe.jeffrey.profile.manager.custom.model.jdbc.pool;
+    exports cafe.jeffrey.profile.manager.custom.model.jdbc.statement;
+    exports cafe.jeffrey.profile.manager.custom.model.method;
+    exports cafe.jeffrey.profile.manager.heapdump;
+    exports cafe.jeffrey.profile.manager.heapdump.analysis;
 
     // Spring + Jackson reflection — opens broadly, can be tightened later
     opens cafe.jeffrey.profile to spring.core, spring.beans, spring.context;
