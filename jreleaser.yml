@@ -13,14 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# JReleaser configuration for the main Jeffrey GitHub release.
+# JReleaser configuration for the Jeffrey Microscope GitHub release.
 #
 # Scope: this file ONLY drives the GitHub release step (changelog + assets +
-# checksums + signatures) of the tag-triggered pipeline. The hub's native Docker
-# image, the GraalVM native CLI and the Spring Boot jars are all still
-# produced in the earlier jobs of .github/workflows/release.yml and the jars and
-# native binaries are simply handed to JReleaser as pre-built files. Microscope
-# ships only as microscope.jar — there is no Microscope container image.
+# checksums + signatures) of the tag-triggered pipeline. The GraalVM native CLI
+# and the Spring Boot jars are produced in the earlier jobs of
+# .github/workflows/release.yml and handed to JReleaser as pre-built files.
+# Microscope ships only as microscope.jar — there is no Microscope container image.
+# Jeffrey Hub is not part of this release: it ships only as its Docker image,
+# released by hand through .github/workflows/release-hub.yml, which creates no
+# GitHub release (Microscope's update check reads the latest one).
 #
 # The project version is NOT taken from the pom (which stays 1.0-SNAPSHOT). It is
 # supplied at runtime via JRELEASER_PROJECT_VERSION, derived from the git tag.
@@ -44,9 +46,9 @@ release:
     skipTag: true
     # Make re-runs idempotent (update an existing release instead of failing).
     overwrite: true
-    releaseName: 'Jeffrey {{projectVersion}}'
+    releaseName: 'Jeffrey Microscope {{projectVersion}}'
     prerelease:
-      # Any suffixed tag (vX.Y.Z-bN betas, vX.Y.Z-hub-db-less builds) is flagged as a
+      # Any suffixed tag (vX.Y.Z-bN betas, vX.Y.Z-<suffix> builds) is flagged as a
       # pre-release automatically, so it never becomes GitHub's "latest" release.
       pattern: '.*-[a-z].*'
     # No auto-generated changelog. Release notes are maintained manually at
@@ -74,7 +76,6 @@ signing:
 files:
   artifacts:
     - path: artifacts/microscope.jar
-    - path: artifacts/jeffrey-hub.jar
     - path: artifacts/provisioner.jar
     - path: artifacts/provisioner-amd64
     - path: artifacts/provisioner-arm64
