@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.model.repository.RecordedSpan;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow.Selection.Chunk;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 import java.time.Duration;
 import java.util.Comparator;

@@ -31,9 +31,9 @@ import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

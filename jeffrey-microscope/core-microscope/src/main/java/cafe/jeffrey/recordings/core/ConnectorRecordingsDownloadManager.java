@@ -29,7 +29,7 @@ import cafe.jeffrey.recordings.core.download.JfrChunkChain;
 import cafe.jeffrey.recordings.core.download.ProgressCallback;
 import cafe.jeffrey.recordings.core.download.ProgressTrackingInputStream;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;

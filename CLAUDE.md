@@ -15,8 +15,8 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        (…/core/mcp/), the recordings store and downloads (cafe.jeffrey.recordings.core)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
                                        ConnectorInfo and the sealed ConnectorAddress (AzureFilesAddress |
-                                       LocalDirectoryAddress) in model.connector; the stored-file kinds ManagedFile
-                                       and RecordingStorageLayout in cafe.jeffrey.storage.recording.api.file)
+                                       LocalDirectoryAddress) in model.connector; the imported recordings' files,
+                                       their kinds (ManagedFile) and RecordingStorageLayout in model.recording)
   microscope-persistence/              microscope core DuckDB (recordings, profiles): repository API + DuckDB impl
   connectors/
     volume-connector/                  the connector over a recording volume (writable or read-only): the client

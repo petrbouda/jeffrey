@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.connector.api;
 
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.FileCategory;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 /**
  * What Microscope makes of a file a session lists.

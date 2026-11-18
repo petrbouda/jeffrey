@@ -28,6 +28,6 @@ module cafe.jeffrey.microscope.model {
     exports cafe.jeffrey.microscope.model.serde;
     exports cafe.jeffrey.microscope.model.settings;
     exports cafe.jeffrey.microscope.model.jfr;
-    // What a stored recording file is: Microscope's catalogue of file kinds (ManagedFile) and records
-    exports cafe.jeffrey.storage.recording.api.file;
+    // Microscope's store of imported recordings: their files and bundles, and the catalogue of file kinds (ManagedFile)
+    exports cafe.jeffrey.microscope.model.recording;
 }

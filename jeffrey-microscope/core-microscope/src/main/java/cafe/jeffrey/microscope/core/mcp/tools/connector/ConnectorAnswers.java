@@ -25,8 +25,8 @@ import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.FileCategory;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 import java.util.List;
 

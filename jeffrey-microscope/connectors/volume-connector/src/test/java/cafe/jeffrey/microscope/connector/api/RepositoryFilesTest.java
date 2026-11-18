@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.connector.api;
 
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

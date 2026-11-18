@@ -57,7 +57,7 @@ import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -27,13 +27,13 @@ import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser.RecordingMet
 import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.storage.recording.api.file.Bundle;
-import cafe.jeffrey.storage.recording.api.file.BundleFile;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
 

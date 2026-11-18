@@ -18,10 +18,10 @@
 package cafe.jeffrey.recordings.core;
 
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 
 import java.time.Instant;

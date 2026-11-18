@@ -36,10 +36,10 @@ import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.perfcounters.PerfCounterValues;
 import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
 import cafe.jeffrey.profile.perfcounters.PerfCountersOverviewBuilder;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

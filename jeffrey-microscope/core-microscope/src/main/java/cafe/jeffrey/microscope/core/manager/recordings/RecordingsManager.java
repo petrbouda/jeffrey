@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 
 import java.util.List;
 import java.util.Optional;

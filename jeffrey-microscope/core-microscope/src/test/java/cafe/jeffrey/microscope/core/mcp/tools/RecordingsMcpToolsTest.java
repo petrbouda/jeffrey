@@ -29,7 +29,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

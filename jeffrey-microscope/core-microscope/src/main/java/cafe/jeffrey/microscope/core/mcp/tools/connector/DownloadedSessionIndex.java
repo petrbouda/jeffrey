@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.recordings.core.OriginContext;
 import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 
 import java.util.Comparator;
 import java.util.HashMap;

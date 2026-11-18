@@ -50,10 +50,10 @@ import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;

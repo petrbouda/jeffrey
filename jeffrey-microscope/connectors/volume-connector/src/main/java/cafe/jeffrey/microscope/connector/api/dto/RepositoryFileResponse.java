@@ -22,7 +22,7 @@ import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 import java.util.OptionalLong;
 

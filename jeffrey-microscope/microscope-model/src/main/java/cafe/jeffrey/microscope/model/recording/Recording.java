@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.storage.recording.api.file;
+package cafe.jeffrey.microscope.model.recording;
 
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 

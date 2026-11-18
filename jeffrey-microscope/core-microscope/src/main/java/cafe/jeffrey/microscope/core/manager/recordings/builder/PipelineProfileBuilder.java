@@ -34,10 +34,10 @@ import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
+import cafe.jeffrey.microscope.model.recording.FileCategory;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

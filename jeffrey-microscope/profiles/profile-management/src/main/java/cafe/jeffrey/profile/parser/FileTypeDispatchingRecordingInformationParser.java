@@ -22,7 +22,7 @@ import cafe.jeffrey.pprofparser.PprofRecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
 import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 /**
  * Selects the {@link RecordingInformationParser} for an uploaded recording by its file type: pprof

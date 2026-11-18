@@ -31,8 +31,8 @@ import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.manager.ProfileManager;
 import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.storage.recording.api.file.Bundle;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.Recording;
 
 import java.io.InputStream;
 import java.nio.file.Path;

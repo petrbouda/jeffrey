@@ -54,7 +54,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.repository.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;

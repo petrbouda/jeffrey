@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;

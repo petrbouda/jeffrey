@@ -23,10 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 
 import java.io.IOException;
 import java.nio.file.Files;

@@ -29,7 +29,7 @@ import cafe.jeffrey.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.profile.common.pipeline.StageStatus;
 import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
 import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import org.junit.jupiter.api.DisplayName;

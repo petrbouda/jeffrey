@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
 

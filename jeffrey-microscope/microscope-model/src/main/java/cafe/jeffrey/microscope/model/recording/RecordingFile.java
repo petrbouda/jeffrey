@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2026 Petr Bouda
+ * Copyright (C) 2025 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,19 +15,15 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.storage.recording.api.file;
+package cafe.jeffrey.microscope.model.recording;
 
 import java.time.Instant;
 
-/**
- * A file of a {@link Bundle} that never becomes a profile — a GC or JVM log, an application log, a
- * crash file. Listed with the bundle and downloadable; an agent reads it as a path, never parsed here.
- */
-public record BundleFile(
+public record RecordingFile(
         String id,
-        String bundleId,
+        String recordingId,
         String filename,
-        ManagedFile fileType,
+        ManagedFile recordingFileType,
         Instant uploadedAt,
         long sizeInBytes) {
 }
