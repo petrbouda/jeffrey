@@ -28,7 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.microscope.profile.management.manager.model.leak.LeakCandidate;
 import cafe.jeffrey.microscope.profile.management.manager.model.leak.LeakOverview;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventRepository;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.Type;
 
 import java.util.List;

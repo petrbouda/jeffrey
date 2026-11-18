@@ -30,6 +30,10 @@
     <description>Jeffrey's MCP adapter over mcp-protocol: the Spring MVC boundary, @Tool reflection, profile scoping, tool hints and findings</description>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
         <!-- Tracer: every MCP tool invocation is recorded as a span -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>

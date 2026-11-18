@@ -90,10 +90,10 @@ import cafe.jeffrey.microscope.profile.management.trace.export.TraceAiMarkdownBu
 import cafe.jeffrey.microscope.profile.management.trace.export.TraceOnCpu;
 import cafe.jeffrey.microscope.profile.management.trace.export.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationListQuery;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

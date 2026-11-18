@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.profile.persistence.api.ThreadWindowEventRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.SpanRecord;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;

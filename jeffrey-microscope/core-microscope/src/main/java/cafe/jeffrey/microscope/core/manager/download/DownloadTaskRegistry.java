@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.manager.download;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 
 import java.time.Clock;
 import java.time.Duration;

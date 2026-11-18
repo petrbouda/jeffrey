@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.persistence.api;
 
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;
 import java.util.Objects;

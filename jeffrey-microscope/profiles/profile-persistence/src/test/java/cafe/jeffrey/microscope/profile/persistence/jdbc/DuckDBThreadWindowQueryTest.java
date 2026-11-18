@@ -25,8 +25,8 @@ import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;

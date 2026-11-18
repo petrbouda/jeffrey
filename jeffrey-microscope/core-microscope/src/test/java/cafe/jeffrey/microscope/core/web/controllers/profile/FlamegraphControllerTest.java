@@ -32,7 +32,7 @@ import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvid
 import cafe.jeffrey.microscope.profile.management.resources.request.GenerateFlamegraphRequest;
 import cafe.jeffrey.microscope.model.GraphType;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.microscope.model.Type;

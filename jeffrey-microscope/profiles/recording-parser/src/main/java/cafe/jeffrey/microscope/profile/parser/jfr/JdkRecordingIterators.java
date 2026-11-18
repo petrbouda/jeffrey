@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.profile.parser.jfr;
 
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import java.util.List;
 import java.util.function.Function;

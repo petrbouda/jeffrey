@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.manager.GitHubReleaseChecker;
-import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.microscope.common.JeffreyVersion;
 
 /**
  * Checks GitHub for a newer release. The running version itself is {@link VersionController}'s

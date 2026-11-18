@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.model.repository.SessionSize;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;

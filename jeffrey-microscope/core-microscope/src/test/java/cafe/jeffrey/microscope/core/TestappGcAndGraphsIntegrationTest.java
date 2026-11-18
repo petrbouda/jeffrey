@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.profile.management.flamegraph.proto.Frame;
 import cafe.jeffrey.microscope.profile.management.flamegraph.proto.GraphData;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,11 +31,11 @@ import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 
-import static cafe.jeffrey.shared.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DOM;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.EXECUTION_SAMPLE;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DOM;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

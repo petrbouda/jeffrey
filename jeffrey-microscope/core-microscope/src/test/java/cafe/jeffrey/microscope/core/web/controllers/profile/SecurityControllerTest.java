@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.profile.management.manager.SecurityManager;
 import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData;
 import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData.DeserializationSummary;
 import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData.SecurityHeader;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 import java.util.List;

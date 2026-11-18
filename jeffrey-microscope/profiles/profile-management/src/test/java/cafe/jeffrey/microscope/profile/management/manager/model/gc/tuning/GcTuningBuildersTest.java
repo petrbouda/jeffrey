@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.gc.tuning.Refere
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.tuning.ReferenceProcessingData.ReferenceTypeStat;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.tuning.TenuringData.TenuringGcSummary;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;

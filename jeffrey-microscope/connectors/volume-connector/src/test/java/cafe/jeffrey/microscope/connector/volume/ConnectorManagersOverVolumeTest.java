@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.connector.api.manager.InstanceWithSessions;
 import cafe.jeffrey.microscope.connector.api.manager.ConnectorInstancesManager;
 import cafe.jeffrey.microscope.connector.api.manager.ConnectorRepositoryManager;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.test.volume.VolumeWriter;
+import cafe.jeffrey.microscope.test.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

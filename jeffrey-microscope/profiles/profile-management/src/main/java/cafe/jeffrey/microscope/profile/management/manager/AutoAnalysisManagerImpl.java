@@ -22,7 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileCacheRepository;
-import cafe.jeffrey.shared.common.CacheKey;
+import cafe.jeffrey.microscope.common.CacheKey;
 
 import java.nio.file.Path;
 import java.util.Comparator;

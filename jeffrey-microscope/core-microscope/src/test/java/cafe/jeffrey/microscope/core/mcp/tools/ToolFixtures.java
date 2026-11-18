@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 
 import java.time.Clock;
 import java.time.Duration;

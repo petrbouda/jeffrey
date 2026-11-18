@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;

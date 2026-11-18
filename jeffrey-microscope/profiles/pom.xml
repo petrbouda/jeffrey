@@ -92,12 +92,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sql-builder</artifactId>
+                <artifactId>duckdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -125,7 +120,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>test</artifactId>
+                <artifactId>microscope-test</artifactId>
                 <version>${project.version}</version>
                 <scope>test</scope>
             </dependency>

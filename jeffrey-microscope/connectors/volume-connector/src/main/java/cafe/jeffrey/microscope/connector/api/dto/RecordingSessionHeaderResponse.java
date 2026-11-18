@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.connector.api.dto;
 
 import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 
 /**
  * A session as its instance's listing names it, on the wire: nothing of it read.

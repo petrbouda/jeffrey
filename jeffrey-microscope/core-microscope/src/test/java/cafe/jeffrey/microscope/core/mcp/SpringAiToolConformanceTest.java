@@ -56,7 +56,7 @@ import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
 import cafe.jeffrey.microscope.mcp.server.ProfileScopedToolset;
 import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

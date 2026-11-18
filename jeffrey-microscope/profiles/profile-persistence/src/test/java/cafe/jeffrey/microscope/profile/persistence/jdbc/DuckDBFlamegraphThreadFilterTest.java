@@ -19,12 +19,12 @@ package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 

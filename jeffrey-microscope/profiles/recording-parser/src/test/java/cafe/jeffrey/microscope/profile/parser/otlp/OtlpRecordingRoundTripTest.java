@@ -26,8 +26,8 @@ import cafe.jeffrey.microscope.profile.persistence.jdbc.BatchFlushLimit;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.DuckDBEventWriters;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.SQLEventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;

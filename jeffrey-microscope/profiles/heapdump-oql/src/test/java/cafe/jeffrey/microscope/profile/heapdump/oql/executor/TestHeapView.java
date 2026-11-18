@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.profile.heapdump.view.InstanceRow;
 import cafe.jeffrey.microscope.profile.heapdump.view.JavaClassRow;
 import cafe.jeffrey.microscope.profile.heapdump.view.OutboundRefRow;
 import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpDatabaseClient;
-import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
 import org.duckdb.DuckDBConnection;
 
 import java.sql.Connection;

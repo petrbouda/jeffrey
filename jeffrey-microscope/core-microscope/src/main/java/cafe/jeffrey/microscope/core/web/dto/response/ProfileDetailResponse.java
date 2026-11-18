@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 

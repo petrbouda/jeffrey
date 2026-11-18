@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.management.trace.export;
 
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import tools.jackson.databind.JsonNode;
 

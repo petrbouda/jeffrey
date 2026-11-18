@@ -39,7 +39,7 @@ import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.Grpc
 import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcStatusStats;
 import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcTrafficData;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

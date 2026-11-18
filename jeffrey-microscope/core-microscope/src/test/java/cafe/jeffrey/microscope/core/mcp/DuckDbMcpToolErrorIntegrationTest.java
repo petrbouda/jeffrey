@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.api.extension.ExtendWith;

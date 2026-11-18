@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.persistence.jdbc;
 import org.duckdb.DuckDBConnection;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.persistence.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

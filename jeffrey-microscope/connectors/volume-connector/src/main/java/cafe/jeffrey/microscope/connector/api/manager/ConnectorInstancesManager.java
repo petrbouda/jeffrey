@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.connector.api.dto.InstanceResponse;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionHeaderResponse;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 
 import java.util.List;
 import java.util.Optional;

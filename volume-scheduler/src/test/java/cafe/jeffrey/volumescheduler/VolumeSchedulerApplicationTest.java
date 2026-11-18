@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.volumescheduler;
 
-import cafe.jeffrey.shared.test.volume.VolumeWriter;
+import cafe.jeffrey.volumescheduler.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

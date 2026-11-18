@@ -31,6 +31,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
         </dependency>
         <!-- Test-only: pins the status/kind literals in the derivation SQL to the enums the
@@ -64,11 +68,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>persistence</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>sql-builder</artifactId>
+            <artifactId>duckdb</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>
@@ -97,7 +97,7 @@
 
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

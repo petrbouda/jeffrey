@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

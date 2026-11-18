@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.parser.pprof;
 
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
 import com.google.perftools.profiles.ProfileProto.Profile;
 import cafe.jeffrey.microscope.profile.persistence.api.Event;

@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.gc.finalizer.Fin
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.finalizer.FinalizersData.Header;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 
 import java.util.Comparator;
 import java.util.HashMap;

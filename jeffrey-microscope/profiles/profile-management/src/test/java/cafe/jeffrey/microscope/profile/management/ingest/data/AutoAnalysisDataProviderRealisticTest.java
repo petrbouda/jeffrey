@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,8 +44,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DOM;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.connector.volume;
 
 import cafe.jeffrey.microscope.connector.api.FileStreamClient;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.shared.volume.VolumeAccess.OpenedFile;
 import cafe.jeffrey.shared.volume.layout.FileRefusal;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;

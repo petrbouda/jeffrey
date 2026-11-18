@@ -18,6 +18,7 @@
 // re-exporting it is fragile. Re-exported deliberately: the exported flamegraph API returns its messages.
 @SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.management {
+    requires transitive cafe.jeffrey.microscope.common;
     // Intra-monorepo
     requires transitive cafe.jeffrey.microscope.profile.common;
     requires cafe.jeffrey.microscope.notification;
@@ -28,7 +29,7 @@ module cafe.jeffrey.microscope.profile.management {
     requires cafe.jeffrey.microscope.profile.parser;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
-    requires cafe.jeffrey.shared.persistence;
+    requires cafe.jeffrey.microscope.duckdb;
     requires cafe.jeffrey.jfr.events;
 
     // 3rd-party

@@ -81,7 +81,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

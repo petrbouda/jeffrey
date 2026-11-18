@@ -22,7 +22,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.persistence.api.EventTypeWithFields;
@@ -47,8 +47,8 @@ public class ProfileConfigurationManagerImpl implements ProfileConfigurationMana
     private static final List<FieldNames> EVENT_TYPE_FIELD_NAMES;
 
     static {
-        List<FieldNames> fieldNames = FileSystemUtils.readJson(
-                "classpath:additional-info/event-type-fields.json", FIELD_NAME_LIST);
+        List<FieldNames> fieldNames = Json.read(
+                FileSystemUtils.readString("classpath:additional-info/event-type-fields.json"), FIELD_NAME_LIST);
         EVENT_TYPE_FIELD_NAMES = Objects.requireNonNullElseGet(fieldNames, List::of);
     }
 

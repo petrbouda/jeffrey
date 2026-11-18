@@ -31,6 +31,9 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>microscope-common</module>
+        <module>microscope-test</module>
+        <module>duckdb</module>
         <module>microscope-model</module>
         <module>notifications</module>
         <module>connectors</module>
@@ -46,7 +49,7 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>test</artifactId>
+                <artifactId>microscope-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -56,12 +59,12 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>persistence</artifactId>
+                <artifactId>microscope-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>sql-builder</artifactId>
+                <artifactId>duckdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

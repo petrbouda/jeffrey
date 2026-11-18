@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.profile.parser.jfr;
 
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 
 import java.nio.file.Path;
 import java.util.List;

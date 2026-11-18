@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.profile.management.manager;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.DurationUtils;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.DurationUtils;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.profile.common.event.JITCompilationStats;
 import cafe.jeffrey.microscope.profile.common.event.JITLongCompilation;
 import cafe.jeffrey.microscope.model.EventSummary;

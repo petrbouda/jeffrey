@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.profile.heapdump.persistence;
 
-import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
+import cafe.jeffrey.microscope.duckdb.DuckDBMemoryMonitor;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 

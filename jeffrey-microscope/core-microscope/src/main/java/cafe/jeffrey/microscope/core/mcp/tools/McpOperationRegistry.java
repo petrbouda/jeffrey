@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.profile.common.operation.OperationState;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Clock;

@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.management.manager.custom.MethodTracingManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;

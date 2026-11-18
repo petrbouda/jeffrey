@@ -24,8 +24,8 @@ import cafe.jeffrey.microscope.profile.persistence.api.SecondValue;
 import cafe.jeffrey.microscope.profile.persistence.api.TimeseriesRecord;
 import cafe.jeffrey.microscope.model.FrameResolutionMode;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;

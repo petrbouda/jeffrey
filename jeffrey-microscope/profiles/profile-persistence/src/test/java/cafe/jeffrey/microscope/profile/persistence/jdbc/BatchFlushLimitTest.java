@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
-import cafe.jeffrey.shared.persistence.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
 import org.duckdb.DuckDBConnection;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

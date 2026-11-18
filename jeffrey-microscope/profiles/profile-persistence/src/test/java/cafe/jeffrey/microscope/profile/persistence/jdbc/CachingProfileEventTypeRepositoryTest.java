@@ -24,9 +24,9 @@ import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventTypeRepositor
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

@@ -28,8 +28,8 @@ import cafe.jeffrey.microscope.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.profile.persistence.api.OperationStackRow;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationId;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

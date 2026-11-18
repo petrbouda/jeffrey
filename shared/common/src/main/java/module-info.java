@@ -18,12 +18,9 @@ module cafe.jeffrey.shared.common {
     requires transitive org.slf4j;
     requires org.lz4.java;
     requires com.github.f4b6a3.uuid;
-    requires transitive tools.jackson.core;
-    requires transitive tools.jackson.databind;
 
     exports cafe.jeffrey.shared.common;
     exports cafe.jeffrey.shared.common.compression;
-    exports cafe.jeffrey.shared.common.exception;
     exports cafe.jeffrey.shared.common.filesystem;
     exports cafe.jeffrey.shared.common.measure;
     exports cafe.jeffrey.shared.common.model;

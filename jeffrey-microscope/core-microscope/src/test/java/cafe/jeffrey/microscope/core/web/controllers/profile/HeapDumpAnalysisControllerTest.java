@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.Stri
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 
 import java.util.List;
 import java.util.Optional;

@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
 import cafe.jeffrey.microscope.mcp.protocol.McpPromptProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.databind.JsonNode;

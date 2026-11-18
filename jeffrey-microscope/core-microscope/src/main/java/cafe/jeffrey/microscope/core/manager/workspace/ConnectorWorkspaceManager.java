@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import cafe.jeffrey.microscope.notification.NotificationType;

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.management.manager;
 
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

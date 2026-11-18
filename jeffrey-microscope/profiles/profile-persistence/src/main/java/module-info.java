@@ -19,10 +19,10 @@
 // and MapSqlParameterSource in their own signatures.
 @SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.profile.persistence {
-    requires transitive cafe.jeffrey.shared.persistence;
+    requires transitive cafe.jeffrey.microscope.common;
+    requires transitive cafe.jeffrey.microscope.duckdb;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
-    requires cafe.jeffrey.shared.sql;
     requires transitive cafe.jeffrey.microscope.profile.common;
     requires transitive spring.jdbc;
     requires transitive org.eclipse.collections.api;

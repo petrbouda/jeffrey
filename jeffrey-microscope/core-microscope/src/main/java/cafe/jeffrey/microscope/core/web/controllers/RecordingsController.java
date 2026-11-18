@@ -38,7 +38,7 @@ import org.springframework.web.multipart.MultipartFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.recording.Bundle;
 import cafe.jeffrey.microscope.model.recording.BundleFile;
 import cafe.jeffrey.microscope.model.recording.Recording;

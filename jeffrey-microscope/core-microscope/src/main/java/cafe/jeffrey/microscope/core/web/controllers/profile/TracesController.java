@@ -40,7 +40,7 @@ import cafe.jeffrey.microscope.profile.management.resources.request.SpanFlamegra
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationId;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationListQuery;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationSortField;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.SpanInterval;
 import cafe.jeffrey.microscope.model.SpanScope;
 import org.slf4j.Logger;

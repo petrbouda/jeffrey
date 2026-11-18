@@ -23,8 +23,8 @@ import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.profile.persistence.api.DatabaseWriter;
-import cafe.jeffrey.shared.persistence.DataSourceUtils;
-import cafe.jeffrey.shared.persistence.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.DataSourceUtils;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

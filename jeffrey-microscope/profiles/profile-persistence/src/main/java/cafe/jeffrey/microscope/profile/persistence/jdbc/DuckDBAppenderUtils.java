@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
-import cafe.jeffrey.shared.persistence.DuckDBAppenders;
+import cafe.jeffrey.microscope.duckdb.DuckDBAppenders;
 
 import org.duckdb.DuckDBAppender;
 

@@ -19,14 +19,14 @@ package cafe.jeffrey.volumescheduler.web;
 
 import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
-import cafe.jeffrey.shared.common.Json;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Arrays;
 
 /**
  * Builds a {@link MockMvcTester} wired the same way the server's Spring MVC
- * dispatcher is wired in production: the shared Jackson 3 message converter and
+ * dispatcher is wired in production: a Jackson 3 message converter over a plain
+ * {@link JsonMapper}, as Spring Boot gives the service, and
  * {@link ApiExceptionHandler}.
  */
 public final class MockMvcSupport {
@@ -38,7 +38,7 @@ public final class MockMvcSupport {
         return MockMvcTester.of(
                 Arrays.asList(controllers),
                 builder -> builder
-                        .setMessageConverters(new JacksonJsonHttpMessageConverter((JsonMapper) Json.mapper()))
+                        .setMessageConverters(new JacksonJsonHttpMessageConverter(JsonMapper.builder().build()))
                         .setControllerAdvice(new ApiExceptionHandler())
                         .build());
     }

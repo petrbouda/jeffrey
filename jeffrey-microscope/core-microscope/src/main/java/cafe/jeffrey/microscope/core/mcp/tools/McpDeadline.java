@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyInternalException;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;

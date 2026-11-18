@@ -35,7 +35,7 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeSource;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueQuery;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueSortField;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceSortField;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;

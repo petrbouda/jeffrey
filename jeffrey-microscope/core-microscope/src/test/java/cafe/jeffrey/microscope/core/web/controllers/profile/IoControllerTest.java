@@ -31,7 +31,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.io.IoEndpointTim
 import cafe.jeffrey.microscope.profile.management.manager.model.io.IoKind;
 import cafe.jeffrey.microscope.profile.management.manager.model.io.IoMetric;
 import cafe.jeffrey.microscope.profile.management.manager.model.io.IoTargetFilter;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 

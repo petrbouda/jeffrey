@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.profile.heapdump.persistence;
 import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
-import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
-import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.DuckDBMemoryMonitor;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
 
 import java.io.IOException;
 import java.nio.file.Files;

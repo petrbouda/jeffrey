@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.mcp.server;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpFailurePolicy;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 
 /**
  * How Jeffrey's exceptions read to the protocol.

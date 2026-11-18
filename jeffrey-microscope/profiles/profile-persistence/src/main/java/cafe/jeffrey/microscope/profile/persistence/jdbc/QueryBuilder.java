@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.profile.persistence.api.*;
 
-import cafe.jeffrey.shared.sql.SQLBuilder;
+import cafe.jeffrey.microscope.duckdb.sql.SQLBuilder;
 
 public interface QueryBuilder {
 

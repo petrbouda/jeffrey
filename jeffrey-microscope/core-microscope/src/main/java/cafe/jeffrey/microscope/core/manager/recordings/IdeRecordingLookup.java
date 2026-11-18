@@ -35,7 +35,7 @@ import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProfileKind;
 

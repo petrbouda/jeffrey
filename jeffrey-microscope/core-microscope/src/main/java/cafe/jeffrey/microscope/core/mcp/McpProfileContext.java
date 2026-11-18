@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.shared.persistence.DatabaseLease;
+import cafe.jeffrey.microscope.duckdb.DatabaseLease;
 
 import javax.sql.DataSource;
 import java.time.Instant;

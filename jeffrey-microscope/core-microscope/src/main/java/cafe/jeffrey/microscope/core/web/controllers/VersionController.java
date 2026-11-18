@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers;
 
-import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.microscope.common.JeffreyVersion;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

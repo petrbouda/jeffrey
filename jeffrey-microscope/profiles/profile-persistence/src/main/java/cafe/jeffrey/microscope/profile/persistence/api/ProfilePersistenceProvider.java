@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.persistence.api;
 
-import cafe.jeffrey.shared.persistence.DatabaseManager;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
 
 /**
  * Provider for profile-level persistence operations.

@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.manager.download.FileProgress;
 import cafe.jeffrey.microscope.core.manager.download.JfrChunks;
 import cafe.jeffrey.microscope.core.manager.download.ProgressCallback;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.model.RecordingEventSource;

@@ -22,14 +22,15 @@ Analyze changed files to determine affected modules and run only the relevant te
    - `jeffrey-microscope/microscope-persistence/` -> `-pl jeffrey-microscope/microscope-persistence`
    - `volume-scheduler/` -> `-pl volume-scheduler`
    - `shared/common/` -> `-pl shared/common`
-   - `shared/persistence/` -> `-pl shared/persistence`
-   - `shared/sql-builder/` -> `-pl shared/sql-builder`
+   - `jeffrey-microscope/microscope-common/` -> `-pl jeffrey-microscope/microscope-common`
+   - `jeffrey-microscope/duckdb/` -> `-pl jeffrey-microscope/duckdb`
+   - `jeffrey-microscope/microscope-test/` -> `-pl jeffrey-microscope/microscope-test`
    - `shared/volume/` -> `-pl shared/volume`
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `shared/common/` -> also test `volume-scheduler`, `jeffrey-microscope/profiles/profile-management`
-   - `shared/persistence/` -> also test all `*-sql-persistence` modules
+   - `shared/common/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/profiles/profile-management`
+   - `jeffrey-microscope/duckdb/` -> also test `jeffrey-microscope/microscope-persistence`, `jeffrey-microscope/profiles/profile-persistence`, `jeffrey-microscope/profiles/heap-dump`
    - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector`
 
 4. **Run targeted tests**:

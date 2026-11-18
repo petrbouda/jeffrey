@@ -20,6 +20,7 @@
  * profile scoping, the tool hints and the finding convention.
  */
 module cafe.jeffrey.microscope.mcp.server {
+    requires transitive cafe.jeffrey.microscope.common;
     requires transitive cafe.jeffrey.microscope.mcp.protocol;
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.jfr.events;

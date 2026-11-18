@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.management.subsecond;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 
 import java.util.List;
 

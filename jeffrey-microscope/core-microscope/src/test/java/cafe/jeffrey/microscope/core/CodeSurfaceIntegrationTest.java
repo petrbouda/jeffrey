@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core;
 import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
 import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodRef;
 import cafe.jeffrey.microscope.profile.persistence.api.CallSiteRow;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -30,9 +30,9 @@ import tools.jackson.databind.node.ArrayNode;
 import java.util.HashMap;
 import java.util.Map;
 
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.JDBC_QUERY;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_QUERY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

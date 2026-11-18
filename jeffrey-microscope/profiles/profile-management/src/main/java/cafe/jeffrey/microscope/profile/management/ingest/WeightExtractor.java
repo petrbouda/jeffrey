@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.management.ingest;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 import cafe.jeffrey.shared.common.BytesUtils;
-import cafe.jeffrey.shared.common.DurationUtils;
+import cafe.jeffrey.microscope.common.DurationUtils;
 
 import java.util.function.Function;
 import java.util.function.LongFunction;

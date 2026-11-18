@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.persistence.jdbc;
 import cafe.jeffrey.microscope.persistence.api.*;
 
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.persistence.metrics.JfrPoolStatisticsPeriodicRecorder;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.metrics.JfrPoolStatisticsPeriodicRecorder;
 
 import javax.sql.DataSource;
 import java.time.Clock;

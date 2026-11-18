@@ -28,6 +28,11 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
     azure-files-connector/             the Azure file share kind (AzureFilesAddress, its provider and settings;
                                        SMB + NFS, SAS or Entra), a module of its own so the Azure SDK stays out of
                                        everything else; core-microscope takes it at run time only
+  microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers, …
+  microscope-test/                     Microscope's test support: @DuckDBTest, VolumeWriter, RecordedSession (real
+                                       chunks), TestappRecording and CheckoutRecording (real traced runs)
+  duckdb/                              the DuckDB plumbing every Microscope database uses: data sources, pools,
+                                       DatabaseManager, appenders, metrics, the SQL builder (duckdb.sql)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
@@ -42,11 +47,11 @@ volume-scheduler/                      one module: VolumeSchedulerApplication (c
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:
                                        the volume (jeffrey.volume-scheduler.volume.path, required) is its only state
-shared/                                common (utilities + the volume's contract types only), persistence,
-                                       volume (the recording volume's layout read through a storage port:
-                                       folder names are the state: projects/instances/sessions/files; the volume scheduler's reader),
-                                       sql-builder, test (@DuckDBTest, VolumeWriter, RecordedSession: real chunks;
-                                       TestappRecording, CheckoutRecording: real traced runs)
+shared/                                only what Microscope, the volume scheduler and the provisioner all read on the
+                                       volume: common (JeffreyLayout, IDGenerator, EventTypeName, Lz4Compressor,
+                                       FileSystemUtils, Measuring) and volume (the recording volume's layout read
+                                       through a storage port: folder names are the state:
+                                       projects/instances/sessions/files; the volume scheduler's reader)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
@@ -111,7 +116,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 ## Testing
 
-JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `shared/test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
+JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `microscope-test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
 
 ## Git
 

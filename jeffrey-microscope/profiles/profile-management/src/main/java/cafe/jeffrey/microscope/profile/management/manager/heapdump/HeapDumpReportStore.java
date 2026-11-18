@@ -27,8 +27,8 @@ import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.Dupl
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.ThreadHeapAnalysis;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;

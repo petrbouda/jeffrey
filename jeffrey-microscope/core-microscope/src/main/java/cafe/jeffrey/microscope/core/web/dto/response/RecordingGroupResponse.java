@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 
 public record RecordingGroupResponse(
         String id,

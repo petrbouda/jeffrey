@@ -17,7 +17,6 @@
 package cafe.jeffrey.volumescheduler.volume;
 
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.test.volume.VolumeWriter;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

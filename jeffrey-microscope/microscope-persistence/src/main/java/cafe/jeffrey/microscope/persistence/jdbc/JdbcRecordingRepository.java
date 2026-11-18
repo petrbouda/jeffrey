@@ -26,10 +26,10 @@ import cafe.jeffrey.microscope.model.recording.BundleFile;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 
 import java.time.Clock;
 import java.time.ZoneOffset;

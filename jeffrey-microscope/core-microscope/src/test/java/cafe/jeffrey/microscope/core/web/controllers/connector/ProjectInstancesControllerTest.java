@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.connector.api.manager.InstanceWithSessions;
 import cafe.jeffrey.microscope.connector.api.manager.ConnectorInstancesManager;
 import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 

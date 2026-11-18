@@ -34,6 +34,10 @@
     <artifactId>recording-parser</artifactId>
 
     <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
         <!-- Tracer: each recording file parsed in parallel is recorded as a span -->
         <dependency>
             <groupId>cafe.jeffrey-analyst</groupId>
@@ -86,7 +90,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

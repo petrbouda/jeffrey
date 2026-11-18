@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.profile.persistence.api;
 
 import tools.jackson.core.type.TypeReference;
-import cafe.jeffrey.shared.common.CacheKey;
+import cafe.jeffrey.microscope.common.CacheKey;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.microscope.model.Type;

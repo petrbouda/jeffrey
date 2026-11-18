@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.profile.management.manager.memory.HeapMemoryManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.management.manager.model.heap.HeapMemoryTimeseriesType;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 
 import java.util.List;

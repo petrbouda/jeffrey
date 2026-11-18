@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.gc.zgc.ZgcAnalys
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.finalizer.FinalizersData;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.tables.StringSymbolTablesData;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.tuning.ReferenceProcessingData;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 import java.util.List;

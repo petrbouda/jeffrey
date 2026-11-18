@@ -21,14 +21,14 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 
 import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.shared.sql.Condition;
-import cafe.jeffrey.shared.sql.SQLBuilder;
+import cafe.jeffrey.microscope.duckdb.sql.Condition;
+import cafe.jeffrey.microscope.duckdb.sql.SQLBuilder;
 
 import java.time.Duration;
 import java.util.List;
 import java.util.function.BiFunction;
 
-import static cafe.jeffrey.shared.sql.SQLBuilder.*;
+import static cafe.jeffrey.microscope.duckdb.sql.SQLBuilder.*;
 
 public abstract class SQLFormatter {
 

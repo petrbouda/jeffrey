@@ -40,6 +40,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
@@ -61,7 +65,7 @@
         <!-- VolumeWriter: a volume written the way the provisioner writes it -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -52,7 +52,7 @@ import cafe.jeffrey.microscope.mcp.server.McpToolHints;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
 import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.model.recording.Recording;

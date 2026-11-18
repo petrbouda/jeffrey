@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.profile.heapdump.parser;
 
-import cafe.jeffrey.shared.persistence.DuckDBAppenders;
+import cafe.jeffrey.microscope.duckdb.DuckDBAppenders;
 
 import org.duckdb.DuckDBAppender;
 

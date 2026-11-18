@@ -40,7 +40,7 @@ import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.Http
 import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpUriInfo;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

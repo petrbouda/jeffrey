@@ -22,6 +22,7 @@
  * file share is a module of its own, which keeps the Azure SDK out of everything else.
  */
 module cafe.jeffrey.microscope.connector.volume {
+    requires transitive cafe.jeffrey.microscope.common;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.shared.volume;

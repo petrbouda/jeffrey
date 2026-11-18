@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.microscope.profile.heapdump.model.HeapDumpDiffReport;
 import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.microscope.profile.heapdump.model.SortBy;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

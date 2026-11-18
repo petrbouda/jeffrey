@@ -21,7 +21,7 @@ import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileCacheRepository;
-import cafe.jeffrey.shared.common.CacheKey;
+import cafe.jeffrey.microscope.common.CacheKey;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

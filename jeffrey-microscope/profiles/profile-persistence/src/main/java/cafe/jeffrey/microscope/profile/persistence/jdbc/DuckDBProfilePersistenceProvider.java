@@ -22,9 +22,9 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.*;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileRepositories;
 import cafe.jeffrey.microscope.model.FrameResolutionMode;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.persistence.CachingDatabaseManager;
-import cafe.jeffrey.shared.persistence.DatabaseManager;
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.duckdb.CachingDatabaseManager;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
 
 import java.nio.file.Path;
 import java.time.Clock;

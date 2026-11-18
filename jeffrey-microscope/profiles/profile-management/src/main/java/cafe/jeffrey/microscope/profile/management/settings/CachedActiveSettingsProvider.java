@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.management.settings;
 import tools.jackson.core.type.TypeReference;
 import cafe.jeffrey.microscope.model.settings.ActiveSetting;
 import cafe.jeffrey.microscope.model.settings.ActiveSettings;
-import cafe.jeffrey.shared.common.CacheKey;
+import cafe.jeffrey.microscope.common.CacheKey;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileCacheRepository;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventTypeRepository;
 

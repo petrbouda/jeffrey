@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.recording.Bundle;
 import cafe.jeffrey.microscope.model.recording.Recording;
 

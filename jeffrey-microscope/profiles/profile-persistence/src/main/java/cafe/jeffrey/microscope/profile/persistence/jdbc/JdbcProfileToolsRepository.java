@@ -21,10 +21,10 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 
 import java.sql.Array;
 import java.sql.ResultSet;

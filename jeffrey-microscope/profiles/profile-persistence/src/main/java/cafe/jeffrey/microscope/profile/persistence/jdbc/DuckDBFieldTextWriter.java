@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.profile.persistence.api.FieldTextWithHash;
-import cafe.jeffrey.shared.persistence.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
 
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;

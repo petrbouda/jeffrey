@@ -39,7 +39,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>persistence</artifactId>
+            <artifactId>duckdb</artifactId>
         </dependency>
         <dependency>
             <groupId>tools.jackson.core</groupId>
@@ -75,7 +75,7 @@
         <!-- Test dependencies -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

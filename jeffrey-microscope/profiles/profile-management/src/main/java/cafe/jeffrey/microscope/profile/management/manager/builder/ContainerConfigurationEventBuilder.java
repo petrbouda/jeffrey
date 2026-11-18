@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.profile.management.manager.builder;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.profile.management.manager.model.container.ContainerConfigurationData;

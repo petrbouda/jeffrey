@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.profile.management.manager.SubSecondManager;
 import cafe.jeffrey.microscope.profile.management.manager.TimeseriesManager;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;

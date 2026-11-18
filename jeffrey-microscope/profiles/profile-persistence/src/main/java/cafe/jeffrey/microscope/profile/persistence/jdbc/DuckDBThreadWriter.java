@@ -23,7 +23,7 @@ import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import cafe.jeffrey.microscope.profile.persistence.api.EventThread;
 import cafe.jeffrey.microscope.profile.persistence.api.EventThreadWithHash;
-import cafe.jeffrey.shared.persistence.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
 
 import javax.sql.DataSource;
 import java.util.List;

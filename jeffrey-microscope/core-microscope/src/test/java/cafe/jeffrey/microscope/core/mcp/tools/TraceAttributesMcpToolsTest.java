@@ -35,7 +35,7 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeSearchQuery
 import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeSource;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueQuery;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueSortField;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

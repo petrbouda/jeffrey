@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.security.Securit
 import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData.DeserializationTypeStat;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 
 import java.util.Comparator;
 import java.util.HashMap;

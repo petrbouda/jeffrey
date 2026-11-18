@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 import tools.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 
 import javax.sql.DataSource;
 import java.util.List;

@@ -33,9 +33,6 @@
     <modules>
         <module>common</module>
         <module>volume</module>
-        <module>persistence</module>
-        <module>test</module>
-        <module>sql-builder</module>
     </modules>
 
     <dependencyManagement>
@@ -43,21 +40,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>sql-builder</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>test</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

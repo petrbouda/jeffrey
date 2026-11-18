@@ -48,9 +48,9 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceTimelineBucketRecord
 import cafe.jeffrey.microscope.profile.persistence.api.TraceWindowRecord;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.model.SpanInterval;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
@@ -62,7 +62,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
+import static cafe.jeffrey.microscope.duckdb.GroupLabel.PROFILE_TRACES;
 
 /**
  * Derives and reads the trace tables.

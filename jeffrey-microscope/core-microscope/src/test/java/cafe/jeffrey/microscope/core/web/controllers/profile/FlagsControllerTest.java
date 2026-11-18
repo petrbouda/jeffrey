@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.profile.management.manager.FlagsData;
 import cafe.jeffrey.microscope.profile.management.manager.FlagsManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 
 import java.util.Map;
 

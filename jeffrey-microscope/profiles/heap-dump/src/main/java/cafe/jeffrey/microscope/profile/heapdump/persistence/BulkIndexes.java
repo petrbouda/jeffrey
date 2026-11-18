@@ -18,8 +18,8 @@ package cafe.jeffrey.microscope.profile.heapdump.persistence;
 
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.microscope.profile.heapdump.parser.FutureJoin;
-import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
-import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.DuckDBMemoryMonitor;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
 import org.duckdb.DuckDBConnection;
 
 import java.nio.file.Path;

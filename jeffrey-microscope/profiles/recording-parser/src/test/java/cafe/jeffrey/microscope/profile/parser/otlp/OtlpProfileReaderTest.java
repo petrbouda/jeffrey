@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.parser.otlp;
 
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import io.opentelemetry.proto.profiles.v1development.ProfilesData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

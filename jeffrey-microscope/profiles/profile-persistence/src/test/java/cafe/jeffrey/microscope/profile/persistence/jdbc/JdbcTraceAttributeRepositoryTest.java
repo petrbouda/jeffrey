@@ -35,9 +35,9 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueSortFi
 import cafe.jeffrey.microscope.profile.persistence.api.TraceSortField;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceEventTypeRecord;
 import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
-import cafe.jeffrey.shared.test.TestUtils;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

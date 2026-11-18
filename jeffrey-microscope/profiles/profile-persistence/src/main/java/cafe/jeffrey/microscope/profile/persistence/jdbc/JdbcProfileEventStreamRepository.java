@@ -31,9 +31,9 @@ import cafe.jeffrey.microscope.model.StacktraceType;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.*;
 
 import java.sql.Array;
@@ -48,7 +48,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
+import static cafe.jeffrey.microscope.duckdb.GroupLabel.PROFILE_EVENTS;
 
 public class JdbcProfileEventStreamRepository implements ProfileEventStreamRepository {
 

@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.profile.management.flamegraph.code.CallSites;
 import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttributionBuilder;
 import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeQuery;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
 import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
 import cafe.jeffrey.microscope.profile.management.flamegraph.GraphGenerator;

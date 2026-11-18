@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.profile.management.manager.gc.builder;
 
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.profile.common.event.*;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;

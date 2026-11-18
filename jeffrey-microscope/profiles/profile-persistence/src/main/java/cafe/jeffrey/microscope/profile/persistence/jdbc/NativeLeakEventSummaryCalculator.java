@@ -22,14 +22,14 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 import tools.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.persistence.api.FieldDescription;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 
 import java.util.List;
 

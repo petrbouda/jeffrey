@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.persistence.api.EventQueryConfigurer;
-import cafe.jeffrey.shared.sql.SQLBuilder;
+import cafe.jeffrey.microscope.duckdb.sql.SQLBuilder;
 
 import java.util.List;
 

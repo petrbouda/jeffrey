@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.mcp.server;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpServerIdentity;
-import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.microscope.common.JeffreyVersion;
 
 /**
  * What Jeffrey's MCP server is, wherever the protocol asks the server to say: the identity every result

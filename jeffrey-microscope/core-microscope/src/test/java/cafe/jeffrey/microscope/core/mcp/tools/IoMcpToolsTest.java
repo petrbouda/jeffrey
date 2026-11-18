@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.io.IoKind;
 import cafe.jeffrey.microscope.profile.management.manager.model.io.IoOperation;
 import cafe.jeffrey.microscope.profile.management.manager.model.io.IoOverview;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.profile.common.pipeline;
 
 import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
 import cafe.jeffrey.microscope.profile.common.operation.OperationState;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.ErrorType;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.ErrorType;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

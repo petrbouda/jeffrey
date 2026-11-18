@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.connector.api.dto;
 
-import cafe.jeffrey.shared.common.InstantUtils;
+import cafe.jeffrey.microscope.common.InstantUtils;
 import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;

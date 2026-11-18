@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.test.recording.RecordedSession;
-import cafe.jeffrey.shared.test.recording.RecordedSession.Chunk;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.RecordedSession;
+import cafe.jeffrey.microscope.test.recording.RecordedSession.Chunk;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -28,10 +28,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static cafe.jeffrey.shared.test.recording.RecordedSession.ALLOCATION_IN_NEW_TLAB;
-import static cafe.jeffrey.shared.test.recording.RecordedSession.CHUNKS;
-import static cafe.jeffrey.shared.test.recording.RecordedSession.EXECUTION_SAMPLE;
-import static cafe.jeffrey.shared.test.recording.RecordedSession.MONITOR_ENTER;
+import static cafe.jeffrey.microscope.test.recording.RecordedSession.ALLOCATION_IN_NEW_TLAB;
+import static cafe.jeffrey.microscope.test.recording.RecordedSession.CHUNKS;
+import static cafe.jeffrey.microscope.test.recording.RecordedSession.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.RecordedSession.MONITOR_ENTER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

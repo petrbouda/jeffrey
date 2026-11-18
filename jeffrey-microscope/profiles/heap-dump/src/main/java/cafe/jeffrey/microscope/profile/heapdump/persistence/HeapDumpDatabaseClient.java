@@ -24,8 +24,8 @@ import cafe.jeffrey.jfr.events.jdbc.statement.JdbcQueryEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStreamEvent;
 import cafe.jeffrey.jfr.events.jdbc.statement.JdbcUpdateEvent;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import tools.jackson.databind.node.ObjectNode;
@@ -46,7 +46,7 @@ import java.util.stream.StreamSupport;
 /**
  * JFR-instrumented wrapper around a {@link DuckDBConnection} used by the
  * heap-dump module. Mirrors the {@code DatabaseClient} pattern from
- * {@code shared/persistence} but speaks raw JDBC + DuckDB Appender directly
+ * {@code duckdb} but speaks raw JDBC + DuckDB Appender directly
  * since the heap-dump hot path needs the Appender API.
  *
  * <p><b>Hot-path contract:</b> {@link #withAppender(HeapDumpStatement, String, AppenderBody)}

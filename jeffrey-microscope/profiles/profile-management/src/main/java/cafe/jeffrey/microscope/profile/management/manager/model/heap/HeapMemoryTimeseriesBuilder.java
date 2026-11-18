@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.profile.management.manager.model.heap;
 
 import tools.jackson.databind.node.ObjectNode;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;

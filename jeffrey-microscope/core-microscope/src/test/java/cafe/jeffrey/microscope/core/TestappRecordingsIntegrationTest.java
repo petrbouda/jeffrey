@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -35,16 +35,16 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static cafe.jeffrey.shared.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.DOM;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.EXECUTION_SAMPLE;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.JDBC_QUERY;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.MONITOR_ENTER;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.THREAD_PARK;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.TRACE_SPAN;
-import static cafe.jeffrey.shared.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DOM;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_QUERY;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.MONITOR_ENTER;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.THREAD_PARK;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.TRACE_SPAN;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

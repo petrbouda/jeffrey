@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpServerFeatures;
 import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestFeatures;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;

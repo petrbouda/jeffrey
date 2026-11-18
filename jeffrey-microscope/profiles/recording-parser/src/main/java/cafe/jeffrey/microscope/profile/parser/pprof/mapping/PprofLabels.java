@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.parser.pprof.mapping;
 import com.google.perftools.profiles.ProfileProto.Label;
 import cafe.jeffrey.microscope.profile.parser.pprof.PprofTables;
 import cafe.jeffrey.microscope.profile.persistence.api.EventThread;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;

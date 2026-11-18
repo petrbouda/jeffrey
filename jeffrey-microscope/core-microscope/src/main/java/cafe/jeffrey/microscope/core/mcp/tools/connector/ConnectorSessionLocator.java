@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import org.slf4j.Logger;

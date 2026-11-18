@@ -32,9 +32,9 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueRecord
 import cafe.jeffrey.microscope.profile.persistence.api.TraceEventTypeRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceSummaryRecord;
 import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
@@ -42,7 +42,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_TRACES;
+import static cafe.jeffrey.microscope.duckdb.GroupLabel.PROFILE_TRACES;
 
 /**
  * Reads a profile's trace attributes as queryable dimensions, over the two flat indexes

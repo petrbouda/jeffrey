@@ -27,10 +27,10 @@ import cafe.jeffrey.microscope.profile.persistence.jdbc.DuckDBSQLFormatter;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.JdbcProfileEventTypeRepository;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.SQLEventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 
 import javax.sql.DataSource;
 import java.io.OutputStream;

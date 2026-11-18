@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpTransportHeaders;
 import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;

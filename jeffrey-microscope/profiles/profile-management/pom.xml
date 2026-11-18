@@ -33,6 +33,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>
         </dependency>
         <dependency>
@@ -127,7 +131,7 @@
         <!-- RecordedSession, TestappRecording and CheckoutRecording: real recordings with their figures pinned -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

@@ -22,7 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.zgc.ZgcAnalysisData.StallType;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 

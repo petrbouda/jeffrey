@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

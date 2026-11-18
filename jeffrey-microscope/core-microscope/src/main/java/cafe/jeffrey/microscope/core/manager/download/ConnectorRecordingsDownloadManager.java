@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.core.manager.download.ProgressCallback;
 import cafe.jeffrey.microscope.core.manager.download.ProgressTrackingInputStream;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
@@ -60,7 +60,7 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
 

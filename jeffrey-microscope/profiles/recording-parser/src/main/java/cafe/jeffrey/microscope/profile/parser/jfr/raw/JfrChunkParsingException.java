@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.profile.parser.jfr.raw;
 
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyInternalException;
 
 /**
  * Signals a failure while parsing, disassembling, or merging raw binary JFR chunks.

@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.profile.persistence.api;
 
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.shared.persistence.DatabaseLease;
-import cafe.jeffrey.shared.persistence.DatabaseManager;
+import cafe.jeffrey.microscope.duckdb.DatabaseLease;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
 
 import java.util.Objects;
 

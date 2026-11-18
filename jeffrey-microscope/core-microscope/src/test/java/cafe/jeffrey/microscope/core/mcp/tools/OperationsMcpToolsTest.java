@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.profile.common.operation.OperationState;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 

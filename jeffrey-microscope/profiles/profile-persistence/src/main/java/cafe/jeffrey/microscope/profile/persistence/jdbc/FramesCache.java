@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.profile.persistence.api.*;
 import org.eclipse.collections.api.map.primitive.LongObjectMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
 import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrameImpl;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
 
 import java.util.ArrayList;
 import java.util.List;

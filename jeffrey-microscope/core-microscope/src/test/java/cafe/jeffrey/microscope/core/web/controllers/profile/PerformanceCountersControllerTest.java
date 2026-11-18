@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCounterValues;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersManager;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersOverviewBuilder;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 
 import java.util.Map;
 import java.util.Optional;

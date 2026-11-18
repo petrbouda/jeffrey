@@ -39,7 +39,7 @@ import cafe.jeffrey.microscope.profile.persistence.api.ProfileExceptionRepositor
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.profile.persistence.api.ThrowCountRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.ThrowMessageRecord;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;

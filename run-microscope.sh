@@ -359,7 +359,7 @@ DEFAULT_TRACE_METHODS=(
     # Recording ingestion — one event per parsed recording
     cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingEventParser.start
     # DuckDB query chokepoint — many per request, so only trace calls slower than 1ms
-    cafe.jeffrey.shared.persistence.client.DatabaseClient.query:1ms
+    cafe.jeffrey.microscope.duckdb.client.DatabaseClient.query:1ms
 )
 
 # The two REST entry points this list used to open with — FlamegraphController.generate and

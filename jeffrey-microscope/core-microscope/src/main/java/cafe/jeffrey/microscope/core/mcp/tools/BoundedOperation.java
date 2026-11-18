@@ -23,8 +23,8 @@ import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

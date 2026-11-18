@@ -20,7 +20,7 @@ import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.microscope.profile.heapdump.model.OQLResultEntry;
 import cafe.jeffrey.microscope.profile.heapdump.oql.function.GraphWalkFunctions;
 import cafe.jeffrey.microscope.profile.heapdump.view.InstanceRow;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

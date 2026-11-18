@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.profile.management.ingest.data;
 
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
-import cafe.jeffrey.shared.test.recording.RecordedSession;
-import cafe.jeffrey.shared.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.test.recording.RecordedSession;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

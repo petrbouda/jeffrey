@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

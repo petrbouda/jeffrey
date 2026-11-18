@@ -18,12 +18,12 @@
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
 import org.flywaydb.core.Flyway;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.persistence.DataSourceParams;
-import cafe.jeffrey.shared.persistence.DatabaseManager;
-import cafe.jeffrey.shared.persistence.DataSourceProvider;
-import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
+import cafe.jeffrey.microscope.duckdb.DataSourceParams;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
+import cafe.jeffrey.microscope.duckdb.DataSourceProvider;
+import cafe.jeffrey.microscope.duckdb.DuckDBMemoryMonitor;
 
 import javax.sql.DataSource;
 import java.nio.file.Path;

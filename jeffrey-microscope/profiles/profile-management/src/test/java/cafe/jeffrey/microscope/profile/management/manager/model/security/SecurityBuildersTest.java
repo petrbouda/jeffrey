@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.security.Securit
 import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData.NamedCount;
 import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData.ProviderServiceStat;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 

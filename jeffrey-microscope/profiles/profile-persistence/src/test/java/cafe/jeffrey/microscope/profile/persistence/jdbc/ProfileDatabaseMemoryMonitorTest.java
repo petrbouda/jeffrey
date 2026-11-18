@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
-import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
+import cafe.jeffrey.microscope.duckdb.DuckDBMemoryMonitor;
 import jdk.jfr.consumer.RecordingStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;

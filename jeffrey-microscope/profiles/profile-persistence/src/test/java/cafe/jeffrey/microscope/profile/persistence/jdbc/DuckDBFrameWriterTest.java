@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.profile.persistence.jdbc;
 import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrameImpl;
 import cafe.jeffrey.microscope.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.profile.persistence.api.EventFrameWithHash;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

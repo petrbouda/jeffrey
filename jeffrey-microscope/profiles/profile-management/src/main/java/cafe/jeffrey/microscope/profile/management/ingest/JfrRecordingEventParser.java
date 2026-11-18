@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.profile.parser.jfr.JdkRecordingIterators;
 import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.common.Schedulers;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.shared.common.filesystem.TempDirectory;

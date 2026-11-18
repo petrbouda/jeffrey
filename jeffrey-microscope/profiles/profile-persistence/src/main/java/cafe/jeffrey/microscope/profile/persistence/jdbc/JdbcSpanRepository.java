@@ -20,14 +20,14 @@ package cafe.jeffrey.microscope.profile.persistence.jdbc;
 import cafe.jeffrey.microscope.profile.persistence.api.ThreadWindowEventRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.SpanRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.SpanRepository;
-import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.List;
 
-import static cafe.jeffrey.shared.persistence.GroupLabel.PROFILE_EVENTS;
+import static cafe.jeffrey.microscope.duckdb.GroupLabel.PROFILE_EVENTS;
 
 /**
  * Reads async-profiler {@code profiler.Span} events straight from the per-profile {@code events}

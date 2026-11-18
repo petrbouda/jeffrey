@@ -29,7 +29,7 @@ import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedObject;
 import jdk.jfr.consumer.RecordedThread;
 import tools.jackson.core.JsonGenerator;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.profile.management.ingest.fields.RecordedClassMapper;
 
 import java.io.Writer;

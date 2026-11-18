@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;

@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.management.ingest.fields;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.SpanConventionKeys;
 import cafe.jeffrey.microscope.model.Type;
 

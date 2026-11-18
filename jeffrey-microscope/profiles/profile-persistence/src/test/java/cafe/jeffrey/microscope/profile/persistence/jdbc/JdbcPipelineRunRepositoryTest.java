@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.microscope.profile.common.pipeline.StageResult;
 import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
 import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
-import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

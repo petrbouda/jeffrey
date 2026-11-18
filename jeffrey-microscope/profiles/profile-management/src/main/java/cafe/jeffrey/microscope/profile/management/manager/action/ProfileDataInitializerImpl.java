@@ -24,8 +24,8 @@ import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.shared.persistence.DatabaseLease;
-import cafe.jeffrey.shared.persistence.DatabaseManager;
+import cafe.jeffrey.microscope.duckdb.DatabaseLease;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

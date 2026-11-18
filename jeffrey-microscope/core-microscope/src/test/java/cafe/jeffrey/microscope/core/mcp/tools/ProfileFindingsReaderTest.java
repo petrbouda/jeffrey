@@ -32,7 +32,7 @@ import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
 import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

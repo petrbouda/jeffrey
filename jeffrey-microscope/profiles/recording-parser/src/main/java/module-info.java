@@ -21,6 +21,7 @@
  * only the parser packages are exported.
  */
 module cafe.jeffrey.microscope.profile.parser {
+    requires transitive cafe.jeffrey.microscope.common;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.microscope.profile.common;

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.profile.management.thread;
 
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

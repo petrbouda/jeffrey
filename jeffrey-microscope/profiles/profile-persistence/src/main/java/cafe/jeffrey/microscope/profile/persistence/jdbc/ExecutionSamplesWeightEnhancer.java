@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.model.EventSubtype;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.shared.common.DurationUtils;
+import cafe.jeffrey.microscope.common.DurationUtils;
 import cafe.jeffrey.microscope.model.settings.ActiveSetting;
 import cafe.jeffrey.microscope.model.settings.ActiveSettings;
 import cafe.jeffrey.microscope.profile.persistence.api.EventTypeBuilder;

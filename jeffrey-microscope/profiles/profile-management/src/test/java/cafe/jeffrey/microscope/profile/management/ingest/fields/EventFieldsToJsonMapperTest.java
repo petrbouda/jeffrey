@@ -38,7 +38,7 @@ import jdk.jfr.consumer.RecordingFile;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.profile.management.ingest.fields.RecordedClassMapper;
 
 import java.io.IOException;

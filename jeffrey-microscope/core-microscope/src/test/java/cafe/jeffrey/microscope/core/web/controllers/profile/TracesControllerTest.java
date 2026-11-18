@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceSpanR
 import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationListQuery;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationSortField;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.SpanInterval;

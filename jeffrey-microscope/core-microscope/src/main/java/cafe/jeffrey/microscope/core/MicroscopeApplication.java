@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.configuration.ApplicationStartedListener;
-import cafe.jeffrey.shared.common.JeffreyVersion;
+import cafe.jeffrey.microscope.common.JeffreyVersion;
 import org.springframework.boot.Banner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

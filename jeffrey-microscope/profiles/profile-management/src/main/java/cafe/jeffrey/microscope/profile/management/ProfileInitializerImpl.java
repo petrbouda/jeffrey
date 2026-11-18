@@ -34,10 +34,10 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeRepository;
 import cafe.jeffrey.microscope.profile.persistence.api.MethodTraceWeightRepository;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceRepository;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.shared.persistence.DatabaseLease;
-import cafe.jeffrey.shared.persistence.DatabaseManager;
-import cafe.jeffrey.shared.persistence.GroupLabel;
-import cafe.jeffrey.shared.persistence.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.DatabaseLease;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
 
 import javax.sql.DataSource;
 import java.time.Clock;

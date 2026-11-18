@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.profile.management.manager.model.nativememory;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 
 import java.util.ArrayList;
 import java.util.Comparator;
