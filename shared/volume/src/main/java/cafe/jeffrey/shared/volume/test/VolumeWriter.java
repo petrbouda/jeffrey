@@ -38,8 +38,8 @@ import java.util.UUID;
  * <p>
  * Test support, kept in {@code shared/volume}'s main code so that its own tests, the volume scheduler's and
  * Microscope's all write their volumes through this one copy: a change to how the provisioner lays a volume
- * down is made here once. Nothing in production writes the volume this way — only tests and
- * {@code microscope-test} may use it, which {@code VolumeWriterUseTest} enforces.
+ * down is made here once. Nothing in production writes the volume this way: only tests and
+ * {@code microscope-test} use it.
  */
 public final class VolumeWriter {
 
