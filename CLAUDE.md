@@ -13,10 +13,10 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        components, services and design tokens in src/shared, imported as @shared)
   core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
                                        (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download)
-  microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
-                                       ConnectorInfo, ConnectorAddress and ConnectorKind in model.connector, naming
-                                       no kind; the imported recordings' files, their kinds (ManagedFile) and
-                                       RecordingStorageLayout in model.recording)
+  microscope-model/                    the domain records two or more Microscope modules share, no Jackson or JFR
+                                       (cafe.jeffrey.microscope.model; ConnectorAddress and ConnectorKind in
+                                       model.connector, naming no kind; the imported recordings' files, their kinds
+                                       (ManagedFile) and RecordingStorageLayout in model.recording)
   microscope-persistence/              microscope core DuckDB (recordings, profiles): repository API + DuckDB impl
   connectors/
     volume-connector/                  the connector over a recording volume (writable or read-only): the client

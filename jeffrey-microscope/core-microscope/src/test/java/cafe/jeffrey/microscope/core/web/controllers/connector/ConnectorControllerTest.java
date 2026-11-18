@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.web.controllers.connector;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.connector.local.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;

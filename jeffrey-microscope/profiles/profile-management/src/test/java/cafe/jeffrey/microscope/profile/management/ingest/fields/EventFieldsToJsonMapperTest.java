@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.jfr;
+package cafe.jeffrey.microscope.profile.management.ingest.fields;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.RecordedClassMapper;
+import cafe.jeffrey.microscope.profile.management.ingest.fields.RecordedClassMapper;
 
 import java.io.IOException;
 import java.nio.file.Files;

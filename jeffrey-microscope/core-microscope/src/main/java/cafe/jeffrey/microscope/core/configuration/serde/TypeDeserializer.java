@@ -15,21 +15,26 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.serde;
+package cafe.jeffrey.microscope.core.configuration.serde;
 
-import tools.jackson.core.JsonGenerator;
-import tools.jackson.databind.SerializationContext;
-import tools.jackson.databind.ser.std.StdSerializer;
+import tools.jackson.core.JsonParser;
+import tools.jackson.databind.DeserializationContext;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.deser.std.StdDeserializer;
 import cafe.jeffrey.microscope.model.Type;
 
-public class TypeSerializer extends StdSerializer<Type> {
+public class TypeDeserializer extends StdDeserializer<Type> {
 
-    public TypeSerializer() {
+    public TypeDeserializer() {
         super(Type.class);
     }
 
     @Override
-    public void serialize(Type type, JsonGenerator gen, SerializationContext ctxt) {
-        gen.writeString(type.code());
+    public Type deserialize(JsonParser jp, DeserializationContext context) {
+        JsonNode node = context.readTree(jp);
+        if (node == null) {
+            throw new NullPointerException("Type is null");
+        }
+        return Type.fromCode(node.asString());
     }
 }

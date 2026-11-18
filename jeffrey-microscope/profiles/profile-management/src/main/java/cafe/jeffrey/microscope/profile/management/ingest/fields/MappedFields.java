@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.jfr;
+package cafe.jeffrey.microscope.profile.management.ingest.fields;
 
 /**
  * One event's fields, ready to store: the JSON text and, separately, the one value that was lifted

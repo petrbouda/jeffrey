@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.connector.local.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.connector.spi.ConnectorProvider;
 import cafe.jeffrey.microscope.connector.spi.ConnectorProviders;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

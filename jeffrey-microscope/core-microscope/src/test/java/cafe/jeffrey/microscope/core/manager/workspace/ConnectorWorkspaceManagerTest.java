@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFacto
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;

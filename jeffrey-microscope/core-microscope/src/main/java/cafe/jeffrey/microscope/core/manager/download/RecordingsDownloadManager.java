@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.manager.download;
 
-import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.core.manager.download.ProgressCallback;
 
 import java.util.List;

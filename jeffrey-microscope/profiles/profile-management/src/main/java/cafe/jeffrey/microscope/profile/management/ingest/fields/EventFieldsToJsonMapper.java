@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.jfr;
+package cafe.jeffrey.microscope.profile.management.ingest.fields;
 
 import jdk.jfr.AnnotationElement;
 import jdk.jfr.EventType;
@@ -30,7 +30,7 @@ import jdk.jfr.consumer.RecordedObject;
 import jdk.jfr.consumer.RecordedThread;
 import tools.jackson.core.JsonGenerator;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.microscope.model.RecordedClassMapper;
+import cafe.jeffrey.microscope.profile.management.ingest.fields.RecordedClassMapper;
 
 import java.io.Writer;
 import java.time.Duration;

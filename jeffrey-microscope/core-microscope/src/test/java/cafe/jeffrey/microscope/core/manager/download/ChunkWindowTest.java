@@ -15,8 +15,10 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.repository;
+package cafe.jeffrey.microscope.core.manager.download;
 
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

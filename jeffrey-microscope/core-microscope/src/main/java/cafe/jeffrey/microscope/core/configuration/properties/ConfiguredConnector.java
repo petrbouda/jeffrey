@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.configuration.properties;
 
 import cafe.jeffrey.microscope.connector.spi.ConnectorProvider;
 import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.bind.Bindable;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model;
+package cafe.jeffrey.microscope.profile.management.ingest.fields;
 
 public abstract class RecordedClassMapper {
     public static String map(String typeName) {

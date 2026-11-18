@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorMappers;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.core.manager.download.OriginContext;
 
 /**

@@ -15,24 +15,21 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.serde;
+package cafe.jeffrey.microscope.core.configuration.serde;
 
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.model.Type;
 
-public class RelativeTimeRangeSerializer extends StdSerializer<RelativeTimeRange> {
+public class TypeSerializer extends StdSerializer<Type> {
 
-    public RelativeTimeRangeSerializer() {
-        super(RelativeTimeRange.class);
+    public TypeSerializer() {
+        super(Type.class);
     }
 
     @Override
-    public void serialize(RelativeTimeRange timeRange, JsonGenerator gen, SerializationContext ctxt) {
-        gen.writeStartObject();
-        gen.writeNumberProperty("start", timeRange.start().toMillis());
-        gen.writeNumberProperty("end", timeRange.end().toMillis());
-        gen.writeEndObject();
+    public void serialize(Type type, JsonGenerator gen, SerializationContext ctxt) {
+        gen.writeString(type.code());
     }
 }

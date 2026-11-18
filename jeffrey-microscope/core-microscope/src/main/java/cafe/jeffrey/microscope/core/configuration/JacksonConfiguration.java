@@ -23,10 +23,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.model.serde.RelativeTimeRangeDeserializer;
-import cafe.jeffrey.microscope.model.serde.RelativeTimeRangeSerializer;
-import cafe.jeffrey.microscope.model.serde.TypeDeserializer;
-import cafe.jeffrey.microscope.model.serde.TypeSerializer;
+import cafe.jeffrey.microscope.core.configuration.serde.RelativeTimeRangeDeserializer;
+import cafe.jeffrey.microscope.core.configuration.serde.RelativeTimeRangeSerializer;
+import cafe.jeffrey.microscope.core.configuration.serde.TypeDeserializer;
+import cafe.jeffrey.microscope.core.configuration.serde.TypeSerializer;
 
 @Configuration
 public class JacksonConfiguration {

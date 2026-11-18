@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.management.frameir.frame;
 
-import cafe.jeffrey.microscope.model.RecordedClassMapper;
+import cafe.jeffrey.microscope.profile.management.ingest.fields.RecordedClassMapper;
 import cafe.jeffrey.microscope.profile.common.model.FrameType;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.jfr;
+package cafe.jeffrey.microscope.profile.management.ingest.fields;
 
 import tools.jackson.core.JsonGenerator;
 

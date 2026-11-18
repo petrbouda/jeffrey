@@ -15,26 +15,24 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.serde;
+package cafe.jeffrey.microscope.core.configuration.serde;
 
-import tools.jackson.core.JsonParser;
-import tools.jackson.databind.DeserializationContext;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.deser.std.StdDeserializer;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.databind.SerializationContext;
+import tools.jackson.databind.ser.std.StdSerializer;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
-public class RelativeTimeRangeDeserializer extends StdDeserializer<RelativeTimeRange> {
+public class RelativeTimeRangeSerializer extends StdSerializer<RelativeTimeRange> {
 
-    public RelativeTimeRangeDeserializer() {
+    public RelativeTimeRangeSerializer() {
         super(RelativeTimeRange.class);
     }
 
     @Override
-    public RelativeTimeRange deserialize(JsonParser jp, DeserializationContext context) {
-        JsonNode node = context.readTree(jp);
-        if (node == null) {
-            throw new NullPointerException("RelativeTimeRange is null");
-        }
-        return new RelativeTimeRange(node.get("start").asLong(), node.get("end").asLong());
+    public void serialize(RelativeTimeRange timeRange, JsonGenerator gen, SerializationContext ctxt) {
+        gen.writeStartObject();
+        gen.writeNumberProperty("start", timeRange.start().toMillis());
+        gen.writeNumberProperty("end", timeRange.end().toMillis());
+        gen.writeEndObject();
     }
 }

@@ -15,8 +15,9 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.connector;
+package cafe.jeffrey.microscope.core.manager.connector;
 
+import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
 /**
  * The one connector this Microscope reaches: the recording volume on an Azure file share or in a
  * local directory. It is declared in configuration only ({@code jeffrey.microscope.connector.*})

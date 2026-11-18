@@ -15,26 +15,26 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.serde;
+package cafe.jeffrey.microscope.core.configuration.serde;
 
 import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.deser.std.StdDeserializer;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 
-public class TypeDeserializer extends StdDeserializer<Type> {
+public class RelativeTimeRangeDeserializer extends StdDeserializer<RelativeTimeRange> {
 
-    public TypeDeserializer() {
-        super(Type.class);
+    public RelativeTimeRangeDeserializer() {
+        super(RelativeTimeRange.class);
     }
 
     @Override
-    public Type deserialize(JsonParser jp, DeserializationContext context) {
+    public RelativeTimeRange deserialize(JsonParser jp, DeserializationContext context) {
         JsonNode node = context.readTree(jp);
         if (node == null) {
-            throw new NullPointerException("Type is null");
+            throw new NullPointerException("RelativeTimeRange is null");
         }
-        return Type.fromCode(node.asString());
+        return new RelativeTimeRange(node.get("start").asLong(), node.get("end").asLong());
     }
 }

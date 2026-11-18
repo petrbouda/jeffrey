@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.manager.connector;
 
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 

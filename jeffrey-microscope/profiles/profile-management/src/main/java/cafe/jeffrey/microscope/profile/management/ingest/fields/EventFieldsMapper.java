@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.jfr;
+package cafe.jeffrey.microscope.profile.management.ingest.fields;
 
 import jdk.jfr.EventType;
 import jdk.jfr.consumer.RecordedEvent;
