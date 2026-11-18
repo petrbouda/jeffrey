@@ -104,21 +104,16 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- The connector API: its clients, DTOs and managers -->
+        <!-- The connector over a recording volume: its API (clients, DTOs, managers) and the local-directory backend -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume-connector</artifactId>
         </dependency>
-        <!-- The connectors: the one over a recording volume, and the volume's Azure Files and local-directory backends -->
+        <!-- The volume's Azure Files backend -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>azure-files-connector</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>local-connector</artifactId>
-        </dependency>
-        <!-- Recording store + the download machinery that pulls recordings through the connector -->
 
         <!-- Frontend -->
         <dependency>

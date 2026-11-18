@@ -30,4 +30,5 @@ module cafe.jeffrey.microscope.connector.volume {
     exports cafe.jeffrey.microscope.connector.api.dto;
     exports cafe.jeffrey.microscope.connector.api.manager;
     exports cafe.jeffrey.microscope.connector.volume;
+    exports cafe.jeffrey.microscope.connector.local;
 }

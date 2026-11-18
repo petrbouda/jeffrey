@@ -20,11 +20,11 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   microscope-persistence/              microscope core DuckDB (recordings, profiles): repository API + DuckDB impl
   connectors/
     volume-connector/                  the connector over a recording volume (writable or read-only): the client
-                                       interfaces and DTOs (connector.api) and the clients (connector.volume)
-    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra)
-    local-connector/                   the volume's local-directory backend: FilesystemVolume kept inside its root
-                                       (no link out), read live; for testing and copied trees
-                                       (each backend is a module of its own, usable without the other)
+                                       interfaces and DTOs (connector.api), the clients (connector.volume) and the
+                                       local-directory backend (connector.local: FilesystemVolume kept inside its
+                                       root, no link out, read live; for testing and copied trees)
+    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra),
+                                       a module of its own so the Azure SDK stays out of everything else
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings

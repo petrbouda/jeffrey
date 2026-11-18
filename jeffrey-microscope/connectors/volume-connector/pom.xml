@@ -32,7 +32,9 @@
         The connector clients answered by a recording volume reached straight on its storage, with no
         service in between: the same workspaces, projects, instances, sessions and files, mapped from
         shared/volume onto Microscope's own model, and the user's changes made through VolumeChanges
-        unless the source is read-only. Storage-agnostic; a backend supplies the VolumeAccess.
+        unless the source is read-only. A backend supplies the VolumeAccess: the local-directory one is here
+        (cafe.jeffrey.microscope.connector.local: the volume read straight from a directory on this machine,
+        live on every call, kept inside its root), the Azure file share is azure-files-connector.
     </description>
 
     <dependencies>
