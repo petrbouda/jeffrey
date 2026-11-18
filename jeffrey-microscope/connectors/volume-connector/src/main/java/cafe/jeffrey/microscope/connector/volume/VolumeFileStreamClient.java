@@ -21,7 +21,6 @@ import cafe.jeffrey.microscope.connector.api.FileStreamClient;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.shared.volume.VolumeAccess.OpenedFile;
-import cafe.jeffrey.shared.volume.layout.FileRefusal;
 import cafe.jeffrey.shared.volume.layout.ProjectTree;
 import cafe.jeffrey.shared.volume.layout.SessionFile;
 import cafe.jeffrey.shared.volume.layout.VolumeSession;

@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.volume.layout;
+package cafe.jeffrey.microscope.connector.volume;
 
 /**
- * Why one file of a session is not handed over, in the words every reader of the volume uses —
- * whichever connector Microscope reads the volume through — so an agent gets the same
- * sentence whichever way the file was asked for.
+ * Why one file of a session is not handed over, worded alike whichever connector Microscope
+ * reads the volume through, so an agent gets the same sentence whichever way the file was
+ * asked for.
  */
 public enum FileRefusal {
 
