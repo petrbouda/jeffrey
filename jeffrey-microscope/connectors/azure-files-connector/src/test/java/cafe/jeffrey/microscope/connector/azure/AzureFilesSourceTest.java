@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.connector.api.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
-import cafe.jeffrey.microscope.test.volume.VolumeWriter;
+import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

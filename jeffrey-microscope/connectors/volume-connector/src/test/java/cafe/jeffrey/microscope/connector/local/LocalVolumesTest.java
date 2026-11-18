@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;
-import cafe.jeffrey.microscope.test.volume.VolumeWriter;
+import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

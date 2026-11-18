@@ -31,7 +31,7 @@ Analyze changed files to determine affected modules and run only the relevant te
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
    - `shared/common/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/profiles/profile-management`
    - `jeffrey-microscope/duckdb/` -> also test `jeffrey-microscope/microscope-persistence`, `jeffrey-microscope/profiles/profile-persistence`, `jeffrey-microscope/profiles/heap-dump`
-   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector`
+   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector` (and `jeffrey-microscope/core-microscope` when `VolumeWriter` changes)
 
 4. **Run targeted tests**:
    ```bash

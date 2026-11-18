@@ -18,6 +18,7 @@
 package cafe.jeffrey.volumescheduler.volume;
 
 import cafe.jeffrey.shared.volume.layout.SessionDeletion;
+import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -28,10 +28,14 @@
     </parent>
 
     <artifactId>microscope-test</artifactId>
-    <description>Microscope's test support: @DuckDBTest, a mutable clock, the real recordings (RecordedSession, TestappRecording, CheckoutRecording) and a VolumeWriter of its own</description>
+    <description>Microscope's test support: @DuckDBTest, a mutable clock, the real recordings (RecordedSession, TestappRecording, CheckoutRecording); VolumeWriter comes from shared/volume</description>
 
     <dependencies>
-        <!-- The volume's marker types and layout constants, for VolumeWriter -->
+        <!-- VolumeWriter (shared/volume), which RecordedSession writes its sessions through -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>common</artifactId>

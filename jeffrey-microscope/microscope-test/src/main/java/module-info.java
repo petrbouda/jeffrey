@@ -21,8 +21,8 @@ module cafe.jeffrey.microscope.test {
     requires spring.jdbc;
     requires flyway.core;
     requires cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.shared.volume;
 
     exports cafe.jeffrey.microscope.test;
-    exports cafe.jeffrey.microscope.test.volume;
     exports cafe.jeffrey.microscope.test.recording;
 }

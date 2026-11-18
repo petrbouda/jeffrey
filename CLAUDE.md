@@ -29,8 +29,8 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        SMB + NFS, SAS or Entra), a module of its own so the Azure SDK stays out of
                                        everything else; core-microscope takes it at run time only
   microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers, …
-  microscope-test/                     Microscope's test support: @DuckDBTest, VolumeWriter, RecordedSession (real
-                                       chunks), TestappRecording and CheckoutRecording (real traced runs)
+  microscope-test/                     Microscope's test support: @DuckDBTest, RecordedSession (real chunks),
+                                       TestappRecording and CheckoutRecording (real traced runs)
   duckdb/                              the DuckDB plumbing every Microscope database uses: data sources, pools,
                                        DatabaseManager, appenders, metrics, the SQL builder (duckdb.sql)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
@@ -51,7 +51,8 @@ shared/                                only what Microscope, the volume schedule
                                        volume: common (JeffreyLayout, IDGenerator, EventTypeName, Lz4Compressor,
                                        FileSystemUtils, Measuring) and volume (the recording volume's layout read
                                        through a storage port: folder names are the state:
-                                       projects/instances/sessions/files; the volume scheduler's reader)
+                                       projects/instances/sessions/files; the volume scheduler's reader; plus
+                                       VolumeWriter, the one writer of a test volume, never imported by production code)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /

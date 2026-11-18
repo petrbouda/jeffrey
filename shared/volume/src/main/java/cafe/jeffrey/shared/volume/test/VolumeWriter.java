@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.volume;
+package cafe.jeffrey.shared.volume.test;
 
 import cafe.jeffrey.shared.common.JeffreyLayout;
 
@@ -36,9 +36,10 @@ import java.util.UUID;
  * reader of a volume (the volume scheduler, the shared layout, Microscope reading storage directly) is tested
  * against what production writes. Nothing below a workspace has a marker file.
  * <p>
- * One of three copies, kept on purpose so that no test code is shared between the products: Microscope's
- * ({@code microscope-test}), the volume scheduler's tests' and {@code shared/volume}'s tests'. A change
- * to how the provisioner lays a volume down goes into all three.
+ * Test support, kept in {@code shared/volume}'s main code so that its own tests, the volume scheduler's and
+ * Microscope's all write their volumes through this one copy: a change to how the provisioner lays a volume
+ * down is made here once. Nothing in production writes the volume this way — only tests and
+ * {@code microscope-test} may use it, which {@code VolumeWriterUseTest} enforces.
  */
 public final class VolumeWriter {
 

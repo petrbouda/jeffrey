@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.test.recording;
 
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.microscope.test.volume.VolumeWriter;
+import cafe.jeffrey.shared.volume.test.VolumeWriter;
 
 import java.io.IOException;
 import java.io.InputStream;
