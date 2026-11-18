@@ -16,12 +16,14 @@
  */
 
 module cafe.jeffrey.microscope.connector.azure {
-    requires transitive cafe.jeffrey.shared.volume;
-    requires transitive cafe.jeffrey.microscope.model;
+    requires transitive cafe.jeffrey.microscope.connector.volume;
     requires com.azure.core;
     requires com.azure.identity;
     requires com.azure.storage.file.share;
     requires org.slf4j;
 
     exports cafe.jeffrey.microscope.connector.azure;
+
+    provides cafe.jeffrey.microscope.connector.spi.ConnectorProvider
+            with cafe.jeffrey.microscope.connector.azure.AzureFilesConnectorProvider;
 }

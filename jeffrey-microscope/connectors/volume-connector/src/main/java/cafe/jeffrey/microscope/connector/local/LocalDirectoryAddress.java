@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.connector;
+package cafe.jeffrey.microscope.connector.local;
+
+import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
+import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 
 import java.nio.file.Path;
 
@@ -29,7 +32,10 @@ import java.nio.file.Path;
  */
 public record LocalDirectoryAddress(Path root, boolean readOnly) implements ConnectorAddress {
 
-    private static final String IDENTITY_PREFIX = ConnectorKind.LOCAL.block() + ":";
+    /** A directory on this machine: {@code LOCAL} on the wire, declared by the {@code local} block. */
+    public static final ConnectorKind KIND = new ConnectorKind("LOCAL", "local");
+
+    private static final String IDENTITY_PREFIX = KIND.identityPrefix();
     private static final String READ_ONLY_SUFFIX = " (read-only)";
 
     public LocalDirectoryAddress {
@@ -44,7 +50,7 @@ public record LocalDirectoryAddress(Path root, boolean readOnly) implements Conn
 
     @Override
     public ConnectorKind kind() {
-        return ConnectorKind.LOCAL;
+        return KIND;
     }
 
     @Override

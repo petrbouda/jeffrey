@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 
 /**
  * The configured connector: the recording volume on an Azure file share or in a local directory.
@@ -30,7 +29,7 @@ import cafe.jeffrey.microscope.model.connector.ConnectorKind;
  */
 public record ConnectorResponse(
         String name,
-        ConnectorKind kind,
+        String kind,
         String location,
         boolean readOnly) {
 }

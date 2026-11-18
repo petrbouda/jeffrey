@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.connector;
+package cafe.jeffrey.microscope.connector.azure;
+
+import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
+import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -51,7 +54,10 @@ public record AzureFilesAddress(
     private static final String PORT_SEPARATOR = ":";
     private static final String SEPARATOR = "/";
     private static final int NO_PORT = -1;
-    private static final String IDENTITY_PREFIX = ConnectorKind.AZURE_FILES.block() + ":";
+    /** An Azure file share: {@code AZURE_FILES} on the wire, declared by the {@code azure-files} block. */
+    public static final ConnectorKind KIND = new ConnectorKind("AZURE_FILES", "azure-files");
+
+    private static final String IDENTITY_PREFIX = KIND.identityPrefix();
     private static final Set<String> RELATIVE_ELEMENTS = Set.of(".", "..");
     private static final Set<String> BARE_PATHS = Set.of("", SEPARATOR);
 
@@ -92,7 +98,7 @@ public record AzureFilesAddress(
 
     @Override
     public ConnectorKind kind() {
-        return ConnectorKind.AZURE_FILES;
+        return KIND;
     }
 
     /** The share and the directory in it: {@code <endpoint>/<share>[/<rootPath>]}. */

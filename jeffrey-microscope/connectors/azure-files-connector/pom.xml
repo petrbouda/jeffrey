@@ -34,11 +34,17 @@
     </description>
 
     <dependencies>
+        <!-- The connector SPI this kind provides, and the volume source it opens; its tests drive the
+             volume connector over this share end to end, against a share written as the provisioner writes -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume-connector</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume</artifactId>
         </dependency>
-        <!-- AzureFilesAddress, AzureFilesProtocol, AzureFilesAuth -->
+        <!-- ConnectorAddress and ConnectorKind, which the share's address and kind implement -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
@@ -72,12 +78,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <!-- The volume connector over this share, end to end, against a share written as the provisioner writes -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>volume-connector</artifactId>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

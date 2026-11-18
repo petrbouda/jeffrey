@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.connector;
+package cafe.jeffrey.microscope.connector.azure;
 
 import java.util.Locale;
 import java.util.Optional;

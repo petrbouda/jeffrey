@@ -47,6 +47,6 @@ public class ConnectorController {
 
     private static ConnectorResponse toResponse(ConnectorInfo connector) {
         ConnectorAddress address = connector.address();
-        return new ConnectorResponse(connector.name(), address.kind(), address.location(), address.readOnly());
+        return new ConnectorResponse(connector.name(), address.kind().name(), address.location(), address.readOnly());
     }
 }

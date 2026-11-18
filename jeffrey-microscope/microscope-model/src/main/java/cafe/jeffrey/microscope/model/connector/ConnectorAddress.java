@@ -22,8 +22,11 @@ package cafe.jeffrey.microscope.model.connector;
  * {@code jeffrey.microscope.connector.*}. Every kind holds the same layout — workspaces directly
  * under its root, then projects, instances, sessions and their files — so everything above the
  * storage reads it the same way.
+ * <p>
+ * Open to any kind: each one is a {@code ConnectorProvider} in its own module (an Azure file share,
+ * a local directory), found by {@code ServiceLoader}; nothing here names one.
  */
-public sealed interface ConnectorAddress permits AzureFilesAddress, LocalDirectoryAddress {
+public interface ConnectorAddress {
 
     /** Which storage it is, and so which configuration block declares it. */
     ConnectorKind kind();

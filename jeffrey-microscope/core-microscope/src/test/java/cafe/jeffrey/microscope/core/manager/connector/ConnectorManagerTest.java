@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.manager.connector;
 
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Nested;

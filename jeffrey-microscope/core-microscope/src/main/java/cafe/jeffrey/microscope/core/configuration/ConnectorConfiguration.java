@@ -18,42 +18,42 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredConnectorProperties;
+import cafe.jeffrey.microscope.connector.spi.ConnectorProviders;
+import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredConnector;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.connector.AzureFilesClientsFactory;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorClientsFactory;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
-import cafe.jeffrey.microscope.core.manager.connector.LocalClientsFactory;
 import cafe.jeffrey.microscope.core.manager.workspace.ConnectorWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
 import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 import java.time.Clock;
 
 
 @Configuration
 @Import(AppConfiguration.class)
-@EnableConfigurationProperties(ConfiguredConnectorProperties.class)
 public class ConnectorConfiguration {
 
-    /** The declaration read once, so an unusable one is reported once rather than per bean. */
+    /**
+     * The declaration read once, so an unusable one is reported once rather than per bean, over every
+     * connector kind on the class path.
+     */
     @Bean
-    public ConfiguredConnectorProperties.Declared declaredConnector(ConfiguredConnectorProperties configuredConnector) {
-        return configuredConnector.read();
+    public ConfiguredConnector configuredConnector(Environment environment) {
+        return ConfiguredConnector.read(Binder.get(environment), ConnectorProviders.load());
     }
 
-    /** The clients of the configured connector, by its kind: an Azure file share or a local directory. */
+    /** The clients of the configured connector, opened by its kind's provider. */
     @Bean
-    public ConnectorClientsFactory connectorClientsFactory(ConfiguredConnectorProperties.Declared declaredConnector) {
-        return new ConnectorClientsFactory(
-                new AzureFilesClientsFactory(declaredConnector.sasToken()),
-                new LocalClientsFactory());
+    public ConnectorClientsFactory connectorClientsFactory(ConfiguredConnector configuredConnector) {
+        return new ConnectorClientsFactory(configuredConnector.declared());
     }
 
     @Bean
@@ -95,9 +95,9 @@ public class ConnectorConfiguration {
     /** The connector configuration declares, read once; nothing connects or disconnects one while Microscope runs. */
     @Bean
     public ConnectorManager connectorManager(
-            ConfiguredConnectorProperties.Declared declaredConnector,
+            ConfiguredConnector configuredConnector,
             ConnectorConnection.Factory connectorConnectionFactory) {
 
-        return new ConnectorManager(declaredConnector.connector(), connectorConnectionFactory);
+        return new ConnectorManager(configuredConnector.connector(), connectorConnectionFactory);
     }
 }

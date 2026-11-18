@@ -104,15 +104,16 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- The connector over a recording volume: its API (clients, DTOs, managers) and the local-directory backend -->
+        <!-- The connector over a recording volume: its API (clients, DTOs, managers), the connector SPI and the local-directory kind -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume-connector</artifactId>
         </dependency>
-        <!-- The volume's Azure Files backend -->
+        <!-- The Azure file share connector kind: found by ServiceLoader at run time, never named by Microscope's code -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>azure-files-connector</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Frontend -->

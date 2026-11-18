@@ -5620,11 +5620,6 @@
             "type": "object"
           },
           "kind": {
-            "enum": [
-              "AZURE_FILES",
-              "LOCAL",
-              null
-            ],
             "type": [
               "string",
               "null"

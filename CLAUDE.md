@@ -14,17 +14,20 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
                                        (…/core/mcp/), the recordings store and downloads (cafe.jeffrey.recordings.core)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
-                                       ConnectorInfo and the sealed ConnectorAddress (AzureFilesAddress |
-                                       LocalDirectoryAddress) in model.connector; the imported recordings' files,
-                                       their kinds (ManagedFile) and RecordingStorageLayout in model.recording)
+                                       ConnectorInfo, ConnectorAddress and ConnectorKind in model.connector, naming
+                                       no kind; the imported recordings' files, their kinds (ManagedFile) and
+                                       RecordingStorageLayout in model.recording)
   microscope-persistence/              microscope core DuckDB (recordings, profiles): repository API + DuckDB impl
   connectors/
     volume-connector/                  the connector over a recording volume (writable or read-only): the client
-                                       interfaces and DTOs (connector.api), the clients (connector.volume) and the
-                                       local-directory backend (connector.local: FilesystemVolume kept inside its
+                                       interfaces and DTOs (connector.api), the clients (connector.volume), the
+                                       connector kinds as ServiceLoader providers (connector.spi: ConnectorProvider,
+                                       found through module-info provides + META-INF/services) and the local kind
+                                       (connector.local: LocalDirectoryAddress, FilesystemVolume kept inside its
                                        root, no link out, read live; for testing and copied trees)
-    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra),
-                                       a module of its own so the Azure SDK stays out of everything else
+    azure-files-connector/             the Azure file share kind (AzureFilesAddress, its provider and settings;
+                                       SMB + NFS, SAS or Entra), a module of its own so the Azure SDK stays out of
+                                       everything else; core-microscope takes it at run time only
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings

@@ -23,8 +23,6 @@ import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
-import cafe.jeffrey.microscope.model.connector.ConnectorKind;
-import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.shared.common.exception.ErrorCode;
 import cafe.jeffrey.shared.common.exception.JeffreyClientException;
@@ -53,7 +51,7 @@ class LocalVolumesTest {
 
     private static final Instant T0 = Instant.parse("2026-02-20T12:00:00Z");
     private static final ProjectScope ORDERS = new ProjectScope("prod", "orders");
-    private static final String DESCRIPTION = ConnectorKind.LOCAL.block();
+    private static final String DESCRIPTION = LocalDirectoryAddress.KIND.block();
 
     @TempDir
     Path root;

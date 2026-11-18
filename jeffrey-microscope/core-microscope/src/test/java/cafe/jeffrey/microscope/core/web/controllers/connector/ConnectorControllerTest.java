@@ -17,12 +17,11 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.connector;
 
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
-import cafe.jeffrey.microscope.model.connector.ConnectorKind;
-import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
+import cafe.jeffrey.microscope.connector.local.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.web.dto.response.ConnectorResponse;
@@ -76,7 +75,7 @@ class ConnectorControllerTest {
                     AzureFilesProtocol.SMB, AzureFilesAuth.SAS, false))).current().connector();
 
             assertEquals("Production", response.name());
-            assertEquals(ConnectorKind.AZURE_FILES, response.kind());
+            assertEquals(AzureFilesAddress.KIND.name(), response.kind());
             assertEquals("https://jeffreyprod.file.core.windows.net/recordings", response.location());
             assertFalse(response.readOnly());
         }
@@ -99,7 +98,7 @@ class ConnectorControllerTest {
                     Path.of("/tmp/jeffrey-volume/../jeffrey-volume"), true))).current().connector();
 
             assertEquals("Scratch", response.name());
-            assertEquals(ConnectorKind.LOCAL, response.kind());
+            assertEquals(LocalDirectoryAddress.KIND.name(), response.kind());
             assertEquals(Path.of("/tmp/jeffrey-volume").toString(), response.location());
             assertTrue(response.readOnly());
         }

@@ -306,7 +306,7 @@ public class ConnectorMcpTools {
                 .nextWhen(probe.reachable(), NextCalls.to(ConnectorCalls.CONNECTOR_SESSIONS).why(SESSIONS_WHY))
                 .guidanceWhen(!probe.reachable(), UNREACHABLE_GUIDANCE)
                 .followUp();
-        ConnectorStatus answer = new ConnectorStatus(state, null, connector.name(), connector.address().kind(),
+        ConnectorStatus answer = new ConnectorStatus(state, null, connector.name(), connector.address().kind().name(),
                 connector.address().identity(), connector.address().readOnly(), probe.version().orElse(null), followUp,
                 uiLink);
         MarkdownTable table = MarkdownTable.withColumns(

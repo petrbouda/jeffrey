@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.core.manager.connector;
+package cafe.jeffrey.microscope.connector.azure;
 
 import org.junit.jupiter.api.Test;
 

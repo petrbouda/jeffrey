@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.model.connector;
+package cafe.jeffrey.microscope.connector.local;
 
 import org.junit.jupiter.api.Test;
 
@@ -54,9 +54,8 @@ class LocalDirectoryAddressTest {
 
         assertEquals("local:" + VOLUME, writable.identity());
         assertEquals(writable.identity(), readOnly.identity());
-        assertNotEquals(writable.identity(),
-                new AzureFilesAddress("https://acct.file.core.windows.net", "share", "", AzureFilesProtocol.SMB,
-                        AzureFilesAuth.SAS, false).identity());
+        assertNotEquals(writable.identity(), new LocalDirectoryAddress(VOLUME.resolve("other"), false).identity());
+        assertTrue(writable.identity().startsWith(LocalDirectoryAddress.KIND.identityPrefix()));
     }
 
     @Test
@@ -67,7 +66,7 @@ class LocalDirectoryAddressTest {
 
     @Test
     void isOfTheLocalKind() {
-        assertEquals(ConnectorKind.LOCAL, new LocalDirectoryAddress(VOLUME, false).kind());
+        assertEquals(LocalDirectoryAddress.KIND, new LocalDirectoryAddress(VOLUME, false).kind());
         assertEquals(VOLUME.toString(), new LocalDirectoryAddress(VOLUME, false).location());
     }
 }

@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.microscope.connector.local;
 
-import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
-
 /**
  * Opens the volume a {@link LocalDirectoryAddress} names. Nothing is checked here: the directory is
  * looked at on every call, so one that is missing now — not created yet, or removed — reads as a
