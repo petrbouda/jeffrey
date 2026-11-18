@@ -18,14 +18,14 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabases;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.shared.persistence.DatabaseLease;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.duckdb.DatabaseLease;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,20 +74,20 @@ class McpProfileContextCacheTest {
     ProfileManagerResolver profileManagerResolver;
 
     @Mock
-    DatabaseManagerResolver databaseManagerResolver;
+    ProfileDatabases profileDatabases;
 
     private McpProfileContextCache newCache() {
         return new McpProfileContextCache(
-                profileManagerResolver, databaseManagerResolver, clock, IDLE_TIMEOUT, false);
+                profileManagerResolver, profileDatabases, clock, IDLE_TIMEOUT, false);
     }
 
     private ProfileManager stubProfile(String profileId) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                profileId, "proj", "ws", "Profile", RecordingEventSource.JFR,
+                profileId, "Profile", RecordingEventSource.JFR,
                 start, start.plusSeconds(60), start, true, false, "rec-1"));
         when(profileManagerResolver.resolve(profileId)).thenReturn(profileManager);
-        when(databaseManagerResolver.acquire(profileManager.info())).thenAnswer(invocation ->
+        when(profileDatabases.acquire(profileManager.info())).thenAnswer(invocation ->
                 new DatabaseLease(mock(DataSource.class), () -> released.add(profileId)));
         return profileManager;
     }
@@ -95,10 +95,10 @@ class McpProfileContextCacheTest {
     private void stubProfileWhoseReleaseFails(String profileId) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                profileId, "proj", "ws", "Profile", RecordingEventSource.JFR,
+                profileId, "Profile", RecordingEventSource.JFR,
                 start, start.plusSeconds(60), start, true, false, "rec-1"));
         when(profileManagerResolver.resolve(profileId)).thenReturn(profileManager);
-        when(databaseManagerResolver.acquire(profileManager.info())).thenAnswer(invocation ->
+        when(profileDatabases.acquire(profileManager.info())).thenAnswer(invocation ->
                 new DatabaseLease(mock(DataSource.class), () -> {
                     throw new IllegalStateException("pool already closed");
                 }));
@@ -206,7 +206,7 @@ class McpProfileContextCacheTest {
             }
 
             assertEquals(1, cache.size());
-            verify(databaseManagerResolver).acquire(profileManager.info());
+            verify(profileDatabases).acquire(profileManager.info());
         }
     }
 
@@ -388,7 +388,7 @@ class McpProfileContextCacheTest {
         void closingWhileAProfileIsBeingResolvedClosesTheCandidateAndRefusesTheCall() throws Exception {
             ProfileManager profileManager = mock(ProfileManager.class);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE, "proj", "ws", "Profile", RecordingEventSource.JFR,
+                    PROFILE, "Profile", RecordingEventSource.JFR,
                     start, start.plusSeconds(60), start, true, false, "rec-1"));
             CountDownLatch resolving = new CountDownLatch(1);
             CountDownLatch continueResolving = new CountDownLatch(1);
@@ -397,7 +397,7 @@ class McpProfileContextCacheTest {
                 assertTrue(continueResolving.await(5, TimeUnit.SECONDS));
                 return profileManager;
             });
-            when(databaseManagerResolver.acquire(profileManager.info())).thenReturn(
+            when(profileDatabases.acquire(profileManager.info())).thenReturn(
                     new DatabaseLease(mock(DataSource.class), () -> released.add(PROFILE)));
             McpProfileContextCache cache = newCache();
             ExecutorService caller = Executors.newSingleThreadExecutor();

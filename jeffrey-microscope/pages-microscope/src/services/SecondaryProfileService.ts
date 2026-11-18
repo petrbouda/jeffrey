@@ -105,15 +105,6 @@ export default class SecondaryProfileService {
     }
   }
 
-  static projectId(): string | null {
-    const profile = SecondaryProfileService.get();
-    if (profile != null) {
-      return profile.projectId;
-    } else {
-      return null;
-    }
-  }
-
   static name(): string | null {
     const profile = SecondaryProfileService.get();
     if (profile != null) {

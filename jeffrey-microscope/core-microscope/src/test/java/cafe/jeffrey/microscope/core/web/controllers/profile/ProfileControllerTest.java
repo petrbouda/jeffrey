@@ -25,8 +25,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 
@@ -98,8 +98,6 @@ class ProfileControllerTest {
     static ProfileInfo sampleProfile() {
         return new ProfileInfo(
                 "p-1",
-                "project-1",
-                "ws-1",
                 "Demo profile",
                 RecordingEventSource.JFR,
                 Instant.parse("2026-04-01T10:00:00Z"),

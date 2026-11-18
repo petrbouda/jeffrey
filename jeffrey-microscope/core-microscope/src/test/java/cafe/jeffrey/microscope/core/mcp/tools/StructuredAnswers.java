@@ -28,11 +28,11 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.ProfileInitStages;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.common.Json;
 import org.springframework.ai.tool.annotation.Tool;
 import tools.jackson.databind.JsonNode;
 

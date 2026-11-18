@@ -24,7 +24,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
-import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.provisioner.CliConstants;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.io.IOException;

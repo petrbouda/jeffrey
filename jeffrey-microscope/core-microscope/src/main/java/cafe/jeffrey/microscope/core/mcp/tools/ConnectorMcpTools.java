@@ -54,26 +54,26 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
-import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.profile.common.operation.OperationHandle;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolHints;
-import cafe.jeffrey.profile.mcp.McpToolMeta;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.McpToolRequirement;
-import cafe.jeffrey.profile.mcp.ToolParamBounds;
-import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
+import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolHints;
+import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
+import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
+import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -306,7 +306,7 @@ public class ConnectorMcpTools {
                 .nextWhen(probe.reachable(), NextCalls.to(ConnectorCalls.CONNECTOR_SESSIONS).why(SESSIONS_WHY))
                 .guidanceWhen(!probe.reachable(), UNREACHABLE_GUIDANCE)
                 .followUp();
-        ConnectorStatus answer = new ConnectorStatus(state, null, connector.name(), connector.address().kind(),
+        ConnectorStatus answer = new ConnectorStatus(state, null, connector.name(), connector.address().kind().name(),
                 connector.address().identity(), connector.address().readOnly(), probe.version().orElse(null), followUp,
                 uiLink);
         MarkdownTable table = MarkdownTable.withColumns(

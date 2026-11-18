@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-module cafe.jeffrey.shared.notifications {
+module cafe.jeffrey.microscope.notification {
     requires jdk.jfr;
     // Transitive: a caller names a Severity constant on every emit, so it would otherwise have to
     // require the events module itself just to say how serious something is.

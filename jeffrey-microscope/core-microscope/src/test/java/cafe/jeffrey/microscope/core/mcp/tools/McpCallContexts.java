@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Duration;

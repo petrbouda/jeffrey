@@ -1,0 +1,113 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.manager.recordings;
+
+import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.Recording;
+
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * Deployment-agnostic recording store operations: groups, uploads, downloaded-recording
+ * persistence, listing, tagging, deletion and file resolution. Contains NO profile/analysis
+ * coupling — profile concerns are layered on top by the deployment (e.g. microscope's
+ * {@code ProfileRecordingsManager}) and via the {@link RecordingProfileCleanup} SPI.
+ */
+public interface RecordingsCoreManager {
+
+    String createGroup(String groupName);
+
+    List<RecordingGroup> listGroups();
+
+    void deleteGroup(String groupId);
+
+    String uploadRecording(String filename, InputStream inputStream, String groupId);
+
+    String importRecordingFromPath(Path path);
+
+    /**
+     * The recording of a single file with this name and size, which is how a file imported before
+     * is recognised: a rewrite that keeps both the name and the size looks the same, and a
+     * different file with the same name and size is taken for it.
+     *
+     * @param fileName    the file's own name, without any directory
+     * @param sizeInBytes the file's size in bytes now
+     * @return the one-file recording of a file with this name and size — one with a profile before
+     *         one without, the newest first within each — otherwise empty
+     */
+    Optional<Recording> findByFileNameAndSize(String fileName, long sizeInBytes);
+
+    /**
+     * Stores a downloaded session as a bundle: its recording files as one recording, each artifact that
+     * can be initialized on its own (a heap dump) as a recording of its own, everything else as
+     * download-only files of the bundle.
+     *
+     * @return the id of the bundle's recording item, the one built from the recording files
+     */
+    String createDownloadedBundle(
+            String bundleName,
+            List<Path> recordingFiles,
+            List<Path> artifactFiles,
+            Map<String, String> originTags);
+
+    /** Adds fetched artifacts to an existing download's bundle, preserving its recording and profiles. */
+    void addDownloadedArtifacts(String recordingId, List<Path> artifacts, Map<String, String> originTags);
+
+    void moveRecordingToGroup(String recordingId, String groupId);
+
+    List<Recording> listRecordings();
+
+    /**
+     * Resolves a single recording by its (globally unique) id, irrespective of project scope. Unlike
+     * {@link #listRecordings()} — which is constrained to the manager's construction-time project scope —
+     * this is the project-agnostic by-id read that backs the global per-recording endpoints (file
+     * download, AI flamegraph export).
+     */
+    Optional<Recording> findRecording(String recordingId);
+
+    Map<String, List<RecordingTag>> tagsForRecordings(Collection<String> recordingIds);
+
+    void deleteRecording(String recordingId);
+
+    Optional<Path> findRecordingFile(String recordingId, String fileId);
+
+    // --- Bundles ---
+
+    /** Every bundle with its download-only files; its members are listed with the recordings. */
+    List<Bundle> listBundles();
+
+    Optional<Bundle> findBundle(String bundleId);
+
+    /** The bundle's member recordings, each with its files. */
+    List<Recording> findBundleMembers(String bundleId);
+
+    void moveBundleToGroup(String bundleId, String groupId);
+
+    /** Deletes the bundle with every member recording, their profiles, and its files. */
+    void deleteBundle(String bundleId);
+
+    /** Where one of the bundle's download-only files sits, if the bundle holds it. */
+    Optional<Path> findBundleFile(String bundleId, String fileId);
+}

@@ -50,7 +50,7 @@ The answers describe this Jeffrey's build — re-record after a change to what t
 The SQL cases (`evals-live/`) run against a real Jeffrey instead, which `--load` prepares: it imports
 the files a recording left in `--work-dir` (or the copies kept in this repository: the checkout runs and the
 dump gzipped beside the tests' recordings, the order history and the persons modes under build/plugin-evals/,
-the persons pair in shared/test) into an empty Jeffrey, under the names the
+the persons pair in jeffrey-microscope/microscope-test) into an empty Jeffrey, under the names the
 mocks carry — the two checkout runs at the commits the live scaffold history gives them
 (`liveCommits`) — and checks the figures those cases' graders name against it. A recording measures those figures
 (`FIGURES`) and rewrites them in the graders, as it does the profile ids.
@@ -87,7 +87,7 @@ ORDERS_RECORDING = Path("build/plugin-evals/order-history.jfr")
 # The real service: two runs of jeffrey-testapp-server, a persons REST service with a database, profiled under
 # load by the provisioner and kept in this repository for the tests (TestappRecording): writing each person
 # out directly, then through a JSON tree. Not recorded by this script — imported as they are.
-PERSONS_RESOURCES = Path("shared/test/src/main/resources/cafe/jeffrey/test/recording/testapp")
+PERSONS_RESOURCES = Path("jeffrey-microscope/microscope-test/src/main/resources/cafe/jeffrey/microscope/test/recording/testapp")
 PERSONS_RECORDINGS = {"personsDirect": PERSONS_RESOURCES / "direct/rec-20261103-191259+0000.jfr",
                       "personsDom": PERSONS_RESOURCES / "dom/rec-20261103-191259+0000.jfr"}
 # The same service in its planted-problem modes (testapp.mode n-plus-one, lock, exceptions), recorded with the
@@ -100,7 +100,7 @@ MODE_RECORDINGS = {"personsNPlusOne": Path("build/plugin-evals/persons-n-plus-on
                    "personsExceptions": Path("build/plugin-evals/persons-exceptions.jfr.gz")}
 # The checkout runs and their heap dump, kept beside the tests' recordings (CheckoutRecording): the files the
 # mocks were first recorded from, byte for byte, the dump gzipped.
-CHECKOUT_RESOURCES = Path("shared/test/src/main/resources/cafe/jeffrey/test/recording/checkout")
+CHECKOUT_RESOURCES = Path("jeffrey-microscope/microscope-test/src/main/resources/cafe/jeffrey/microscope/test/recording/checkout")
 KEPT_RECORDINGS = {"baseline": CHECKOUT_RESOURCES / "checkout-baseline.jfr",
                    "candidate": CHECKOUT_RESOURCES / "checkout-candidate.jfr",
                    "heap": CHECKOUT_RESOURCES / "checkout.hprof.gz",

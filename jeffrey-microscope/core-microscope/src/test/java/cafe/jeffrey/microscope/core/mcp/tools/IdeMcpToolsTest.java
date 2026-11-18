@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -83,7 +83,7 @@ class IdeMcpToolsTest {
     @BeforeEach
     void setUp() {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 RECORDED_AT, RECORDED_AT.plusSeconds(60), RECORDED_AT, true, false, RECORDING_ID));
         when(recordingCommitResolver.resolve(any())).thenReturn(Optional.empty());
         tools = new IdeMcpTools(ideBridge, profileManager, recordingCommitResolver, PROFILE_ID, EVERY_FAMILY);

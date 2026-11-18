@@ -24,12 +24,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ClassLoadingManager;
-import cafe.jeffrey.profile.manager.model.classloading.ClassLoadActivity;
-import cafe.jeffrey.profile.manager.model.classloading.ClassLoaderStat;
-import cafe.jeffrey.profile.manager.model.classloading.ClassLoadingOverview;
-import cafe.jeffrey.profile.manager.model.classloading.RedefinitionData;
-import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.profile.management.manager.ClassLoadingManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.ClassLoadActivity;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.ClassLoaderStat;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.ClassLoadingOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.RedefinitionData;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 import java.util.List;
 

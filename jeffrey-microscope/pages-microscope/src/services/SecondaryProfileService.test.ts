@@ -46,7 +46,6 @@ const OTHER_PRIMARY = 'profile-other';
 function baseline(id: string): ProfileInfo {
   return {
     id,
-    projectId: 'project-1',
     name: `${id}.jfr`,
     createdAt: Date.UTC(2026, 0, 1),
     profilingStartedAt: Date.UTC(2026, 0, 1),

@@ -19,7 +19,7 @@ package cafe.jeffrey.provisioner;
 
 import cafe.jeffrey.provisioner.config.ConfigPaths;
 import cafe.jeffrey.provisioner.feature.JvmFeature;
-import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.provisioner.CliConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

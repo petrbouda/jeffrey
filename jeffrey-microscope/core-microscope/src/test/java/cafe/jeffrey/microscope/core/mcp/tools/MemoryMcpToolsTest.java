@@ -21,13 +21,13 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.memory.AllocationManager;
-import cafe.jeffrey.profile.manager.memory.LeakCandidatesManager;
-import cafe.jeffrey.profile.manager.model.allocation.AllocatedType;
-import cafe.jeffrey.profile.manager.model.allocation.AllocationOverview;
-import cafe.jeffrey.profile.manager.model.leak.LeakCandidate;
-import cafe.jeffrey.profile.manager.model.leak.LeakOverview;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.AllocationManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.LeakCandidatesManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.allocation.AllocatedType;
+import cafe.jeffrey.microscope.profile.management.manager.model.allocation.AllocationOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.leak.LeakCandidate;
+import cafe.jeffrey.microscope.profile.management.manager.model.leak.LeakOverview;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -84,7 +84,7 @@ class MemoryMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.allocationManager()).thenReturn(allocationManager);
         when(profileManager.leakCandidatesManager()).thenReturn(leakCandidatesManager);

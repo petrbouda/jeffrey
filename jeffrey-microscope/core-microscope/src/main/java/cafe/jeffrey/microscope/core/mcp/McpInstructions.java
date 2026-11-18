@@ -16,8 +16,8 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolRequirement;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -17,16 +17,16 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.export.WeightContext;
+import cafe.jeffrey.microscope.profile.management.flamegraph.export.WeightContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.WeightUnit;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -51,7 +51,7 @@ final class ProfileEvidence {
     }
 
     static Identity identity(ProfileInfo info, String commit) {
-        return new Identity(info.id(), info.recordingId(), info.projectId(), info.workspaceId(), info.name(),
+        return new Identity(info.id(), info.recordingId(), info.name(),
                 info.eventSource().name(), commit, info.modified(), info.enabled(),
                 epochMillis(info.createdAt()), epochMillis(info.profilingStartedAt()),
                 epochMillis(info.profilingFinishedAt()), durationMillis(info));
@@ -130,10 +130,6 @@ final class ProfileEvidence {
             String profileId,
             @McpNullable
             String recordingId,
-            @McpNullable
-            String projectId,
-            @McpNullable
-            String workspaceId,
             @McpNullable
             String name,
             String eventSource,

@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.resources.request.SpanFlamegraphOptions;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.resources.request.SpanFlamegraphOptions;
 import cafe.jeffrey.microscope.model.GraphType;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProfilingStartEnd;

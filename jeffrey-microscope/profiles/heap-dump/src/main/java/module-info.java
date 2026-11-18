@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 module cafe.jeffrey.microscope.profile.heapdump {
+    requires transitive cafe.jeffrey.microscope.common;
     requires transitive cafe.jeffrey.shared.common;
-    requires cafe.jeffrey.shared.notifications;
+    requires cafe.jeffrey.microscope.notification;
     requires cafe.jeffrey.microscope.profile.common;
-    requires cafe.jeffrey.shared.persistence;
+    requires cafe.jeffrey.microscope.duckdb;
     requires cafe.jeffrey.jfr.events;
     requires jdk.jfr;
     requires java.sql;
@@ -29,9 +30,9 @@ module cafe.jeffrey.microscope.profile.heapdump {
     requires org.eclipse.collections.impl;
     requires org.lz4.java;
 
-    exports cafe.jeffrey.profile.heapdump.analyzer.heapview;
-    exports cafe.jeffrey.profile.heapdump.model;
-    exports cafe.jeffrey.profile.heapdump.parser;
-    exports cafe.jeffrey.profile.heapdump.view;
-    exports cafe.jeffrey.profile.heapdump.persistence;
+    exports cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview;
+    exports cafe.jeffrey.microscope.profile.heapdump.model;
+    exports cafe.jeffrey.microscope.profile.heapdump.parser;
+    exports cafe.jeffrey.microscope.profile.heapdump.view;
+    exports cafe.jeffrey.microscope.profile.heapdump.persistence;
 }

@@ -20,16 +20,16 @@ package cafe.jeffrey.microscope.core.web;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.common.pipeline.PipelineDefinition;
-import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
-import cafe.jeffrey.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.profile.common.pipeline.StageProgress;
-import cafe.jeffrey.profile.common.pipeline.StageStatus;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineDefinition;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRequest;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.microscope.profile.common.pipeline.StageProgress;
+import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpStages;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
 import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -89,7 +89,7 @@ class MicroscopeRecordingProfileInfoProviderTest {
     }
 
     private static ProfileInfo profileRow(String profileId) {
-        return new ProfileInfo(profileId, null, null, "name-" + profileId, RecordingEventSource.JFR,
+        return new ProfileInfo(profileId, "name-" + profileId, RecordingEventSource.JFR,
                 null, null, CLOCK.instant(), false, false, RECORDING_ID);
     }
 

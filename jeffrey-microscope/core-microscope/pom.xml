@@ -37,6 +37,10 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
         </dependency>
         <dependency>
@@ -56,11 +60,7 @@
         <!-- Platform modules (formerly transitive via platform-core) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-core-sql-persistence</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>recording-storage-api</artifactId>
+            <artifactId>microscope-persistence</artifactId>
         </dependency>
 
         <!-- Profile management (for ProfilesManager, CommonProjectManager, etc.) -->
@@ -108,28 +108,16 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- The connector API: its clients, DTOs and managers -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>connector-api</artifactId>
-        </dependency>
-        <!-- The connectors: the one over a recording volume, and the volume's Azure Files and local-directory backends -->
+        <!-- The connector over a recording volume: its API (clients, DTOs, managers), the connector SPI and the local-directory kind -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume-connector</artifactId>
         </dependency>
+        <!-- The Azure file share connector kind: found by ServiceLoader at run time, never named by Microscope's code -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>azure-files-connector</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>local-connector</artifactId>
-        </dependency>
-        <!-- Recording store + the download machinery that pulls recordings through the connector -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>recordings-core</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Frontend -->
@@ -141,7 +129,7 @@
         <!-- Test -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>test</artifactId>
+            <artifactId>microscope-test</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- McpTestRequests and McpSchemaConformance: the protocol's generic test helpers -->

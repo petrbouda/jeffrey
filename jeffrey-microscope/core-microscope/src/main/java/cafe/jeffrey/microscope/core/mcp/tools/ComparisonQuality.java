@@ -21,11 +21,11 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
 
 import java.time.Clock;
 import java.util.ArrayList;

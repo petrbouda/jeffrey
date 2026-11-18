@@ -34,11 +34,11 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider;
-import cafe.jeffrey.storage.recording.api.file.Bundle;
-import cafe.jeffrey.storage.recording.api.file.BundleFile;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.web.controllers.RecordingsController;
 

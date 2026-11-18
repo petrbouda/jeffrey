@@ -21,20 +21,20 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.Kind;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.State;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.profile.common.analysis.AnalysisResult.Severity;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.profile.model.EventSummaryResult.SingleResult;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult.Severity;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult.SingleResult;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -423,8 +423,6 @@ class IdeRecordingLookupTest {
     private static ProfileInfo profileInfo(RecordingEventSource eventSource) {
         return new ProfileInfo(
                 PROFILE_ID,
-                null,
-                null,
                 "jeffrey-20260904-180108",
                 eventSource,
                 Instant.parse("2026-09-04T18:01:00Z"),

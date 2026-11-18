@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,18 +36,18 @@ import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static cafe.jeffrey.test.recording.TestappRecording.CONNECTION_ACQUIRED;
-import static cafe.jeffrey.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.test.recording.TestappRecording.DOM;
-import static cafe.jeffrey.test.recording.TestappRecording.EXECUTION_SAMPLE;
-import static cafe.jeffrey.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
-import static cafe.jeffrey.test.recording.TestappRecording.JDBC_DELETE;
-import static cafe.jeffrey.test.recording.TestappRecording.JDBC_QUERY;
-import static cafe.jeffrey.test.recording.TestappRecording.JDBC_UPDATE;
-import static cafe.jeffrey.test.recording.TestappRecording.MODE;
-import static cafe.jeffrey.test.recording.TestappRecording.STARTUP_QUERY;
-import static cafe.jeffrey.test.recording.TestappRecording.TO_JSON_TREE;
-import static cafe.jeffrey.test.recording.TestappRecording.TRACE_SPAN;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.CONNECTION_ACQUIRED;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DOM;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_DELETE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_QUERY;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_UPDATE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.MODE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.STARTUP_QUERY;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.TO_JSON_TREE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.TRACE_SPAN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

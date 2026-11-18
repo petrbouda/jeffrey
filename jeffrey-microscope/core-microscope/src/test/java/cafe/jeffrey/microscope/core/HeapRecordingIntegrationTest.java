@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.test.recording.CheckoutRecording;
-import cafe.jeffrey.test.recording.CheckoutRecording.HeapFigures;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.test.recording.CheckoutRecording.HeapFigures;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;

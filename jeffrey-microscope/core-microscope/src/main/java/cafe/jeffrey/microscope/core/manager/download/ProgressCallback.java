@@ -1,0 +1,152 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.manager.download;
+
+import java.util.List;
+
+/**
+ * Callback interface for reporting download progress.
+ * Implementations receive progress updates during file downloads from the connector.
+ */
+public interface ProgressCallback {
+
+    /**
+     * Called when the download starts.
+     *
+     * @param totalFiles total number of files to download
+     * @param totalBytes total bytes to download across all files
+     */
+    void onStart(int totalFiles, long totalBytes);
+
+    /**
+     * Called after start when all files to be downloaded are known.
+     * Allows the UI to show pending files before downloads begin.
+     *
+     * @param pendingFiles list of files that will be downloaded
+     */
+    void onFilesDiscovered(List<FileProgress> pendingFiles);
+
+    /**
+     * Called when a new file starts downloading.
+     *
+     * @param fileName name of the file
+     * @param fileSize size of the file in bytes
+     */
+    void onFileStart(String fileName, long fileSize);
+
+    /**
+     * Called periodically during file download to report progress.
+     * For parallel downloads, fileName identifies which file is being updated.
+     *
+     * @param fileName        name of the file being downloaded
+     * @param bytesDownloaded bytes downloaded so far for this file
+     */
+    void onFileProgress(String fileName, long bytesDownloaded);
+
+    /**
+     * Called when a file has finished downloading.
+     *
+     * @param fileName name of the completed file
+     */
+    void onFileComplete(String fileName);
+
+    /**
+     * Called when a file download fails.
+     * For parallel downloads, other files may continue downloading.
+     *
+     * @param fileName     name of the failed file
+     * @param errorMessage description of the error
+     */
+    void onFileError(String fileName, String errorMessage);
+
+    /**
+     * Called when all files have been downloaded and processing begins.
+     */
+    void onProcessing();
+
+    /**
+     * Called when all files have been downloaded and processed successfully.
+     */
+    void onComplete();
+
+    /**
+     * Called when an error occurs during download.
+     *
+     * @param errorMessage description of the error
+     */
+    void onError(String errorMessage);
+
+    /**
+     * Returns true if the download has been cancelled.
+     * Implementations should check this periodically and abort if true.
+     */
+    boolean isCancelled();
+
+    /**
+     * Reports nothing and cancels nothing, for a download nobody is watching.
+     * <p>
+     * A download started from the MCP tools or from the REST endpoint has no progress channel, and
+     * before this it had a second implementation of the whole transfer instead of a callback that
+     * says nothing — which is how the two drifted into counting their files differently.
+     */
+    static ProgressCallback noop() {
+        return new ProgressCallback() {
+
+            @Override
+            public void onStart(int totalFiles, long totalBytes) {
+            }
+
+            @Override
+            public void onFilesDiscovered(List<FileProgress> pendingFiles) {
+            }
+
+            @Override
+            public void onFileStart(String fileName, long fileSize) {
+            }
+
+            @Override
+            public void onFileProgress(String fileName, long bytesDownloaded) {
+            }
+
+            @Override
+            public void onFileComplete(String fileName) {
+            }
+
+            @Override
+            public void onFileError(String fileName, String errorMessage) {
+            }
+
+            @Override
+            public void onProcessing() {
+            }
+
+            @Override
+            public void onComplete() {
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+            }
+
+            @Override
+            public boolean isCancelled() {
+                return false;
+            }
+        };
+    }
+}

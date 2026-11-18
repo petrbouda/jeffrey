@@ -27,9 +27,9 @@ import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
-import cafe.jeffrey.recordings.core.OriginContext;
-import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.recordings.core.ConnectorRecordingsDownloadManager;
+import cafe.jeffrey.microscope.core.manager.download.OriginContext;
+import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
+import cafe.jeffrey.microscope.core.manager.download.ConnectorRecordingsDownloadManager;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 
 public class ConnectorProjectManager implements ProjectManager {
@@ -38,7 +38,6 @@ public class ConnectorProjectManager implements ProjectManager {
     private final ProjectInfo projectInfo;
     private final RepositoryStatistics repositoryStatistics;
     private final ConnectorClients connectorClients;
-    private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
     private final OriginContext originContext;
     private final ProjectScope scope;
@@ -48,7 +47,6 @@ public class ConnectorProjectManager implements ProjectManager {
             ProjectInfo projectInfo,
             RepositoryStatistics repositoryStatistics,
             ConnectorClients connectorClients,
-            ProfilesManager.Factory profilesManagerFactory,
             RecordingsManager recordingsManager,
             OriginContext originContext) {
 
@@ -56,7 +54,6 @@ public class ConnectorProjectManager implements ProjectManager {
         this.projectInfo = projectInfo;
         this.repositoryStatistics = repositoryStatistics;
         this.connectorClients = connectorClients;
-        this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
         this.originContext = originContext;
         this.scope = ProjectScope.of(projectInfo);
@@ -65,11 +62,6 @@ public class ConnectorProjectManager implements ProjectManager {
     @Override
     public ProjectInfo info() {
         return projectInfo;
-    }
-
-    @Override
-    public ProfilesManager profilesManager() {
-        return profilesManagerFactory.apply(projectInfo);
     }
 
     @Override

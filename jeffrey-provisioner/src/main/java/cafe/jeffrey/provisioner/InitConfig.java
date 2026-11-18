@@ -26,7 +26,7 @@ import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
-import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.provisioner.CliConstants;
 import cafe.jeffrey.shared.common.IDGenerator;
 
 import java.nio.file.Files;

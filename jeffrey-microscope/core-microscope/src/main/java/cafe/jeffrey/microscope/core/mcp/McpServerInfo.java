@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.mcp.tools.OperationTasks;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.profile.mcp.AbstractMcpStreamableHttpController;
-import cafe.jeffrey.profile.mcp.McpToolNames;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.microscope.mcp.server.McpToolNames;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;

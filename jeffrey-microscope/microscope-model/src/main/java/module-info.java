@@ -16,16 +16,13 @@
  */
 module cafe.jeffrey.microscope.model {
     requires transitive cafe.jeffrey.shared.common;
-    requires transitive tools.jackson.core;
-    requires transitive tools.jackson.databind;
-    requires jdk.jfr;
     exports cafe.jeffrey.microscope.model;
     exports cafe.jeffrey.microscope.model.connector;
     exports cafe.jeffrey.microscope.model.repository;
     exports cafe.jeffrey.microscope.model.repository.matcher;
     exports cafe.jeffrey.microscope.model.time;
     exports cafe.jeffrey.microscope.model.workspace;
-    exports cafe.jeffrey.microscope.model.serde;
     exports cafe.jeffrey.microscope.model.settings;
-    exports cafe.jeffrey.microscope.model.jfr;
+    // Microscope's store of imported recordings: their files and bundles, and the catalogue of file kinds (ManagedFile)
+    exports cafe.jeffrey.microscope.model.recording;
 }

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.profile.mcp.McpToolNames;
+import cafe.jeffrey.microscope.mcp.server.McpToolNames;
 
 import java.util.Map;
 import java.util.Set;

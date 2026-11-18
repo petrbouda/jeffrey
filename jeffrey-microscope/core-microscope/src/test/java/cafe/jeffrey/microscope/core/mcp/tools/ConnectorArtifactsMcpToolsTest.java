@@ -30,30 +30,30 @@ import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
+import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.ErrorType;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.storage.recording.api.file.Bundle;
-import cafe.jeffrey.storage.recording.api.file.BundleFile;
-import cafe.jeffrey.recordings.core.OriginContext;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.ErrorType;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.model.recording.FileCategory;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.core.manager.download.OriginContext;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -186,7 +186,7 @@ class ConnectorArtifactsMcpToolsTest {
                 new RecordingTag("origin.projectId", PROJECT_ID),
                 new RecordingTag("origin.recordingId", SESSION_ID))));
         if (profileId != null) {
-            ProfileInfo info = new ProfileInfo(profileId, null, null, profileId, RecordingEventSource.JFR,
+            ProfileInfo info = new ProfileInfo(profileId, profileId, RecordingEventSource.JFR,
                     PROFILE_START, PROFILE_START.plusSeconds(60), NOW, true, false, recordingId);
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(info);
@@ -441,7 +441,7 @@ class ConnectorArtifactsMcpToolsTest {
         void aProfileWithNoStartInstantDoesNotPrintANullZeroPoint() {
             connectorHolds(session(finished("f-jfr", "profile-1.jfr", ManagedFile.JFR)));
             sessionAlreadyDownloadedAs("rec-1", "prof-1");
-            ProfileInfo noStart = new ProfileInfo("prof-1", null, null, "prof-1", RecordingEventSource.JFR,
+            ProfileInfo noStart = new ProfileInfo("prof-1", "prof-1", RecordingEventSource.JFR,
                     null, null, NOW, true, false, "rec-1");
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(noStart);

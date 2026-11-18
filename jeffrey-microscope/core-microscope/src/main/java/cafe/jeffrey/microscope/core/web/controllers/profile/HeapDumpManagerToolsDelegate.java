@@ -17,29 +17,35 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.StringHeapAnalysis;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.LeakSuspectsAnalysis;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.CollectionHeapAnalysis;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.BiggestObjectsAnalysis;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpToolsDelegate;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
-import cafe.jeffrey.profile.heapdump.model.BiggestObjectsReport;
-import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
-import cafe.jeffrey.profile.heapdump.model.ClassInstancesResponse;
-import cafe.jeffrey.profile.heapdump.model.ClassLoaderReport;
-import cafe.jeffrey.profile.heapdump.model.CollectionAnalysisReport;
-import cafe.jeffrey.profile.heapdump.model.ConsumerReport;
-import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
-import cafe.jeffrey.profile.heapdump.model.GCRootPath;
-import cafe.jeffrey.profile.heapdump.model.GCRootSummary;
-import cafe.jeffrey.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.profile.heapdump.model.HeapThreadInfo;
-import cafe.jeffrey.profile.heapdump.model.InstanceDetail;
-import cafe.jeffrey.profile.heapdump.model.InstanceTreeResponse;
-import cafe.jeffrey.profile.heapdump.model.LeakSuspectsReport;
-import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
-import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
-import cafe.jeffrey.profile.heapdump.model.SortBy;
-import cafe.jeffrey.profile.heapdump.model.StringAnalysisReport;
-import cafe.jeffrey.profile.heapdump.view.HprofTag;
-import cafe.jeffrey.profile.heapdump.view.SqlQueryResult;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.heapdump.model.BiggestObjectsReport;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassLoaderReport;
+import cafe.jeffrey.microscope.profile.heapdump.model.CollectionAnalysisReport;
+import cafe.jeffrey.microscope.profile.heapdump.model.ConsumerReport;
+import cafe.jeffrey.microscope.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapThreadInfo;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceDetail;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceTreeResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.LeakSuspectsReport;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryRequest;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.microscope.profile.heapdump.model.SortBy;
+import cafe.jeffrey.microscope.profile.heapdump.model.StringAnalysisReport;
+import cafe.jeffrey.microscope.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.microscope.profile.heapdump.view.SqlQueryResult;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 
 import java.util.List;
 import java.util.Optional;
@@ -92,34 +98,34 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
 
     @Override
     public BiggestObjectsReport getBiggestObjects(int topN) {
-        if (!manager.biggestObjectsExists()) {
+        if (!manager.reportExists(new BiggestObjectsAnalysis())) {
             return null;
         }
-        return manager.getBiggestObjects();
+        return manager.report(new BiggestObjectsAnalysis()).orElse(null);
     }
 
     @Override
     public LeakSuspectsReport getLeakSuspects() {
-        if (!manager.leakSuspectsExists()) {
+        if (!manager.reportExists(new LeakSuspectsAnalysis())) {
             return null;
         }
-        return manager.getLeakSuspects();
+        return manager.report(new LeakSuspectsAnalysis()).orElse(null);
     }
 
     @Override
     public StringAnalysisReport getStringAnalysis() {
-        if (!manager.stringAnalysisExists()) {
+        if (!manager.reportExists(new StringHeapAnalysis())) {
             return null;
         }
-        return manager.getStringAnalysis();
+        return manager.report(new StringHeapAnalysis()).orElse(null);
     }
 
     @Override
     public CollectionAnalysisReport getCollectionAnalysis() {
-        if (!manager.collectionAnalysisExists()) {
+        if (!manager.reportExists(new CollectionHeapAnalysis())) {
             return null;
         }
-        return manager.getCollectionAnalysis();
+        return manager.report(new CollectionHeapAnalysis()).orElse(null);
     }
 
     @Override
@@ -174,17 +180,17 @@ public record HeapDumpManagerToolsDelegate(HeapDumpManager manager) implements H
 
     @Override
     public ClassLoaderReport getClassLoaderAnalysis() {
-        if (!manager.classLoaderAnalysisExists()) {
+        if (!manager.reportExists(new ClassLoaderHeapAnalysis())) {
             return null;
         }
-        return manager.getClassLoaderAnalysis();
+        return manager.report(new ClassLoaderHeapAnalysis()).orElse(null);
     }
 
     @Override
     public ConsumerReport getConsumerReport() {
-        if (!manager.consumerReportExists()) {
+        if (!manager.reportExists(new ConsumerReportAnalysis())) {
             return null;
         }
-        return manager.getConsumerReport();
+        return manager.report(new ConsumerReportAnalysis()).orElse(null);
     }
 }

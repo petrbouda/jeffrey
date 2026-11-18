@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.thread.VirtualThreadManager;
-import cafe.jeffrey.profile.manager.model.virtualthread.VirtualThreadData;
+import cafe.jeffrey.microscope.profile.management.manager.thread.VirtualThreadManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.virtualthread.VirtualThreadData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/virtual-threads")

@@ -21,21 +21,21 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.TraceAttributesManager;
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeKeyRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeSearchResult;
-import cafe.jeffrey.profile.manager.model.trace.TraceAttributeValues;
-import cafe.jeffrey.profile.manager.model.trace.TraceRow;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.provider.profile.api.TraceAttributeCarrier;
-import cafe.jeffrey.provider.profile.api.TraceAttributeOperator;
-import cafe.jeffrey.provider.profile.api.TraceAttributeScope;
-import cafe.jeffrey.provider.profile.api.TraceAttributeSearchQuery;
-import cafe.jeffrey.provider.profile.api.TraceAttributeSource;
-import cafe.jeffrey.provider.profile.api.TraceAttributeValueQuery;
-import cafe.jeffrey.provider.profile.api.TraceAttributeValueSortField;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.TraceAttributesManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceAttributeKeyRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceAttributeSearchResult;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceAttributeValues;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceRow;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeCarrier;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeOperator;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeScope;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeSearchQuery;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeSource;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueQuery;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeValueSortField;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -100,7 +100,7 @@ class TraceAttributesMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.traceAttributesManager()).thenReturn(traceAttributesManager);
     }

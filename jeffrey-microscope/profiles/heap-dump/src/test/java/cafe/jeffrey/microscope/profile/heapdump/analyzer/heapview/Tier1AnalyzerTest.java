@@ -1,0 +1,256 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.ReferrerSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.SortBy;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
+import cafe.jeffrey.microscope.profile.heapdump.parser.HprofIndex;
+import cafe.jeffrey.microscope.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.microscope.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.microscope.profile.heapdump.parser.SyntheticHprof;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class Tier1AnalyzerTest {
+
+    private static final Clock FIXED_CLOCK =
+            Clock.fixed(Instant.ofEpochMilli(1_770_000_000_000L), ZoneOffset.UTC);
+
+    /** Build a representative index — used by every test in this file. */
+    private static HeapView openIndex(Path tmp) throws IOException, SQLException {
+        Path hprof = SyntheticHprof.create("1.0.2", 8, 4242L)
+                .string(0xA001L, "com.example.Foo")
+                .string(0xA002L, "com.example.Bar")
+                .string(0xA003L, "value")
+                .loadClass(1, 0xC001L, 0, 0xA001L)
+                .loadClass(2, 0xC002L, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, 0xC001L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, 0xC002L)
+                        .gcRootJavaFrame(0x1001L, 7, 13)
+                        .gcRootJavaFrame(0x1002L, 7, 14)
+                        .gcRootThreadObject(0x9001L, 1, 1)
+                        .simpleClassDump(0xC001L, 0L, 0xCC00L, 16, 0xA003L)
+                        .simpleClassDump(0xC002L, 0xC001L, 0xCC00L, 24, 0xA003L)
+                        .instanceDump(0x1001L, 0xC001L, new byte[]{0, 0, 0, 1})
+                        .instanceDump(0x1002L, 0xC001L, new byte[]{0, 0, 0, 2})
+                        .instanceDump(0x2001L, 0xC002L, new byte[8])
+                        .instanceDump(0x2002L, 0xC002L, new byte[8])
+                        .instanceDump(0x2003L, 0xC002L, new byte[8])
+                        .primitiveArrayDump(0x3001L, HprofTag.BasicType.INT, new byte[16], 4))
+                .heapDumpEnd()
+                .writeTo(tmp, "tier1.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, FIXED_CLOCK);
+        }
+        return HeapView.open(indexDb);
+    }
+
+    @Nested
+    class Summary {
+
+        @Test
+        void aggregatesTotalsFromTheIndex(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                HeapSummary s = HeapSummaryAnalyzer.analyze(view);
+                assertEquals(6, s.totalInstances(), "5 instance dumps + 1 primitive array");
+                // 2 real CLASS_DUMPs + 8 synthetic primitive-array class rows (boolean[]..long[]).
+                assertEquals(10, s.classCount());
+                assertEquals(5, s.gcRootCount());
+                assertEquals(Instant.ofEpochMilli(4242L), s.timestamp());
+                assertTrue(s.totalBytes() > 0);
+            }
+        }
+    }
+
+    @Nested
+    class Histogram {
+
+        @Test
+        void sortsBySizeDescendingByDefault(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                List<ClassHistogramEntry> hist =
+                        ClassHistogramAnalyzer.analyze(view, 10, SortBy.SIZE);
+                assertTrue(hist.size() >= 2);
+                // Bar has more instances (3) but Foo and Bar both have non-trivial size;
+                // we just assert ordering is by total size descending.
+                for (int i = 1; i < hist.size(); i++) {
+                    assertTrue(hist.get(i - 1).totalSize() >= hist.get(i).totalSize(),
+                            "totalSize must be non-increasing");
+                }
+            }
+        }
+
+        @Test
+        void sortsByCountDescending(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                List<ClassHistogramEntry> hist =
+                        ClassHistogramAnalyzer.analyze(view, 10, SortBy.COUNT);
+                // First non-unknown row should be Bar (3) before Foo (2) before primitive bucket.
+                ClassHistogramEntry top = hist.get(0);
+                assertEquals(3, top.instanceCount(), () -> "expected Bar (3 instances) on top, got: " + top);
+                assertEquals("com.example.Bar", top.className());
+            }
+        }
+
+        @Test
+        void sortsByClassNameAscending(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                List<ClassHistogramEntry> hist =
+                        ClassHistogramAnalyzer.analyze(view, 10, SortBy.CLASS_NAME);
+                for (int i = 1; i < hist.size(); i++) {
+                    assertTrue(hist.get(i - 1).className().compareTo(hist.get(i).className()) <= 0);
+                }
+            }
+        }
+
+        @Test
+        void honorsTopNCap(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                assertEquals(1, ClassHistogramAnalyzer.analyze(view, 1, SortBy.SIZE).size());
+            }
+        }
+
+        @Test
+        void rejectsNonPositiveTopN(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                assertThrows(IllegalArgumentException.class,
+                        () -> ClassHistogramAnalyzer.analyze(view, 0, SortBy.SIZE));
+            }
+        }
+
+        @Test
+        void rejectsNullSortBy(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                assertThrows(IllegalArgumentException.class,
+                        () -> ClassHistogramAnalyzer.analyze(view, 10, null));
+            }
+        }
+
+        @Test
+        void byteArrayEntryCarriesTopReferrerHints(@TempDir Path tmp) throws IOException, SQLException {
+            // Two Holder instances each pointing at their own byte[]. The byte[] histogram
+            // row should declare Holder as the top referrer with ~100% share of byte[] bytes.
+            int idSize = 8;
+            long holderClass = 0xC100L;
+            long holder1 = 0x100L, holder2 = 0x101L, bytes1 = 0x500L, bytes2 = 0x501L;
+
+            Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                    .string(0xA001L, "Holder")
+                    .string(0xA003L, "value")
+                    .loadClass(1, holderClass, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .topLevelObjectClassDump(holderClass, 0xA003L)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder1)
+                            .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder2)
+                            .instanceDump(holder1, holderClass, idBytes(bytes1))
+                            .instanceDump(holder2, holderClass, idBytes(bytes2))
+                            .primitiveArrayDump(bytes1, HprofTag.BasicType.BYTE, new byte[32], 32)
+                            .primitiveArrayDump(bytes2, HprofTag.BasicType.BYTE, new byte[16], 16))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "histogram-byte-referrers.hprof");
+
+            Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+            try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+                HprofIndex.build(file, indexDb, FIXED_CLOCK);
+            }
+            try (HeapView view = HeapView.open(indexDb)) {
+                List<ClassHistogramEntry> hist =
+                        ClassHistogramAnalyzer.analyze(view, 100, SortBy.SIZE);
+                ClassHistogramEntry bytes = hist.stream()
+                        .filter(e -> "byte[]".equals(e.className()))
+                        .findFirst()
+                        .orElseThrow(() -> new AssertionError("byte[] entry missing from histogram"));
+                assertEquals(1, bytes.referrers().size(),
+                        "exactly one referrer class — Holder — should be surfaced");
+                ReferrerSummary top = bytes.referrers().get(0);
+                assertEquals("Holder", top.className());
+                assertEquals(100.0, top.percent(), 0.01,
+                        "Holder accounts for 100% of byte[] bytes — both arrays are held by a Holder");
+
+                // Non-byte[] rows must not carry referrer hints.
+                hist.stream()
+                        .filter(e -> !"byte[]".equals(e.className()))
+                        .forEach(e -> assertTrue(e.referrers().isEmpty(),
+                                "row " + e.className() + " unexpectedly has referrer hints"));
+            }
+        }
+    }
+
+    private static byte[] idBytes(long ref) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            d.writeLong(ref);
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Nested
+    class GcRoots {
+
+        @Test
+        void groupsRootsByDisplayName(@TempDir Path tmp) throws IOException, SQLException {
+            try (HeapView view = openIndex(tmp)) {
+                GCRootSummary summary = GcRootAnalyzer.analyze(view);
+                assertEquals(5, summary.totalRoots());
+                assertEquals(Long.valueOf(2), summary.rootsByType().get("Sticky class"));
+                assertEquals(Long.valueOf(2), summary.rootsByType().get("Java frame"));
+                assertEquals(Long.valueOf(1), summary.rootsByType().get("Thread object"));
+            }
+        }
+
+        @Test
+        void returnsEmptyForIndexWithoutGcRoots(@TempDir Path tmp) throws IOException, SQLException {
+            Path hprof = SyntheticHprof.create("1.0.2", 8, 0L)
+                    .string(0xA001L, "X")
+                    .writeTo(tmp, "no-roots.hprof");
+            Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+            try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+                HprofIndex.build(file, indexDb, FIXED_CLOCK);
+            }
+            try (HeapView view = HeapView.open(indexDb)) {
+                assertEquals(GCRootSummary.EMPTY, GcRootAnalyzer.analyze(view));
+            }
+        }
+    }
+}

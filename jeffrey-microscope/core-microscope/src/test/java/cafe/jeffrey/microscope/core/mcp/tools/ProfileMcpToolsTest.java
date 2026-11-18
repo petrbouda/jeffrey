@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.SourceRevision;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
@@ -29,22 +30,22 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.common.analysis.AnalysisResult;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.AutoAnalysisManager;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.SamplerHealthManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.McpTestToolsets;
-import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.SamplerHealthManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
+import cafe.jeffrey.microscope.mcp.server.ProfileScopedToolset;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 import tools.jackson.databind.JsonNode;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -138,7 +139,7 @@ class ProfileMcpToolsTest {
 
     private void stubProfile(RecordingEventSource eventSource) {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                "p-1", "proj-1", "ws-1", "Checkout run", eventSource,
+                "p-1", "Checkout run", eventSource,
                 START, START.plusSeconds(120), START, true, false, "rec-1"));
         when(profileManager.featuresManager()).thenReturn(featuresManager);
         when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
@@ -202,7 +203,7 @@ class ProfileMcpToolsTest {
         void answersForAProfileWithoutTimestamps() {
             stubProfile(RecordingEventSource.JFR);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-1", "proj-1", "ws-1", "Checkout run", RecordingEventSource.JFR,
+                    "p-1", "Checkout run", RecordingEventSource.JFR,
                     null, null, null, true, false, "rec-1"));
 
             String result = tools().get().text();
@@ -510,7 +511,7 @@ class ProfileMcpToolsTest {
         void getOfAProfileWithoutTimestampsStillConforms() {
             stubProfile(RecordingEventSource.JFR);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-1", null, null, null, RecordingEventSource.JFR, null, null, null, true, false, "rec-1"));
+                    "p-1", null, RecordingEventSource.JFR, null, null, null, true, false, "rec-1"));
 
             JsonNode detail = conforming("get", tools().get());
 
@@ -677,7 +678,7 @@ class ProfileMcpToolsTest {
             stubProfile(RecordingEventSource.HEAP_DUMP);
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
             when(heapDumpManager.isCacheReady()).thenReturn(true);
-            when(heapDumpManager.leakSuspectsExists()).thenReturn(true);
+            when(heapDumpManager.reportExists(new LeakSuspectsAnalysis())).thenReturn(true);
 
             JsonNode areas = conforming("summary", tools().summary()).get("investigationAreas");
 

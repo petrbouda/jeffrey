@@ -46,18 +46,18 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.ProfileInitStages;
-import cafe.jeffrey.profile.common.operation.OperationHandle;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.manager.AutoAnalysisManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -934,7 +934,7 @@ class ExternalMcpControllerTest {
                     Instant.EPOCH.plusSeconds(60), true, PROFILE_ID, "app.jfr", List.of())));
             ProfileManager profile = mock(ProfileManager.class);
             when(profile.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, null, null, "app.jfr", RecordingEventSource.JFR, Instant.EPOCH,
+                    PROFILE_ID, "app.jfr", RecordingEventSource.JFR, Instant.EPOCH,
                     Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, RECORDING_ID));
             when(recordings.profile(PROFILE_ID)).thenReturn(Optional.of(profile));
             // The standard 45 s budget, and the task handed back after a tenth of a second.

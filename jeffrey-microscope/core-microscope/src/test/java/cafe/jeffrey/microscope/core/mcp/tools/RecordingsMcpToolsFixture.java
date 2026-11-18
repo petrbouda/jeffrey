@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
 
 import java.time.Clock;
 

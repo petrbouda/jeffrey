@@ -31,16 +31,17 @@
     <packaging>pom</packaging>
 
     <modules>
+        <module>microscope-common</module>
+        <module>microscope-test</module>
+        <module>duckdb</module>
         <module>microscope-model</module>
         <module>notifications</module>
-        <module>recording-storage-api</module>
         <module>connectors</module>
-        <module>recordings-core</module>
-        <module>microscope-core-persistence-api</module>
-        <module>microscope-core-sql-persistence</module>
+        <module>microscope-persistence</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>
         <module>mcp-protocol</module>
+        <module>mcp-server</module>
         <module>profiles</module>
     </modules>
 
@@ -48,7 +49,7 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>test</artifactId>
+                <artifactId>microscope-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -58,22 +59,17 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>persistence</artifactId>
+                <artifactId>microscope-common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>sql-builder</artifactId>
+                <artifactId>duckdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-core-persistence-api</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-core-sql-persistence</artifactId>
+                <artifactId>microscope-persistence</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>

@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.connector.azure;
 
-import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
 import com.azure.core.http.HttpClient;
 import com.azure.core.http.HttpHeaders;
 import com.azure.core.http.HttpMethod;

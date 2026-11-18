@@ -23,21 +23,21 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
-import cafe.jeffrey.profile.ProfileInitializer;
-import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.provider.profile.api.RecordingInformation;
-import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
-import cafe.jeffrey.provider.profile.api.RecordingSources;
+import cafe.jeffrey.microscope.profile.management.ProfileInitializer;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
-import cafe.jeffrey.storage.recording.api.file.FileCategory;
-import cafe.jeffrey.storage.recording.api.file.Recording;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
+import cafe.jeffrey.microscope.model.recording.FileCategory;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -132,7 +132,7 @@ public final class PipelineProfileBuilder implements ProfileBuilder {
         RecordingInformation recordingInfo = resolveRecordingInformation(recording, sources);
 
         ProfileInfo profileInfo = new ProfileInfo(
-                profileId, null, null, profileName,
+                profileId, profileName,
                 recordingInfo.eventSource(),
                 recordingInfo.recordingStartedAt(),
                 recordingInfo.recordingFinishedAt(),

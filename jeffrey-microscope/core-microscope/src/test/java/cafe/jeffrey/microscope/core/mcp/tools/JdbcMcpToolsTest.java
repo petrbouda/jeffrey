@@ -21,23 +21,23 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.ProfileCustomManager;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.custom.JdbcPoolManager;
-import cafe.jeffrey.profile.manager.custom.JdbcStatementManager;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.PoolConfiguration;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.PoolEventStatistics;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.pool.PoolStatistics;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcGroup;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcHeader;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOperationStats;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcOverviewData;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcSlowStatement;
-import cafe.jeffrey.profile.manager.custom.model.jdbc.statement.JdbcStatementNameStats;
-import cafe.jeffrey.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.JdbcPoolManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.JdbcStatementManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.pool.JdbcPoolData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.pool.PoolConfiguration;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.pool.PoolEventStatistics;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.pool.PoolStatistics;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.statement.JdbcGroup;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.statement.JdbcHeader;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.statement.JdbcOperationStats;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.statement.JdbcOverviewData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.statement.JdbcSlowStatement;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.statement.JdbcStatementNameStats;
+import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -108,7 +108,7 @@ class JdbcMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.custom()).thenReturn(customManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);

@@ -18,25 +18,22 @@
 package cafe.jeffrey.microscope.model.connector;
 
 /**
- * Which storage the one configured connector reads: one constant per configuration block under
- * {@code jeffrey.microscope.connector.*}. On the wire (REST and MCP) it is the constant's name.
+ * Which storage the one configured connector reads, as the provider of that kind names it.
+ *
+ * @param name  what REST and MCP answers carry, e.g. {@code AZURE_FILES}
+ * @param block the configuration block under {@code jeffrey.microscope.connector.*} that declares
+ *              it, e.g. {@code azure-files}; also the prefix of the address's identity
  */
-public enum ConnectorKind {
+public record ConnectorKind(String name, String block) {
 
-    /** An Azure file share, read over the Azure Files REST API. */
-    AZURE_FILES("azure-files"),
-
-    /** A directory on the machine Microscope runs on. */
-    LOCAL("local");
-
-    private final String block;
-
-    ConnectorKind(String block) {
-        this.block = block;
+    public ConnectorKind {
+        if (name == null || name.isBlank() || block == null || block.isBlank()) {
+            throw new IllegalArgumentException("A connector kind needs a name and its configuration block");
+        }
     }
 
-    /** The configuration block that declares it, e.g. {@code azure-files}; also its identity prefix. */
-    public String block() {
-        return block;
+    /** The prefix of an address's identity: the block and a colon, e.g. {@code azure-files:}. */
+    public String identityPrefix() {
+        return block + ":";
     }
 }

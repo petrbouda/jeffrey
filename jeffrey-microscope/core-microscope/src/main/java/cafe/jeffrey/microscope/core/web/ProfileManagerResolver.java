@@ -18,35 +18,21 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 
 import java.util.Optional;
 
 /**
- * Resolves a {@code profileId} to the underlying {@link ProfileManager}.
- * Checks the Recordings store first, then falls back to a direct DB
- * lookup against the microscope-core profile repository.
- *
- * <p>For workspace-scoped profiles, asks the configured connector, the only
- * place such a profile can come from.
+ * Resolves a {@code profileId} to its {@link ProfileManager}. Every profile is built from a recording
+ * and stored in the microscope-core database, so one lookup there answers for all of them.
  */
 public class ProfileManagerResolver {
 
-    private final ConnectorManager connectorManager;
     private final RecordingsManager recordingsManager;
-    private final MicroscopeCoreRepositories localCoreRepositories;
 
-    public ProfileManagerResolver(
-            ConnectorManager connectorManager,
-            RecordingsManager recordingsManager,
-            MicroscopeCoreRepositories localCoreRepositories) {
-        this.connectorManager = connectorManager;
+    public ProfileManagerResolver(RecordingsManager recordingsManager) {
         this.recordingsManager = recordingsManager;
-        this.localCoreRepositories = localCoreRepositories;
     }
 
     public ProfileManager resolve(String profileId) {
@@ -55,21 +41,6 @@ public class ProfileManagerResolver {
     }
 
     public Optional<ProfileManager> find(String profileId) {
-        if (recordingsManager != null) {
-            Optional<ProfileManager> quickProfile = recordingsManager.profile(profileId);
-            if (quickProfile.isPresent()) {
-                return quickProfile;
-            }
-        }
-
-        Optional<ProfileInfo> profileInfoOpt = localCoreRepositories.newProfileRepository(profileId).find();
-        if (profileInfoOpt.isEmpty()) {
-            return Optional.empty();
-        }
-
-        ProfileInfo profileInfo = profileInfoOpt.get();
-        return connectorManager.current()
-                .flatMap(connector -> connector.project(profileInfo.workspaceId(), profileInfo.projectId()))
-                .flatMap(pm -> pm.profilesManager().profile(profileId));
+        return recordingsManager.profile(profileId);
     }
 }

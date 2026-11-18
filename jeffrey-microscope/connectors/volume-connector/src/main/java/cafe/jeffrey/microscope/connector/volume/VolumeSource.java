@@ -18,10 +18,10 @@
 package cafe.jeffrey.microscope.connector.volume;
 
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import cafe.jeffrey.shared.common.exception.JeffreyInternalException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.JeffreyInternalException;
 import cafe.jeffrey.shared.volume.ReadFanOut;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumePath;

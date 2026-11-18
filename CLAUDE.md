@@ -11,36 +11,48 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 ```
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope; its generic
                                        components, services and design tokens in src/shared, imported as @shared)
-  core-microscope/                     REST /api/internal/**, managers, MCP endpoint (…/core/mcp/)
-  microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
-                                       ConnectorInfo and the sealed ConnectorAddress (AzureFilesAddress |
-                                       LocalDirectoryAddress) in model.connector)
-  microscope-core-{persistence-api,sql-persistence}/   microscope core DuckDB (recordings, profiles)
-  connectors/                          Microscope's connectors to outside services; a new connector is a sibling module:
-    connector-api/                     the client interfaces, DTOs and managers every connector answers (ConnectorClients)
-    volume-connector/                  the connector over a recording volume (writable or read-only)
-    azure-files-connector/             the volume's Azure Files backend of WritableVolume (SMB + NFS, SAS or Entra)
-    local-connector/                   the volume's local-directory backend: FilesystemVolume kept inside its root
-                                       (no link out), read live; for testing and copied trees
+  core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
+                                       (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download)
+  microscope-model/                    the domain records two or more Microscope modules share, no Jackson or JFR
+                                       (cafe.jeffrey.microscope.model; ConnectorAddress and ConnectorKind in
+                                       model.connector, naming no kind; the imported recordings' files, their kinds
+                                       (ManagedFile) and RecordingStorageLayout in model.recording)
+  microscope-persistence/              microscope core DuckDB (recordings, profiles): repository API + DuckDB impl
+  connectors/
+    volume-connector/                  the connector over a recording volume (writable or read-only): the client
+                                       interfaces and DTOs (connector.api), the clients (connector.volume), the
+                                       connector kinds as ServiceLoader providers (connector.spi: ConnectorProvider,
+                                       found through module-info provides + META-INF/services) and the local kind
+                                       (connector.local: LocalDirectoryAddress, FilesystemVolume kept inside its
+                                       root, no link out, read live; for testing and copied trees)
+    azure-files-connector/             the Azure file share kind (AzureFilesAddress, its provider and settings;
+                                       SMB + NFS, SAS or Entra), a module of its own so the Azure SDK stays out of
+                                       everything else; core-microscope takes it at run time only
+  microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers, …
+  microscope-test/                     Microscope's test support: @DuckDBTest, RecordedSession (real chunks),
+                                       TestappRecording and CheckoutRecording (real traced runs)
+  duckdb/                              the DuckDB plumbing every Microscope database uses: data sources, pools,
+                                       DatabaseManager, appenders, metrics, the SQL builder (duckdb.sql)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
-  recordings-core/ recording-storage-api/ notifications/
-  profiles/                            analysis modules: profile-management (features + REST), recording-parser/
-                                       (jfr-parser-api, jdk-jfr-parser, raw-jfr-parser, otlp-parser, pprof-parser),
-                                       profile-{persistence-api,sql-persistence}, flamegraph, timeseries, subsecond,
-                                       profile-threads, profile-gc, profile-memory, profile-custom-events, frame-ir,
-                                       heap-dump, heapdump-oql, profile-heapdump-orchestration, common-profile,
-                                       mcp-server (Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile
-                                       scoping, hints, findings)
+  mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
+  notifications/
+  profiles/                            analysis modules: profile-management (every analysis feature, one package
+                                       tree each: flamegraph, frameir, timeseries, subsecond, thread, gc, memory,
+                                       custom events, heap-dump orchestration, …), recording-parser (JFR via the JDK
+                                       and raw chunks, pprof, OTLP), profile-persistence (per-profile DuckDB:
+                                       repository API + impl), common-profile (incl. the JFR model types), heap-dump,
+                                       heapdump-oql
 volume-scheduler/                      one module: VolumeSchedulerApplication (cafe.jeffrey.volumescheduler: config/ (typed
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:
                                        the volume (jeffrey.volume-scheduler.volume.path, required) is its only state
-shared/                                common (utilities + the volume's contract types only), persistence,
-                                       volume (the recording volume's layout read through a storage port:
-                                       folder names are the state: projects/instances/sessions/files; the volume scheduler's reader),
-                                       sql-builder, test (@DuckDBTest, VolumeWriter, RecordedSession: real chunks;
-                                       TestappRecording, CheckoutRecording: real traced runs)
+shared/                                only what Microscope, the volume scheduler and the provisioner all read on the
+                                       volume: common (JeffreyLayout, IDGenerator, EventTypeName, Lz4Compressor,
+                                       FileSystemUtils, Measuring) and volume (the recording volume's layout read
+                                       through a storage port: folder names are the state:
+                                       projects/instances/sessions/files; the volume scheduler's reader; plus
+                                       VolumeWriter, the one writer of a test volume, never imported by production code)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
@@ -78,7 +90,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 ### Inspecting DuckDB files
 - Per-profile DB `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (`events`, `threads`, `event_types`, …); core DB `~/.jeffrey-microscope/jeffrey-data.db`.
 - A running app holds an exclusive lock: **copy the file first** (plus `.wal` if present) and open the copy read-only. No `duckdb` CLI is installed — `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
-- Schema is `CREATE TABLE` in each `V001__init.sql` (`microscope-core-sql-persistence`, `profile-sql-persistence` under `src/main/resources/db/migration/`); edit it in place — the DB is recreated on every startup. JFR event fields reference: https://sap.github.io/jfrevents/
+- Schema is `CREATE TABLE` in each `V001__init.sql` (`microscope-persistence`, `profile-persistence` under `src/main/resources/db/migration/`); edit it in place — there are no migrations and no backward compatibility: Flyway validates the core DB on startup, so an existing data dir is wiped with `./run-microscope.sh --clean` after a schema change. JFR event fields reference: https://sap.github.io/jfrevents/
 
 ## Rules that apply everywhere
 
@@ -101,11 +113,11 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
-- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 117 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 116 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 
-JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `shared/test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
+JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `microscope-test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
 
 ## Git
 

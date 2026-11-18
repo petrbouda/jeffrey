@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileCapabilityGaps.CapabilityGap;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections.SectionAvailability;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 import java.util.Collection;
 import java.util.List;

@@ -20,12 +20,12 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.BlockingManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.model.blocking.BlockingOverview;
-import cafe.jeffrey.profile.manager.model.blocking.ContentionStat;
-import cafe.jeffrey.profile.manager.model.blocking.MonitorWaitStat;
-import cafe.jeffrey.profile.manager.model.blocking.PinnedThreadEntry;
+import cafe.jeffrey.microscope.profile.management.manager.BlockingManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.blocking.BlockingOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.blocking.ContentionStat;
+import cafe.jeffrey.microscope.profile.management.manager.model.blocking.MonitorWaitStat;
+import cafe.jeffrey.microscope.profile.management.manager.model.blocking.PinnedThreadEntry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -80,7 +80,7 @@ class BlockingMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.blockingManager()).thenReturn(blockingManager);
     }

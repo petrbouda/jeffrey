@@ -17,18 +17,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.code.CodeAttribution.LineValue;
-import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
-import cafe.jeffrey.flamegraph.code.CodeAttribution.TierValue;
-import cafe.jeffrey.flamegraph.code.MethodKey;
-import cafe.jeffrey.flamegraph.code.MethodRef;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.LineValue;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.MethodValue;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.TierValue;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodRef;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.model.GraphType;
 import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.profile.common.config.GraphComponents;
-import cafe.jeffrey.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
 
 import java.util.ArrayList;
 import java.util.Arrays;

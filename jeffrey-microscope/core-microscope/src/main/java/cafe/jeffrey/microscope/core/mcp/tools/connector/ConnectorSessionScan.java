@@ -26,8 +26,8 @@ import cafe.jeffrey.microscope.model.ProjectInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

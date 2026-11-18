@@ -239,7 +239,7 @@ the provisioner with async-profiler (wall clock, CPU, allocation, locks) and eve
 runs are the same build in its two modes: `persons direct` writes each person straight out, `persons dom`
 counts the table before every random pick (an extra `count_query` in the `person.pick-id(s)` spans) and
 builds each response as a JSON tree (`person.to-json-tree`). Their files are the ones the Java tests pin
-(`shared/test/src/main/resources/cafe/jeffrey/test/recording/testapp/{direct,dom}/`, `TestappRecording`);
+(`jeffrey-microscope/microscope-test/src/main/resources/cafe/jeffrey/microscope/test/recording/testapp/{direct,dom}/`, `TestappRecording`);
 the recorder imports them as they are and crawls them in a pass of their own. The same service in its other three modes — the baseline with one problem planted each — is
 `persons n-plus-one` (`GET /persons/{count}` loads each person with its own `find_by_id`), `persons lock`
 (every lookup in a `synchronized` method of `LockPersonService`, its monitor held across the database call) and `persons exceptions` (each served
@@ -275,8 +275,8 @@ the new recording's. With `--reuse` it records from the files kept in this repos
 the mocks follow a server change while the recording, and every figure the graders name, stay put:
 
 - the checkout runs and the heap dump (gzipped) beside the tests' recordings, in
-  `shared/test/src/main/resources/cafe/jeffrey/test/recording/checkout/` (`CheckoutRecording`);
-- the persons pair in `shared/test/…/recording/testapp/` (`TestappRecording`);
+  `jeffrey-microscope/microscope-test/src/main/resources/cafe/jeffrey/microscope/test/recording/checkout/` (`CheckoutRecording`);
+- the persons pair in `jeffrey-microscope/microscope-test/…/recording/testapp/` (`TestappRecording`);
 - the order history and the persons modes in `build/plugin-evals/`.
 
 A mock replays what Claude Code hands the model, which for a result with `structuredContent` is that
@@ -288,8 +288,8 @@ What the mocks cannot do, so the cases stay away from it:
 - **State.** A mock answers the same for the same arguments: the heap dump is recorded already
   prepared, and `jvm_autoAnalysis` as not yet computed.
 - **Free-text arguments.** A tool whose required argument is a SQL query or a path other than the
-  recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql`,
-  `jfr_getProfileInfo` and the like are absent from the runs. The SQL cases run against a real Jeffrey
+  recorded heap dump has no mock, so `jfr_executeQuery`, `heap_executeQuery`, `heap_oql` and the
+  like are absent from the runs. The SQL cases run against a real Jeffrey
   for that reason. A name or URI copied from an answer (`http_endpoint`, the trace tools) is relayed,
   above.
 - **A class name with a `$`.** A fixture is keyed by its arguments as a file name, so a nested class

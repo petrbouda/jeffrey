@@ -20,8 +20,7 @@ package cafe.jeffrey.microscope.core.manager.project;
 import cafe.jeffrey.microscope.connector.api.manager.ConnectorInstancesManager;
 
 import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.microscope.core.manager.ProfilesManager;
-import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
+import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.connector.api.manager.RepositoryManager;
 import java.util.function.Function;
 
@@ -30,8 +29,6 @@ public interface ProjectManager {
     @FunctionalInterface
     interface Factory extends Function<ProjectInfo, ProjectManager> {
     }
-
-    ProfilesManager profilesManager();
 
     RecordingsDownloadManager recordingsDownloadManager();
 

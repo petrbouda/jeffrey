@@ -1,0 +1,237 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.mcp.server;
+
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.UnknownToolException;
+import cafe.jeffrey.microscope.common.Json;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class ProfileScopedToolsetTest {
+
+    private final List<String> resolvedProfileIds = new ArrayList<>();
+
+    private final ProfileScopedToolset<SampleTools> toolset = McpTestToolsets.unscoped(
+            SampleTools.class,
+            "sample",
+            profileId -> {
+                resolvedProfileIds.add(profileId);
+                return new SampleTools(profileId);
+            });
+
+    @Nested
+    class Schema {
+
+        @Test
+        void addsProfileIdToEveryTool() {
+            for (McpToolSpec spec : toolset.specs()) {
+                ObjectNode properties = (ObjectNode) spec.inputSchema().get("properties");
+                assertTrue(properties.has(ProfileScopedToolset.PROFILE_ID_ARGUMENT),
+                        "missing profileId on " + spec.name());
+                assertEquals("string",
+                        properties.get(ProfileScopedToolset.PROFILE_ID_ARGUMENT).get("type").asString());
+            }
+        }
+
+        @Test
+        void marksProfileIdRequiredAlongsideTheParametersThatSaidTheyWere() {
+            McpToolSpec spec = specOf("sample_describe");
+            List<String> required = requiredOf(spec);
+            assertTrue(required.contains(ProfileScopedToolset.PROFILE_ID_ARGUMENT));
+            assertTrue(required.contains("suffix"), "a @ToolParam that is required should say so in the schema");
+        }
+
+        @Test
+        void leavesAnOptionalParameterOutOfRequired() {
+            List<String> required = requiredOf(specOf("sample_greet"));
+            assertEquals(List.of(ProfileScopedToolset.PROFILE_ID_ARGUMENT), required);
+        }
+
+        @Test
+        void keepsTheMethodsOwnParameters() {
+            ObjectNode properties = (ObjectNode) specOf("sample_describe").inputSchema().get("properties");
+            assertTrue(properties.has("suffix"));
+            assertEquals("string", properties.get("suffix").get("type").asString());
+        }
+
+        @Test
+        void prefixesToolNames() {
+            List<String> names = toolset.specs().stream().map(McpToolSpec::name).toList();
+            assertTrue(names.contains("sample_describe"));
+        }
+    }
+
+    @Nested
+    class Dispatch {
+
+        @Test
+        void resolvesTheTargetFromTheProfileIdArgument() {
+            String result = toolset.call("sample_describe", Json.createObject()
+                    .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, "profile-1")
+                    .put("suffix", "!"));
+
+            assertEquals("profile-1!", result);
+            assertEquals(List.of("profile-1"), resolvedProfileIds);
+        }
+
+        @Test
+        void resolvesAgainForADifferentProfile() {
+            toolset.call("sample_describe", arguments("profile-1"));
+            toolset.call("sample_describe", arguments("profile-2"));
+
+            assertEquals(List.of("profile-1", "profile-2"), resolvedProfileIds);
+        }
+
+        /**
+         * Which of two mistakes gets reported must not depend on the order they are noticed in. A
+         * value the schema does not accept is the caller's own error whether or not the profile it
+         * named exists, and resolving first answered "profile not found" to a call whose argument was
+         * the thing actually wrong.
+         */
+        @Test
+        void refusesABadArgumentWithoutResolvingTheProfile() {
+            ToolDispatchException e = assertThrows(ToolDispatchException.class,
+                    () -> toolset.call("sample_describe", Json.createObject()
+                            .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, "profile-1")));
+
+            assertTrue(e.getMessage().contains("suffix"), e.getMessage());
+            assertEquals(List.of(), resolvedProfileIds);
+        }
+
+        @Test
+        void rejectsAMissingProfileId() {
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> toolset.call("sample_describe", Json.createObject().put("suffix", "!")));
+            assertEquals("Missing required argument 'profileId'. Expected: "
+                    + "Id of the profile to work on, as listed by profiles_list.", e.getMessage());
+        }
+
+        @Test
+        void rejectsABlankProfileId() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> toolset.call("sample_describe", arguments("   ")));
+        }
+
+        /**
+         * A blank id must fail before the resolver runs: resolving one would either open the wrong
+         * profile or throw an error naming a lookup the caller never asked for.
+         */
+        @Test
+        void doesNotResolveWhenTheProfileIdIsMissing() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> toolset.call("sample_describe", Json.createObject()));
+            assertTrue(resolvedProfileIds.isEmpty());
+        }
+
+        @Test
+        void rejectsAnUnknownTool() {
+            assertThrows(UnknownToolException.class,
+                    () -> toolset.call("sample_missing", arguments("profile-1")));
+        }
+
+        @Test
+        void releasesTheScopedTargetWhenInvocationThrows() {
+            AtomicInteger releases = new AtomicInteger();
+            ProfileScopedToolset<SampleTools> leased = ProfileScopedToolset.leased(
+                    SampleTools.class,
+                    "sample",
+                    profileId -> new ProfileScopedToolset.ScopedTarget<>() {
+                        @Override
+                        public SampleTools target() {
+                            return new SampleTools(profileId);
+                        }
+
+                        @Override
+                        public void close() {
+                            releases.incrementAndGet();
+                        }
+                    });
+
+            assertThrows(IllegalStateException.class,
+                    () -> leased.call("sample_fail", Json.createObject()
+                            .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, "profile-1")));
+
+            assertEquals(1, releases.get());
+        }
+    }
+
+    private static ObjectNode arguments(String profileId) {
+        return Json.createObject()
+                .put(ProfileScopedToolset.PROFILE_ID_ARGUMENT, profileId)
+                .put("suffix", "");
+    }
+
+    private McpToolSpec specOf(String name) {
+        return toolset.specs().stream()
+                .filter(spec -> spec.name().equals(name))
+                .findFirst()
+                .orElseThrow();
+    }
+    private static List<String> requiredOf(McpToolSpec spec) {
+        ArrayNode required = (ArrayNode) spec.inputSchema().get("required");
+        List<String> names = new ArrayList<>();
+        for (JsonNode node : required) {
+            names.add(node.asString());
+        }
+        return names;
+    }
+
+    /**
+     * Stands in for a real profile-scoped tool class: constructed against one profile, then asked a
+     * question that proves which one it was built for.
+     */
+    public static class SampleTools {
+
+        private final String profileId;
+
+        SampleTools(String profileId) {
+            this.profileId = profileId;
+        }
+
+        @Tool(description = "Describe the profile this toolset was resolved for")
+        public String describe(@ToolParam(description = "appended to the answer") String suffix) {
+            return profileId + (suffix == null ? "" : suffix);
+        }
+
+        @Tool(description = "Greet, with everything optional")
+        public String greet(
+                @ToolParam(required = false, description = "who to greet") String name) {
+            return profileId + (name == null ? "" : name);
+        }
+
+        @Tool(description = "Fail after the profile has been resolved")
+        public String fail() {
+            throw new IllegalStateException("failed");
+        }
+    }
+}

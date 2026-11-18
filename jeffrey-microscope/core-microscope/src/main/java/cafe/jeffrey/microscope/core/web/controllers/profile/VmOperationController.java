@@ -24,11 +24,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.VmOperationManager;
-import cafe.jeffrey.profile.manager.model.vmoperation.VmOperationStat;
-import cafe.jeffrey.profile.manager.model.vmoperation.SafepointLatencyData;
-import cafe.jeffrey.profile.manager.model.vmoperation.VmOverview;
-import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.profile.management.manager.VmOperationManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.vmoperation.VmOperationStat;
+import cafe.jeffrey.microscope.profile.management.manager.model.vmoperation.SafepointLatencyData;
+import cafe.jeffrey.microscope.profile.management.manager.model.vmoperation.VmOverview;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 import java.util.List;
 

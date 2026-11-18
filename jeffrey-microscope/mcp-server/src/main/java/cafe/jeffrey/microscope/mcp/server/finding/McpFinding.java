@@ -1,0 +1,191 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.mcp.server.finding;
+
+import cafe.jeffrey.microscope.mcp.protocol.McpJsonObject;
+import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * One judgement a tool made about a profile, in the shape every judging tool shares.
+ * <p>
+ * Most of the MCP surface reports figures and routes — a dashboard, an export, a "where to go next".
+ * A few tools go further and say that something is wrong: the auto-analysis rule set, the container
+ * throttling verdict. Before this record each of them said so in its own shape, and a client reading
+ * three of them had to notice for itself that they described one condition. Now they all emit this,
+ * and {@link McpFindings#merge} can fold them together.
+ * <p>
+ * The fields are the ones a reader needs to check the claim rather than take it on trust:
+ * {@code source} names the tool that made it, {@code evidence} carries the figures it rests on, and
+ * {@code nextTool} is the call, with its arguments, that shows the figures in full. The {@code id} is stable across
+ * tools — {@link McpFindings#id} builds it from the category and the subject — which is what lets two
+ * tools reporting the same condition collapse into one finding, the more severe one surviving.
+ *
+ * @param id       stable identity, {@code category:subject}, for de-duplication across tools
+ * @param severity how much it matters; {@link Severity#OK} is a check that ran and passed
+ * @param category the subsystem — a JMC rule topic such as {@code garbage_collection}, or a family
+ * @param title    the one-line statement
+ * @param detail   the explanation behind it, or null
+ * @param source   the tool that produced it, or null
+ * @param evidence the figures it rests on, in the order they were added. An open object on purpose: each
+ *                 source rests its judgement on different figures, so no schema can list them
+ * @param action   what the source suggests doing about it, or null — a suggestion, not a diagnosis
+ * @param nextTool the call that carries the figures behind the finding in full, with the arguments to
+ *                 pass unchanged, or null when no tool carries them or that tool is not served
+ */
+public record McpFinding(
+        String id,
+        Severity severity,
+        String category,
+        String title,
+        @McpNullable
+        String detail,
+        @McpNullable
+        String source,
+        McpJsonObject evidence,
+        @McpNullable
+        String action,
+        @McpNullable
+        McpNextTool nextTool) {
+
+    /**
+     * Ordered from the most to the least severe, so the ordinal is the sort key and the smaller one
+     * wins a merge.
+     */
+    public enum Severity {
+        CRITICAL,
+        WARNING,
+        INFO,
+        /** A check that ran and found nothing wrong — evidence in its own right, not a non-event. */
+        OK;
+
+        public boolean outranks(Severity other) {
+            return ordinal() < other.ordinal();
+        }
+    }
+
+    public McpFinding {
+        requireText(id, "id");
+        requireText(category, "category");
+        requireText(title, "title");
+        Objects.requireNonNull(severity, "severity is required");
+        // No figures is an empty object, never a null a reader has to guard against.
+        evidence = evidence == null ? McpJsonObject.of(Map.of()) : evidence;
+    }
+
+    /**
+     * This finding without its next call: what a reader is handed when the tool that carries the
+     * figures is not served, so it is never pointed at a call it cannot make.
+     */
+    public McpFinding withoutNextTool() {
+        return new McpFinding(id, severity, category, title, detail, source, evidence, action, null);
+    }
+
+    private static void requireText(String value, String name) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " is required");
+        }
+    }
+
+    /**
+     * Starts a finding about one subject in one category. The subject is what the id is built from,
+     * so two tools describing the same condition have to agree on it — {@code gc:pauses}, not
+     * {@code gc:long-pauses} in one and {@code gc:pause-time} in the other.
+     */
+    public static Builder of(String category, String subject) {
+        return new Builder(category, subject);
+    }
+
+    public static final class Builder {
+
+        private final String category;
+        private final String subject;
+        private Severity severity = Severity.INFO;
+        private String title;
+        private String detail;
+        private String source;
+        // Insertion order is kept on purpose: a builder adds the headline figure first, and a reader
+        // sees the evidence in the order the source thought mattered.
+        private final Map<String, Object> evidence = new LinkedHashMap<>();
+        private String action;
+        private McpNextTool nextTool;
+
+        private Builder(String category, String subject) {
+            this.category = category;
+            this.subject = subject;
+        }
+
+        public Builder severity(Severity severity) {
+            this.severity = severity;
+            return this;
+        }
+
+        public Builder title(String title) {
+            this.title = title;
+            return this;
+        }
+
+        public Builder detail(String detail) {
+            this.detail = detail;
+            return this;
+        }
+
+        public Builder source(String source) {
+            this.source = source;
+            return this;
+        }
+
+        /**
+         * A figure the finding rests on. A null value is skipped rather than written, so a source can
+         * add every figure it has without checking which ones this recording carries.
+         */
+        public Builder evidence(String key, Object value) {
+            if (value != null) {
+                evidence.put(key, value);
+            }
+            return this;
+        }
+
+        public Builder action(String action) {
+            this.action = action;
+            return this;
+        }
+
+        public Builder nextTool(McpNextTool nextTool) {
+            this.nextTool = nextTool;
+            return this;
+        }
+
+        public McpFinding build() {
+            return new McpFinding(
+                    McpFindings.id(category, subject),
+                    severity,
+                    category,
+                    title,
+                    detail,
+                    source,
+                    McpJsonObject.of(evidence),
+                    action,
+                    nextTool);
+        }
+    }
+}

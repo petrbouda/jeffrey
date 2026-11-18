@@ -1,0 +1,36 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+/**
+ * Jeffrey's MCP adapter over the protocol module: the Spring MVC boundary, {@code @Tool} reflection,
+ * profile scoping, the tool hints and the finding convention.
+ */
+module cafe.jeffrey.microscope.mcp.server {
+    requires transitive cafe.jeffrey.microscope.common;
+    requires transitive cafe.jeffrey.microscope.mcp.protocol;
+    requires cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.jfr.events;
+
+    requires spring.ai.model;
+    requires spring.web;
+    requires tools.jackson.databind;
+
+    exports cafe.jeffrey.microscope.mcp.server;
+    exports cafe.jeffrey.microscope.mcp.server.finding;
+
+    opens cafe.jeffrey.microscope.mcp.server to tools.jackson.databind;
+}

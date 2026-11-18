@@ -20,12 +20,12 @@ import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.common.operation.OperationHandle;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
+import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 

@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.test.recording.RecordedSession;
-import cafe.jeffrey.test.volume.VolumeWriter;
+import cafe.jeffrey.microscope.test.recording.RecordedSession;
+import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.convention.TestBean;
@@ -33,7 +33,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.UUID;
 
-import static cafe.jeffrey.test.recording.RecordedSession.CHUNKS;
+import static cafe.jeffrey.microscope.test.recording.RecordedSession.CHUNKS;
 
 /**
  * A booted Microscope over a local volume holding the small real session, shared by every test class

@@ -1,0 +1,331 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.frameir;
+
+
+import cafe.jeffrey.microscope.profile.common.model.FrameType;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.TreeMap;
+
+public class Frame extends TreeMap<String, Frame> {
+    private final String methodName;
+    private final int lineNumber;
+    private final int bci;
+
+    /**
+     * Whether every sample that merged into this node reported {@link #lineNumber}.
+     * <p>
+     * Nodes are keyed by method name, so one node stands for every occurrence of a method at that
+     * point in the tree — a method called from three places in its caller, or a hot loop sampled on
+     * several of its own lines, all merge here and the node keeps whichever line arrived first. That
+     * line is a real line, but it is one of several, and a consumer that presents it as <em>the</em>
+     * location is asserting something the tree does not know.
+     * <p>
+     * Tracking the disagreement costs a boolean and turns "a line" into "the line, when there is only
+     * one" — which is the only form a reader can safely be handed to go and read.
+     */
+    private boolean lineNumberAgreed = true;
+    /**
+     * The frame's class is a JVM hidden class. A property of the frame's name, so every record
+     * merging into this node agrees on it.
+     */
+    private final boolean hidden;
+
+    private FrameType syntheticFrameType;
+
+    // weight can be samples, but also allocated memory
+    private long totalSamples;
+    private long totalWeight;
+    private long selfSamples;
+    private long selfWeight;
+
+    private long c1Samples;
+    private long nativeSamples;
+    private long cppSamples;
+    private long interpretedSamples;
+    private long jitCompiledSamples;
+    private long inlinedSamples;
+    private long kernelSamples;
+    private long unknownSamples;
+
+    private final Frame parent;
+
+    public Frame(Frame parent, String methodName, int lineNumber, int bci) {
+        this(parent, methodName, lineNumber, bci, false);
+    }
+
+    public Frame(Frame parent, String methodName, int lineNumber, int bci, boolean hidden) {
+        this.parent = parent;
+        this.methodName = methodName;
+        this.lineNumber = lineNumber;
+        this.bci = bci;
+        this.hidden = hidden;
+    }
+
+    public void merge(Frame frame) {
+        // Whatever the other node knew about its line comes with it: a node that had already seen
+        // several lines cannot be folded into one that still claims a single location.
+        observeLineNumber(frame.lineNumber);
+        if (!frame.lineNumberAgreed) {
+            lineNumberAgreed = false;
+        }
+
+        totalSamples += frame.totalSamples;
+        totalWeight += frame.totalWeight;
+        selfSamples += frame.selfSamples;
+        selfWeight += frame.selfWeight;
+        c1Samples += frame.c1Samples;
+        nativeSamples += frame.nativeSamples;
+        cppSamples += frame.cppSamples;
+        interpretedSamples += frame.interpretedSamples;
+        jitCompiledSamples += frame.jitCompiledSamples;
+        inlinedSamples += frame.inlinedSamples;
+        kernelSamples += frame.kernelSamples;
+        unknownSamples += frame.unknownSamples;
+    }
+
+    public void increment(FrameType type, long weight, long samples, boolean isTopFrame) {
+        totalSamples += samples;
+        totalWeight += weight;
+
+        if (isTopFrame) {
+            selfSamples += samples;
+            selfWeight += weight;
+        }
+
+        switch (type) {
+            case C1_COMPILED -> c1Samples += samples;
+            case NATIVE -> nativeSamples += samples;
+            case CPP -> cppSamples += samples;
+            case INTERPRETED -> interpretedSamples += samples;
+            case JIT_COMPILED -> jitCompiledSamples += samples;
+            case INLINED -> inlinedSamples += samples;
+            case KERNEL -> kernelSamples += samples;
+            case UNKNOWN -> unknownSamples += samples;
+            case THREAD_NAME_SYNTHETIC,
+                 ALLOCATED_OBJECT_SYNTHETIC,
+                 ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC,
+                 ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC,
+                 BLOCKING_OBJECT_SYNTHETIC,
+                 TRACED_METHOD_SYNTHETIC,
+                 COLLAPSED_SYNTHETIC,
+                 TRUNCATED_SYNTHETIC -> syntheticFrameType = type;
+        }
+    }
+
+    public FrameType frameType() {
+        if (inlinedSamples * 3 >= totalSamples) {
+            return FrameType.INLINED;
+        } else if (c1Samples * 2 >= totalSamples) {
+            return FrameType.C1_COMPILED;
+        } else if (interpretedSamples * 2 >= totalSamples) {
+            return FrameType.INTERPRETED;
+        } else if (cppSamples > 0) {
+            return FrameType.CPP;
+        } else if (kernelSamples > 0) {
+            return FrameType.KERNEL;
+        } else if (nativeSamples > 0) {
+            return FrameType.NATIVE;
+        } else if (unknownSamples > 0) {
+            return FrameType.UNKNOWN;
+        } else if (syntheticFrameType != null) {
+            return syntheticFrameType;
+        } else {
+            return FrameType.JIT_COMPILED;
+        }
+    }
+
+    /**
+     * Path to the current frame in the tree structure (root-first, the root frame itself is excluded).
+     * The path is derived on demand by walking the parent chain instead of being materialized eagerly
+     * on every frame construction.
+     *
+     * @return method names from the first frame below the root down to this frame.
+     */
+    public List<String> framePath() {
+        List<String> path = new ArrayList<>();
+        for (Frame current = this; current.parent != null; current = current.parent) {
+            path.add(current.methodName);
+        }
+        Collections.reverse(path);
+        return List.copyOf(path);
+    }
+
+    public Frame parent() {
+        return parent;
+    }
+
+    public String methodName() {
+        return methodName;
+    }
+
+    /**
+     * Whether this frame's class is a JVM hidden class (JEP 371) -- a lambda proxy, a method-handle
+     * form, an indified string concatenation, and so on.
+     */
+    public boolean hidden() {
+        return hidden;
+    }
+
+    public int lineNumber() {
+        return lineNumber;
+    }
+
+    /**
+     * Whether {@link #lineNumber} is the only line the samples at this node reported.
+     * <p>
+     * False when they disagreed — several call sites, or a method sampled across several of its own
+     * lines. The line is still one that was really seen; it is simply not the whole story, and an
+     * export that cites source locations should omit it rather than pick one.
+     */
+    public boolean lineNumberAgreed() {
+        return lineNumberAgreed;
+    }
+
+    /**
+     * Records what another sample of this same node reported, so the node can tell whether its line
+     * is unanimous. Only positive lines count: a missing line (-1, as an unparsed location or a native
+     * frame gives) is not a contradicting observation, it is no observation at all.
+     */
+    public void observeLineNumber(int observed) {
+        if (observed > 0 && lineNumber > 0 && observed != lineNumber) {
+            lineNumberAgreed = false;
+        }
+    }
+
+    public int bci() {
+        return bci;
+    }
+
+    public long totalSamples() {
+        return totalSamples;
+    }
+
+    public long totalWeight() {
+        return totalWeight;
+    }
+
+    public long inlinedSamples() {
+        return inlinedSamples;
+    }
+
+    public long c1Samples() {
+        return c1Samples;
+    }
+
+    public long jitCompiledSamples() {
+        return jitCompiledSamples;
+    }
+
+    public long interpretedSamples() {
+        return interpretedSamples;
+    }
+
+    public long selfWeight() {
+        return selfWeight;
+    }
+
+    public long selfSamples() {
+        return selfSamples;
+    }
+
+    public int depth(long cutoff, boolean byWeight) {
+        int depth = 0;
+        if (size() > 0) {
+            for (Frame child : values()) {
+                long metric = byWeight ? child.totalWeight : child.totalSamples;
+                if (metric >= cutoff) {
+                    depth = Math.max(depth, child.depth(cutoff, byWeight));
+                }
+            }
+        }
+        return depth + 1;
+    }
+
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof Frame frame)) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+
+        return lineNumber == frame.lineNumber && bci == frame.bci
+                && totalSamples == frame.totalSamples && totalWeight == frame.totalWeight
+                && selfSamples == frame.selfSamples && selfWeight == frame.selfWeight
+                && c1Samples == frame.c1Samples && nativeSamples == frame.nativeSamples
+                && cppSamples == frame.cppSamples && interpretedSamples == frame.interpretedSamples
+                && jitCompiledSamples == frame.jitCompiledSamples && inlinedSamples == frame.inlinedSamples
+                && kernelSamples == frame.kernelSamples && Objects.equals(methodName, frame.methodName)
+                && syntheticFrameType == frame.syntheticFrameType;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + Objects.hashCode(methodName);
+        result = 31 * result + lineNumber;
+        result = 31 * result + bci;
+        result = 31 * result + Objects.hashCode(syntheticFrameType);
+        result = 31 * result + Long.hashCode(totalSamples);
+        result = 31 * result + Long.hashCode(totalWeight);
+        result = 31 * result + Long.hashCode(selfSamples);
+        result = 31 * result + Long.hashCode(selfWeight);
+        result = 31 * result + Long.hashCode(c1Samples);
+        result = 31 * result + Long.hashCode(nativeSamples);
+        result = 31 * result + Long.hashCode(cppSamples);
+        result = 31 * result + Long.hashCode(interpretedSamples);
+        result = 31 * result + Long.hashCode(jitCompiledSamples);
+        result = 31 * result + Long.hashCode(inlinedSamples);
+        result = 31 * result + Long.hashCode(kernelSamples);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Frame{" +
+                "methodName='" + methodName + '\'' +
+                ", lineNumber=" + lineNumber +
+                ", bci=" + bci +
+                ", syntheticFrameType=" + syntheticFrameType +
+                ", totalSamples=" + totalSamples +
+                ", totalWeight=" + totalWeight +
+                ", selfSamples=" + selfSamples +
+                ", selfWeight=" + selfWeight +
+                ", c1Samples=" + c1Samples +
+                ", nativeSamples=" + nativeSamples +
+                ", cppSamples=" + cppSamples +
+                ", interpretedSamples=" + interpretedSamples +
+                ", jitCompiledSamples=" + jitCompiledSamples +
+                ", inlinedSamples=" + inlinedSamples +
+                ", kernelSamples=" + kernelSamples +
+                '}';
+    }
+
+    public static Frame emptyFrame() {
+        return new Frame(null, "-", 0, 0);
+    }
+}

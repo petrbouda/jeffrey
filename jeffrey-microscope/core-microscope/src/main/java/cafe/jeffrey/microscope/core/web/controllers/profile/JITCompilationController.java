@@ -24,12 +24,12 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.event.JITCompilationStats;
-import cafe.jeffrey.profile.common.event.JITLongCompilation;
-import cafe.jeffrey.profile.manager.JITCompilationManager;
-import cafe.jeffrey.profile.manager.model.jit.CodeCacheData;
-import cafe.jeffrey.timeseries.SingleSerie;
-import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.profile.common.event.JITCompilationStats;
+import cafe.jeffrey.microscope.profile.common.event.JITLongCompilation;
+import cafe.jeffrey.microscope.profile.management.manager.JITCompilationManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.jit.CodeCacheData;
+import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 import java.util.List;
 

@@ -19,7 +19,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 
 /**
  * Cursor paging over an engine that pages by offset - the heap index, the trace operations and the

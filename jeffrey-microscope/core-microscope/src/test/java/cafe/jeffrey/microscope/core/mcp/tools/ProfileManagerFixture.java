@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 import org.mockito.quality.Strictness;
 
 import java.time.Instant;
@@ -53,7 +53,7 @@ public final class ProfileManagerFixture {
         // Lenient: these are defaults most tests never reach, and a strict session would call them unused.
         ProfileManager manager = mock(ProfileManager.class,
                 withSettings().defaultAnswer(RETURNS_DEEP_STUBS).strictness(Strictness.LENIENT));
-        when(manager.info()).thenReturn(new ProfileInfo(profileId, "project", "workspace", profileId,
+        when(manager.info()).thenReturn(new ProfileInfo(profileId, profileId,
                 source, STARTED, FINISHED, STARTED, true, false, "recording-" + profileId));
         when(manager.samplerHealthManager().cpuTimeSampleLoss()).thenReturn(CpuTimeSampleLoss.EMPTY);
         when(manager.featuresManager().getDisabledFeatures()).thenReturn(List.of());

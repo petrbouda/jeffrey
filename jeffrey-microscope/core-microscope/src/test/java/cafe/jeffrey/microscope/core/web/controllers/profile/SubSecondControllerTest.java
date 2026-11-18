@@ -24,9 +24,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.SubSecondManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.SubSecondManager;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
@@ -56,8 +57,8 @@ class SubSecondControllerTest {
     void generates() {
         ObjectNode node = JsonNodeFactory.instance.objectNode().put("ok", true);
         when(resolver.resolve("p-1")).thenReturn(profileManager);
-        when(profileManager.info()).thenReturn(new cafe.jeffrey.microscope.model.ProfileInfo(
-                "p-1", "project-1", "ws-1", "Demo", RecordingEventSource.JFR,
+        when(profileManager.info()).thenReturn(new ProfileInfo(
+                "p-1", "Demo", RecordingEventSource.JFR,
                 Instant.parse("2026-04-01T10:00:00Z"),
                 Instant.parse("2026-04-01T10:05:00Z"),
                 Instant.parse("2026-04-01T10:10:00Z"),

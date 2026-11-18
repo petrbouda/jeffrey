@@ -17,10 +17,8 @@
 
 package cafe.jeffrey.shared.common.filesystem;
 
-import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.Json;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -217,20 +215,6 @@ public abstract class FileSystemUtils {
         }
 
         return content;
-    }
-
-    /**
-     * Loads a JSON file from the path and parses it into an object of the specified type. It can also read from
-     * classpath resources if the path starts with "classpath:", or file if the path starts with "file:".
-     *
-     * @param path the path to the JSON file
-     * @param type the type reference for the object to be parsed
-     * @param <T>  the type of the object
-     * @return the parsed object
-     */
-    public static <T> T readJson(String path, TypeReference<T> type) {
-        String content = readString(path);
-        return Json.read(content, type);
     }
 
     private static String readFromFile(String path) {

@@ -21,14 +21,14 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.IoManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.model.io.IoEndpoint;
-import cafe.jeffrey.profile.manager.model.io.IoKind;
-import cafe.jeffrey.profile.manager.model.io.IoOperation;
-import cafe.jeffrey.profile.manager.model.io.IoOverview;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.management.manager.IoManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.io.IoEndpoint;
+import cafe.jeffrey.microscope.profile.management.manager.model.io.IoKind;
+import cafe.jeffrey.microscope.profile.management.manager.model.io.IoOperation;
+import cafe.jeffrey.microscope.profile.management.manager.model.io.IoOverview;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -86,7 +86,7 @@ class IoMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.ioManager()).thenReturn(ioManager);
     }

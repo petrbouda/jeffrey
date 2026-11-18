@@ -21,10 +21,10 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.common.treetable.EventViewerData;
-import cafe.jeffrey.profile.manager.EventViewerManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.provider.profile.api.FieldDescription;
+import cafe.jeffrey.microscope.profile.common.treetable.EventViewerData;
+import cafe.jeffrey.microscope.profile.management.manager.EventViewerManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.persistence.api.FieldDescription;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +80,7 @@ class EventTypeMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.eventViewerManager()).thenReturn(eventViewerManager);
     }

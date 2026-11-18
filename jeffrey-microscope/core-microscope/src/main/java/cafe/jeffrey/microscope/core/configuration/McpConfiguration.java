@@ -43,12 +43,12 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.DatabaseManagerResolver;
-import cafe.jeffrey.shared.common.Schedulers;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabases;
+import cafe.jeffrey.microscope.common.Schedulers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -136,9 +136,9 @@ public class McpConfiguration {
     @Bean(destroyMethod = "close")
     public McpProfileContextCache mcpProfileContextCache(
             ProfileManagerResolver profileManagerResolver,
-            DatabaseManagerResolver databaseManagerResolver,
+            ProfileDatabases profileDatabases,
             Clock applicationClock) {
-        return new McpProfileContextCache(profileManagerResolver, databaseManagerResolver, applicationClock,
+        return new McpProfileContextCache(profileManagerResolver, profileDatabases, applicationClock,
                 McpProfileContextCache.DEFAULT_IDLE_TIMEOUT, SWEEP_IDLE_PROFILE_CONTEXTS);
     }
 

@@ -20,12 +20,12 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 import cafe.jeffrey.microscope.core.mcp.tools.FramePrefixes;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.profile.common.exceptions.ThrowFrame;
-import cafe.jeffrey.profile.common.exceptions.ThrowFrames;
-import cafe.jeffrey.profile.common.exceptions.ThrowOrigin;
-import cafe.jeffrey.profile.manager.model.exceptions.ExceptionSiteStat;
-import cafe.jeffrey.profile.manager.model.exceptions.ThrowAnalysis;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrame;
+import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrames;
+import cafe.jeffrey.microscope.profile.common.exceptions.ThrowOrigin;
+import cafe.jeffrey.microscope.profile.management.manager.model.exceptions.ExceptionSiteStat;
+import cafe.jeffrey.microscope.profile.management.manager.model.exceptions.ThrowAnalysis;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.Comparator;
 import java.util.List;

@@ -31,6 +31,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>cafe.jeffrey</groupId>
             <artifactId>notifications</artifactId>
         </dependency>

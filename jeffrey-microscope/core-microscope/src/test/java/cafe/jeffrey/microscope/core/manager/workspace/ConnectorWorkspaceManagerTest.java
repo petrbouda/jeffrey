@@ -23,26 +23,24 @@ import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.InstancesClient;
 import cafe.jeffrey.microscope.connector.api.ProjectsClient;
 import cafe.jeffrey.microscope.connector.api.RepositoryClient;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
+import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
-import cafe.jeffrey.microscope.persistence.api.WorkspaceRepository;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
 class ConnectorWorkspaceManagerTest {
 
@@ -51,7 +49,6 @@ class ConnectorWorkspaceManagerTest {
             new WorkspaceInfo("ws-1", "prod", "prod", "Production", null, null, NOW, WorkspaceStatus.AVAILABLE);
 
     private final DiscoveryClient discovery = mock(DiscoveryClient.class);
-    private final WorkspaceRepository workspaceRepository = mock(WorkspaceRepository.class);
 
     private ConnectorWorkspaceManager managerOn(boolean readOnly) {
         ConnectorInfo connector = new ConnectorInfo("Share", new AzureFilesAddress(
@@ -59,28 +56,29 @@ class ConnectorWorkspaceManagerTest {
                 readOnly));
         ConnectorClients clients = new ConnectorClients(discovery, mock(RepositoryClient.class), mock(FileStreamClient.class),
                 mock(InstancesClient.class), mock(ProjectsClient.class));
-        return new ConnectorWorkspaceManager(mock(MicroscopeJeffreyDirs.class), connector, WORKSPACE, workspaceRepository,
-                clients, mock(ConnectorProjectManagerFactory.class));
+        return new ConnectorWorkspaceManager(connector, WORKSPACE, clients, mock(ConnectorProjectManagerFactory.class));
     }
 
-    /**
-     * The connector delete is best-effort, so a refusal there would still wipe this workspace's local
-     * profiles and answer success: a read-only source is refused before anything is touched.
-     */
+    /** The connector delete is best-effort and answers success either way, so a read-only source is refused up front. */
     @Test
-    void refusesOnAReadOnlySourceBeforeTouchingAnythingLocal() {
+    void refusesOnAReadOnlySourceWithoutCallingIt() {
         assertThrows(JeffreyClientException.class, () -> managerOn(true).delete());
 
-        verifyNoInteractions(discovery, workspaceRepository);
+        verifyNoInteractions(discovery);
     }
 
     @Test
-    void deletesOnTheSourceAndThenLocallyWhenTheSourceMayBeChanged() {
-        when(workspaceRepository.delete()).thenReturn(List.of());
-
+    void deletesOnTheSourceWhenTheSourceMayBeChanged() {
         managerOn(false).delete();
 
         verify(discovery).deleteWorkspace("ws-1");
-        verify(workspaceRepository).delete();
+    }
+
+    /** Best-effort: a failing source must not turn the delete into an error for the caller. */
+    @Test
+    void swallowsAFailureOnTheSource() {
+        doThrow(new IllegalStateException("share unreachable")).when(discovery).deleteWorkspace("ws-1");
+
+        assertDoesNotThrow(() -> managerOn(false).delete());
     }
 }

@@ -23,10 +23,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 
@@ -101,7 +101,7 @@ class ProfileFeaturesControllerTest {
 
     private static ProfileInfo profileInfo(RecordingEventSource eventSource) {
         return new ProfileInfo(
-                "p-1", "proj-1", "ws-1", "profile", eventSource,
+                "p-1", "profile", eventSource,
                 Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "rec-1");
     }
 }

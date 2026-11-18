@@ -23,8 +23,8 @@ import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.mcp.McpToolMetrics;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.server.McpToolMetrics;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Clock;

@@ -1,0 +1,347 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.view;
+
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpDatabaseClient;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.stream.Stream;
+import cafe.jeffrey.microscope.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.DuckDbHeapView;
+
+/**
+ * Read-side façade over a heap-dump index DB.
+ * <p>
+ * Replaces the consumer-side surface that the rewritten analyzers will use in
+ * place of NetBeans' {@code org.netbeans.lib.profiler.heap.Heap}. Methods that
+ * return bounded result sets ({@link #classes()}, {@link #gcRoots()}, the
+ * histogram) hand back lists; methods that may scan the full instance table
+ * return {@link Stream} and must be closed by the caller via try-with-resources.
+ * <p>
+ * Implementations are read-only: the underlying DuckDB connection is opened in
+ * {@code access_mode=read_only} so multiple {@link HeapView} instances can run
+ * concurrently against the same index.
+ */
+public interface HeapView extends AutoCloseable {
+
+    /**
+     * Opens a {@link HeapView} over the given index DB file. The file must
+     * already have been built by {@link cafe.jeffrey.microscope.profile.heapdump.parser.HprofIndex#build}; no schema is
+     * applied here. Field-value reading methods will throw because no .hprof
+     * is attached.
+     */
+    static HeapView open(Path indexDbPath) throws SQLException, IOException {
+        return DuckDbHeapView.open(indexDbPath, null);
+    }
+
+    /**
+     * Opens a {@link HeapView} with both the index DB and the source .hprof
+     * attached. Field-value reading and any operation that touches raw
+     * instance bytes requires this overload.
+     */
+    static HeapView open(Path indexDbPath, HprofMappedFile hprof) throws SQLException, IOException {
+        return DuckDbHeapView.open(indexDbPath, hprof);
+    }
+
+    DumpMetadata metadata() throws SQLException;
+
+    // ---- Class queries ---------------------------------------------------
+
+    List<JavaClassRow> classes() throws SQLException;
+
+    Optional<JavaClassRow> findClassById(long classId) throws SQLException;
+
+    List<JavaClassRow> findClassesByName(String name) throws SQLException;
+
+    // ---- Instance queries ------------------------------------------------
+
+    /**
+     * Streams every instance whose {@code class_id} equals the given id, in
+     * primary-key order. The returned stream owns a JDBC ResultSet and
+     * <strong>must be closed</strong> by the caller (try-with-resources).
+     */
+    Stream<InstanceRow> instances(long classId) throws SQLException;
+
+    /**
+     * The same stream as {@link #instances(long)}, starting at the instance {@code fromInstanceId}
+     * (or the first one after it): where a query that pages through a class's instances resumes,
+     * without reading the ones before. Must be closed by the caller.
+     */
+    Stream<InstanceRow> instancesFrom(long classId, long fromInstanceId) throws SQLException;
+
+    Optional<InstanceRow> findInstanceById(long instanceId) throws SQLException;
+
+    long instanceCount(long classId) throws SQLException;
+
+    /**
+     * Total instances across the whole heap.
+     */
+    long totalInstanceCount() throws SQLException;
+
+    /**
+     * Sum of {@code shallow_size} across all instances.
+     */
+    long totalShallowSize() throws SQLException;
+
+    long classCount() throws SQLException;
+
+    // ---- GC roots --------------------------------------------------------
+
+    List<GcRootRow> gcRoots() throws SQLException;
+
+    boolean isGcRoot(long instanceId) throws SQLException;
+
+    /**
+     * Reads the trace serial explicitly named by a ROOT_THREAD_OBJECT at its indexed body offset.
+     * Empty when the source dump is not attached. This supplements existing indexes without
+     * rebuilding them: their gc_root rows already retain the required file offset.
+     */
+    default OptionalInt threadRootTraceSerial(long fileOffset) {
+        return OptionalInt.empty();
+    }
+
+    long gcRootCount() throws SQLException;
+
+    // ---- Reference graph -------------------------------------------------
+
+    /**
+     * All outbound references from {@code instanceId}.
+     */
+    List<OutboundRefRow> outboundRefs(long instanceId) throws SQLException;
+
+    /**
+     * All inbound references to {@code instanceId}. Cheap thanks to the index on target_id.
+     */
+    List<OutboundRefRow> inboundRefs(long instanceId) throws SQLException;
+
+    /**
+     * Count of outbound references — cheap whole-graph metric.
+     */
+    long outboundRefCount() throws SQLException;
+
+    // ---- Dominator tree + retained size (populated by DominatorTreeBuilder) ----
+
+    /**
+     * Returns the immediate dominator id of {@code instanceId}, or 0L when
+     * the instance is directly rooted at the virtual root, or -1 when no
+     * dominator entry exists (dominator tree not built / instance unreachable).
+     */
+    long dominatorOf(long instanceId) throws SQLException;
+
+    /**
+     * Retained size in bytes, or 0 if not computed. Convenience wrapper for
+     * callers that don't need to distinguish "0 bytes retained" from "no row
+     * yet". For that distinction, use {@link #findRetainedSize(long)}.
+     */
+    default long retainedSize(long instanceId) throws SQLException {
+        return findRetainedSize(instanceId).orElse(0L);
+    }
+
+    /**
+     * True iff the dominator + retained_size tables have been populated by the current dominator
+     * build. A tree an older build wrote reads as not built, so whatever builds on demand builds it
+     * again.
+     */
+    boolean hasDominatorTree() throws SQLException;
+
+    /** The persisted input-tree version, including an empty build; 0 for an unversioned or unbuilt tree. */
+    long dominatorTreeVersion() throws SQLException;
+
+    /**
+     * Runs a read-only SQL query against the index and returns at most {@code maxRows} rows.
+     * <p>
+     * The purpose-built methods above answer the questions Jeffrey knows to ask. This is for the ones
+     * it does not: a correlation between two tables, a grouping nothing on the interface exposes, a
+     * question a reader thought of that no analyzer anticipated. The index is a real DuckDB database
+     * with a documented schema, and there is no reason to make that unreachable.
+     * <p>
+     * What confines the query is the connection rather than the statement: the view opens the index
+     * read-only with external file access and extension loading turned off, so no spelling of a
+     * {@code SELECT} reaches the host filesystem. Implementations are expected to refuse anything that
+     * is not a single {@code SELECT} or {@code WITH} as well, so that an attempted write comes back as
+     * a sentence rather than an engine error.
+     *
+     * @param sql     a single {@code SELECT} or {@code WITH} statement
+     * @param maxRows the most rows to read; the result says whether there were more
+     * @throws SQLException             if the query fails
+     * @throws IllegalArgumentException if the statement is not a single read-only query
+     */
+    SqlQueryResult query(String sql, int maxRows) throws SQLException;
+
+    // ---- Class fields + instance values ----------------------------------
+
+    /**
+     * The instance field descriptors for the given class (this class only,
+     * not inherited), in declaration order.
+     */
+    List<InstanceFieldDescriptor> instanceFields(long classId) throws SQLException;
+
+    /**
+     * The full instance field list for the class, walked most-derived-first
+     * across the super-class chain. Matches the layout of an INSTANCE_DUMP's
+     * field byte block.
+     */
+    List<InstanceFieldDescriptor> instanceFieldsWithChain(long classId) throws SQLException;
+
+    /**
+     * Decodes all instance field values for the given object. Requires that
+     * the {@link HeapView} was opened with an attached .hprof file
+     * ({@link #open(Path, HprofMappedFile)}); otherwise throws
+     * {@link IllegalStateException}.
+     */
+    List<InstanceFieldValue> readInstanceFields(long instanceId) throws SQLException;
+
+    /**
+     * The same decoded field values as {@link #readInstanceFields(long)}, for an instance the caller
+     * already holds as a row -- a page or a list read in one query, with {@link InstanceColumns} --
+     * so decoding it costs no lookup of its own. Requires an attached .hprof.
+     */
+    List<InstanceFieldValue> readInstanceFields(InstanceRow instance) throws SQLException;
+
+    /**
+     * Returns the raw payload bytes of a PRIMITIVE_ARRAY_DUMP. Caller decodes
+     * according to the instance's {@code primitiveType}. Requires an attached
+     * .hprof. Returns empty bytes if the instance is not a primitive array.
+     */
+    byte[] readPrimitiveArrayBytes(long instanceId) throws SQLException;
+
+    /**
+     * Bounded-read variant of {@link #readPrimitiveArrayBytes(long)} that copies
+     * at most {@code maxBytes} from the start of the array's payload. Use this
+     * when you only need a prefix (e.g. a 200-char String preview) and want to
+     * avoid the multi-megabyte allocation a full read would cost on a large
+     * array. {@code maxBytes <= 0} returns an empty array.
+     */
+    byte[] readPrimitiveArrayBytes(long instanceId, int maxBytes) throws SQLException;
+
+    /**
+     * The same bounded read as {@link #readPrimitiveArrayBytes(long, int)}, for an array the caller
+     * already holds as a row, so reading it costs no lookup of its own. Empty bytes for anything but
+     * a primitive array.
+     */
+    byte[] readPrimitiveArrayBytes(InstanceRow array, int maxBytes);
+
+    /**
+     * Returns the raw on-disk content bytes for any instance — INSTANCE_DUMP
+     * field block, OBJECT_ARRAY_DUMP element ids, or PRIMITIVE_ARRAY_DUMP
+     * payload. Requires an attached .hprof.
+     */
+    byte[] readInstanceContentBytes(long instanceId) throws SQLException;
+
+    /**
+     * Fast-path overload of {@link #readInstanceContentBytes(long)} that
+     * skips the {@code findInstanceById} round-trip. The caller already holds
+     * a fully populated {@link InstanceRow} (typically from streaming a
+     * batched query) with {@code fileOffset}, {@code kind}, {@code shallowSize}
+     * and {@code arrayLength} resolved — those fields are sufficient to read
+     * the bytes directly from the mmap. Use this in hot loops where the
+     * outer {@code SELECT} already returned everything needed.
+     */
+    byte[] readInstanceContentBytes(InstanceRow row);
+
+    /**
+     * Opens a fresh independent {@link HeapView} that shares this view's
+     * underlying index DB and {@link HprofMappedFile}. The returned view owns
+     * its own DuckDB connection and is independently closeable. Used by
+     * analyzers that fan out work across virtual threads: the index DB is
+     * opened in {@code access_mode=read_only} so multiple connections are
+     * safe, and the mmap is backed by a shared {@link java.lang.foreign.Arena}
+     * so concurrent reads from different threads are lock-free.
+     */
+    HeapView openReadOnlyCopy() throws SQLException, IOException;
+
+    // ---- String pool -----------------------------------------------------
+
+    Optional<String> findString(long stringId) throws SQLException;
+
+    // ---- Decoded java.lang.String content (materialised at index time) ---
+
+    /**
+     * Returns the decoded text content of a {@code java.lang.String} instance
+     * if it was materialised during indexing and falls within the configured
+     * content-length cap. Returns empty when the instance isn't a String, the
+     * String exceeded the cap (in which case the row exists but its content
+     * is {@code NULL}), or when no row exists at all.
+     */
+    Optional<String> findStringContent(long instanceId) throws SQLException;
+
+    /**
+     * {@link #findStringContent(long)} for many instances in one query, keyed by instance id: an id
+     * with no content to show is absent from the map. What it learns is remembered by the same
+     * session cache, so a later {@code findStringContent} of one of these ids costs nothing.
+     */
+    Map<Long, String> findStringContents(Collection<Long> instanceIds) throws SQLException;
+
+    /**
+     * Looks up the GC-retained size of an instance from the {@code
+     * retained_size} table populated by the dominator phase. Returns empty
+     * when no row exists yet (e.g. before the dominator pass has run, or for
+     * instances the pass did not visit). For the convenience "0 when missing"
+     * form, use {@link #retainedSize(long)}.
+     */
+    Optional<Long> findRetainedSize(long instanceId) throws SQLException;
+
+    // ---- Aggregate -------------------------------------------------------
+
+    /**
+     * Class histogram: per-class instance count and total shallow size,
+     * ordered by total descending. Implemented by SQL aggregation against
+     * the {@code instance} table — no per-row Java work.
+     */
+    List<HistogramRow> classHistogram() throws SQLException;
+
+    /**
+     * Reads a 4-byte big-endian {@code int} at the given absolute file
+     * offset directly from the attached {@code .hprof}. Used by analyzers
+     * that need to peek into specific instance-field byte positions
+     * without paying the SQL + full-field-block decode cost of
+     * {@link #readInstanceFields(long)}. Requires the view to have been
+     * opened with an attached {@code HprofMappedFile}.
+     */
+    int readInt(long fileOffset) throws SQLException;
+
+    /**
+     * Reads a big-endian {@code long} straight from the mapped {@code .hprof}
+     * at an absolute file offset. Same contract as {@link #readInt(long)}.
+     */
+    long readLong(long fileOffset) throws SQLException;
+
+    // ---- Escape hatch ----------------------------------------------------
+
+    /**
+     * The JFR-instrumented client for analyzer SQL. Every query that goes
+     * through this client emits a {@code JdbcQueryEvent} /
+     * {@code JdbcStreamEvent} tagged with {@code group=heap_dump_view}.
+     *
+     * <p>Use {@code databaseClient().connection()} when an analyzer needs raw
+     * JDBC for an ad-hoc query that doesn't map cleanly to the typed helpers
+     * (queryScalar / queryList / queryStream / rawStream). The intent is that
+     * raw access remains available but is a deliberate step through the
+     * instrumented client rather than a silent bypass.
+     */
+    HeapDumpDatabaseClient databaseClient();
+
+    @Override
+    void close();
+}

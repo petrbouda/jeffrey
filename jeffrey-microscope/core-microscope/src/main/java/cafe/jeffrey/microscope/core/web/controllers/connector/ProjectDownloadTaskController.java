@@ -30,13 +30,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import cafe.jeffrey.recordings.core.RecordingsDownloadManager;
-import cafe.jeffrey.recordings.core.ConnectorRecordingsDownloadManager;
-import cafe.jeffrey.recordings.core.download.DownloadProgress;
-import cafe.jeffrey.recordings.core.download.DownloadTask;
-import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
-import cafe.jeffrey.shared.common.Schedulers;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
+import cafe.jeffrey.microscope.core.manager.download.DownloadProgress;
+import cafe.jeffrey.microscope.core.manager.download.DownloadTask;
+import cafe.jeffrey.microscope.core.manager.download.DownloadTaskRegistry;
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.DownloadProgressResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.DownloadTaskResponse;
@@ -48,7 +47,7 @@ import java.util.function.Consumer;
 
 /**
  * Downloads a connector project's recordings (SSE). Downloads run on the shared virtual-thread
- * executor and report progress via the shared {@link DownloadTaskRegistry}.
+ * executor and report progress via the {@link DownloadTaskRegistry} bean.
  */
 @RestController
 @RequestMapping("/api/internal/connector/workspaces/{workspaceId}/projects/{projectId}/download")
@@ -58,10 +57,11 @@ public class ProjectDownloadTaskController {
     private static final long SSE_TIMEOUT_MS = 0L; // never time out by Spring
 
     private final ProjectManagerResolver resolver;
-    private final DownloadTaskRegistry taskRegistry = DownloadTaskRegistry.getInstance();
+    private final DownloadTaskRegistry taskRegistry;
 
-    public ProjectDownloadTaskController(ProjectManagerResolver resolver) {
+    public ProjectDownloadTaskController(ProjectManagerResolver resolver, DownloadTaskRegistry taskRegistry) {
         this.resolver = resolver;
+        this.taskRegistry = taskRegistry;
     }
 
     @PostMapping(value = "/start",
@@ -157,23 +157,9 @@ public class ProjectDownloadTaskController {
     }
 
     private CompletableFuture<Void> startDownloadAsync(DownloadTask task, RecordingsDownloadManager downloadManager) {
-        if (downloadManager instanceof ConnectorRecordingsDownloadManager connectorManager) {
-            return CompletableFuture.runAsync(() -> {
-                try {
-                    connectorManager.downloadRecordingsWithProgress(
-                            task.getSessionId(), task.getFileIds(), task);
-                } catch (Exception e) {
-                    LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
-                    task.onError(e.getMessage());
-                    throw e;
-                }
-            }, Schedulers.sharedVirtual());
-        }
         return CompletableFuture.runAsync(() -> {
             try {
-                task.onStart(task.getFileIds().size(), 0);
-                downloadManager.downloadRecordings(task.getSessionId(), task.getFileIds());
-                task.onComplete();
+                downloadManager.downloadRecordingsWithProgress(task.getSessionId(), task.getFileIds(), task);
             } catch (Exception e) {
                 LOG.error("Download failed: taskId={} error={}", task.getTaskId(), e.getMessage(), e);
                 task.onError(e.getMessage());

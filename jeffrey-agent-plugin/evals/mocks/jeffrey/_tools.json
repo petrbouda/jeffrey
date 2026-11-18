@@ -67,18 +67,6 @@
         "nameTruncated": {
          "type": "boolean"
         },
-        "projectId": {
-         "type": [
-          "string",
-          "null"
-         ]
-        },
-        "workspaceId": {
-         "type": [
-          "string",
-          "null"
-         ]
-        },
         "eventSource": {
          "type": [
           "string",
@@ -120,8 +108,6 @@
         "recordingId",
         "name",
         "nameTruncated",
-        "projectId",
-        "workspaceId",
         "eventSource",
         "recordedEpochMs",
         "durationMs",
@@ -602,18 +588,6 @@
          "null"
         ]
        },
-       "projectId": {
-        "type": [
-         "string",
-         "null"
-        ]
-       },
-       "workspaceId": {
-        "type": [
-         "string",
-         "null"
-        ]
-       },
        "name": {
         "type": [
          "string",
@@ -665,8 +639,6 @@
       "required": [
        "profileId",
        "recordingId",
-       "projectId",
-       "workspaceId",
        "name",
        "eventSource",
        "recordingCommit",
@@ -1043,12 +1015,6 @@
           "null"
          ]
         },
-        "source": {
-         "type": [
-          "string",
-          "null"
-         ]
-        },
         "samples": {
          "type": "integer",
          "minimum": 0
@@ -1084,7 +1050,6 @@
        "required": [
         "eventType",
         "label",
-        "source",
         "samples",
         "weight",
         "weightUnit",
@@ -1273,18 +1238,6 @@
        "null"
       ]
      },
-     "projectId": {
-      "type": [
-       "string",
-       "null"
-      ]
-     },
-     "workspaceId": {
-      "type": [
-       "string",
-       "null"
-      ]
-     },
      "eventSource": {
       "type": "string"
      },
@@ -1422,8 +1375,6 @@
     "required": [
      "profileId",
      "name",
-     "projectId",
-     "workspaceId",
      "eventSource",
      "recordingStartedAtEpochMs",
      "recordingFinishedAtEpochMs",
@@ -2562,129 +2513,6 @@
      "note",
      "schemaResource",
      "followUp"
-    ],
-    "additionalProperties": false
-   },
-   "annotations": {
-    "readOnlyHint": true,
-    "destructiveHint": false,
-    "idempotentHint": true,
-    "openWorldHint": false
-   },
-   "_meta": {
-    "jeffrey/cost": "CHEAP"
-   }
-  },
-  {
-   "name": "jfr_getProfileInfo",
-   "title": "JFR: Get Profile Info",
-   "description": "Returns the identity of the JFR profile: its profile ID, project ID and workspace ID, and whether it belongs to a connector project or to the Quick Analysis store.",
-   "inputSchema": {
-    "type": "object",
-    "properties": {
-     "profileId": {
-      "type": "string",
-      "description": "Id of the profile to work on, as listed by profiles_list."
-     }
-    },
-    "required": [
-     "profileId"
-    ],
-    "additionalProperties": false
-   },
-   "outputSchema": {
-    "type": "object",
-    "properties": {
-     "profileId": {
-      "type": "string"
-     },
-     "projectId": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The connector project; null for a Quick Analysis profile"
-     },
-     "workspaceId": {
-      "type": [
-       "string",
-       "null"
-      ],
-      "description": "The workspace of that project; null for a Quick Analysis profile"
-     },
-     "kind": {
-      "type": "string",
-      "enum": [
-       "PROJECT",
-       "QUICK_ANALYSIS"
-      ]
-     },
-     "followUp": {
-      "type": "object",
-      "properties": {
-       "nextTools": {
-        "type": "array",
-        "items": {
-         "type": "object",
-         "properties": {
-          "tool": {
-           "type": "string",
-           "description": "An advertised tool name"
-          },
-          "arguments": {
-           "type": "object",
-           "description": "Arguments to pass unchanged"
-          },
-          "why": {
-           "type": "string",
-           "description": "What the call answers, in one short clause"
-          },
-          "weight": {
-           "type": "string",
-           "enum": [
-            "LIGHT",
-            "MEDIUM",
-            "HEAVY"
-           ],
-           "description": "What the call's answer puts into the conversation: LIGHT a few compact records, MEDIUM a dashboard or ranking, HEAVY a long document such as a flamegraph or trace"
-          }
-         },
-         "required": [
-          "tool",
-          "arguments",
-          "why",
-          "weight"
-         ],
-         "additionalProperties": false
-        },
-        "description": "Calls to make next, with their arguments ready to pass unchanged"
-       },
-       "guidance": {
-        "type": "array",
-        "items": {
-         "type": "string"
-        },
-        "description": "Advice that is not a tool call"
-       }
-      },
-      "required": [
-       "nextTools",
-       "guidance"
-      ],
-      "additionalProperties": false
-     },
-     "uiLink": {
-      "type": "string",
-      "description": "The profile's page in the Microscope UI, for the user"
-     }
-    },
-    "required": [
-     "profileId",
-     "projectId",
-     "workspaceId",
-     "kind",
-     "followUp",
-     "uiLink"
     ],
     "additionalProperties": false
    },
@@ -6213,18 +6041,6 @@
            "null"
           ]
          },
-         "projectId": {
-          "type": [
-           "string",
-           "null"
-          ]
-         },
-         "workspaceId": {
-          "type": [
-           "string",
-           "null"
-          ]
-         },
          "name": {
           "type": [
            "string",
@@ -6276,8 +6092,6 @@
         "required": [
          "profileId",
          "recordingId",
-         "projectId",
-         "workspaceId",
          "name",
          "eventSource",
          "recordingCommit",
@@ -6466,18 +6280,6 @@
            "null"
           ]
          },
-         "projectId": {
-          "type": [
-           "string",
-           "null"
-          ]
-         },
-         "workspaceId": {
-          "type": [
-           "string",
-           "null"
-          ]
-         },
          "name": {
           "type": [
            "string",
@@ -6529,8 +6331,6 @@
         "required": [
          "profileId",
          "recordingId",
-         "projectId",
-         "workspaceId",
          "name",
          "eventSource",
          "recordingCommit",

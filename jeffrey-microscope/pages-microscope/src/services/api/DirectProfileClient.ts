@@ -16,29 +16,10 @@
  */
 
 import BasePlatformClient from '@shared/services/api/BasePlatformClient';
-import { ProfileWithContext } from '@/stores/profileStore';
+import type Profile from '@/services/api/model/Profile';
 
 /**
- * Response from the profiles list endpoint.
- */
-export interface ProfileListResponse {
-  id: string;
-  name: string;
-  projectId: string;
-  projectName: string;
-  workspaceId: string;
-  workspaceName: string;
-  /** Epoch millis. */
-  createdAt: number;
-  eventSource: string;
-  enabled: boolean;
-  durationInMillis: number;
-  sizeInBytes: number;
-}
-
-/**
- * Direct profile API client that uses simplified URLs.
- * Works with /api/internal/profiles endpoints without requiring workspaceId/projectId.
+ * Profile API client over /api/internal/profiles/{profileId}.
  */
 export default class DirectProfileClient extends BasePlatformClient {
   constructor() {
@@ -46,16 +27,9 @@ export default class DirectProfileClient extends BasePlatformClient {
   }
 
   /**
-   * Lists all profiles across all workspaces and projects.
+   * Gets a single profile by ID.
    */
-  async listAll(): Promise<ProfileListResponse[]> {
-    return super.get<ProfileListResponse[]>();
-  }
-
-  /**
-   * Gets a single profile by ID with its workspace and project context.
-   */
-  async getById(profileId: string): Promise<ProfileWithContext> {
-    return super.get<ProfileWithContext>(`/${profileId}`);
+  async getById(profileId: string): Promise<Profile> {
+    return super.get<Profile>(`/${profileId}`);
   }
 }

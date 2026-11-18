@@ -30,6 +30,10 @@
 
     <dependencies>
         <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>microscope-common</artifactId>
+        </dependency>
+        <dependency>
             <groupId>cafe.jeffrey</groupId>
             <artifactId>notifications</artifactId>
         </dependency>
@@ -43,13 +47,13 @@
             <artifactId>common-profile</artifactId>
         </dependency>
 
-        <!-- shared/persistence brings in jeffrey-events (JFR JDBC event types)
+        <!-- duckdb brings in jeffrey-events (JFR JDBC event types)
              plus the GroupLabel enum. Spring JDBC lands on the classpath
              transitively but is unused here — heap-dump operates on raw
              DuckDBConnection + DuckDBAppender. -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>persistence</artifactId>
+            <artifactId>duckdb</artifactId>
         </dependency>
 
         <!-- DuckDB JDBC for the heap-dump-index sibling database (.idx.duckdb). -->

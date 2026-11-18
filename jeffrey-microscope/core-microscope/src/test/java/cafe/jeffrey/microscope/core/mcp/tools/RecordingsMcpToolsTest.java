@@ -23,13 +23,13 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.ProfileInitStages;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRequest;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -69,10 +69,10 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.function.ThrowingSupplier;
 import tools.jackson.databind.JsonNode;
 
@@ -154,7 +154,7 @@ class RecordingsMcpToolsTest {
     private void profileIs(boolean enabled, String name) {
         ProfileManager profileManager = mock(ProfileManager.class);
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, null, null, name, RecordingEventSource.JFR,
+                PROFILE_ID, name, RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, enabled, false,
                 RECORDING_ID));
         when(recordingsManager.profile(PROFILE_ID)).thenReturn(Optional.of(profileManager));
@@ -321,7 +321,7 @@ class RecordingsMcpToolsTest {
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
         ProfileManager replacement = mock(ProfileManager.class);
         when(replacement.info()).thenReturn(new ProfileInfo(
-                "replacement-profile", null, null, "app.jfr", RecordingEventSource.JFR,
+                "replacement-profile", "app.jfr", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, RECORDING_ID));
         when(recordingsManager.profile("replacement-profile")).thenReturn(Optional.of(replacement));
         String response = complete(tools.analyzeRecording(RECORDING_ID, true, RESOURCE_READ));

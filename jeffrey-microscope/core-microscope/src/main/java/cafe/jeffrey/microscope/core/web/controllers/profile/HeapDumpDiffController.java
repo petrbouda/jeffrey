@@ -23,9 +23,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.heapdump.model.HeapDumpDiffReport;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpDiffService;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapDumpDiffReport;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpDiffService;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 
 /**
  * Heap-dump comparison between two profiles: the primary (current) dump

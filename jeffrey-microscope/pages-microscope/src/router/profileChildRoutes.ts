@@ -21,14 +21,6 @@
 
 import type { RouteLocationGeneric } from 'vue-router';
 
-// Redirect factory for pages that moved to a new sub-path — keeps old bookmarks and
-// deep-links working.
-// Typed to the router's own redirect signature: a narrower hand-written param type made every
-// route array using this helper unassignable to RouteRecordRaw[].
-function redirectTo(targetSubPath: string) {
-  return (to: RouteLocationGeneric) => `/profiles/${String(to.params.profileId)}/${targetSubPath}`;
-}
-
 // Overview, analysis, and event browsing
 const analysisRoutes = [
   {
@@ -150,15 +142,6 @@ const gcRoutes = [
     name: 'profile-string-symbol-tables',
     component: () => import('@/views/profiles/detail/ProfileGCStringSymbolTables.vue'),
     meta: { layout: 'profile' }
-  },
-  // Finalizers and reference processing moved under the Memory Issues submenu.
-  {
-    path: 'garbage-collection/finalizers',
-    redirect: redirectTo('memory-issues/finalizers')
-  },
-  {
-    path: 'garbage-collection/reference-processing',
-    redirect: redirectTo('memory-issues/reference-processing')
   }
 ];
 
@@ -249,10 +232,6 @@ const memoryRoutes = [
     name: 'profile-memory-issues-reference-processing',
     component: () => import('@/views/profiles/detail/ProfileGCReferenceProcessing.vue'),
     meta: { layout: 'profile' }
-  },
-  {
-    path: 'leak-candidates',
-    redirect: redirectTo('memory-issues/leak-candidates')
   }
 ];
 
@@ -349,11 +328,6 @@ const heapDumpRoutes = [
     name: 'profile-heap-dump-overview',
     component: () => import('@/views/profiles/detail/ProfileHeapDumpSettings.vue'),
     meta: { layout: 'profile' }
-  },
-  // The overview used to live at heap-dump/settings. Older IDE plugins and bookmarks still say so.
-  {
-    path: 'heap-dump/settings',
-    redirect: { name: 'profile-heap-dump-overview' }
   },
   {
     path: 'heap-dump/histogram',

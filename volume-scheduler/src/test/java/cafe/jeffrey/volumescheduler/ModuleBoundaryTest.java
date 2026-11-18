@@ -37,8 +37,9 @@ class ModuleBoundaryTest {
 
     private static final Path MODULE_ROOT = Path.of("").toAbsolutePath().normalize();
 
+    /** Every Microscope module's root package is under {@code cafe.jeffrey.microscope}. */
     private static final Pattern MICROSCOPE_IMPORT = Pattern.compile(
-            "^import (static )?cafe\\.jeffrey\\.(microscope|recordings|storage|profile)\\.");
+            "^import (static )?cafe\\.jeffrey\\.microscope\\.");
 
     /**
      * MCP belongs to Microscope only: the volume scheduler has no MCP endpoint and reads no

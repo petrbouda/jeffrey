@@ -1,0 +1,230 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.manager.download;
+
+import cafe.jeffrey.microscope.model.repository.RecordedSpan;
+import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
+
+/**
+ * A time window over a session's recording, and which of its chunks cover it.
+ *
+ * <p>A session on the recording volume can run for days and roll a chunk every few minutes, and the question is almost
+ * never about all of it. A chunk's {@link RepositoryFile#createdAt()} is the moment the profiler
+ * opened it — the timestamp in the file's own name — so chunk <em>n</em> covers everything from its
+ * own start to the start of chunk <em>n+1</em>. The last one runs one chunk length past its start,
+ * the length measured from the others ({@link RecordedSpan#chunkLength}); with nothing to measure
+ * it from, nothing bounds it. A chunk is selected when that span touches the window.
+ *
+ * <p>Both bounds are optional: a window with no start reaches back to the first chunk, one with no
+ * end reaches forward to the last. A window with neither is not a window, and the whole-session
+ * download exists for that.
+ *
+ * @param start the first instant of interest, or {@code null} for the session's start
+ * @param end   the last instant of interest, or {@code null} for the session's end
+ */
+public record ChunkWindow(Instant start, Instant end) {
+
+    public ChunkWindow {
+        if (start == null && end == null) {
+            throw new IllegalArgumentException("A window needs a start or an end");
+        }
+        if (start != null && end != null && !start.isBefore(end)) {
+            throw new IllegalArgumentException("The window's start must be before its end");
+        }
+    }
+
+    public static ChunkWindow ofEpochMillis(Long startMillis, Long endMillis) {
+        return new ChunkWindow(
+                startMillis == null ? null : Instant.ofEpochMilli(startMillis),
+                endMillis == null ? null : Instant.ofEpochMilli(endMillis));
+    }
+
+    /**
+     * The chunks of the session that cover this window, oldest first, with the span
+     * they actually cover — which is what a profile built from them is about, and is wider than
+     * the window whenever a chunk straddles a bound.
+     *
+     * <p>Always {@linkplain Selection#contiguous() contiguous}: chunk spans tile the session, so
+     * every chunk between the first and last one touching the window touches it too.
+     *
+     * @param session the session, loaded with its files; anything that is not a closed chunk of
+     *                it is ignored
+     */
+    public Selection select(RecordingSession session) {
+        return Selection.of(session, (chunk, chunkEnd) -> covers(chunk.createdAt(), chunkEnd));
+    }
+
+    /**
+     * The chunks named by id, with the span they cover — the same answer as a window gives, for a
+     * reader who chose the files by name from a listing instead of by time.
+     *
+     * <p>Unlike {@link #select}, this can come back with a hole in it, because a reader ticking
+     * names is free to skip one. Callers that go on to <em>merge</em> the result must refuse a
+     * selection that is not {@linkplain Selection#contiguous() contiguous}.
+     */
+    public static Selection ofFiles(RecordingSession session, Set<String> fileIds) {
+        return Selection.of(session, (chunk, chunkEnd) -> fileIds.contains(chunk.id()));
+    }
+
+    /**
+     * Whether a chunk spanning {@code [chunkStart, chunkEnd)} touches the window. A chunk with no
+     * end is one nothing bounds — the session's only chunk, with no other to measure a length
+     * from — and it reaches as far forward as the window does.
+     */
+    private boolean covers(Instant chunkStart, Instant chunkEnd) {
+        boolean startsBeforeWindowEnds = end == null || chunkStart.isBefore(end);
+        boolean endsAfterWindowStarts = start == null || chunkEnd == null || chunkEnd.isAfter(start);
+        return startsBeforeWindowEnds && endsAfterWindowStarts;
+    }
+
+    /**
+     * The chunks a selection holds, each with the stretch of the recording it covers.
+     *
+     * <p>Kept as chunks-with-their-spans rather than as a list plus two loose bounds, because the
+     * bounds alone cannot answer the one question that decides whether the selection may be
+     * merged at all: whether the chunks are an unbroken run. A merge concatenates them into one
+     * recording, so a selection with a hole in it produces a JFR that misstates its own span --
+     * and every rate drawn from it is wrong by the size of the hole.
+     */
+    public record Selection(List<Chunk> chunks) {
+
+        public Selection {
+            chunks = List.copyOf(chunks);
+        }
+
+        /**
+         * One chunk and the stretch it holds: from when the profiler opened it to when it opened
+         * the next one.
+         *
+         * @param end the start of the following chunk; for the last one, its start plus the
+         *            measured chunk length; {@code null} only when there is none to measure
+         */
+        public record Chunk(RepositoryFile file, Instant start, Instant end) {
+        }
+
+        /**
+         * Walks the session's chunks oldest first, handing each with its end to the predicate, and
+         * keeps the ones it accepts.
+         */
+        private static Selection of(
+                RecordingSession session, BiPredicate<RepositoryFile, Instant> keep) {
+            List<RepositoryFile> chunks = session.recordings();
+            // File n covers up to the start of n+1; the last one, one measured chunk past its start
+            Instant lastEnd = chunks.isEmpty() ? null : RecordedSpan.chunkLength(session.recordingStarts())
+                    .map(chunks.getLast().createdAt()::plus)
+                    .orElse(null);
+
+            List<Chunk> selected = new ArrayList<>();
+            for (int i = 0; i < chunks.size(); i++) {
+                RepositoryFile chunk = chunks.get(i);
+                Instant chunkEnd = i + 1 < chunks.size() ? chunks.get(i + 1).createdAt() : lastEnd;
+                if (keep.test(chunk, chunkEnd)) {
+                    selected.add(new Chunk(chunk, chunk.createdAt(), chunkEnd));
+                }
+            }
+            return new Selection(selected);
+        }
+
+        public boolean isEmpty() {
+            return chunks.isEmpty();
+        }
+
+        /** The selected files themselves, oldest first. */
+        public List<RepositoryFile> files() {
+            return chunks.stream().map(Chunk::file).toList();
+        }
+
+        /** When the first selected chunk started, or {@code null} for no chunk. */
+        public Instant coverageStart() {
+            return chunks.isEmpty() ? null : chunks.getFirst().start();
+        }
+
+        /**
+         * When the last selected chunk ended, or {@code null} for no chunk and for a last chunk
+         * nothing bounds (see {@link Chunk#end()}).
+         */
+        public Instant coverageEnd() {
+            return chunks.isEmpty() ? null : chunks.getLast().end();
+        }
+
+        /**
+         * Whether the chunks are an unbroken run: each one ends exactly where the next begins.
+         * Only such a selection may be merged, because merging is concatenation and a gap between
+         * two chunks is not visible in the result. An empty selection and a single chunk are
+         * trivially unbroken.
+         *
+         * <p>Judged over the chunks the session lists now, not over an absolute timeline. A chunk
+         * deleted from the session leaves its neighbours genuinely adjacent, and nothing here can
+         * know about a file that is no longer there.
+         */
+        public boolean contiguous() {
+            for (int i = 1; i < chunks.size(); i++) {
+                if (!Objects.equals(chunks.get(i - 1).end(), chunks.get(i).start())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /**
+         * The chunks of the session that lie between the first and last selected one but were not
+         * selected — what {@link #contiguous()} refuses, named so a reader can act on it.
+         */
+        public List<RepositoryFile> gaps(RecordingSession session) {
+            if (chunks.isEmpty()) {
+                return List.of();
+            }
+            Set<String> selected = chunks.stream().map(chunk -> chunk.file().id()).collect(Collectors.toSet());
+            return session.recordings().stream()
+                    .filter(chunk -> !selected.contains(chunk.id()))
+                    .filter(chunk -> !chunk.createdAt().isBefore(coverageStart()))
+                    .filter(chunk -> coverageEnd() == null || chunk.createdAt().isBefore(coverageEnd()))
+                    .toList();
+        }
+
+        /**
+         * The gap, named by the files that fill it, for a refusal a reader can act on. One
+         * sentence fragment, built here rather than at each of the layers that refuse, so they
+         * cannot drift into describing the same selection differently.
+         */
+        public String describeGap(RecordingSession session) {
+            return gaps(session).stream().map(RepositoryFile::name).collect(Collectors.joining(", "));
+        }
+
+        /**
+         * Whether these are every chunk of the session: a recording holding them is the session
+         * itself, anything less is a part of it.
+         */
+        public boolean isWholeSession(RecordingSession session) {
+            return chunks.size() == session.recordings().size();
+        }
+
+        public List<String> fileIds() {
+            return chunks.stream().map(chunk -> chunk.file().id()).toList();
+        }
+    }
+}

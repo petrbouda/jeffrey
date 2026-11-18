@@ -23,8 +23,8 @@ import cafe.jeffrey.microscope.mcp.protocol.McpResourceNotFoundException;
 import cafe.jeffrey.microscope.mcp.protocol.McpResourceProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.profile.mcp.McpToolNames;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.server.McpToolNames;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 

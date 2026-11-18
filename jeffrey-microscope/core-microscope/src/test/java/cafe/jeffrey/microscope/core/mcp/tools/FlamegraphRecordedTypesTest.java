@@ -17,18 +17,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.api.DbBasedFlamegraphGenerator;
+import cafe.jeffrey.microscope.profile.management.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.manager.PrimaryFlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.ProfileEventTypeRepository;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.manager.PrimaryFlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -92,7 +92,7 @@ class FlamegraphRecordedTypesTest {
     private static FlamegraphMcpTools toolsOver(PrimaryFlamegraphManager manager, RecordingEventSource source) {
         Instant start = Instant.parse("2026-10-01T12:00:00Z");
         ProfileManager profile = mock(ProfileManager.class);
-        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "project", "workspace", "Review", source,
+        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "Review", source,
                 start, start.plusSeconds(60), start, true, false, "recording"));
         when(profile.flamegraphManager()).thenReturn(manager);
         return new FlamegraphMcpTools(profile, new JfrFlamegraphPanelProvider(),
@@ -117,7 +117,7 @@ class FlamegraphRecordedTypesTest {
 
         Instant start = Instant.parse("2026-10-01T12:00:00Z");
         ProfileManager profile = mock(ProfileManager.class);
-        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "project", "workspace", "Review", source,
+        when(profile.info()).thenReturn(new ProfileInfo("review-profile", "Review", source,
                 start, start.plusSeconds(60), start, true, false, "recording"));
         when(profile.flamegraphManager()).thenReturn(manager);
         FlamegraphMcpTools tools = new FlamegraphMcpTools(profile, new JfrFlamegraphPanelProvider(),

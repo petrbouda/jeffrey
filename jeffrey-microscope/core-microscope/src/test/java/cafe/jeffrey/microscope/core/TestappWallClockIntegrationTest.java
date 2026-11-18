@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.model.StacktraceTag;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -32,10 +32,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static cafe.jeffrey.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.test.recording.TestappRecording.DOM;
-import static cafe.jeffrey.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
-import static cafe.jeffrey.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.DOM;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
+import static cafe.jeffrey.microscope.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

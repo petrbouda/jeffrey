@@ -27,15 +27,14 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
-import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
-import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser.RecordingMetadata;
-import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
-import cafe.jeffrey.storage.recording.api.file.Bundle;
-import cafe.jeffrey.storage.recording.api.file.BundleFile;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser.RecordingMetadata;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManagerImpl;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Files;
@@ -82,7 +81,7 @@ class RecordingsCoreManagerImplTest {
         manager = new RecordingsCoreManagerImpl(
                 FIXED_CLOCK, recordingsDir,
                 recordingRepository, recordingTagsRepository,
-                recordingMetadataParser, RecordingProfileCleanup.NOOP);
+                recordingMetadataParser, recording -> { });
     }
 
     @Nested

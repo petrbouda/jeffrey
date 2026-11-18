@@ -1,0 +1,147 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.parser.jfr;
+
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.jfr.events.trace.Tracer;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public abstract class JdkRecordingIterators {
+
+    /**
+     * Automatically decides the best way to iterate over the recordings. If there is only one recording, it will
+     * pick the {@link #single(Path, EventProcessor)}. If the profile's folder contains multiple JFR files
+     * (very likely after splitting the bigger JFR file into a smaller chunks) it will choose the
+     * {@link #parallel(List, Supplier)} and processes the multiple chunks in parallel.
+     *
+     * @param recordings        path to all recordings in profile's workspace JFR files.
+     * @param processorSupplier creates a processor to collect events from JFR file and transform them into an output.
+     * @param <PARTIAL>         result of the single recording file
+     * @param <RESULT>          collected result of all recording files
+     * @return output from the iterating over the processor
+     */
+    public static <PARTIAL, RESULT> RecordingFileIterator<PARTIAL, RESULT> automatic(
+            List<Path> recordings, Supplier<? extends EventProcessor<PARTIAL>> processorSupplier) {
+
+        if (recordings.size() > 1) {
+            return parallel(recordings, processorSupplier);
+        } else {
+            return single(recordings.getFirst(), processorSupplier.get());
+        }
+    }
+
+
+    /**
+     * Utility method to {@link #automatic(List, Supplier)} that automatically iterates over the recordings
+     * and collect the output from the processor.
+     *
+     * @param recordings        path to all recordings in profile's workspace JFR files.
+     * @param processorSupplier creates a processor to collect events from JFR file and transform them into an output.
+     * @return output from the iterating over the processor
+     */
+    public static Void parallelAndWait(
+            List<Path> recordings,
+            Supplier<? extends EventProcessor<Void>> processorSupplier) {
+
+        RecordingFileIterator<Void, Void> iterator = automatic(recordings, processorSupplier);
+        return iterator.collect(new NoopCollector());
+    }
+
+
+    /**
+     * Iterates over a single recording in the profile's workspace JFR files and applies the processor on each event
+     * to generate the desired output. All events are processed sequentially.
+     *
+     * @param recording path to a single recording in profile's workspace JFR files.
+     * @param processor a processor to collect events from JFR file and transform them into an output.
+     * @param <PARTIAL> result of the single recording file
+     * @param <RESULT>  collected result of all recording files
+     * @return output from the iterating over the processor
+     */
+    public static <PARTIAL, RESULT> RecordingFileIterator<PARTIAL, RESULT> single(
+            Path recording, EventProcessor<PARTIAL> processor) {
+
+        return new JdkRecordingFileIterator<>(recording, processor);
+    }
+
+    /**
+     * Iterates over multiple recordings in the profile's workspace JFR files and applies the processor on each event
+     * to generate the desired output. JFR files can be processed in parallel depending on the number of CPUs and
+     * the implementation.
+     *
+     * @param recordings        path to all recordings in profile's workspace JFR files.
+     * @param processorSupplier creates a processor to collect events from JFR file and transform them into an output.
+     * @param <PARTIAL>         result of the single recording file
+     * @param <RESULT>          collected result of all recording files
+     * @return output from the iterating over the processor
+     */
+    public static <PARTIAL, RESULT> RecordingFileIterator<PARTIAL, RESULT> parallel(
+            List<Path> recordings, Supplier<? extends EventProcessor<PARTIAL>> processorSupplier) {
+
+        Function<Path, RecordingFileIterator<PARTIAL, PARTIAL>> singleIterator =
+                recording -> new JdkRecordingFileIterator<>(recording, processorSupplier.get());
+        return new ParallelRecordingFileIterator<>(recordings, singleIterator);
+    }
+
+    /**
+     * Name of the span each chunk's parse is recorded under. Shared with
+     * {@link ParallelRecordingFileIterator} so a chunk reads the same in a trace however it was
+     * scheduled.
+     */
+    static final String SPAN_CHUNK_PARSE = "chunk.parse";
+
+    /**
+     * Parses one chunk on the bulk pool and reports when it is done.
+     * <p>
+     * Used when chunks arrive one at a time rather than as a finished list — a recording being
+     * split can start parsing its first chunk long before its last one has been written.
+     *
+     * @param processor the processor for this chunk; each chunk needs its own, they are stateful
+     */
+    public static CompletableFuture<Void> parseAsync(Path chunk, EventProcessor<Void> processor) {
+        // fork captures the enclosing span here, on the submitting thread: the workers run on a
+        // shared pool, which the span in progress does not reach.
+        return CompletableFuture.runAsync(
+                Tracer.fork(SPAN_CHUNK_PARSE, () -> {
+                    RecordingFileIterator<Void, Void> iterator = single(chunk, processor);
+                    iterator.collect(new NoopCollector());
+                }),
+                Schedulers.sharedBulkParallel());
+    }
+
+    public static class NoopCollector implements Collector<Void, Void> {
+        @Override
+        public Supplier<Void> empty() {
+            return null;
+        }
+
+        @Override
+        public Void combiner(Void partial1, Void partial2) {
+            return null;
+        }
+
+        @Override
+        public Void finisher(Void combined) {
+            return null;
+        }
+    }
+}

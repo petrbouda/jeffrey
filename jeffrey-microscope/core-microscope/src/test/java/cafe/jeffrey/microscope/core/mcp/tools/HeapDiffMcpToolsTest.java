@@ -21,15 +21,15 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.heapdump.model.ClassHistogramEntry;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -91,11 +91,11 @@ class HeapDiffMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.HEAP_DUMP,
+                PROFILE_ID, "Profile", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.heapDumpManager()).thenReturn(primaryDump);
         when(baselineProfileManager.info()).thenReturn(new ProfileInfo(
-                BASELINE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.HEAP_DUMP,
+                BASELINE_ID, "Baseline", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-0"));
         when(baselineProfileManager.heapDumpManager()).thenReturn(baselineDump);
         when(baselineResolver.apply(any())).thenReturn(baselineProfileManager);
@@ -273,7 +273,7 @@ class HeapDiffMcpToolsTest {
         @Test
         void saysWhichProfilesAreHeapDumpsWhenThisOneIsNot() {
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JFR,
+                    PROFILE_ID, "Session", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
 
             JsonNode out = conforming(tools().diff(BASELINE_ID, null));

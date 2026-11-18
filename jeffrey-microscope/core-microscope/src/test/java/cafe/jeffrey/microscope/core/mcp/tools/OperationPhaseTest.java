@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

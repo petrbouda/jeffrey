@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,39 +35,36 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManagerImpl;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManagerImpl;
 import cafe.jeffrey.microscope.core.web.MicroscopeRecordingProfileInfoProvider;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.ProfileInitializer;
-import cafe.jeffrey.profile.ProfileInitializerImpl;
-import cafe.jeffrey.profile.configuration.ProfilesConfiguration;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.manager.action.ProfileDataInitializer;
-import cafe.jeffrey.profile.parser.FileTypeDispatchingRecordingInformationParser;
-import cafe.jeffrey.profile.parser.JfrRecordingEventParser;
-import cafe.jeffrey.profile.parser.JfrRecordingInformationParser;
-import cafe.jeffrey.otlpparser.OtlpRecordingEventParser;
-import cafe.jeffrey.pprofparser.PprofRecordingEventParser;
-import cafe.jeffrey.provider.profile.api.RecordingEventParser;
-import cafe.jeffrey.provider.profile.api.RecordingEventParserResolver;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.management.ProfileInitializer;
+import cafe.jeffrey.microscope.profile.management.ProfileInitializerImpl;
+import cafe.jeffrey.microscope.profile.management.configuration.ProfilesConfiguration;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.profile.management.manager.action.ProfileDataInitializer;
+import cafe.jeffrey.microscope.profile.management.ingest.FileTypeDispatchingRecordingInformationParser;
+import cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingEventParser;
+import cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingInformationParser;
+import cafe.jeffrey.microscope.profile.parser.otlp.OtlpRecordingEventParser;
+import cafe.jeffrey.microscope.profile.parser.pprof.PprofRecordingEventParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParserResolver;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.provider.profile.jdbc.DuckDBProfilePersistenceProvider;
-import cafe.jeffrey.provider.profile.api.ProfilePersistenceProvider;
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfilePersistenceProvider;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 
 import java.util.Map;
-import java.util.Optional;
 
 import java.nio.file.Path;
 import java.time.Clock;
@@ -93,10 +89,9 @@ public class MicroscopeAppConfiguration {
             HeapDumpInitService heapDumpInitService,
             MicroscopeCorePersistenceProvider localCorePersistenceProvider,
             ObjectProvider<McpProfileContextCache> contextCacheProvider,
-            @Value("${jeffrey.microscope.profile.frame-resolution:CACHE}") FrameResolutionMode frameResolutionMode) {
-
-        ProfilePersistenceProvider quickProvider =
-                new DuckDBProfilePersistenceProvider(jeffreyDirs.profiles(), frameResolutionMode, clock);
+            // The one provider every profile reader uses: its own would open a second pool per
+            // profile file and a second frames cache that reader-side frame edits never reach.
+            ProfilePersistenceProvider profilePersistenceProvider) {
 
         RecordingEventParser jfrParser =
                 new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs));
@@ -107,10 +102,10 @@ public class MicroscopeAppConfiguration {
                 jfrParser);
 
         ProfileInitializer recordingsProfileInitializer = new ProfileInitializerImpl(
-                quickProvider.repositories(),
-                quickProvider.databaseManager(),
+                profilePersistenceProvider.repositories(),
+                profilePersistenceProvider.databaseManager(),
                 parserResolver,
-                quickProvider.eventWriterFactory(),
+                profilePersistenceProvider.eventWriterFactory(),
                 profileManagerFactory,
                 profileDataInitializer,
                 profileInitRunRegistry,
@@ -173,14 +168,8 @@ public class MicroscopeAppConfiguration {
     }
 
     @Bean
-    public ProfileManagerResolver profileManagerResolver(
-            ConnectorManager connectorManager,
-            Optional<RecordingsManager> recordingsManager,
-            MicroscopeCorePersistenceProvider localCorePersistenceProvider) {
-        return new ProfileManagerResolver(
-                connectorManager,
-                recordingsManager.orElse(null),
-                localCorePersistenceProvider.localCoreRepositories());
+    public ProfileManagerResolver profileManagerResolver(RecordingsManager recordingsManager) {
+        return new ProfileManagerResolver(recordingsManager);
     }
 
 }

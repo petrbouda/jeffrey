@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.web.controllers.connector;
 
 import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.web.dto.response.CurrentConnectorResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.ConnectorResponse;
@@ -47,6 +47,6 @@ public class ConnectorController {
 
     private static ConnectorResponse toResponse(ConnectorInfo connector) {
         ConnectorAddress address = connector.address();
-        return new ConnectorResponse(connector.name(), address.kind(), address.location(), address.readOnly());
+        return new ConnectorResponse(connector.name(), address.kind().name(), address.location(), address.readOnly());
     }
 }

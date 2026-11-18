@@ -22,12 +22,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.model.classloading.ClassLoadActivity;
-import cafe.jeffrey.profile.manager.model.classloading.ClassLoaderStat;
-import cafe.jeffrey.profile.manager.model.classloading.ClassLoadingOverview;
-import cafe.jeffrey.profile.manager.model.classloading.RedefinitionData;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.ClassLoadActivity;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.ClassLoaderStat;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.ClassLoadingOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.classloading.RedefinitionData;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.List;
 import java.util.Set;

@@ -75,10 +75,7 @@ onMounted(() => {
       <p>
         The page's address follows what is picked
         (<code>/connector?workspaceId=…&amp;projectId=…&amp;instanceId=…&amp;sessionId=…</code>), so a link
-        opens the same project, instance or session. The addresses of the former Remote page
-        (<code>/remote</code>) and project pages
-        (<code>/remote/workspaces/&lt;workspace&gt;/projects/&lt;project&gt;/…</code>) still work and
-        lead to the same place on the Connector page.
+        opens the same project, instance or session.
       </p>
 
       <DocsCallout type="info">

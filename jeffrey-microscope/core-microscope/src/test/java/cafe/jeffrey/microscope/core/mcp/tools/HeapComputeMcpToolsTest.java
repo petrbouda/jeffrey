@@ -21,18 +21,18 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -58,7 +58,7 @@ import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.common.Json;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.NO_TASKS;
@@ -312,7 +312,7 @@ class HeapComputeMcpToolsTest {
         @Test
         void refusesAJfrProfilePointingAtItsBundlesHeapDump() {
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Session", RecordingEventSource.JFR,
+                    PROFILE_ID, "Session", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
 
             IllegalArgumentException e =
@@ -678,7 +678,7 @@ class HeapComputeMcpToolsTest {
 
     private static ProfileInfo profileInfo() {
         return new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Heap dump", RecordingEventSource.HEAP_DUMP,
+                PROFILE_ID, "Heap dump", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1");
     }
 }

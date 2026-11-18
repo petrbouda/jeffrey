@@ -3289,12 +3289,6 @@
                   "profileId": {
                     "type": "string"
                   },
-                  "projectId": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
                   "recordingCommit": {
                     "type": [
                       "string",
@@ -3312,12 +3306,6 @@
                       "integer",
                       "null"
                     ]
-                  },
-                  "workspaceId": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
                   }
                 },
                 "required": [
@@ -3329,11 +3317,9 @@
                   "modified",
                   "name",
                   "profileId",
-                  "projectId",
                   "recordingCommit",
                   "recordingId",
-                  "startedAtEpochMs",
-                  "workspaceId"
+                  "startedAtEpochMs"
                 ],
                 "type": "object"
               },
@@ -3748,12 +3734,6 @@
                   "profileId": {
                     "type": "string"
                   },
-                  "projectId": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
                   "recordingCommit": {
                     "type": [
                       "string",
@@ -3771,12 +3751,6 @@
                       "integer",
                       "null"
                     ]
-                  },
-                  "workspaceId": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
                   }
                 },
                 "required": [
@@ -3788,11 +3762,9 @@
                   "modified",
                   "name",
                   "profileId",
-                  "projectId",
                   "recordingCommit",
                   "recordingId",
-                  "startedAtEpochMs",
-                  "workspaceId"
+                  "startedAtEpochMs"
                 ],
                 "type": "object"
               },
@@ -5648,11 +5620,6 @@
             "type": "object"
           },
           "kind": {
-            "enum": [
-              "AZURE_FILES",
-              "LOCAL",
-              null
-            ],
             "type": [
               "string",
               "null"
@@ -15230,117 +15197,6 @@
           "profileId"
         ]
       },
-      "name": "jfr_getProfileInfo",
-      "outputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "followUp": {
-            "additionalProperties": false,
-            "properties": {
-              "guidance": {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              "nextTools": {
-                "items": {
-                  "additionalProperties": false,
-                  "properties": {
-                    "arguments": {
-                      "type": "object"
-                    },
-                    "tool": {
-                      "type": "string"
-                    },
-                    "weight": {
-                      "enum": [
-                        "LIGHT",
-                        "MEDIUM",
-                        "HEAVY"
-                      ],
-                      "type": "string"
-                    },
-                    "why": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "arguments",
-                    "tool",
-                    "weight",
-                    "why"
-                  ],
-                  "type": "object"
-                },
-                "type": "array"
-              }
-            },
-            "required": [
-              "guidance",
-              "nextTools"
-            ],
-            "type": "object"
-          },
-          "kind": {
-            "enum": [
-              "PROJECT",
-              "QUICK_ANALYSIS"
-            ],
-            "type": "string"
-          },
-          "profileId": {
-            "type": "string"
-          },
-          "projectId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "uiLink": {
-            "type": "string"
-          },
-          "workspaceId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          }
-        },
-        "required": [
-          "followUp",
-          "kind",
-          "profileId",
-          "projectId",
-          "uiLink",
-          "workspaceId"
-        ],
-        "type": "object"
-      },
-      "title": "JFR: Get Profile Info"
-    },
-    {
-      "_meta": {
-        "jeffrey/cost": "CHEAP"
-      },
-      "annotations": {
-        "destructiveHint": false,
-        "idempotentHint": true,
-        "openWorldHint": false,
-        "readOnlyHint": true
-      },
-      "inputSchema": {
-        "additionalProperties": false,
-        "properties": {
-          "profileId": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "profileId"
-        ]
-      },
       "name": "jfr_listEventTypes",
       "outputSchema": {
         "additionalProperties": false,
@@ -23909,12 +23765,6 @@
               "profileId": {
                 "type": "string"
               },
-              "projectId": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
               "recordingCommit": {
                 "type": [
                   "string",
@@ -23932,12 +23782,6 @@
                   "integer",
                   "null"
                 ]
-              },
-              "workspaceId": {
-                "type": [
-                  "string",
-                  "null"
-                ]
               }
             },
             "required": [
@@ -23949,11 +23793,9 @@
               "modified",
               "name",
               "profileId",
-              "projectId",
               "recordingCommit",
               "recordingId",
-              "startedAtEpochMs",
-              "workspaceId"
+              "startedAtEpochMs"
             ],
             "type": "object"
           },
@@ -24323,12 +24165,6 @@
           "profileId": {
             "type": "string"
           },
-          "projectId": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
           "recordingBranch": {
             "type": [
               "string",
@@ -24376,12 +24212,6 @@
           },
           "uiLink": {
             "type": "string"
-          },
-          "workspaceId": {
-            "type": [
-              "string",
-              "null"
-            ]
           }
         },
         "required": [
@@ -24393,7 +24223,6 @@
           "modified",
           "name",
           "profileId",
-          "projectId",
           "recordingBranch",
           "recordingCommit",
           "recordingCommitSource",
@@ -24401,8 +24230,7 @@
           "recordingFinishedAtEpochMs",
           "recordingStartedAtEpochMs",
           "sizeInBytes",
-          "uiLink",
-          "workspaceId"
+          "uiLink"
         ],
         "type": "object"
       },
@@ -24572,12 +24400,6 @@
                 "profileId": {
                   "type": "string"
                 },
-                "projectId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
                 "ready": {
                   "enum": [
                     "YES",
@@ -24599,12 +24421,6 @@
                 },
                 "uiLink": {
                   "type": "string"
-                },
-                "workspaceId": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
                 }
               },
               "required": [
@@ -24614,12 +24430,10 @@
                 "name",
                 "nameTruncated",
                 "profileId",
-                "projectId",
                 "ready",
                 "recordedEpochMs",
                 "recordingId",
-                "uiLink",
-                "workspaceId"
+                "uiLink"
               ],
               "type": "object"
             },

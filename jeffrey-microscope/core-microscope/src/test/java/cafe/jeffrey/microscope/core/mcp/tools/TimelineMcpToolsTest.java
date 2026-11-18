@@ -26,17 +26,17 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.SubSecondManager;
-import cafe.jeffrey.profile.manager.TimeseriesManager;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.SubSecondManager;
+import cafe.jeffrey.microscope.profile.management.manager.TimeseriesManager;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.timeseries.SingleSerie;
-import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -129,7 +129,7 @@ class TimelineMcpToolsTest {
 
     private void recordingLasting(Duration length) {
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 START, START.plus(length), START, true, false, "recording-1"));
     }
 

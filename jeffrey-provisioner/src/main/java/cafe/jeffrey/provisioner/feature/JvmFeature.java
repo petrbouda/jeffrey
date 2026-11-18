@@ -19,7 +19,7 @@ package cafe.jeffrey.provisioner.feature;
 
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
-import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.provisioner.CliConstants;
 
 import java.nio.file.Path;
 import java.util.Optional;

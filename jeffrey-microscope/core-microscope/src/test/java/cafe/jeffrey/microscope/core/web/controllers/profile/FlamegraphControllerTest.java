@@ -23,16 +23,16 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.config.GraphComponents;
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.thread.ThreadManager;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.resources.request.GenerateFlamegraphRequest;
+import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.thread.ThreadManager;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.resources.request.GenerateFlamegraphRequest;
 import cafe.jeffrey.microscope.model.GraphType;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.microscope.model.Type;
@@ -57,7 +57,7 @@ class FlamegraphControllerTest {
             new ThreadInfo(43, -1, "oracleApp:connection-adder"));
 
     private static final ProfileInfo PROFILE = new ProfileInfo(
-            "p-1", "proj-1", "ws-1", "profile", RecordingEventSource.JFR,
+            "p-1", "profile", RecordingEventSource.JFR,
             Instant.parse("2025-01-15T10:00:00Z"), Instant.parse("2025-01-15T10:01:00Z"),
             Instant.parse("2025-01-15T10:02:00Z"), true, false, "rec-1");
 

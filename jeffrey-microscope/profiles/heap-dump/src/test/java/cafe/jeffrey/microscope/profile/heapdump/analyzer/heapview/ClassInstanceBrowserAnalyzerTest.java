@@ -1,0 +1,499 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassInstanceEntry;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceSortBy;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.DominatorTreeBuilder;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
+import cafe.jeffrey.microscope.profile.heapdump.parser.HprofIndex;
+import cafe.jeffrey.microscope.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.microscope.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.microscope.profile.heapdump.parser.SyntheticHprof;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class ClassInstanceBrowserAnalyzerTest {
+
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.ofEpochMilli(1L), ZoneOffset.UTC);
+    private static final int ID_SIZE = 8;
+    private static final int INSTANCE_BYTES = ID_SIZE + 4; // OBJECT + INT
+
+    @Test
+    void browsesInstancesAndDecodesFields(@TempDir Path tmp) throws IOException, SQLException {
+        long classId = 0xC001L;
+        long ref1 = 0xAAAAL;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "com.example.Foo")
+                .string(0xA002L, "next")
+                .string(0xA003L, "count")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(classId, 0L, 0L, INSTANCE_BYTES,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.INT))
+                        .instanceDump(0x1001L, classId, fields(ref1, 42))
+                        .instanceDump(0x1002L, classId, fields(0L, 7)))
+                .heapDumpEnd()
+                .writeTo(tmp, "browse.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, classId);
+            assertEquals("com.example.Foo", response.className());
+            assertEquals(2, response.totalInstances());
+            assertFalse(response.hasMore());
+            assertEquals(2, response.instances().size());
+
+            ClassInstanceEntry first = response.instances().get(0);
+            assertEquals(0x1001L, first.objectId());
+            assertEquals("0x" + Long.toHexString(ref1), first.objectParams().get("next"));
+            assertEquals("42", first.objectParams().get("count"));
+
+            ClassInstanceEntry second = response.instances().get(1);
+            assertEquals("null", second.objectParams().get("next"),
+                    "OBJECT field with id 0 is rendered as null");
+            assertEquals("7", second.objectParams().get("count"));
+        }
+    }
+
+    @Test
+    void honorsOffsetAndLimit(@TempDir Path tmp) throws IOException, SQLException {
+        long classId = 0xC001L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "X")
+                .string(0xA002L, "f")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> {
+                    seg.classDumpWithFields(classId, 0L, 0L, 4,
+                            new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.INT));
+                    for (int i = 0; i < 5; i++) {
+                        byte[] body = new byte[]{0, 0, 0, (byte) i};
+                        seg.instanceDump(0x1000L + i, classId, body);
+                    }
+                })
+                .heapDumpEnd()
+                .writeTo(tmp, "page.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse page1 = ClassInstanceBrowserAnalyzer.browse(view, classId, 0, 2);
+            assertEquals(2, page1.instances().size());
+            assertTrue(page1.hasMore());
+            assertEquals(5, page1.totalInstances());
+
+            ClassInstancesResponse page2 = ClassInstanceBrowserAnalyzer.browse(view, classId, 4, 2);
+            assertEquals(1, page2.instances().size());
+            assertFalse(page2.hasMore());
+        }
+    }
+
+    @Test
+    void sortsByRetainedSizeDescendingNullsLast(@TempDir Path tmp) throws IOException, SQLException {
+        long classId = 0xC001L;
+        long bigInstance = 0x1001L;
+        long midInstance = 0x1002L;
+        long smallInstance = 0x1003L;
+        long bigArr = 0x9001L;
+        long midArr = 0x9002L;
+        long smallArr = 0x9003L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "com.example.Holder")
+                .string(0xA002L, "data")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(classId, 0L, 0L, ID_SIZE,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT))
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, bigInstance)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, midInstance)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, smallInstance)
+                        .primitiveArrayDump(bigArr, HprofTag.BasicType.BYTE, new byte[2048], 2048)
+                        .primitiveArrayDump(midArr, HprofTag.BasicType.BYTE, new byte[512], 512)
+                        .primitiveArrayDump(smallArr, HprofTag.BasicType.BYTE, new byte[64], 64)
+                        .instanceDump(bigInstance, classId, idBytes(bigArr))
+                        .instanceDump(midInstance, classId, idBytes(midArr))
+                        .instanceDump(smallInstance, classId, idBytes(smallArr)))
+                .heapDumpEnd()
+                .writeTo(tmp, "by-retained.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response =
+                    ClassInstanceBrowserAnalyzer.browse(view, classId, 0, 10, InstanceSortBy.RETAINED_SIZE);
+
+            assertEquals("com.example.Holder", response.className());
+            assertEquals(3, response.instances().size());
+
+            ClassInstanceEntry first = response.instances().get(0);
+            ClassInstanceEntry second = response.instances().get(1);
+            ClassInstanceEntry third = response.instances().get(2);
+            assertEquals(bigInstance, first.objectId(), "biggest-retained instance must come first");
+            assertEquals(midInstance, second.objectId());
+            assertEquals(smallInstance, third.objectId());
+            assertNotNull(first.retainedSize());
+            assertNotNull(second.retainedSize());
+            assertNotNull(third.retainedSize());
+            assertTrue(first.retainedSize() > second.retainedSize());
+            assertTrue(second.retainedSize() > third.retainedSize());
+        }
+    }
+
+    @Test
+    void populatesContentPreviewForStringInstances(@TempDir Path tmp) throws IOException, SQLException {
+        long stringClass = 0xC001L;
+        long s1 = 0x1001L;
+        long s2 = 0x1002L;
+        long bytes1 = 0x2001L;
+        long bytes2 = 0x2002L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "java.lang.String")
+                .string(0xA002L, "value")
+                .string(0xA003L, "coder")
+                .string(0xA004L, "hash")
+                .loadClass(1, stringClass, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(stringClass, 0L, 0L, ID_SIZE + 1 + 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.BYTE),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.INT))
+                        .primitiveArrayDump(bytes1, HprofTag.BasicType.BYTE,
+                                "hello".getBytes(StandardCharsets.ISO_8859_1), 5)
+                        .primitiveArrayDump(bytes2, HprofTag.BasicType.BYTE,
+                                "world".getBytes(StandardCharsets.ISO_8859_1), 5)
+                        .instanceDump(s1, stringClass, stringFields(bytes1, (byte) 0))
+                        .instanceDump(s2, stringClass, stringFields(bytes2, (byte) 0)))
+                .heapDumpEnd()
+                .writeTo(tmp, "string-preview.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, stringClass);
+            assertEquals(2, response.instances().size());
+            assertEquals("\"hello\"", response.instances().get(0).contentPreview());
+            assertEquals("\"world\"", response.instances().get(1).contentPreview());
+        }
+    }
+
+    /**
+     * A page of Threads previews each by the String its {@code name} field points at -- the names
+     * are resolved for the whole page together -- and a thread with no name has no preview.
+     */
+    @Test
+    void populatesContentPreviewFromTheNameFieldForThreads(@TempDir Path tmp) throws IOException, SQLException {
+        long stringClass = 0xC001L;
+        long threadClass = 0xC002L;
+        long mainName = 0x1001L;
+        long workerName = 0x1002L;
+        long mainBytes = 0x2001L;
+        long workerBytes = 0x2002L;
+        long mainThread = 0x3001L;
+        long workerThread = 0x3002L;
+        long unnamedThread = 0x3003L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "java.lang.String")
+                .string(0xA002L, "value")
+                .string(0xA003L, "coder")
+                .string(0xA004L, "hash")
+                .string(0xA005L, "java.lang.Thread")
+                .string(0xA006L, "name")
+                .loadClass(1, stringClass, 0, 0xA001L)
+                .loadClass(2, threadClass, 0, 0xA005L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(stringClass, 0L, 0L, ID_SIZE + 1 + 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.BYTE),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.INT))
+                        .topLevelObjectClassDump(threadClass, 0xA006L)
+                        .primitiveArrayDump(mainBytes, HprofTag.BasicType.BYTE,
+                                "main".getBytes(StandardCharsets.ISO_8859_1), 4)
+                        .primitiveArrayDump(workerBytes, HprofTag.BasicType.BYTE,
+                                "worker-1".getBytes(StandardCharsets.ISO_8859_1), 8)
+                        .instanceDump(mainName, stringClass, stringFields(mainBytes, (byte) 0))
+                        .instanceDump(workerName, stringClass, stringFields(workerBytes, (byte) 0))
+                        .instanceDump(mainThread, threadClass, idBytes(mainName))
+                        .instanceDump(workerThread, threadClass, idBytes(workerName))
+                        .instanceDump(unnamedThread, threadClass, idBytes(0L)))
+                .heapDumpEnd()
+                .writeTo(tmp, "thread-preview.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, threadClass);
+            assertEquals(3, response.instances().size());
+            assertEquals("main", response.instances().get(0).contentPreview());
+            assertEquals("worker-1", response.instances().get(1).contentPreview());
+            assertNull(response.instances().get(2).contentPreview(), "a thread with no name has no preview");
+            assertEquals("0x" + Long.toHexString(mainName), response.instances().get(0).objectParams().get("name"));
+        }
+    }
+
+    @Test
+    void populatesContentPreviewForBoxedIntegers(@TempDir Path tmp) throws IOException, SQLException {
+        long integerClass = 0xC001L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "java.lang.Integer")
+                .string(0xA002L, "value")
+                .loadClass(1, integerClass, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(integerClass, 0L, 0L, 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.INT))
+                        .instanceDump(0x1001L, integerClass, new byte[]{0, 0, 0, 42})
+                        .instanceDump(0x1002L, integerClass, new byte[]{0, 0, 0, 7}))
+                .heapDumpEnd()
+                .writeTo(tmp, "integer-preview.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, integerClass);
+            assertEquals(2, response.instances().size());
+            // Boxed wrappers render unquoted.
+            assertEquals("42", response.instances().get(0).contentPreview());
+            assertEquals("7", response.instances().get(1).contentPreview());
+        }
+    }
+
+    @Test
+    void contentPreviewIsNullForClassesWithoutKnownLayout(@TempDir Path tmp) throws IOException, SQLException {
+        long classId = 0xC001L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "com.example.Foo")
+                .string(0xA002L, "count")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(classId, 0L, 0L, 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.INT))
+                        .instanceDump(0x1001L, classId, new byte[]{0, 0, 0, 99}))
+                .heapDumpEnd()
+                .writeTo(tmp, "no-preview.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, classId);
+            assertEquals(1, response.instances().size());
+            assertEquals(null, response.instances().get(0).contentPreview(),
+                    "no preview for unknown class layouts — null beats a meaningless hex blob");
+        }
+    }
+
+    @Test
+    void retainedSortRequiresDominatorTree(@TempDir Path tmp) throws IOException, SQLException {
+        long classId = 0xC001L;
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "X")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(classId, 0L, 0L, 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA001L, HprofTag.BasicType.INT))
+                        .instanceDump(0x1001L, classId, new byte[]{0, 0, 0, 1}))
+                .heapDumpEnd()
+                .writeTo(tmp, "no-dom.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            assertThrows(IllegalStateException.class, () ->
+                    ClassInstanceBrowserAnalyzer.browse(view, classId, 0, 10, InstanceSortBy.RETAINED_SIZE));
+        }
+    }
+
+    @Test
+    void unknownClassReturnsEmptyWithUnknownLabel(@TempDir Path tmp) throws IOException, SQLException {
+        Path hprof = SyntheticHprof.create("1.0.2", 8, 0L)
+                .string(0xA001L, "X")
+                .heapDumpEnd()
+                .writeTo(tmp, "no-class.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HeapView view = HeapView.open(indexDb)) {
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, 0xDEADL);
+            assertTrue(response.className().contains("unknown"));
+            assertEquals(0, response.totalInstances());
+            assertTrue(response.instances().isEmpty());
+        }
+    }
+
+    @Test
+    void byteArrayInstancesCarryReferrerAndStringPreview(@TempDir Path tmp) throws IOException, SQLException {
+        // Setup:
+        //   - A String "hello" backed by byte[] (so the byte[] is held by a String)
+        //   - A Holder instance holding its own byte[] (no String content)
+        // Browse byte[]:
+        //   - The String-held byte[] returns referrerClass=java.lang.String, preview="\"hello\""
+        //   - The Holder-held byte[] returns referrerClass=Holder, preview=null
+        long stringClass = 0xC001L;
+        long holderClass = 0xC002L;
+        long stringInstance = 0x100L;
+        long holderInstance = 0x200L;
+        long bytesString = 0x300L;
+        long bytesHolder = 0x301L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                .string(0xA001L, "java.lang.String")
+                .string(0xA002L, "Holder")
+                .string(0xA003L, "value")
+                .string(0xA004L, "coder")
+                .string(0xA005L, "hash")
+                .loadClass(1, stringClass, 0, 0xA001L)
+                .loadClass(2, holderClass, 0, 0xA002L)
+                .heapDumpSegment(seg -> seg
+                        .classDumpWithFields(stringClass, 0L, 0L, ID_SIZE + 1 + 4,
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.OBJECT),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.BYTE),
+                                new SyntheticHprof.SubBuilder.FieldSpec(0xA005L, HprofTag.BasicType.INT))
+                        .topLevelObjectClassDump(holderClass, 0xA003L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, stringInstance)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holderInstance)
+                        .primitiveArrayDump(bytesString, HprofTag.BasicType.BYTE,
+                                "hello".getBytes(StandardCharsets.ISO_8859_1), 5)
+                        .primitiveArrayDump(bytesHolder, HprofTag.BasicType.BYTE, new byte[32], 32)
+                        .instanceDump(stringInstance, stringClass, stringFields(bytesString, (byte) 0))
+                        .instanceDump(holderInstance, holderClass, idBytes(bytesHolder)))
+                .heapDumpEnd()
+                .writeTo(tmp, "byte-array-referrers.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HprofMappedFile file = HprofMappedFile.open(hprof);
+             HeapView view = HeapView.open(indexDb, file)) {
+            // byte[] is the synthetic primitive-array class — look up its id by name.
+            long byteArrayClassId = view.findClassesByName("byte[]").get(0).classId();
+            ClassInstancesResponse response = ClassInstanceBrowserAnalyzer.browse(view, byteArrayClassId);
+            assertEquals("byte[]", response.className());
+            assertEquals(2, response.instances().size());
+
+            ClassInstanceEntry stringHeld = response.instances().stream()
+                    .filter(e -> e.objectId() == bytesString)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("java.lang.String", stringHeld.referrerClass());
+            assertEquals("\"hello\"", stringHeld.contentPreview(),
+                    "byte[] held by String should expose the decoded String content");
+
+            ClassInstanceEntry holderHeld = response.instances().stream()
+                    .filter(e -> e.objectId() == bytesHolder)
+                    .findFirst()
+                    .orElseThrow();
+            assertEquals("Holder", holderHeld.referrerClass());
+            assertEquals(null, holderHeld.contentPreview(),
+                    "byte[] held by a non-String should NOT expose a preview");
+        }
+    }
+
+    private static byte[] fields(long objectRef, int intValue) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            d.writeLong(objectRef);
+            d.writeInt(intValue);
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static byte[] idBytes(long ref) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            d.writeLong(ref);
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Java 9+ {@code java.lang.String} field block: OBJECT value array reference,
+     * BYTE coder (0 = Latin1, 1 = UTF-16), INT hash.
+     */
+    private static byte[] stringFields(long valueArrayId, byte coder) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            d.writeLong(valueArrayId);
+            d.writeByte(coder);
+            d.writeInt(0);
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}

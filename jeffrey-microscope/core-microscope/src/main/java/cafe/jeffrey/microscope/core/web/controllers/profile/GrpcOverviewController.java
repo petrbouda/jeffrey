@@ -25,11 +25,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
-import cafe.jeffrey.profile.manager.custom.GrpcManager;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcOverviewData;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.ExchangeDirection;
+import cafe.jeffrey.microscope.profile.management.manager.custom.GrpcManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcOverviewData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcServiceDetailData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcTrafficData;
 
 import java.net.URLDecoder;
 

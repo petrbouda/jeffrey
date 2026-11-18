@@ -16,7 +16,7 @@
  */
 
 import SecondaryProfileService from '@/services/SecondaryProfileService';
-import type { ProfileWithContext } from '@/stores/profileStore';
+import type Profile from '@/services/api/model/Profile';
 
 /**
  * Adopts the baseline a URL named (`?baseline=<profileId>`), so a link can open a comparison and not
@@ -34,14 +34,13 @@ import type { ProfileWithContext } from '@/stores/profileStore';
 export async function adoptLinkedBaseline(
   baselineId: string,
   primaryProfileId: string,
-  load: (profileId: string) => Promise<ProfileWithContext>
+  load: (profileId: string) => Promise<Profile>
 ): Promise<boolean> {
   try {
     const linked = await load(baselineId);
     SecondaryProfileService.update(
       {
         id: linked.id,
-        projectId: linked.projectId,
         name: linked.name,
         createdAt: linked.createdAt,
         profilingStartedAt: linked.profilingStartedAt ?? null,

@@ -27,8 +27,8 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.connector.api.dto.InstanceResponse;
 import cafe.jeffrey.microscope.connector.api.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.microscope.connector.api.manager.ConnectorInstancesManager;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 import java.util.List;

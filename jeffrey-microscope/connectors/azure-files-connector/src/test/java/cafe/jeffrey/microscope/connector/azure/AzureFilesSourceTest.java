@@ -21,12 +21,9 @@ import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.connector.api.dto.RepositoryFileResponse;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAuth;
-import cafe.jeffrey.microscope.model.connector.AzureFilesProtocol;
 import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
-import cafe.jeffrey.test.volume.VolumeWriter;
+import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

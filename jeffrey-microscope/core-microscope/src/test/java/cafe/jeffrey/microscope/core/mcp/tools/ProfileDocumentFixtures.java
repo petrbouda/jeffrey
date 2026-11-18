@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.profile.mcp.finding.McpFindings;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFindings;
 
 import java.util.List;
 

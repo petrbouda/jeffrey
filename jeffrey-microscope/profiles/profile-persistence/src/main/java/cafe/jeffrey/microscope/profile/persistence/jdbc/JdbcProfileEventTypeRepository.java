@@ -1,0 +1,303 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.persistence.jdbc;
+
+import cafe.jeffrey.microscope.profile.persistence.api.*;
+
+import tools.jackson.core.type.TypeReference;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.model.EventSubtype;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.profile.persistence.api.EventTypeWithFields;
+import cafe.jeffrey.microscope.profile.persistence.api.FieldDescription;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+public class JdbcProfileEventTypeRepository implements ProfileEventTypeRepository {
+
+    private static final TypeReference<List<String>> STRING_LIST =
+            new TypeReference<List<String>>() {
+            };
+
+    private static final TypeReference<Map<String, String>> STRING_MAP =
+            new TypeReference<Map<String, String>>() {
+            };
+
+    private static final TypeReference<List<FieldDescription>> FIELD_DESC =
+            new TypeReference<List<FieldDescription>>() {
+            };
+
+    private static final RowMapper<EventTypeWithFields> TYPE_FIELDS_MAPPER = (rs, _) -> {
+        String name = rs.getString("name");
+        String label = rs.getString("label");
+        String fields = rs.getString("event_fields");
+        return new EventTypeWithFields(name, label, Json.readObjectNode(fields));
+    };
+
+    private static final RowMapper<EventSummary> EVENT_SUMMARY_MAPPER = (rs, _) -> {
+        return new EventSummary(
+                rs.getString("name"),
+                rs.getString("label"),
+                EventSubtype.resolve(rs.getString("subtype")),
+                rs.getLong("samples"),
+                rs.getLong("weight"),
+                rs.getBoolean("has_stacktrace"),
+                false,
+                toNullableList(rs.getString("categories")),
+                toNullableMap(rs.getString("extras")),
+                toNullableMap(rs.getString("settings")));
+    };
+
+    //language=SQL
+    private static final String FIELDS_BY_SINGLE_EVENT = """
+            SELECT event_types.name, event_types.label, events.fields::JSON AS event_fields FROM events
+            INNER JOIN event_types ON events.event_type = event_types.name
+            WHERE events.event_type = (:code) LIMIT 1""";
+
+    //language=SQL
+    private static final String FIELDS_BY_EVENT_TYPES = """
+            SELECT event_types.name, event_types.label, any_value(events.fields::JSON) AS event_fields FROM events
+            INNER JOIN event_types ON events.event_type = event_types.name
+            WHERE events.event_type IN (:codes)
+            GROUP BY event_types.name, event_types.label""";
+
+    //language=SQL
+    private static final String COLUMNS_BY_SINGLE_EVENT =
+            "SELECT columns FROM event_types WHERE name = (:code) LIMIT 1";
+
+    private static final String PLACEHOLDER_SPAN_FILTER = "<<span_filter>>";
+    private static final String PLACEHOLDER_SPAN_CTE = "<<span_cte>>";
+    private static final String EVENTS_ALIAS = "e";
+
+    //language=SQL
+    private static final String EVENT_SUMMARIES_BY_CODES = """
+            WITH <<span_cte>>aggregated_events AS (
+                SELECT
+                    e.event_type,
+                    SUM(e.samples) as samples,
+                    SUM(e.weight) as weight
+                FROM events e
+                WHERE e.event_type IN (:codes)
+                    <<span_filter>>
+                GROUP BY e.event_type
+            )
+            SELECT
+                et.name,
+                et.label,
+                et.subtype,
+                COALESCE(ae.samples, 0) as samples,
+                COALESCE(ae.weight, 0) as weight,
+                et.has_stacktrace,
+                et.categories,
+                et.extras,
+                et.settings
+            FROM event_types et
+            LEFT JOIN aggregated_events ae ON et.name = ae.event_type
+            WHERE et.name IN (:codes)""";
+
+    //language=SQL
+    private static final String EVENT_SUMMARIES = """
+            WITH aggregated_events AS (
+                SELECT
+                    event_type,
+                    SUM(samples) as samples,
+                    SUM(weight) as weight
+                FROM events
+                GROUP BY event_type
+            )
+            SELECT
+                et.name,
+                et.label,
+                et.subtype,
+                COALESCE(ae.samples, 0) as samples,
+                COALESCE(ae.weight, 0) as weight,
+                et.has_stacktrace,
+                et.categories,
+                et.extras,
+                et.settings
+            FROM event_types et
+            LEFT JOIN aggregated_events ae ON et.name = ae.event_type""";
+
+    private final SQLFormatter sqlFormatter;
+    private final DatabaseClient databaseClient;
+    private final List<EventSummaryCalculator> commonCalculators;
+
+    public JdbcProfileEventTypeRepository(
+            SQLFormatter sqlFormatter, DatabaseClientProvider databaseClientProvider) {
+
+        this.sqlFormatter = sqlFormatter;
+        this.databaseClient = databaseClientProvider.provide(GroupLabel.PROFILE_EVENT_TYPES);
+        this.commonCalculators = List.of(new NativeLeakEventSummaryCalculator(databaseClientProvider));
+    }
+
+    @Override
+    public Optional<EventTypeWithFields> singleFieldsByEventType(Type type) {
+        /*
+         * Calculated event types are not included, it's not need at the time of the implementation.
+         */
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("code", type.code());
+
+        return databaseClient.querySingle(
+                StatementLabel.FIELDS_WITH_SINGLE_EVENT,
+                sqlFormatter.formatJson(FIELDS_BY_SINGLE_EVENT),
+                paramSource,
+                TYPE_FIELDS_MAPPER);
+    }
+
+    @Override
+    public Map<Type, EventTypeWithFields> singleFieldsByEventTypes(List<Type> types) {
+        if (types.isEmpty()) {
+            return Map.of();
+        }
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("codes", types.stream().map(Type::code).toList());
+
+        List<EventTypeWithFields> rows = databaseClient.query(
+                StatementLabel.FIELDS_WITH_EVENT_TYPES,
+                sqlFormatter.formatJson(FIELDS_BY_EVENT_TYPES),
+                paramSource,
+                TYPE_FIELDS_MAPPER);
+
+        Map<Type, EventTypeWithFields> result = new LinkedHashMap<>();
+        for (EventTypeWithFields row : rows) {
+            result.put(Type.fromCode(row.name()), row);
+        }
+        return result;
+    }
+
+    @Override
+    public List<FieldDescription> eventColumns(Type type) {
+        Optional<List<FieldDescription>> calculatedEventColumnsOpt = findCalculatedEventColumns(type);
+        // Return calculated columns if present
+        if (calculatedEventColumnsOpt.isPresent()) {
+            return calculatedEventColumnsOpt.get();
+        }
+
+        // Fallback to database stored columns
+        Optional<List<FieldDescription>> databaseEventColumnsOpt = findDatabaseEventColumns(type);
+        return databaseEventColumnsOpt.orElse(List.of());
+    }
+
+    private Optional<List<FieldDescription>> findCalculatedEventColumns(Type type) {
+        return commonCalculators.stream()
+                .filter(calculator ->  type.equals(calculator.type()))
+                .filter(EventSummaryCalculator::applicable)
+                .map(EventSummaryCalculator::fieldDescriptions)
+                .findAny();
+    }
+
+    private Optional<List<FieldDescription>> findDatabaseEventColumns(Type type) {
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("code", type.code());
+
+        RowMapper<List<FieldDescription>> columns = (rs, _) ->
+                Json.read(rs.getString("columns"), FIELD_DESC);
+
+        return databaseClient.querySingle(
+                        StatementLabel.COLUMNS_BY_SINGLE_EVENT, COLUMNS_BY_SINGLE_EVENT, paramSource, columns);
+    }
+
+    @Override
+    public List<EventSummary> eventSummaries(List<Type> types) {
+        List<String> codes = types.stream()
+                .map(Type::code)
+                .toList();
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("codes", codes);
+        SpanScopeSql.apply(paramSource, null);
+
+        List<EventSummary> eventSummaries = databaseClient.query(
+                StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(null), paramSource, EVENT_SUMMARY_MAPPER);
+
+        List<EventSummary> calculatedEventSummaries = commonCalculators.stream()
+                .filter(calculator -> types.contains(calculator.type()))
+                .filter(EventSummaryCalculator::applicable)
+                .map(EventSummaryCalculator::eventSummary)
+                .toList();
+
+        return combine(eventSummaries, calculatedEventSummaries);
+    }
+
+    @Override
+    public List<EventSummary> eventSummaries(List<Type> types, SpanScope spanScope) {
+        List<String> codes = types.stream()
+                .map(Type::code)
+                .toList();
+
+        MapSqlParameterSource paramSource = new MapSqlParameterSource()
+                .addValue("codes", codes);
+        SpanScopeSql.apply(paramSource, spanScope);
+
+        // Calculated (non-DB) summaries are profile-wide and cannot be span-scoped, so they are omitted here.
+        return databaseClient.query(
+                StatementLabel.EVENT_SUMMARIES, eventSummariesByCodesSql(spanScope), paramSource, EVENT_SUMMARY_MAPPER);
+    }
+
+    /**
+     * Splices the scope's CTE and its semi-join into the summaries query only when a scope is
+     * present; without one, both clauses are absent entirely and the query is profile-wide.
+     */
+    private static String eventSummariesByCodesSql(SpanScope spanScope) {
+        return EVENT_SUMMARIES_BY_CODES
+                .replace(PLACEHOLDER_SPAN_CTE, SpanScopeSql.cte(spanScope))
+                .replace(PLACEHOLDER_SPAN_FILTER, SpanScopeSql.predicate(spanScope, EVENTS_ALIAS));
+    }
+
+    @Override
+    public List<EventSummary> eventSummaries() {
+        List<EventSummary> eventSummaries = databaseClient.query(
+                StatementLabel.FIND_EVENT_TYPE, EVENT_SUMMARIES, new MapSqlParameterSource(), EVENT_SUMMARY_MAPPER);
+
+        List<EventSummary> calculatedEventSummaries = commonCalculators.stream()
+                .filter(EventSummaryCalculator::applicable)
+                .map(EventSummaryCalculator::eventSummary)
+                .toList();
+
+        return combine(eventSummaries, calculatedEventSummaries);
+    }
+
+    private static List<EventSummary> combine(List<EventSummary> database, List<EventSummary> calculated) {
+        List<EventSummary> combined = new ArrayList<>();
+        combined.addAll(database);
+        combined.addAll(calculated);
+        return combined;
+    }
+
+    private static Map<String, String> toNullableMap(String json) {
+        return json == null ? null : Json.read(json, STRING_MAP);
+    }
+
+    private static List<String> toNullableList(String json) {
+        return json == null ? null : Json.read(json, STRING_LIST);
+    }
+}

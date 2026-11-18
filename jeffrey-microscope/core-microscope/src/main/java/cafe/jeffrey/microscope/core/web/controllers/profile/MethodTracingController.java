@@ -25,12 +25,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.custom.MethodTracingManager;
-import cafe.jeffrey.profile.manager.custom.model.method.CumulationMode;
-import cafe.jeffrey.profile.manager.custom.model.method.MethodTimingData;
-import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingCumulatedData;
-import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingOverviewData;
-import cafe.jeffrey.profile.manager.custom.model.method.MethodTracingSlowestData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.MethodTracingManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.CumulationMode;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.MethodTimingData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.MethodTracingCumulatedData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.MethodTracingOverviewData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.MethodTracingSlowestData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/method-tracing")

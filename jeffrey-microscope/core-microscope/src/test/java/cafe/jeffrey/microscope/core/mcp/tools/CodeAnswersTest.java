@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.code.MethodKey;
-import cafe.jeffrey.flamegraph.code.MethodRef;
-import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodRef;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.MethodValue;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

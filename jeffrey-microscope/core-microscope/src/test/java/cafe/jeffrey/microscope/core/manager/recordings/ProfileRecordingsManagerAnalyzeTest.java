@@ -35,25 +35,25 @@ import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
-import cafe.jeffrey.profile.ProfileInitializer;
-import cafe.jeffrey.profile.ProfileInitStages;
-import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRequest;
-import cafe.jeffrey.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpStages;
-import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
-import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.recordings.core.manager.RecordingsCoreManager;
+import cafe.jeffrey.microscope.profile.management.ProfileInitializer;
+import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRequest;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpStages;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.storage.recording.api.file.RecordingFile;
-import cafe.jeffrey.storage.recording.api.file.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -458,7 +458,7 @@ class ProfileRecordingsManagerAnalyzeTest {
         @Test
         void refusesAProfileOfAnotherRecording() {
             when(profileRepository.find()).thenReturn(Optional.of(new ProfileInfo(
-                    "foreign-profile", null, null, FILENAME, RecordingEventSource.JFR,
+                    "foreign-profile", FILENAME, RecordingEventSource.JFR,
                     NOW, NOW, NOW, true, false, "another-recording")));
 
             assertThrows(RuntimeException.class, () -> manager.deleteProfile(RECORDING_ID, "foreign-profile"));
@@ -557,7 +557,7 @@ class ProfileRecordingsManagerAnalyzeTest {
                     base.createdAt(), base.recordingStartedAt(), base.recordingFinishedAt(),
                     true, HEAP_PROFILE_ID, base.recordingName(), base.files())));
             when(profileRepository.find()).thenReturn(Optional.of(new ProfileInfo(
-                    HEAP_PROFILE_ID, null, null, "heap.hprof", RecordingEventSource.HEAP_DUMP,
+                    HEAP_PROFILE_ID, "heap.hprof", RecordingEventSource.HEAP_DUMP,
                     NOW, NOW, NOW, true, false, RECORDING_ID)));
         }
     }
@@ -572,7 +572,7 @@ class ProfileRecordingsManagerAnalyzeTest {
 
     private static ProfileInfo profileInfo(String profileId, boolean enabled) {
         return new ProfileInfo(
-                profileId, null, null, FILENAME, RecordingEventSource.JFR,
+                profileId, FILENAME, RecordingEventSource.JFR,
                 NOW.minusSeconds(60), NOW, NOW, enabled, false, RECORDING_ID);
     }
 

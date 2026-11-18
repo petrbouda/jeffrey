@@ -29,13 +29,13 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.mcp.JeffreyMcpServer;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolMeta;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.ToolParamBounds;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
+import cafe.jeffrey.microscope.common.Json;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
@@ -59,7 +59,6 @@ public class ProfilesMcpTools {
     private static final String RECORDING_ID = "recordingId";
     private static final String NEXT_PAGE_WHY = "continues the catalogue past this page";
     private static final String BUILDING_WHY = "reports how far the build of the newest listed profile still being built has got";
-    private static final String QUICK_ANALYSIS_PROJECT = "(quick analysis)";
     private static final String BUILDING_NOTE =
             "A profile listed as `building` is still being parsed. Pass its recording_id to recordings_status "
                     + "to check progress.";
@@ -84,10 +83,6 @@ public class ProfilesMcpTools {
             @McpDescription("Bounded display name, at most 256 characters; see nameTruncated")
             String name,
             boolean nameTruncated,
-            @McpNullable
-            String projectId,
-            @McpNullable
-            String workspaceId,
             @McpNullable
             String eventSource,
             @McpNullable
@@ -183,7 +178,7 @@ public class ProfilesMcpTools {
         String nextCursor = hasMore
                 ? JeffreyMcpServer.CURSOR.encode(request.filters(), new McpCursor.Keyset(List.of(profiles.getLast().id()))) : null;
         List<ProfileRow> rows = new ArrayList<>(profiles.size());
-        MarkdownTable table = MarkdownTable.withColumns("profile_id", "recording_id", "name", "project",
+        MarkdownTable table = MarkdownTable.withColumns("profile_id", "recording_id", "name",
                 "event source", "recorded", "duration", "ready", "modified");
         for (ProfileInfo profile : profiles) {
             String name = displayName(profile.name());
@@ -192,14 +187,12 @@ public class ProfilesMcpTools {
             boolean spanKnown = started != null && profile.profilingFinishedAt() != null;
             String source = profile.eventSource() == null ? null : profile.eventSource().toString();
             Readiness ready = profile.enabled() ? Readiness.YES : Readiness.BUILDING;
-            rows.add(new ProfileRow(profile.id(), profile.recordingId(), name, nameTruncated,
-                    profile.projectId(), profile.workspaceId(), source,
+            rows.add(new ProfileRow(profile.id(), profile.recordingId(), name, nameTruncated, source,
                     started == null ? null : started.toEpochMilli(),
                     spanKnown ? profile.duration().toMillis() : null,
                     ready, profile.modified(), UiLinks.profile(profile.id())));
-            table.row(profile.id(), profile.recordingId(), name,
-                    profile.projectId() == null ? QUICK_ANALYSIS_PROJECT : profile.projectId(),
-                    source, started == null ? null : started.toString(),
+            table.row(profile.id(), profile.recordingId(), name, source,
+                    started == null ? null : started.toString(),
                     spanKnown ? profile.duration().toString() : null,
                     ready.name().toLowerCase(Locale.ROOT), profile.modified() ? "yes" : "no");
         }

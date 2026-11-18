@@ -28,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.storage.recording.api.file.Recording;
+import cafe.jeffrey.microscope.model.recording.Recording;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -97,7 +97,7 @@ class MicroscopeProfileCleanupTest {
     }
 
     private static ProfileInfo profile(String profileId) {
-        return new ProfileInfo(profileId, null, null, "app.jfr", RecordingEventSource.JFR,
+        return new ProfileInfo(profileId, "app.jfr", RecordingEventSource.JFR,
                 NOW, NOW, NOW, true, false, RECORDING_ID);
     }
 }

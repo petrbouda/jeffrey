@@ -16,7 +16,6 @@
  */
 
 import { useRouter } from 'vue-router';
-import { profileStore } from '@/stores/profileStore';
 
 const RECORDINGS_PATH = '/recordings';
 
@@ -32,8 +31,6 @@ export function useNavigation() {
   };
 
   return {
-    workspaceId: profileStore.workspaceId,
-    projectId: profileStore.projectId,
     navigateToRecordings
   };
 }

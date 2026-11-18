@@ -18,7 +18,7 @@ the NetBeans dep are still in place and untouched.
 ### 1.1 Parser stack (additive)
 
 ```
-heap-dump/src/main/java/cafe/jeffrey/profile/heapdump/parser/
+heap-dump/src/main/java/cafe/jeffrey/microscope/profile/heapdump/parser/
 ├── HprofMappedFile          MemorySegment over the .hprof, big-endian, lock-free
 ├── HprofHeader              parsed file header (magic, idSize, timestamp)
 ├── HprofTag                 HPROF top-level + sub-record tag constants
@@ -58,7 +58,7 @@ heap-dump/src/main/java/cafe/jeffrey/profile/heapdump/parser/
 
 ### 1.3 Migrated analyzers (13 of 13 user-facing)
 
-Package `cafe.jeffrey.profile.heapdump.analyzer.heapview` — same model contracts as
+Package `cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview` — same model contracts as
 the existing `analyzer/` package, so the manager swap is mechanical:
 
 | Analyzer | Reads | Notes |
@@ -177,7 +177,7 @@ And remove the now-unused property:
 ### 4.2 Rename the on-disk directory (done)
 
 `heap-dump-analysis` → `heap-dump`. Done: `HeapDumpFiles.ANALYSIS_DIR` in
-`jeffrey-microscope/profiles/profile-heapdump-orchestration/.../HeapDumpFiles.java` is the one place the
+`jeffrey-microscope/profiles/profile-management/.../HeapDumpFiles.java` is the one place the
 directory is named.
 
 ### 4.3 Rewrite `HeapDumpManagerImpl.java` (~911 lines)
@@ -240,14 +240,14 @@ Per-method analyzer mapping:
 
 ### 4.4 Delete
 
-- `cafe.jeffrey.profile.heapdump.analyzer/` — every NetBeans-using analyzer
+- `cafe.jeffrey.microscope.profile.heapdump.analyzer/` — every NetBeans-using analyzer
   (the `heapview/` subpackage stays).
-- `cafe.jeffrey.profile.heapdump.sanitizer/` — its framing/recovery logic is
+- `cafe.jeffrey.microscope.profile.heapdump.sanitizer/` — its framing/recovery logic is
   already inlined into `parser/HprofTopLevelReader` + `HprofSubRecordReader`.
   Sanitization is now a parser property (fault-tolerant by design), not a
   separate pre-pass.
-- `cafe.jeffrey.profile.heapdump.SimpleHeapLoader`
-- `cafe.jeffrey.profile.heapdump.HeapLoader` interface
+- `cafe.jeffrey.microscope.profile.heapdump.SimpleHeapLoader`
+- `cafe.jeffrey.microscope.profile.heapdump.HeapLoader` interface
 - The `.sanitized` and `.nbcache` cleanup paths in `HeapDumpManagerImpl` —
   replaced by the index sibling, which is auto-rebuilt on staleness via
   `HeapDumpSession.openOrBuild`.

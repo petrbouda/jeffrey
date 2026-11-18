@@ -172,7 +172,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import GenericModal from '@shared/components/GenericModal.vue';
-import type { ProfileListResponse } from '@/services/api/DirectProfileClient';
 import RecordingsClient from '@/services/api/RecordingsClient';
 import type RecordingGroup from '@/services/api/model/recordings/RecordingGroup';
 import type Recording from '@/services/api/model/recordings/Recording';
@@ -186,22 +185,28 @@ import Profile from '@/services/api/model/Profile';
 
 interface Props {
   show: boolean;
-  currentProjectId: string;
   currentProfileId: string;
   currentSecondaryProfileId?: string;
-  currentSecondaryProjectId?: string;
-  workspaceId: string;
   /** Restrict candidates to heap-dump-capable profiles (baseline selection for the Heap Diff). */
   heapDumpBaseline?: boolean;
 }
 
 interface Emits {
   'update:show': [value: boolean];
-  'profile-selected': [profile: Profile, projectId: string];
+  'profile-selected': [profile: Profile];
   'profile-cleared': [];
 }
 
-interface ProfileEntry extends ProfileListResponse {
+/** A profile the picker offers, read off the Recordings list. */
+interface ProfileEntry {
+  id: string;
+  name: string;
+  /** Epoch millis. */
+  createdAt: number;
+  eventSource: string;
+  enabled: boolean;
+  durationInMillis: number;
+  sizeInBytes: number;
   groupId: string | null;
 }
 
@@ -212,8 +217,6 @@ interface GroupNode {
   count: number;
 }
 
-const RECORDINGS_WORKSPACE_ID = 'recordings';
-const RECORDINGS_WORKSPACE_NAME = 'Recordings';
 const ALL_GROUP_KEY = 'all';
 const UNGROUPED_KEY = '__ungrouped__';
 
@@ -403,10 +406,6 @@ const loadAllProfiles = async () => {
     allProfiles.value = candidates.map(p => ({
       id: p.profileId!,
       name: p.profileName || p.filename,
-      projectId: RECORDINGS_WORKSPACE_ID,
-      projectName: RECORDINGS_WORKSPACE_NAME,
-      workspaceId: RECORDINGS_WORKSPACE_ID,
-      workspaceName: RECORDINGS_WORKSPACE_NAME,
       createdAt: p.uploadedAt,
       eventSource: p.eventSource,
       enabled: true,
@@ -441,8 +440,6 @@ const confirmSelection = () => {
   if (selectedProfile.value && hasValidSelection.value) {
     const profile = new Profile(
       selectedProfile.value.id,
-      selectedProfile.value.projectId,
-      selectedProfile.value.workspaceId,
       selectedProfile.value.name,
       selectedProfile.value.createdAt,
       selectedProfile.value.eventSource as RecordingEventSource,
@@ -453,7 +450,7 @@ const confirmSelection = () => {
       selectedProfile.value.durationInMillis,
       selectedProfile.value.sizeInBytes
     );
-    emit('profile-selected', profile, selectedProfile.value.projectId);
+    emit('profile-selected', profile);
     closeModal();
   }
 };

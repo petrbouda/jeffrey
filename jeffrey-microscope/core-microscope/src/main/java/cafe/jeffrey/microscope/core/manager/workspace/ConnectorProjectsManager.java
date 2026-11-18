@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.List;

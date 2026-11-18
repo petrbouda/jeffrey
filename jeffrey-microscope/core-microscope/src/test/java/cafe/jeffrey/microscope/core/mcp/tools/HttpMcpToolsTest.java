@@ -25,22 +25,22 @@ import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileCustomManager;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
-import cafe.jeffrey.profile.manager.custom.HttpManager;
-import cafe.jeffrey.profile.manager.custom.model.http.HttpHeader;
-import cafe.jeffrey.profile.manager.custom.model.http.HttpMethodStats;
-import cafe.jeffrey.profile.manager.custom.model.http.HttpOverviewData;
-import cafe.jeffrey.profile.manager.custom.model.http.HttpSlowRequest;
-import cafe.jeffrey.profile.manager.custom.model.http.HttpStatusStats;
-import cafe.jeffrey.profile.manager.custom.model.http.HttpUriInfo;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.ExchangeDirection;
+import cafe.jeffrey.microscope.profile.management.manager.custom.HttpManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpHeader;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpMethodStats;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpOverviewData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpSlowRequest;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpStatusStats;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.http.HttpUriInfo;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -100,7 +100,7 @@ class HttpMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                "p-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                "p-1", "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.custom()).thenReturn(customManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);

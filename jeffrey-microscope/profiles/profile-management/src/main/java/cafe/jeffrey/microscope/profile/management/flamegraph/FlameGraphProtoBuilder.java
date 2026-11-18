@@ -1,0 +1,279 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.flamegraph;
+
+import cafe.jeffrey.shared.common.BytesUtils;
+import cafe.jeffrey.microscope.common.DurationUtils;
+import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.profile.management.flamegraph.proto.FlamegraphData;
+import cafe.jeffrey.microscope.profile.management.flamegraph.proto.Frame;
+import cafe.jeffrey.microscope.profile.management.flamegraph.proto.FramePosition;
+import cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameSampleTypes;
+import cafe.jeffrey.microscope.profile.management.flamegraph.proto.Level;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+/**
+ * Builds flamegraph data in Protocol Buffers format.
+ * This provides ~50-60% size reduction compared to JSON through:
+ * - Varint encoding for integers
+ * - No field names in wire format
+ * - String deduplication via title_pool
+ */
+public class FlameGraphProtoBuilder implements GraphBuilder<cafe.jeffrey.microscope.profile.management.frameir.Frame, FlamegraphData> {
+
+    private static final String TRUNCATED_TITLE = "Truncated";
+
+    private static final Function<Long, String> ALLOCATION_FORMATTER =
+            weight -> BytesUtils.format(weight) + " Allocated";
+
+    private static final Function<Long, String> BLOCKING_FORMATTER =
+            weight -> DurationUtils.formatNanos2Units(weight) + " Blocked";
+
+    private static final Function<Long, String> LATENCY_FORMATTER =
+            weight -> DurationUtils.formatNanos2Units(weight) + " Latency";
+
+    private static final Function<Long, String> CPU_TIME_FORMATTER =
+            weight -> DurationUtils.formatNanos2Units(weight) + " CPU";
+
+    private final boolean withWeight;
+    private final double minFrameThresholdPct;
+    private final Function<Long, String> weightFormatter;
+
+    // Title pool for string deduplication
+    private final List<String> titlePool = new ArrayList<>();
+    private final Map<String, Integer> titleIndex = new HashMap<>();
+
+    private FlameGraphProtoBuilder(double minFrameThresholdPct, Function<Long, String> weightFormatter) {
+        this(minFrameThresholdPct, weightFormatter != null, weightFormatter);
+    }
+
+    public static FlameGraphProtoBuilder simple(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, null);
+    }
+
+    public static FlameGraphProtoBuilder allocation(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, ALLOCATION_FORMATTER);
+    }
+
+    public static FlameGraphProtoBuilder blocking(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, BLOCKING_FORMATTER);
+    }
+
+    public static FlameGraphProtoBuilder latency(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, LATENCY_FORMATTER);
+    }
+
+    public static FlameGraphProtoBuilder cpu(double minFrameThresholdPct) {
+        return new FlameGraphProtoBuilder(minFrameThresholdPct, CPU_TIME_FORMATTER);
+    }
+
+    public FlameGraphProtoBuilder(double minFrameThresholdPct, boolean withWeight, Function<Long, String> weightFormatter) {
+        this.minFrameThresholdPct = minFrameThresholdPct;
+        this.withWeight = withWeight;
+        this.weightFormatter = weightFormatter;
+    }
+
+    @Override
+    public FlamegraphData build(cafe.jeffrey.microscope.profile.management.frameir.Frame root) {
+        long rootMetric = withWeight ? root.totalWeight() : root.totalSamples();
+        long minMetric = (long) (rootMetric * minFrameThresholdPct / 100.0);
+        int depth = root.depth(minMetric, withWeight);
+
+        // Initialize level builders
+        List<Level.Builder> levelBuilders = new ArrayList<>(depth);
+        for (int i = 0; i < depth; i++) {
+            levelBuilders.add(Level.newBuilder());
+        }
+
+        // Build root title
+        String rootTitle = withWeight
+                ? root.totalSamples() + " Event(s), " + weightFormatter.apply(root.totalWeight())
+                : root.totalSamples() + " Event(s)";
+
+        // Recursively build frame tree
+        buildFrame(levelBuilders, rootTitle, root, 0, 0, 0, minMetric);
+
+        // Build the final FlamegraphData. The depth is taken from the actual levels because
+        // synthetic TRUNCATED rollups may add one level below the deepest surviving frame
+        // (Frame.depth() counts only surviving children).
+        FlamegraphData.Builder dataBuilder = FlamegraphData.newBuilder()
+                .setDepth(levelBuilders.size());
+
+        for (Level.Builder levelBuilder : levelBuilders) {
+            dataBuilder.addLevels(levelBuilder);
+        }
+
+        dataBuilder.addAllTitlePool(titlePool);
+
+        return dataBuilder.build();
+    }
+
+    private void buildFrame(
+            List<Level.Builder> levelBuilders,
+            String title,
+            cafe.jeffrey.microscope.profile.management.frameir.Frame frame,
+            int level,
+            long leftSamples,
+            long leftWeight,
+            long minMetric) {
+
+        Frame.Builder frameBuilder = Frame.newBuilder()
+                .setLeftSamples(leftSamples)
+                .setTotalSamples(frame.totalSamples())
+                .setTitleIndex(getOrAddTitle(title))
+                .setType(mapFrameType(frame.frameType()));
+
+        // Only include weight fields when flamegraph uses weight
+        if (withWeight) {
+            frameBuilder.setLeftWeight(leftWeight);
+            frameBuilder.setTotalWeight(frame.totalWeight());
+        }
+
+        // Only include selfSamples when non-zero
+        if (frame.selfSamples() > 0) {
+            frameBuilder.setSelfSamples(frame.selfSamples());
+        }
+
+        // Mark frames whose class exists only for this run, so the tooltip can say so
+        if (frame.hidden()) {
+            frameBuilder.setHidden(true);
+        }
+
+        // Add position if available
+        if (frame.bci() > 0 || frame.lineNumber() > 0) {
+            FramePosition.Builder posBuilder = FramePosition.newBuilder();
+            if (frame.bci() > 0) {
+                posBuilder.setBci(frame.bci());
+            }
+            if (frame.lineNumber() > 0) {
+                posBuilder.setLine(frame.lineNumber());
+            }
+            frameBuilder.setPosition(posBuilder);
+        }
+
+        // Add sample types if any non-zero
+        if (frame.inlinedSamples() > 0 || frame.c1Samples() > 0
+                || frame.jitCompiledSamples() > 0 || frame.interpretedSamples() > 0) {
+            FrameSampleTypes.Builder sampleTypesBuilder = FrameSampleTypes.newBuilder();
+            if (frame.inlinedSamples() > 0) {
+                sampleTypesBuilder.setInlined(frame.inlinedSamples());
+            }
+            if (frame.c1Samples() > 0) {
+                sampleTypesBuilder.setC1(frame.c1Samples());
+            }
+            if (frame.interpretedSamples() > 0) {
+                sampleTypesBuilder.setInterpret(frame.interpretedSamples());
+            }
+            if (frame.jitCompiledSamples() > 0) {
+                sampleTypesBuilder.setJit(frame.jitCompiledSamples());
+            }
+            frameBuilder.setSampleTypes(sampleTypesBuilder);
+        }
+
+        levelBuilders.get(level).addFrames(frameBuilder);
+
+        // Process children — emit visible ones packed left; aggregate sub-threshold siblings
+        // into a single TRUNCATED_SYNTHETIC placeholder on the right so the parent's true
+        // self-time becomes a visible gap instead of looking like a hotspot.
+        long prunedSamples = 0;
+        long prunedWeight = 0;
+        int prunedChildrenCount = 0;
+        for (Map.Entry<String, cafe.jeffrey.microscope.profile.management.frameir.Frame> e : frame.entrySet()) {
+            cafe.jeffrey.microscope.profile.management.frameir.Frame child = e.getValue();
+            long childMetric = withWeight ? child.totalWeight() : child.totalSamples();
+            if (childMetric >= minMetric) {
+                buildFrame(levelBuilders, e.getKey(), child, level + 1, leftSamples, leftWeight, minMetric);
+                leftSamples += child.totalSamples();
+                leftWeight += child.totalWeight();
+            } else {
+                prunedSamples += child.totalSamples();
+                prunedWeight += child.totalWeight();
+                prunedChildrenCount++;
+            }
+        }
+        if (prunedChildrenCount > 0) {
+            Frame.Builder synthetic = Frame.newBuilder()
+                    .setLeftSamples(leftSamples)
+                    .setTotalSamples(prunedSamples)
+                    .setTitleIndex(getOrAddTitle(TRUNCATED_TITLE))
+                    .setType(cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC)
+                    .setSelfSamples(prunedSamples)
+                    .setPrunedChildrenCount(prunedChildrenCount);
+            if (withWeight) {
+                synthetic.setLeftWeight(leftWeight);
+                synthetic.setTotalWeight(prunedWeight);
+            }
+            // Frame.depth() counts only surviving children — when ALL children of the deepest
+            // surviving frame are pruned, the rollup level does not exist yet and must be grown,
+            // otherwise the parent silently over-represents its self-time.
+            ensureLevel(levelBuilders, level + 1).addFrames(synthetic);
+        }
+    }
+
+    /**
+     * Returns the builder for the given level, growing the level list when the level
+     * does not exist yet.
+     */
+    private static Level.Builder ensureLevel(List<Level.Builder> levelBuilders, int level) {
+        while (levelBuilders.size() <= level) {
+            levelBuilders.add(Level.newBuilder());
+        }
+        return levelBuilders.get(level);
+    }
+
+    /**
+     * Gets the index for a title from the pool, adding it if not present.
+     */
+    private int getOrAddTitle(String title) {
+        return titleIndex.computeIfAbsent(title, t -> {
+            int index = titlePool.size();
+            titlePool.add(t);
+            return index;
+        });
+    }
+
+    /**
+     * Maps Java FrameType enum to Protobuf FrameType enum.
+     */
+    private static cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType mapFrameType(FrameType frameType) {
+        return switch (frameType) {
+            case C1_COMPILED -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_C1_COMPILED;
+            case NATIVE -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_NATIVE;
+            case CPP -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_CPP;
+            case INTERPRETED -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_INTERPRETED;
+            case JIT_COMPILED -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_JIT_COMPILED;
+            case INLINED -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_INLINED;
+            case KERNEL -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_KERNEL;
+            case THREAD_NAME_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_THREAD_NAME_SYNTHETIC;
+            case ALLOCATED_OBJECT_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_SYNTHETIC;
+            case ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_IN_NEW_TLAB_SYNTHETIC;
+            case ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_ALLOCATED_OBJECT_OUTSIDE_TLAB_SYNTHETIC;
+            case BLOCKING_OBJECT_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_BLOCKING_OBJECT_SYNTHETIC;
+            case TRACED_METHOD_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_TRACED_METHOD_SYNTHETIC;
+            case COLLAPSED_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_COLLAPSED_SYNTHETIC;
+            case TRUNCATED_SYNTHETIC -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_TRUNCATED_SYNTHETIC;
+            case HIGHLIGHTED_WARNING -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_HIGHLIGHTED_WARNING;
+            case UNKNOWN -> cafe.jeffrey.microscope.profile.management.flamegraph.proto.FrameType.FRAME_TYPE_UNKNOWN;
+        };
+    }
+}

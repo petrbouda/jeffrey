@@ -24,11 +24,11 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections.SectionAvailabilit
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.McpToolWeight;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpToolWeight;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
+import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

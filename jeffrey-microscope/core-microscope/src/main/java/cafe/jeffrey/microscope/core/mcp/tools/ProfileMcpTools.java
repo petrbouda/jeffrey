@@ -33,21 +33,21 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
-import cafe.jeffrey.profile.manager.AutoAnalysisManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolMeta;
-import cafe.jeffrey.profile.mcp.ToolParamValues;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.profile.mcp.finding.McpFindings;
-import cafe.jeffrey.profile.model.FlamegraphPanel;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.feature.ProfileDisabledFeatures;
+import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
+import cafe.jeffrey.microscope.mcp.server.ToolParamValues;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFindings;
+import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import tools.jackson.databind.JsonNode;
@@ -162,8 +162,6 @@ public class ProfileMcpTools {
         return McpToolResult.of(new ProfileDetail(
                 info.id(),
                 info.name(),
-                info.projectId(),
-                info.workspaceId(),
                 info.eventSource().name(),
                 epochMillis(info.profilingStartedAt()),
                 epochMillis(info.profilingFinishedAt()),
@@ -511,10 +509,6 @@ public class ProfileMcpTools {
             String profileId,
             @McpNullable
             String name,
-            @McpNullable
-            String projectId,
-            @McpNullable
-            String workspaceId,
             String eventSource,
             @McpNullable
             @McpDescription("When the recording started, as UTC epoch milliseconds; null when unknown")

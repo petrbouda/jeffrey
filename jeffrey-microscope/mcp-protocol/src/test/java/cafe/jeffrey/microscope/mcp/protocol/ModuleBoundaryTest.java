@@ -72,8 +72,8 @@ class ModuleBoundaryTest {
     /** The scan itself: a source that reaches for Jeffrey or Spring is named, one in the package is not. */
     @Test
     void theScanNamesEveryForbiddenImport(@TempDir Path sources) throws IOException {
-        write(sources, "Common.java", "import cafe.jeffrey.shared.common.Json;");
-        write(sources, "Adapter.java", "import static cafe.jeffrey.profile.mcp.McpToolOutput.capped;");
+        write(sources, "Common.java", "import cafe.jeffrey.microscope.common.Json;");
+        write(sources, "Adapter.java", "import static cafe.jeffrey.microscope.mcp.server.McpToolOutput.capped;");
         write(sources, "Spring.java", "import org.springframework.http.ResponseEntity;");
         write(sources, "Own.java", "import " + OWN_PACKAGE + ".McpDispatcher;");
         write(sources, "Jackson.java", "import tools.jackson.databind.JsonNode;");

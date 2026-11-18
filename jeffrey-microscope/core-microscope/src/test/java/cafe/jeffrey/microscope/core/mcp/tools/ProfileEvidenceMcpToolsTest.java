@@ -27,16 +27,16 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.common.analysis.AnalysisResult;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.McpTestToolsets;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -245,7 +245,7 @@ class ProfileEvidenceMcpToolsTest {
     void qualityOfAProfileWithAnUnknownSpanHasNoScaleFactor() {
         ProfileManager primary = manager("primary");
         ProfileManager baseline = manager("baseline");
-        when(baseline.info()).thenReturn(new ProfileInfo("baseline", null, null, null, RecordingEventSource.JFR,
+        when(baseline.info()).thenReturn(new ProfileInfo("baseline", null, RecordingEventSource.JFR,
                 Instant.EPOCH, null, Instant.EPOCH, true, false, null));
 
         JsonNode result = new CompareMcpTools(primary, id -> baseline, CLOCK, EVERY_FAMILY)
@@ -473,7 +473,7 @@ class ProfileEvidenceMcpToolsTest {
 
     static ProfileManager manager(String id) {
         ProfileManager manager = mock(ProfileManager.class, RETURNS_DEEP_STUBS);
-        when(manager.info()).thenReturn(new ProfileInfo(id, "project", "workspace", id,
+        when(manager.info()).thenReturn(new ProfileInfo(id, id,
                 RecordingEventSource.JFR, Instant.EPOCH, Instant.EPOCH.plusSeconds(60),
                 Instant.EPOCH, true, false, "recording-" + id));
         when(manager.samplerHealthManager().cpuTimeSampleLoss()).thenReturn(CpuTimeSampleLoss.EMPTY);

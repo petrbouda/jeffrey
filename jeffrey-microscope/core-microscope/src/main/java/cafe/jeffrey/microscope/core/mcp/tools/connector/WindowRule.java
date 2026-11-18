@@ -18,7 +18,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.mcp.tools.ByteSizes;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorAnswers.ChosenWindow;
-import cafe.jeffrey.microscope.model.repository.ChunkWindow;
+import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 
 import java.time.Duration;
 import java.time.Instant;

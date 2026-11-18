@@ -1,0 +1,158 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.manager;
+
+import tools.jackson.core.type.TypeReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileCacheRepository;
+import cafe.jeffrey.microscope.common.CacheKey;
+
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public class AutoAnalysisManagerImpl implements AutoAnalysisManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AutoAnalysisManagerImpl.class);
+
+    private static final TypeReference<List<AutoAnalysisResult>> ANALYSIS_RESULT_TYPE =
+            new TypeReference<List<AutoAnalysisResult>>() {
+            };
+
+    private final ProfileCacheRepository cacheRepository;
+    private final Supplier<List<Path>> recordingFilesResolver;
+    private final Function<List<Path>, List<AutoAnalysisResult>> ruleSet;
+
+    /**
+     * Guards the single in-flight run. Held only while a run is being handed out or cleared, never
+     * while the rule set is running -- a second caller parks on the future, not on this monitor.
+     */
+    private final Object inFlightLock = new Object();
+    private CompletableFuture<List<AutoAnalysisResult>> inFlight;
+
+    /**
+     * @param recordingFilesResolver every JFR file of the recording, the same set the import ran the
+     *                               rules over; empty when the rules cannot run for this profile
+     * @param ruleSet                what actually evaluates the rules over those files. A
+     *                               collaborator rather than a static call so the single-flight
+     *                               behaviour below can be tested without a recording on disk.
+     */
+    public AutoAnalysisManagerImpl(
+            ProfileCacheRepository cacheRepository,
+            Supplier<List<Path>> recordingFilesResolver,
+            Function<List<Path>, List<AutoAnalysisResult>> ruleSet) {
+
+        this.cacheRepository = cacheRepository;
+        this.recordingFilesResolver = recordingFilesResolver;
+        this.ruleSet = ruleSet;
+    }
+
+    @Override
+    public List<AutoAnalysisResult> analysisResults() {
+        return cacheRepository.get(CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE)
+                .orElse(List.of());
+    }
+
+    @Override
+    public boolean isComputed() {
+        return cacheRepository.get(CacheKey.PROFILE_AUTO_ANALYSIS, ANALYSIS_RESULT_TYPE).isPresent();
+    }
+
+    @Override
+    public boolean canGenerate() {
+        return !recordingFilesResolver.get().isEmpty();
+    }
+
+    /**
+     * Single-flight on purpose: the run loads the entire recording into the JMC item model, so two
+     * concurrent runs of the same profile would hold two copies of it at once. The profile's warm-up
+     * starts one when the recording is imported, and the Auto Analysis page's button and the MCP
+     * tool's {@code compute} flag can both arrive while it is still going.
+     */
+    @Override
+    public List<AutoAnalysisResult> generate() {
+        CompletableFuture<List<AutoAnalysisResult>> run;
+        boolean owner = false;
+
+        synchronized (inFlightLock) {
+            if (inFlight == null) {
+                inFlight = new CompletableFuture<>();
+                owner = true;
+            }
+            run = inFlight;
+        }
+
+        if (!owner) {
+            LOG.debug("Auto analysis already running, joining it");
+            return run.join();
+        }
+
+        try {
+            List<AutoAnalysisResult> results = runRuleSet();
+            run.complete(results);
+            return results;
+        } catch (RuntimeException | Error e) {
+            run.completeExceptionally(e);
+            throw e;
+        } finally {
+            synchronized (inFlightLock) {
+                inFlight = null;
+            }
+        }
+    }
+
+    @Override
+    public void store(List<AutoAnalysisResult> results) {
+        if (results == null) {
+            return;
+        }
+        cache(results);
+    }
+
+    private List<AutoAnalysisResult> runRuleSet() {
+        List<Path> recordingFiles = recordingFilesResolver.get();
+        if (recordingFiles.isEmpty()) {
+            throw new IllegalStateException("Recording file not found");
+        }
+
+        LOG.info("Generating auto analysis: recording_count={} recordings={}",
+                recordingFiles.size(), recordingFiles);
+
+        return cache(ruleSet.apply(recordingFiles));
+    }
+
+    /**
+     * Orders the findings and writes them, whichever path produced them, so that the run the import
+     * starts and the run a reader asks for cannot disagree about what a cached analysis looks like.
+     */
+    private List<AutoAnalysisResult> cache(List<AutoAnalysisResult> findings) {
+        List<AutoAnalysisResult> results = findings.stream()
+                .sorted(Comparator.comparing(a -> a.severity().order()))
+                .toList();
+
+        cacheRepository.put(CacheKey.PROFILE_AUTO_ANALYSIS, results);
+        LOG.info("Auto analysis completed and cached: results={}", results.size());
+
+        return results;
+    }
+}

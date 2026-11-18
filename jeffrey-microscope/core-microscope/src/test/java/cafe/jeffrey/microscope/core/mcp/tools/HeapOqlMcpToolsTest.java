@@ -26,19 +26,19 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.common.operation.OperationState;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.heapdump.model.OQLQueryRequest;
-import cafe.jeffrey.profile.heapdump.model.OQLQueryResult;
-import cafe.jeffrey.profile.heapdump.model.OQLResultEntry;
-import cafe.jeffrey.profile.heapdump.model.OQLResumePoint;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryRequest;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLResultEntry;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLResumePoint;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -109,7 +109,7 @@ class HeapOqlMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.HEAP_DUMP,
+                PROFILE_ID, "Profile", RecordingEventSource.HEAP_DUMP,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.heapDumpManager()).thenReturn(heapDumpManager);
     }

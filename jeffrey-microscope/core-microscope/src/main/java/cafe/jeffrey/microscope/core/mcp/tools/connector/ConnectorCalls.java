@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
-import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 /**
  * The calls the {@code connector_} answers route to, named once: the tools and the arguments they take, so

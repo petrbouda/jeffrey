@@ -17,9 +17,9 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
-import cafe.jeffrey.profile.mcp.McpToolWeight;
-import cafe.jeffrey.profile.mcp.McpToolWeights;
-import cafe.jeffrey.profile.mcp.McpToolWeights.ToolClass;
+import cafe.jeffrey.microscope.mcp.server.McpToolWeight;
+import cafe.jeffrey.microscope.mcp.server.McpToolWeights;
+import cafe.jeffrey.microscope.mcp.server.McpToolWeights.ToolClass;
 
 import java.util.List;
 import java.util.Set;

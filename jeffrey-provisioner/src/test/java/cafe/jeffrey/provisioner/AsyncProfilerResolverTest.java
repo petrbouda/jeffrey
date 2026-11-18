@@ -19,7 +19,7 @@ package cafe.jeffrey.provisioner;
 
 import cafe.jeffrey.provisioner.AsyncProfilerResolver.ResolvedProfiler;
 import cafe.jeffrey.provisioner.feature.JvmFeature;
-import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.provisioner.CliConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

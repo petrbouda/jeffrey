@@ -1,0 +1,156 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import cafe.jeffrey.microscope.profile.heapdump.model.BlockingClass;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassLoaderHierarchyEdge;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassLoaderUnloadability;
+import cafe.jeffrey.microscope.profile.heapdump.model.UnloadabilityVerdict;
+import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
+
+/**
+ * Answers, for every class loader, the question "could this loader be
+ * garbage-collected on the next metaspace-aware GC cycle?" The verdict
+ * combines two facts: whether any instance of any class the loader defined
+ * is still allocated, and whether the loader instance itself is a GC root.
+ *
+ * <p>"Rooted" here means <em>effectively</em> rooted, not just "directly listed
+ * in the HPROF root table". {@link ClassLoaderRootednessAnalyzer} promotes
+ * every ancestor of a directly-rooted loader to also rooted, so JDK parent
+ * loaders (Bootstrap, Platform) — kept alive only because the leaf
+ * {@code AppClassLoader} holds them via {@code parent} — receive
+ * {@link UnloadabilityVerdict#PINNED_ROOTED} instead of being mislabeled as
+ * the leak signature.
+ *
+ * <p>Implementation runs two whole-heap queries (one rollup of instances per
+ * loader, one window-ranked top-5 of blocking classes per loader) plus one
+ * {@link HeapView#isGcRoot} probe per loader id.
+ */
+public final class ClassLoaderUnloadabilityAnalyzer {
+
+    private static final int TOP_BLOCKING_CLASSES_PER_LOADER = 5;
+
+    private static final String INSTANCE_COUNT_SQL = """
+            SELECT
+                COALESCE(c.classloader_id, 0) AS loader_id,
+                COUNT(i.instance_id)          AS instance_count
+            FROM class c
+            LEFT JOIN instance i ON i.class_id = c.class_id
+            GROUP BY COALESCE(c.classloader_id, 0)
+            """;
+
+    private static final String TOP_BLOCKING_CLASSES_SQL = """
+            WITH per_class AS (
+                SELECT
+                    COALESCE(c.classloader_id, 0)    AS loader_id,
+                    c.class_id                       AS class_id,
+                    c.name                           AS class_name,
+                    COUNT(i.instance_id)             AS inst_count,
+                    COALESCE(SUM(i.shallow_size), 0) AS total_size
+                FROM class c
+                LEFT JOIN instance i ON i.class_id = c.class_id
+                GROUP BY COALESCE(c.classloader_id, 0), c.class_id, c.name
+            ),
+            ranked AS (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY loader_id
+                           ORDER BY inst_count DESC, class_id ASC
+                       ) AS rk
+                FROM per_class
+            )
+            SELECT loader_id, class_id, class_name, inst_count, total_size
+            FROM ranked
+            WHERE rk <= ? AND inst_count > 0
+            ORDER BY loader_id, inst_count DESC
+            """;
+
+    private ClassLoaderUnloadabilityAnalyzer() {
+    }
+
+    public static Map<Long, ClassLoaderUnloadability> analyze(
+            HeapView view,
+            Collection<Long> loaderIds,
+            Collection<ClassLoaderHierarchyEdge> edges) throws SQLException {
+
+        Set<Long> effectivelyRooted = ClassLoaderRootednessAnalyzer.analyze(view, loaderIds, edges);
+        Map<Long, Long> liveInstancesByLoader = readInstanceCounts(view);
+        Map<Long, List<BlockingClass>> blockingByLoader = readTopBlockingClasses(view);
+
+        Map<Long, ClassLoaderUnloadability> result = new HashMap<>();
+        for (Long loaderId : loaderIds) {
+            if (loaderId == null) {
+                continue;
+            }
+            long live = liveInstancesByLoader.getOrDefault(loaderId, 0L);
+            boolean rooted = effectivelyRooted.contains(loaderId);
+            UnloadabilityVerdict verdict = computeVerdict(live, rooted);
+            List<BlockingClass> top = blockingByLoader.getOrDefault(loaderId, List.of());
+            result.put(loaderId, new ClassLoaderUnloadability(verdict, live, rooted, top));
+        }
+        return result;
+    }
+
+    private static UnloadabilityVerdict computeVerdict(long liveInstanceCount, boolean rooted) {
+        if (rooted) {
+            return UnloadabilityVerdict.PINNED_ROOTED;
+        }
+        if (liveInstanceCount > 0) {
+            return UnloadabilityVerdict.PINNED_TRANSITIVE;
+        }
+        return UnloadabilityVerdict.UNLOADABLE;
+    }
+
+    private static Map<Long, Long> readInstanceCounts(HeapView view) throws SQLException {
+        Map<Long, Long> counts = new HashMap<>();
+        try (Statement stmt = view.databaseClient().connection().createStatement();
+             ResultSet rs = stmt.executeQuery(INSTANCE_COUNT_SQL)) {
+            while (rs.next()) {
+                counts.put(rs.getLong(1), rs.getLong(2));
+            }
+        }
+        return counts;
+    }
+
+    private static Map<Long, List<BlockingClass>> readTopBlockingClasses(HeapView view) throws SQLException {
+        Map<Long, List<BlockingClass>> blocking = new HashMap<>();
+        try (var stmt = view.databaseClient().connection().prepareStatement(TOP_BLOCKING_CLASSES_SQL)) {
+            stmt.setInt(1, TOP_BLOCKING_CLASSES_PER_LOADER);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    long loaderId = rs.getLong(1);
+                    BlockingClass entry = new BlockingClass(
+                            rs.getLong(2),
+                            rs.getString(3),
+                            rs.getLong(4),
+                            rs.getLong(5));
+                    blocking.computeIfAbsent(loaderId, k -> new ArrayList<>()).add(entry);
+                }
+            }
+        }
+        return blocking;
+    }
+}

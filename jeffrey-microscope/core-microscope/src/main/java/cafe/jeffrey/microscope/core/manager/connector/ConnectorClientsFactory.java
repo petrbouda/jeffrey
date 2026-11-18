@@ -18,28 +18,37 @@
 package cafe.jeffrey.microscope.core.manager.connector;
 
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
-import cafe.jeffrey.microscope.model.connector.AzureFilesAddress;
+import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
+import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
-import cafe.jeffrey.microscope.model.connector.LocalDirectoryAddress;
+
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The clients of the configured connector, opened by the factory of its kind. Every kind answers the
- * same {@link ConnectorClients} over its own storage, so nothing past this point knows which it is.
+ * The clients of the one declared connector, whatever its kind: its provider opens the volume, once,
+ * and the clients over it are kept for as long as Microscope runs.
  */
 public final class ConnectorClientsFactory {
 
-    private final AzureFilesClientsFactory azureFiles;
-    private final LocalClientsFactory local;
+    private final Optional<DeclaredConnector> declared;
+    private final ConcurrentHashMap<ConnectorAddress, ConnectorClients> cache = new ConcurrentHashMap<>();
 
-    public ConnectorClientsFactory(AzureFilesClientsFactory azureFiles, LocalClientsFactory local) {
-        this.azureFiles = azureFiles;
-        this.local = local;
+    /**
+     * @param declared the connector configuration declares, or empty when it declares none
+     */
+    public ConnectorClientsFactory(Optional<DeclaredConnector> declared) {
+        this.declared = declared;
     }
 
+    /**
+     * @throws IllegalArgumentException for an address that is not the declared connector's: Microscope
+     *                                  reaches exactly one connector, and never one it was handed
+     */
     public ConnectorClients apply(ConnectorAddress address) {
-        return switch (address) {
-            case AzureFilesAddress share -> azureFiles.apply(share);
-            case LocalDirectoryAddress directory -> local.apply(directory);
-        };
+        DeclaredConnector connector = declared
+                .filter(candidate -> candidate.address().equals(address))
+                .orElseThrow(() -> new IllegalArgumentException("Not the declared connector: address=" + address));
+        return cache.computeIfAbsent(address, _ -> VolumeConnectorClients.of(connector.open()));
     }
 }

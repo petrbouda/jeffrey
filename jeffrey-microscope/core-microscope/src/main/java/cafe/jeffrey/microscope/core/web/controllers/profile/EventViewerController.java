@@ -24,9 +24,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.treetable.EventViewerData;
-import cafe.jeffrey.profile.manager.EventViewerManager;
-import cafe.jeffrey.provider.profile.api.FieldDescription;
+import cafe.jeffrey.microscope.profile.common.treetable.EventViewerData;
+import cafe.jeffrey.microscope.profile.management.manager.EventViewerManager;
+import cafe.jeffrey.microscope.profile.persistence.api.FieldDescription;
 import cafe.jeffrey.microscope.model.Type;
 import tools.jackson.databind.JsonNode;
 

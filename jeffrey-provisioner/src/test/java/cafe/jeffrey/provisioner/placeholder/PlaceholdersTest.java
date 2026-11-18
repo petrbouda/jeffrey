@@ -18,7 +18,7 @@
 package cafe.jeffrey.provisioner.placeholder;
 
 import cafe.jeffrey.provisioner.SessionLayout;
-import cafe.jeffrey.shared.common.CliConstants;
+import cafe.jeffrey.provisioner.CliConstants;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

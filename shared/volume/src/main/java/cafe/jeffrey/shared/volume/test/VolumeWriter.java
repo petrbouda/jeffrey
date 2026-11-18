@@ -1,0 +1,147 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.shared.volume.test;
+
+import cafe.jeffrey.shared.common.JeffreyLayout;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
+
+/**
+ * Writes a recording volume the way the provisioner and the profiler do — directories named for
+ * what they hold, and recordings named for when they were opened and at which UTC offset — so every
+ * reader of a volume (the volume scheduler, the shared layout, Microscope reading storage directly) is tested
+ * against what production writes. Nothing below a workspace has a marker file.
+ * <p>
+ * Test support, kept in {@code shared/volume}'s main code so that its own tests, the volume scheduler's and
+ * Microscope's all write their volumes through this one copy: a change to how the provisioner lays a volume
+ * down is made here once. Nothing in production writes the volume this way: only tests and
+ * {@code microscope-test} use it.
+ */
+public final class VolumeWriter {
+
+    /** Where a time-ordered UUID keeps its epoch millis: above the version and counter bits. */
+    private static final int UUID_TIMESTAMP_SHIFT = 16;
+    private static final long UUID_VERSION_7 = 0x7000L;
+    private static final long UUID_STANDARD_VARIANT = 0x8000_0000_0000_0000L;
+
+    /** async-profiler's {@code %t}: the machine's local time. */
+    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern(JeffreyLayout.TIMESTAMP_PATTERN);
+
+    private VolumeWriter() {
+    }
+
+    /** A workspace's directory, named {@code id}, under the volume's {@code workspaces/} directory. */
+    public static Path workspace(Path workspacesDir, String id) {
+        return directories(workspacesDir.resolve(id));
+    }
+
+    /** A project's directory, named {@code name} — its id — under a workspace's directory. */
+    public static Path project(Path workspaceDir, String name) {
+        return directories(workspaceDir.resolve(name));
+    }
+
+    /** An instance's directory, named {@code instanceId}, in a project's directory. */
+    public static Path instance(Path projectDir, String instanceId) {
+        return directories(projectDir.resolve(instanceId));
+    }
+
+    /** A session's directory, named as the provisioner names a session started at {@code start}. */
+    public static Path session(Path instanceDir, Instant start) {
+        return directories(instanceDir.resolve(sessionIdAt(start)));
+    }
+
+    /** A session's directory, under the name a real provisioner gave it. */
+    public static Path session(Path instanceDir, String sessionId) {
+        return directories(instanceDir.resolve(sessionId));
+    }
+
+    /**
+     * The name the provisioner gives a session started at {@code start}: a time-ordered UUID
+     * carrying it, which is what an instance's sessions are ordered by.
+     */
+    public static String sessionIdAt(Instant start) {
+        long mostSignificant = (start.toEpochMilli() << UUID_TIMESTAMP_SHIFT) | UUID_VERSION_7;
+        return new UUID(mostSignificant, UUID_STANDARD_VARIANT).toString();
+    }
+
+    /**
+     * The name async-profiler gives a recording opened at {@code openedAt} on a machine at
+     * {@code offset}, without the file number: {@code rec-20260220-120500+0000.jfr}, as chunks were
+     * named before the number was added — still read, by their timestamp alone.
+     */
+    public static String recordingName(Instant openedAt, ZoneOffset offset) {
+        return recordingNameTemplate(openedAt, offset)
+                .replace(JeffreyLayout.SEQUENCE_SEPARATOR + JeffreyLayout.SEQUENCE_PLACEHOLDER, "");
+    }
+
+    /**
+     * The name async-profiler gives the JVM's {@code sequence}-th recording (from 0), opened at
+     * {@code openedAt} on a machine at {@code offset}, through the provisioner's template:
+     * {@code rec-20260220-120500+0000_3.jfr}.
+     */
+    public static String recordingName(Instant openedAt, ZoneOffset offset, long sequence) {
+        return recordingNameTemplate(openedAt, offset)
+                .replace(JeffreyLayout.SEQUENCE_PLACEHOLDER, Long.toString(sequence));
+    }
+
+    private static String recordingNameTemplate(Instant openedAt, ZoneOffset offset) {
+        String local = LocalDateTime.ofInstant(openedAt, offset).format(TIMESTAMP);
+        return JeffreyLayout.recordingTemplate(offset).replace(JeffreyLayout.TIMESTAMP_PLACEHOLDER, local);
+    }
+
+    /** A recording opened at {@code openedAt} on a machine at {@code offset}. */
+    public static Path recording(Path sessionDir, Instant openedAt, ZoneOffset offset, String content) {
+        return file(sessionDir, recordingName(openedAt, offset), content);
+    }
+
+    /** A recording opened at {@code openedAt} on a machine at {@code offset}, holding real bytes. */
+    public static Path recording(Path sessionDir, Instant openedAt, ZoneOffset offset, byte[] content) {
+        return file(sessionDir, recordingName(openedAt, offset), content);
+    }
+
+    public static Path file(Path dir, String name, String content) {
+        return file(dir, name, content.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public static Path file(Path dir, String name, byte[] content) {
+        Path file = dir.resolve(name);
+        try {
+            Files.write(file, content);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        return file;
+    }
+
+    private static Path directories(Path dir) {
+        try {
+            return Files.createDirectories(dir);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}

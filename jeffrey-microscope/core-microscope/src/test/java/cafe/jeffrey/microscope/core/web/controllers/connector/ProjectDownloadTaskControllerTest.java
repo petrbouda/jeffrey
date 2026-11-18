@@ -17,12 +17,18 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.connector;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import cafe.jeffrey.microscope.core.manager.download.DownloadTaskRegistry;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
@@ -30,12 +36,21 @@ import static cafe.jeffrey.microscope.core.web.MockMvcSupport.mockMvcTesterFor;
 @ExtendWith(MockitoExtension.class)
 class ProjectDownloadTaskControllerTest {
 
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-03-01T00:00:00Z"), ZoneOffset.UTC);
+
     @Mock
     ProjectManagerResolver resolver;
 
+    private final DownloadTaskRegistry taskRegistry = new DownloadTaskRegistry(CLOCK);
+
+    @AfterEach
+    void closeRegistry() {
+        taskRegistry.close();
+    }
+
     @Test
     void unknownTaskReturnsBadRequest() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver, taskRegistry));
 
         // No task is registered for "ghost-task" — controller throws
         // Exceptions.invalidRequest, mapped to 400.
@@ -47,7 +62,7 @@ class ProjectDownloadTaskControllerTest {
 
     @Test
     void cancelUnknownTaskReturns404() {
-        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver));
+        MockMvcTester mvc = mockMvcTesterFor(new ProjectDownloadTaskController(resolver, taskRegistry));
 
         assertThat(mvc.delete().uri("/api/internal/connector/workspaces/ws-1/projects/p-1/download/ghost-task"))
                 .hasStatus(404);

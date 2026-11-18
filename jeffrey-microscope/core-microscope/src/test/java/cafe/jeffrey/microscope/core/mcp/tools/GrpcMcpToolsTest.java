@@ -22,25 +22,25 @@ import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.ProfileCustomManager;
-import cafe.jeffrey.profile.manager.ProfileFeaturesManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.custom.ExchangeDirection;
-import cafe.jeffrey.profile.manager.custom.GrpcManager;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcHeader;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcLargestCall;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcMethodInfo;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcOverviewData;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceDetailData;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcServiceInfo;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSizeBucket;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcSlowCall;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcStatusStats;
-import cafe.jeffrey.profile.manager.custom.model.grpc.GrpcTrafficData;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.ExchangeDirection;
+import cafe.jeffrey.microscope.profile.management.manager.custom.GrpcManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcHeader;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcLargestCall;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcMethodInfo;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcOverviewData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcServiceDetailData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcServiceInfo;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcSizeBucket;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcSlowCall;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcStatusStats;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.grpc.GrpcTrafficData;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -108,7 +108,7 @@ class GrpcMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
 
         when(profileManager.info()).thenReturn(new ProfileInfo(
-                PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
         when(profileManager.custom()).thenReturn(customManager);
         when(profileManager.featuresManager()).thenReturn(featuresManager);

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.recordings.core.download.DownloadTask;
+import cafe.jeffrey.microscope.core.manager.download.DownloadTask;
 
 import java.time.Instant;
 import java.util.List;

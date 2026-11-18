@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.flamegraph.diff.ProfileComparison;
-import cafe.jeffrey.flamegraph.export.AiExportConfig;
-import cafe.jeffrey.flamegraph.export.FlamegraphAiMarkdownBuilder;
-import cafe.jeffrey.frameir.DiffTreeGenerator;
-import cafe.jeffrey.frameir.Frame;
+import cafe.jeffrey.microscope.profile.management.flamegraph.diff.ProfileComparison;
+import cafe.jeffrey.microscope.profile.management.flamegraph.export.AiExportConfig;
+import cafe.jeffrey.microscope.profile.management.flamegraph.export.FlamegraphAiMarkdownBuilder;
+import cafe.jeffrey.microscope.profile.management.frameir.DiffTreeGenerator;
+import cafe.jeffrey.microscope.profile.management.frameir.Frame;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
@@ -50,50 +50,50 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.SpanInterval;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.ProfileInitStages;
-import cafe.jeffrey.profile.common.model.FrameType;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.profile.heapdump.model.DominatorNode;
-import cafe.jeffrey.profile.heapdump.model.DominatorTreeResponse;
-import cafe.jeffrey.profile.manager.DifferentialFlamegraphManager;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.TraceManager;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.profile.manager.model.trace.TraceContext;
-import cafe.jeffrey.profile.manager.model.trace.TraceContextSlice;
-import cafe.jeffrey.profile.manager.model.trace.TraceDetail;
-import cafe.jeffrey.profile.manager.model.trace.TraceExportSource;
-import cafe.jeffrey.profile.manager.model.trace.TraceWindow;
-import cafe.jeffrey.profile.manager.model.trace.TraceExceptionRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceNotificationGroupRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceNotificationRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationSpanRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationSummary;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationThreads;
-import cafe.jeffrey.profile.manager.model.trace.TracePause;
-import cafe.jeffrey.profile.manager.model.trace.TraceRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanRow;
-import cafe.jeffrey.profile.mcp.JeffreyMetaKeys;
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolNames;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.McpToolRequirement;
-import cafe.jeffrey.profile.mcp.ProfileScopedToolset;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.profile.trace.export.TraceAiMarkdownBuilder;
-import cafe.jeffrey.profile.trace.export.TraceOnCpu;
-import cafe.jeffrey.profile.trace.export.TraceOperationAiMarkdownBuilder;
-import cafe.jeffrey.provider.profile.api.TraceNotificationListQuery;
-import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.shared.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.exception.JeffreyClientException;
-import cafe.jeffrey.test.DuckDBTest;
+import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.heapdump.model.DominatorNode;
+import cafe.jeffrey.microscope.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.microscope.profile.management.manager.DifferentialFlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.TraceManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceContext;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceContextSlice;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceDetail;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceExportSource;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceWindow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceExceptionRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceNotificationGroupRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceNotificationRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationSpanRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationSummary;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationThreads;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TracePause;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMetaKeys;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolNames;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
+import cafe.jeffrey.microscope.mcp.server.ProfileScopedToolset;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.trace.export.TraceAiMarkdownBuilder;
+import cafe.jeffrey.microscope.profile.management.trace.export.TraceOnCpu;
+import cafe.jeffrey.microscope.profile.management.trace.export.TraceOperationAiMarkdownBuilder;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationListQuery;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -385,7 +385,7 @@ class McpToolsetAssemblerTest {
             McpProfileContextCache.Lease lease = mock(McpProfileContextCache.Lease.class);
             when(lease.profileManager()).thenReturn(profileManager);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "p-oql", "project-1", "workspace-1", "Profile", source,
+                    "p-oql", "Profile", source,
                     Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "recording-1"));
             if (source == RecordingEventSource.HEAP_DUMP) {
                 HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
@@ -643,7 +643,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 117;
+        private static final int ADVERTISED_TOOLS = 116;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {
@@ -957,7 +957,7 @@ class McpToolsetAssemblerTest {
 
         /** The heap dump a heap tool's answer names and links, as the profile reports it. */
         private static ProfileInfo heapDumpProfile() {
-            return new ProfileInfo(UNINDEXED_PROFILE, "project-1", "workspace-1", "Heap dump",
+            return new ProfileInfo(UNINDEXED_PROFILE, "Heap dump",
                     RecordingEventSource.HEAP_DUMP, Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH,
                     true, false, "recording-1");
         }
@@ -1291,7 +1291,7 @@ class McpToolsetAssemblerTest {
             lenient().when(lease.dataSource()).thenReturn(dataSource);
             lenient().when(contextCache.acquire(PROFILE_ID)).thenReturn(lease);
             lenient().when(profileManager.info()).thenReturn(new ProfileInfo(
-                    PROFILE_ID, "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                    PROFILE_ID, "Profile", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(600), Instant.EPOCH, true, false, "recording-1"));
 
             lenient().when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
@@ -1318,7 +1318,7 @@ class McpToolsetAssemblerTest {
             lenient().when(heapLease.dataSource()).thenReturn(dataSource);
             lenient().when(contextCache.acquire(HEAP_PROFILE_ID)).thenReturn(heapLease);
             lenient().when(heapProfileManager.info()).thenReturn(new ProfileInfo(
-                    HEAP_PROFILE_ID, "project-1", "workspace-1", "Heap dump", RecordingEventSource.HEAP_DUMP,
+                    HEAP_PROFILE_ID, "Heap dump", RecordingEventSource.HEAP_DUMP,
                     Instant.EPOCH, Instant.EPOCH, Instant.EPOCH, true, false, "recording-2"));
             HeapDumpManager heapDumpManager = mock(HeapDumpManager.class);
             lenient().when(heapProfileManager.heapDumpManager()).thenReturn(heapDumpManager);
@@ -1347,7 +1347,7 @@ class McpToolsetAssemblerTest {
             lenient().when(contextCache.acquire(BASELINE_PROFILE_ID)).thenReturn(baselineLease);
             // The answer names the baseline it compared against, and links the pair's page with it.
             lenient().when(baselineManager.info()).thenReturn(new ProfileInfo(
-                    BASELINE_PROFILE_ID, "project-1", "workspace-1", "Baseline", RecordingEventSource.JFR,
+                    BASELINE_PROFILE_ID, "Baseline", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plus(RECORDING_LENGTH), Instant.EPOCH, true, false, "recording-0"));
 
             DifferentialFlamegraphManager diffManager = mock(DifferentialFlamegraphManager.class);
@@ -1723,7 +1723,7 @@ class McpToolsetAssemblerTest {
             McpProfileContextCache.Lease lease = mock(McpProfileContextCache.Lease.class);
             when(lease.profileManager()).thenReturn(profileManager);
             when(profileManager.info()).thenReturn(new ProfileInfo(
-                    "profile-1", "project-1", "workspace-1", "Profile", RecordingEventSource.JFR,
+                    "profile-1", "Profile", RecordingEventSource.JFR,
                     Instant.EPOCH, Instant.EPOCH.plusSeconds(60), Instant.EPOCH, true, false, "recording-1"));
             when(profileManager.flamegraphManager()).thenReturn(flamegraphManager);
             when(flamegraphManager.eventSummaries()).thenReturn(List.of(executionSamples()));

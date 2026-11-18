@@ -26,12 +26,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.heapdump.model.HeapDumpConfig;
-import cafe.jeffrey.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapDumpConfig;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 
 /**
  * Heap-dump lifecycle endpoints: existence/status checks, initialization and re-initialization,

@@ -27,10 +27,10 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
-import cafe.jeffrey.shared.common.exception.ErrorCode;
-import cafe.jeffrey.shared.common.exception.ErrorResponse;
-import cafe.jeffrey.shared.common.exception.ErrorType;
-import cafe.jeffrey.shared.common.exception.JeffreyException;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.ErrorResponse;
+import cafe.jeffrey.microscope.common.exception.ErrorType;
+import cafe.jeffrey.microscope.common.exception.JeffreyException;
 
 import java.util.Set;
 

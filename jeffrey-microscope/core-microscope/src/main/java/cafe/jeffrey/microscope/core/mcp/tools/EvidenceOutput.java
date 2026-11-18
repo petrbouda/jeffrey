@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.common.Json;
 
 import java.util.ArrayList;
 import java.util.Collections;

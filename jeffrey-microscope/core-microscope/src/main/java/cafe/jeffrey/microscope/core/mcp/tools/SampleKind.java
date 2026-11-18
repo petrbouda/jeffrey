@@ -16,9 +16,9 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.model.FlamegraphPanel;
-import cafe.jeffrey.profile.model.WeightKind;
-import cafe.jeffrey.profile.panel.PanelSection;
+import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
+import cafe.jeffrey.microscope.profile.management.model.WeightKind;
+import cafe.jeffrey.microscope.profile.management.panel.PanelSection;
 
 import java.util.Map;
 

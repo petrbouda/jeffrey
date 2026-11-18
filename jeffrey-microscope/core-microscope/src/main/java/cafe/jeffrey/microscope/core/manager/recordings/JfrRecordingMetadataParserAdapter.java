@@ -19,10 +19,10 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.provider.profile.api.RecordingInformation;
-import cafe.jeffrey.provider.profile.api.RecordingInformationParser;
-import cafe.jeffrey.provider.profile.api.RecordingSources;
-import cafe.jeffrey.recordings.core.manager.RecordingMetadataParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -30,7 +30,7 @@ import java.util.Optional;
 
 /**
  * Adapts microscope's profile-stack {@link RecordingInformationParser} to the
- * {@code recordings-core} {@link RecordingMetadataParser} SPI, swallowing parse failures
+ * {@link RecordingMetadataParser} the recordings manager reads, swallowing parse failures
  * (so ingestion falls back to filename-based event-source detection, matching prior behavior).
  */
 public class JfrRecordingMetadataParserAdapter implements RecordingMetadataParser {

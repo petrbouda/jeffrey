@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 /**
  * The one way Microscope starts a next call: {@link McpNextTool#call} with the weight the named

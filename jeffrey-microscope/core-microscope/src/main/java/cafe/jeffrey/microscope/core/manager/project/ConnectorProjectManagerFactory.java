@@ -20,11 +20,10 @@ package cafe.jeffrey.microscope.core.manager.project;
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.ConnectorMappers;
-import cafe.jeffrey.microscope.core.manager.ProfilesManager;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorMappers;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
-import cafe.jeffrey.recordings.core.OriginContext;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
+import cafe.jeffrey.microscope.core.manager.download.OriginContext;
 
 /**
  * Turns a project the connector reported into its manager. Everything the manager needs comes with the
@@ -34,16 +33,10 @@ import cafe.jeffrey.recordings.core.OriginContext;
 public class ConnectorProjectManagerFactory {
 
     private final MicroscopeJeffreyDirs jeffreyDirs;
-    private final ProfilesManager.Factory profilesManagerFactory;
     private final RecordingsManager recordingsManager;
 
-    public ConnectorProjectManagerFactory(
-            MicroscopeJeffreyDirs jeffreyDirs,
-            ProfilesManager.Factory profilesManagerFactory,
-            RecordingsManager recordingsManager) {
-
+    public ConnectorProjectManagerFactory(MicroscopeJeffreyDirs jeffreyDirs, RecordingsManager recordingsManager) {
         this.jeffreyDirs = jeffreyDirs;
-        this.profilesManagerFactory = profilesManagerFactory;
         this.recordingsManager = recordingsManager;
     }
 
@@ -60,7 +53,6 @@ public class ConnectorProjectManagerFactory {
                 ConnectorMappers.toProjectInfo(project),
                 project.statistics(),
                 clients,
-                profilesManagerFactory,
                 recordingsManager,
                 originContext);
     }
