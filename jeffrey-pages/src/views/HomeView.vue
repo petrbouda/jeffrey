@@ -64,17 +64,17 @@ const cosmosNodes: CosmosNode[] = [
   {
     id: 'provisioner', name: 'Provisioner', sub: 'session bootstrap', icon: 'bi-terminal', tier: 'capture',
     tip: 'A native CLI. One HOCON file lays out sessions and writes the JVM argfile that starts your app under the profiler.',
-    to: '/docs/provisioner', x: 15, y: 55, color: 'var(--amber)', delay: 3.2
+    to: '/docs/provisioner', x: 15, y: 55, color: 'var(--provisioner)', delay: 3.2
   },
   {
     id: 'jib', name: 'Jeffrey JIB', sub: 'build-time', icon: 'bi-box-seam', tier: 'capture',
     tip: 'A Jib extension that wraps the container entrypoint, so profiling starts before your app does.',
-    to: '/docs/jib', x: 85, y: 59, color: 'var(--amber)', delay: 2
+    to: '/docs/jib', x: 85, y: 59, color: 'var(--jib)', delay: 2
   },
   {
     id: 'volume-scheduler', name: 'Volume Scheduler', sub: 'volume maintenance', icon: 'bi-clock-history', tier: 'companion', tipUp: true,
     tip: 'A small maintenance service beside the volume your services record into: retention by age, a session cap per instance and a disk budget, plus LZ4 compression.',
-    to: '/docs/volume-scheduler', x: 29, y: 84, color: 'var(--ember)', delay: 2.6
+    to: '/docs/volume-scheduler', x: 29, y: 84, color: 'var(--volume-scheduler)', delay: 2.6
   },
   {
     id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack', tier: 'companion', tipUp: true,
@@ -216,7 +216,7 @@ const routeNotes: RouteNote[] = [
     parts: [{ text: 'Provisioner', strong: true }, { text: ' or ' }, { text: 'JIB', strong: true }, { text: ' starts them' }]
   },
   {
-    icon: 'bi-clock-history', color: 'var(--ember)', x: 37, y: 50,
+    icon: 'bi-clock-history', color: 'var(--volume-scheduler)', x: 37, y: 50,
     parts: [{ text: 'Volume Scheduler', strong: true }, { text: ' keeps it tidy' }]
   },
   {
@@ -246,7 +246,7 @@ function positionStyle(item: { x: number; y: number; color?: string }): Record<s
 
 // ---------- Product showcase ----------
 
-type Tab = 'microscope' | 'mcp' | 'plugin' | 'volume-scheduler';
+type Tab = 'microscope' | 'mcp' | 'provisioner' | 'jib' | 'plugin' | 'volume-scheduler';
 
 interface TopologyNode {
   icon: string;
@@ -327,6 +327,56 @@ const productTabs: ProductTab[] = [
     },
     docsRoute: '/docs/microscope-mcp',
     cta: 'Read MCP docs'
+  },
+  {
+    id: 'provisioner',
+    name: 'Provisioner',
+    icon: 'bi-terminal-fill',
+    tagline: 'One command before java — and your JVM starts under the profiler.',
+    oneLiner: 'A native CLI that runs right before your application: it opens a recording session on the shared volume and writes the argfile that starts the JVM under async-profiler and JFR.',
+    features: [
+      { icon: 'bi-file-earmark-code', title: 'Writes a JVM @argfile', desc: 'The async-profiler agent, JFR, heap dump on OOM and unified logging, one option per line for java @/tmp/jvm.args. Or a .env file to source.' },
+      { icon: 'bi-folder2-open', title: 'Lays out the session', desc: 'workspace / project / instance / session on the volume, a UUIDv7 per start. The folder names are the state; no metadata file is written.' },
+      { icon: 'bi-sliders', title: 'One HOCON file, or none', desc: 'Every key has a JEFFREY_* variable that wins over the file, so containers can run it from the environment alone.' },
+      { icon: 'bi-braces', title: 'Placeholders', desc: '<<ENV:NAME>> and <<JEFFREY:CURRENT_SESSION>> put this run\'s session directory into your own flags, e.g. app logs beside the recordings.' },
+      { icon: 'bi-lightning-charge', title: 'Native or jar', desc: 'A GraalVM binary for amd64 and arm64 that starts in milliseconds, or one ~4 MB jar that runs on your app\'s own JVM.' },
+      { icon: 'bi-shield-check', title: 'Fail-open', desc: 'A missing library or a broken config starts the app unprofiled, never not at all, with one profiling DISABLED: line in the log.' }
+    ],
+    deployment: {
+      eyebrow: 'Usage',
+      title: 'Download, init, exec',
+      desc: 'Grab provisioner.jar or the native binary from GitHub Releases and run it in your entrypoint. With JEFFREY_HOME and JEFFREY_PROJECT_NAME set, it needs no config file.',
+      cmd: 'provisioner init\nexec java @/tmp/jvm.args -jar app.jar'
+    },
+    docsRoute: '/docs/provisioner',
+    cta: 'Read Provisioner docs'
+  },
+  {
+    id: 'jib',
+    name: 'JIB Extension',
+    icon: 'bi-box-seam-fill',
+    tagline: 'Profiling baked into the image, before your app starts.',
+    oneLiner: 'A Jib extension for Maven and Gradle that wraps the container entrypoint. The provisioner and async-profiler ship inside the image, so the pod needs no command: override and nothing is downloaded at start.',
+    features: [
+      { icon: 'bi-box-arrow-in-right', title: 'Wraps the entrypoint', desc: 'jeffrey-entrypoint becomes ENTRYPOINT and Jib\'s java -cp … <MainClass> moves to CMD. Main class, classpath and jvmFlags are kept.' },
+      { icon: 'bi-box-seam', title: 'Self-contained image', desc: 'Provisioner and async-profiler land under /opt/jeffrey in their own layer, only for the architectures you target.' },
+      { icon: 'bi-ui-checks-grid', title: 'Four flavours, no properties', desc: 'maven-native, maven-jar, gradle-native or gradle-jar. The dependency you declare is the whole configuration.' },
+      { icon: 'bi-person-badge', title: 'Self-identifying', desc: 'JEFFREY_PROJECT_NAME is baked from the artifactId or project name. The pod\'s only YAML is the volume mount.' },
+      { icon: 'bi-toggle-off', title: 'Runtime kill switch', desc: 'JEFFREY_ENABLED=false on the pod runs the plain Jib command, no rebuild. Any misconfiguration fails open.' },
+      { icon: 'bi-cpu', title: 'amd64 and arm64', desc: 'Payloads for both Linux architectures. An unsupported platform fails the build rather than shipping an image that cannot profile itself.' }
+    ],
+    deployment: {
+      eyebrow: 'Build setup',
+      title: 'One plugin dependency',
+      desc: 'Add a flavour to the jib plugin and register the extension. At container start the wrapper provisions the session, then hands over to java.',
+      topology: [
+        { icon: 'bi-hammer', code: 'jib:build', label: 'with jeffrey-jib-maven-native' },
+        { icon: 'bi-box-seam', code: '/opt/jeffrey', label: 'provisioner + async-profiler' },
+        { icon: 'bi-play-circle', code: 'jeffrey-entrypoint', label: 'at start', badge: 'Fail-open' }
+      ]
+    },
+    docsRoute: '/docs/jib',
+    cta: 'Read JIB docs'
   },
   {
     id: 'plugin',
@@ -663,11 +713,16 @@ async function copyCmd(): Promise<void> {
   --ember: #e4570b;
   --flame-ink: #1b0c00;
   --on-accent: #ffffff;
-  --ms: #2f6bff;
-  --ms-deep: #1d3fd8;
-  --mcp: #0fa572;
-  --mcp-deep: #0b7a55;
-  --ide: #8b5cf6;
+  /* Product accents, the same as the docs (DocsProductCard hues at the DocsSidebar 600 shade, so they
+     read as text on white). The -deep shades end the icon gradients of the two core nodes. */
+  --ms: #0284c7;
+  --ms-deep: #075985;
+  --mcp: #059669;
+  --mcp-deep: #065f46;
+  --provisioner: #e11d48;
+  --jib: #4f46e5;
+  --ide: #ea580c;
+  --volume-scheduler: #7c3aed;
   --core-top: #ffffff;
   --core-bottom: #fff1e4;
   --shadow-card: 0 1px 2px rgba(48, 32, 12, 0.06), 0 16px 36px -18px rgba(48, 32, 12, 0.28);
@@ -1000,19 +1055,19 @@ async function copyCmd(): Promise<void> {
   font-size: 12.5px;
 }
 
-/* Capture: the ways profiling starts. A step below the core: amber-tinted and a little larger. */
+/* Capture: the ways profiling starts. A step below the core: tinted with the product's colour and a little larger. */
 .node--capture .node-card {
   padding: 12px 18px 12px 12px;
-  border-color: color-mix(in srgb, var(--amber) 40%, var(--line-2));
-  box-shadow: 0 0 32px color-mix(in srgb, var(--amber) 18%, transparent), var(--shadow-card);
+  border-color: color-mix(in srgb, var(--node-color) 40%, var(--line-2));
+  box-shadow: 0 0 32px color-mix(in srgb, var(--node-color) 18%, transparent), var(--shadow-card);
 }
 
 .node--capture .node-ic {
   width: 40px;
   height: 40px;
   font-size: 18px;
-  color: var(--ember);
-  background: color-mix(in srgb, var(--amber) 18%, var(--surface));
+  color: var(--node-color);
+  background: color-mix(in srgb, var(--node-color) 14%, var(--surface));
 }
 
 .node--capture b {
@@ -1310,12 +1365,20 @@ async function copyCmd(): Promise<void> {
   --tab-accent: var(--mcp);
 }
 
+.showcase[data-active='provisioner'] {
+  --tab-accent: var(--provisioner);
+}
+
+.showcase[data-active='jib'] {
+  --tab-accent: var(--jib);
+}
+
 .showcase[data-active='plugin'] {
   --tab-accent: var(--ide);
 }
 
 .showcase[data-active='volume-scheduler'] {
-  --tab-accent: var(--ember);
+  --tab-accent: var(--volume-scheduler);
 }
 
 .tabbar {
