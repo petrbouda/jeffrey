@@ -30,8 +30,8 @@ import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
 import java.util.List;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 
 public class ConnectorWorkspaceManager implements WorkspaceManager {
 

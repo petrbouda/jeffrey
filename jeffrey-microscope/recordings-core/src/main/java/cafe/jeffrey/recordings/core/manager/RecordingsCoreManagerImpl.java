@@ -34,10 +34,8 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.storage.recording.api.file.RecordingFile;
 import cafe.jeffrey.storage.recording.api.file.RecordingStorageLayout;
 import cafe.jeffrey.storage.recording.api.file.ManagedFile;
-import cafe.jeffrey.shared.notification.NotificationCategory;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 
 import java.io.IOException;
 import java.io.InputStream;
