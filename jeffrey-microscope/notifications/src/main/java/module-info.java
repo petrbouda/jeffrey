@@ -20,5 +20,5 @@ module cafe.jeffrey.shared.notifications {
     // require the events module itself just to say how serious something is.
     requires transitive cafe.jeffrey.jfr.events;
 
-    exports cafe.jeffrey.shared.notification;
+    exports cafe.jeffrey.microscope.notification;
 }

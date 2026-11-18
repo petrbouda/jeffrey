@@ -22,10 +22,8 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.notification.NotificationCategory;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 import cafe.jeffrey.provider.profile.api.RecordingInformation;
 
 import java.io.IOException;

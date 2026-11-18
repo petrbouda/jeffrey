@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.notification;
+package cafe.jeffrey.microscope.notification;
 
 /**
  * What a notification is about — the coarse bucket a reader filters by before looking at any one type.

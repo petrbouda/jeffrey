@@ -15,10 +15,9 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.notification;
+package cafe.jeffrey.microscope.notification;
 
 import cafe.jeffrey.jfr.events.notification.NotificationEvent;
-import cafe.jeffrey.jfr.events.notification.Severity;
 import cafe.jeffrey.jfr.events.test.JfrRecordings;
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;

@@ -21,9 +21,8 @@ import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.shared.common.measure.Elapsed;
 import cafe.jeffrey.shared.common.measure.Measuring;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
-import cafe.jeffrey.jfr.events.notification.Severity;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 
 import java.time.Clock;
 import java.time.Duration;

@@ -21,8 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfrparser.raw.JfrParser;
 import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 
 import java.nio.file.Path;
 import java.util.List;

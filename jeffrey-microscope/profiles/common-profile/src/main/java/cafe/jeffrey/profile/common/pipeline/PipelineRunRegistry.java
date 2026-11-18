@@ -27,8 +27,8 @@ import cafe.jeffrey.profile.common.operation.OperationSnapshot;
 import cafe.jeffrey.profile.common.operation.OperationState;
 import cafe.jeffrey.shared.common.Schedulers;
 import cafe.jeffrey.shared.common.exception.JeffreyException;
-import cafe.jeffrey.shared.notification.NotificationType;
-import cafe.jeffrey.shared.notification.Notifications;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
