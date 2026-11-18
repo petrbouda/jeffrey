@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.recordings.core.manager.RecordingProfileCleanup;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingProfileCleanup;
 import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.notification.NotificationType;

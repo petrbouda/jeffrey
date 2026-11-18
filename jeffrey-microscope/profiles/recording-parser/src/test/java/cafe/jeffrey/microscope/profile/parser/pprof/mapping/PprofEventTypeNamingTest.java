@@ -1,0 +1,45 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.parser.pprof.mapping;
+
+import cafe.jeffrey.microscope.profile.parser.pprof.mapping.PprofEventTypeNaming.PprofEventType;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class PprofEventTypeNamingTest {
+
+    @Test
+    void codeIsTheRawSampleTypeVerbatim() {
+        assertEquals("cpu", PprofEventTypeNaming.resolve("cpu", "nanoseconds").name());
+        assertEquals("alloc_space", PprofEventTypeNaming.resolve("alloc_space", "bytes").name());
+    }
+
+    @Test
+    void labelIsTheRawSampleTypeAndKeepsTheUnit() {
+        PprofEventType resolved = PprofEventTypeNaming.resolve("alloc_space", "bytes");
+        assertEquals("alloc_space", resolved.label());
+        assertEquals("alloc_space/bytes", resolved.sampleType());
+    }
+
+    @Test
+    void fallsBackToSamplesForBlankType() {
+        PprofEventType resolved = PprofEventTypeNaming.resolve("", "count");
+        assertEquals("samples", resolved.name());
+    }
+}

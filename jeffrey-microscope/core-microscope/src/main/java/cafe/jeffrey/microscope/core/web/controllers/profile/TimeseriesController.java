@@ -25,10 +25,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.manager.TimeseriesManager;
-import cafe.jeffrey.profile.resources.request.GenerateTimeseriesRequest;
-import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.manager.TimeseriesManager;
+import cafe.jeffrey.microscope.profile.management.resources.request.GenerateTimeseriesRequest;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/timeseries")

@@ -24,8 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.ProfileToolsManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileToolsManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +46,7 @@ class ToolsControllerTest {
     ProfileToolsManager toolsManager;
 
     @Mock
-    cafe.jeffrey.recordings.core.manager.RecordingsCoreManager recordingsManager;
+    cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager recordingsManager;
 
     @Test
     void previewsRename() {

@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.FollowUpCalls;
 import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
-import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
-import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 import java.util.Optional;
 import java.util.function.Function;

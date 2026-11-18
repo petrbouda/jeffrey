@@ -50,8 +50,8 @@ INSERT INTO frames (frame_hash, class_name, method_name, frame_type, line_number
 VALUES
     (8001, 'java.lang.Thread', 'run', 'Interpreted', 1583, 0),
     (8002, 'java.util.concurrent.ThreadPoolExecutor$Worker', 'run', 'JIT', 642, 12),
-    (8003, 'cafe.jeffrey.flamegraph.FlamegraphGenerator', 'generate', 'JIT', 88, 4),
-    (8004, 'cafe.jeffrey.flamegraph.FrameTree', 'build', 'Interpreted', 214, 31);
+    (8003, 'cafe.jeffrey.microscope.profile.management.flamegraph.FlamegraphGenerator', 'generate', 'JIT', 88, 4),
+    (8004, 'cafe.jeffrey.microscope.profile.management.flamegraph.FrameTree', 'build', 'Interpreted', 214, 31);
 
 INSERT INTO stacktraces (stacktrace_hash, type_id, frame_hashes, tag_ids)
 VALUES

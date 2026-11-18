@@ -22,7 +22,7 @@ module cafe.jeffrey.shared.test {
     requires flyway.core;
     requires cafe.jeffrey.shared.common;
 
-    exports cafe.jeffrey.test;
-    exports cafe.jeffrey.test.volume;
-    exports cafe.jeffrey.test.recording;
+    exports cafe.jeffrey.shared.test;
+    exports cafe.jeffrey.shared.test.volume;
+    exports cafe.jeffrey.shared.test.recording;
 }

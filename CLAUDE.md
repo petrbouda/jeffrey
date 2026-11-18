@@ -12,7 +12,7 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope; its generic
                                        components, services and design tokens in src/shared, imported as @shared)
   core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
-                                       (…/core/mcp/), the recordings store and downloads (cafe.jeffrey.recordings.core)
+                                       (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download)
   microscope-model/                    Microscope's domain records (cafe.jeffrey.microscope.model; the connector's
                                        ConnectorInfo, ConnectorAddress and ConnectorKind in model.connector, naming
                                        no kind; the imported recordings' files, their kinds (ManagedFile) and

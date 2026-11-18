@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpResourceProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

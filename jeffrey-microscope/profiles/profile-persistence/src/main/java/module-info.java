@@ -22,7 +22,7 @@ module cafe.jeffrey.microscope.profile.persistence {
     requires transitive cafe.jeffrey.shared.persistence;
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
-    requires cafe.jeffrey.shared.sql.builder;
+    requires cafe.jeffrey.shared.sql;
     requires transitive cafe.jeffrey.microscope.profile.common;
     requires transitive spring.jdbc;
     requires transitive org.eclipse.collections.api;
@@ -35,10 +35,10 @@ module cafe.jeffrey.microscope.profile.persistence {
     requires jakarta.validation;
     requires org.slf4j;
 
-    exports cafe.jeffrey.provider.profile.api;
+    exports cafe.jeffrey.microscope.profile.persistence.api;
     // Exported for core-microscope, which builds the DuckDB provider and has no module-info of its own,
     // so a qualified export could not name it
-    exports cafe.jeffrey.provider.profile.jdbc;
+    exports cafe.jeffrey.microscope.profile.persistence.jdbc;
 
     opens db.migration.profile;
 }

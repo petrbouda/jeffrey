@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.profile.mcp.McpTestToolsets;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 
 import java.util.ArrayList;
 import java.util.List;

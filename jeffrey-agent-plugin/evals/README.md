@@ -239,7 +239,7 @@ the provisioner with async-profiler (wall clock, CPU, allocation, locks) and eve
 runs are the same build in its two modes: `persons direct` writes each person straight out, `persons dom`
 counts the table before every random pick (an extra `count_query` in the `person.pick-id(s)` spans) and
 builds each response as a JSON tree (`person.to-json-tree`). Their files are the ones the Java tests pin
-(`shared/test/src/main/resources/cafe/jeffrey/test/recording/testapp/{direct,dom}/`, `TestappRecording`);
+(`shared/test/src/main/resources/cafe/jeffrey/shared/test/recording/testapp/{direct,dom}/`, `TestappRecording`);
 the recorder imports them as they are and crawls them in a pass of their own. The same service in its other three modes — the baseline with one problem planted each — is
 `persons n-plus-one` (`GET /persons/{count}` loads each person with its own `find_by_id`), `persons lock`
 (every lookup in a `synchronized` method of `LockPersonService`, its monitor held across the database call) and `persons exceptions` (each served
@@ -275,7 +275,7 @@ the new recording's. With `--reuse` it records from the files kept in this repos
 the mocks follow a server change while the recording, and every figure the graders name, stay put:
 
 - the checkout runs and the heap dump (gzipped) beside the tests' recordings, in
-  `shared/test/src/main/resources/cafe/jeffrey/test/recording/checkout/` (`CheckoutRecording`);
+  `shared/test/src/main/resources/cafe/jeffrey/shared/test/recording/checkout/` (`CheckoutRecording`);
 - the persons pair in `shared/test/…/recording/testapp/` (`TestappRecording`);
 - the order history and the persons modes in `build/plugin-evals/`.
 

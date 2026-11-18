@@ -23,10 +23,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.perfcounters.PerfCounterValues;
-import cafe.jeffrey.profile.perfcounters.PerfCountersManager;
-import cafe.jeffrey.profile.perfcounters.PerfCountersOverviewBuilder;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCounterValues;
+import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersManager;
+import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersOverviewBuilder;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import java.util.Map;

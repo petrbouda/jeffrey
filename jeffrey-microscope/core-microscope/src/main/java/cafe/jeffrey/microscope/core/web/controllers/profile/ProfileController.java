@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.ProfileDetailResponse;
-import cafe.jeffrey.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}")

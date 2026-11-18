@@ -1,0 +1,156 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.persistence;
+
+import cafe.jeffrey.shared.persistence.DuckDBMemoryMonitor;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Properties;
+import org.duckdb.DuckDBConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Owns the DuckDB connection to a heap-dump-index sibling database
+ * ({@code <name>.hprof.idx.duckdb}) and applies the V001 schema.
+ *
+ * The schema lives at {@code /db/migration/heap-dump-index/V001__init.sql} on
+ * the classpath. Per project policy the file is recreated on every build
+ * (modify V001 in place rather than introducing V002).
+ */
+public final class HeapDumpIndexDb implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpIndexDb.class);
+
+    private static final String SCHEMA_RESOURCE = "/db/migration/heap-dump-index/V001__init.sql";
+
+    /**
+     * Raises the WAL auto-checkpoint threshold so DuckDB doesn't flush WAL → main
+     * file every 16 MB (the default) during a multi-GB index build. Each
+     * auto-checkpoint stalls writes; for a bulk load they're pure overhead. The
+     * close-time checkpoint (run automatically by DuckDB when the connection
+     * closes in {@link #close()}) still fires regardless of this threshold, so
+     * durability is preserved before the read-only HeapView reopens the file.
+     * {@code 1TB} is DuckDB's documented "effectively disabled" value.
+     */
+    private static final String PRAGMA_WAL_AUTOCHECKPOINT = "PRAGMA wal_autocheckpoint = '1TB'";
+
+    /**
+     * Insertion order is semantically irrelevant for every index table — all
+     * reads are keyed or carry an explicit {@code ORDER BY} — and dropping the
+     * guarantee lets DuckDB parallelise the {@code read_parquet} bulk loads
+     * more aggressively while using less memory.
+     */
+    private static final String PRAGMA_PRESERVE_INSERTION_ORDER = "SET preserve_insertion_order = false";
+
+    private final Path path;
+    private final DuckDBConnection connection;
+    private final HeapDumpDatabaseClient databaseClient;
+
+    private HeapDumpIndexDb(Path path, DuckDBConnection connection) {
+        this.path = path;
+        this.connection = connection;
+        this.databaseClient = new HeapDumpDatabaseClient(connection, GroupLabel.HEAP_DUMP_INDEX);
+    }
+
+    /**
+     * Opens (and creates if necessary) the index DB at {@code path} and runs the
+     * V001 DDL. The file is opened in normal read-write mode; the caller is
+     * responsible for deleting any pre-existing file when starting a fresh build.
+     */
+    public static HeapDumpIndexDb openAndInitialize(Path path) throws IOException, SQLException {
+        if (path == null) {
+            throw new IllegalArgumentException("path must not be null");
+        }
+        // Guarded by a stat: Files.createDirectories on a directory that already exists gets
+        // there by attempting the mkdir and catching FileAlreadyExistsException, and a recording
+        // with jdk.JavaExceptionThrow enabled captures that throw and the UnixException under it.
+        Path parent = path.toAbsolutePath().getParent();
+        if (parent != null && !Files.isDirectory(parent)) {
+            Files.createDirectories(parent);
+        }
+
+        String url = "jdbc:duckdb:" + path.toAbsolutePath();
+        Properties props = new Properties();
+        props.setProperty(DuckDBMemoryMonitor.PROPERTY, DuckDBMemoryMonitor.HEAP_DUMP_INDEX);
+        Connection raw = DriverManager.getConnection(url, props);
+        DuckDBConnection duckConn;
+        try {
+            duckConn = raw.unwrap(DuckDBConnection.class);
+        } catch (Throwable t) {
+            raw.close();
+            throw t;
+        }
+
+        HeapDumpIndexDb db = new HeapDumpIndexDb(path, duckConn);
+        try {
+            db.applySchema();
+        } catch (Throwable t) {
+            try {
+                duckConn.close();
+            } catch (SQLException ignored) {
+            }
+            throw t;
+        }
+
+        LOG.debug("Opened heap dump index db: path={}", path);
+        return db;
+    }
+
+    public DuckDBConnection connection() {
+        return connection;
+    }
+
+    public HeapDumpDatabaseClient databaseClient() {
+        return databaseClient;
+    }
+
+    public Path path() {
+        return path;
+    }
+
+    @Override
+    public void close() throws SQLException {
+        connection.close();
+    }
+
+    private void applySchema() throws IOException {
+        // DuckDB JDBC supports running multiple ;-delimited statements in a single execute.
+        databaseClient.execute(HeapDumpStatement.APPLY_SCHEMA, loadResource(SCHEMA_RESOURCE));
+        databaseClient.execute(HeapDumpStatement.WAL_AUTOCHECKPOINT_PRAGMA, PRAGMA_WAL_AUTOCHECKPOINT);
+        databaseClient.execute(HeapDumpStatement.PRESERVE_INSERTION_ORDER_PRAGMA, PRAGMA_PRESERVE_INSERTION_ORDER);
+    }
+
+    private static String loadResource(String resource) throws IOException {
+        try (InputStream in = HeapDumpIndexDb.class.getResourceAsStream(resource)) {
+            if (in == null) {
+                throw new UncheckedIOException(new IOException(
+                        "Schema resource not found on classpath: resource=" + resource));
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+}

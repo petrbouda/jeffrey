@@ -24,7 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
+import cafe.jeffrey.microscope.core.manager.download.DownloadTaskRegistry;
 
 import java.time.Clock;
 import java.time.Instant;

@@ -25,15 +25,15 @@ module cafe.jeffrey.microscope.profile.parser {
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.microscope.profile.common;
     requires transitive cafe.jeffrey.microscope.profile.persistence;
-    requires cafe.jeffrey.shared.notifications;
+    requires cafe.jeffrey.microscope.notification;
     requires cafe.jeffrey.jfr.events;
     requires com.google.protobuf;
     requires tools.jackson.databind;
     requires jdk.jfr;
     requires org.slf4j;
 
-    exports cafe.jeffrey.jfrparser.jdk;
-    exports cafe.jeffrey.jfrparser.raw;
-    exports cafe.jeffrey.pprofparser;
-    exports cafe.jeffrey.otlpparser;
+    exports cafe.jeffrey.microscope.profile.parser.jfr;
+    exports cafe.jeffrey.microscope.profile.parser.jfr.raw;
+    exports cafe.jeffrey.microscope.profile.parser.pprof;
+    exports cafe.jeffrey.microscope.profile.parser.otlp;
 }

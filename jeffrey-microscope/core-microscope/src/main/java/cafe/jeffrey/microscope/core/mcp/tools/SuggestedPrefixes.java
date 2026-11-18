@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.code.CodeAttribution.MethodValue;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.MethodValue;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;

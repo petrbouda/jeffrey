@@ -1,0 +1,480 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.manager.heapdump;
+
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.DominatorTreeAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootByClassAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootByClassLoaderAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootRetainersAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.LeakHintsAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.HeapSummaryAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.InstanceDetailAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.InstanceTreeAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ThreadAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ThreadStackAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.model.IndexBuildProgressListener;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassInstancesResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.ClassLoaderDetail;
+import cafe.jeffrey.microscope.profile.heapdump.model.DominatorTreeResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootClassAggregate;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootClassLoaderAggregate;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootRetainer;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.LeakHintFinding;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapDumpConfig;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
+import cafe.jeffrey.microscope.profile.heapdump.model.HeapThreadInfo;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.profile.persistence.api.PipelineRunRepository;
+import cafe.jeffrey.microscope.profile.heapdump.model.InitializeResult;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceDetail;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceSortBy;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceTreeRequest;
+import cafe.jeffrey.microscope.profile.heapdump.model.InstanceTreeResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryRequest;
+import cafe.jeffrey.microscope.profile.heapdump.view.SqlQueryResult;
+import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryResult;
+import cafe.jeffrey.microscope.profile.heapdump.model.SortBy;
+import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.profile.heapdump.model.ThreadStackFrame;
+import cafe.jeffrey.microscope.profile.heapdump.oql.OqlEngine;
+import cafe.jeffrey.microscope.profile.heapdump.oql.ast.OqlStatement;
+import cafe.jeffrey.microscope.profile.heapdump.oql.compiler.ExecutionPlan;
+import cafe.jeffrey.microscope.profile.heapdump.oql.compiler.OqlCompileOptions;
+import cafe.jeffrey.microscope.profile.heapdump.oql.executor.PageWindow;
+import cafe.jeffrey.microscope.profile.heapdump.oql.parser.OqlParseException;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpSession;
+import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
+import cafe.jeffrey.microscope.profile.heapdump.view.JavaClassRow;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.CachedAnalysisRunner;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.CompressedOopsResolver;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpReportStore;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpSessionTemplate;
+import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * Implementation of HeapDumpManager on the native parser path
+ * ({@link HeapDumpSession} + {@code analyzer.heapview}). Each method runs
+ * the corresponding analyzer against the {@link HeapDumpSessionCache}-managed
+ * session over the heap dump's {@code .idx.duckdb} sibling; the session is
+ * kept open across requests and evicted when idle or invalidated.
+ *
+ * <p>Compressed-oops correction is not applied on this path; shallow sizes
+ * are computed with the parser's fixed 16-byte header constant. The
+ * {@link #resolveAndStoreCompressedOops(Boolean)} method still records the
+ * detected setting so the frontend can display it, but the recorded
+ * overcount is always 0 and no correction ratio is applied to any reported
+ * size.
+ */
+public class HeapDumpManagerImpl implements HeapDumpManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpManagerImpl.class);
+
+    /** The init pipeline runs once per profile, so its run has no sub-scope. */
+    private static final String PROFILE_SCOPE = "";
+
+    private static final int MAX_QUERY_LIMIT = 100;
+
+    /**
+     * The row ceiling for an ad-hoc SQL query. Higher than the OQL limit because a SQL result is a
+     * table of scalars a reader aggregates, where an OQL result is a list of objects each of which
+     * invites a follow-up call.
+     */
+    private static final int MAX_SQL_ROWS = 500;
+
+    private static final long DOMINATOR_ROOT_ID = 0L;
+
+    private static final DominatorTreeResponse EMPTY_DOMINATOR_TREE =
+            new DominatorTreeResponse(List.of(), 0, false, false);
+
+    private final OqlEngine oqlEngine;
+    private final HeapDumpReportStore reports;
+    private final HeapDumpSessionTemplate sessions;
+    private final CachedAnalysisRunner runner;
+    private final CompressedOopsResolver compressedOopsResolver;
+    private final HeapDumpCacheService cacheService;
+    private final PipelineRunRepository pipelineRuns;
+
+    public HeapDumpManagerImpl(
+            ProfileInfo profileInfo,
+            HeapDumpFiles files,
+            HeapDumpSessionCache sessionCache,
+            OqlEngine oqlEngine,
+            PipelineRunRepository pipelineRuns) {
+
+        this.oqlEngine = oqlEngine;
+        this.pipelineRuns = pipelineRuns;
+        this.reports = new HeapDumpReportStore(files.analysisDir());
+        this.sessions = new HeapDumpSessionTemplate(profileInfo, files, sessionCache);
+        this.runner = new CachedAnalysisRunner(sessions, reports);
+        this.compressedOopsResolver = new CompressedOopsResolver(profileInfo, sessions, reports);
+        this.cacheService = new HeapDumpCacheService(profileInfo, files, reports, sessionCache);
+    }
+
+    // --- Lifecycle helpers ------------------------------------------------
+
+    private <R> Optional<R> withSession(HeapDumpSessionTemplate.SessionWork<R> work) {
+        return sessions.execute(work);
+    }
+
+    private <R> Optional<R> withSession(
+            HeapDumpSessionTemplate.SessionWork<R> work, IndexBuildProgressListener listener) {
+        return sessions.execute(work, listener);
+    }
+
+    @Override
+    public boolean heapDumpExists() {
+        return sessions.heapDumpExists();
+    }
+
+    @Override
+    public boolean isCacheReady() {
+        return sessions.isCacheReady();
+    }
+
+    // --- Summary + Histogram ---------------------------------------------
+
+    @Override
+    public HeapSummary getSummary() {
+        return withSession(session -> HeapSummaryAnalyzer.analyze(session.view())).orElse(null);
+    }
+
+    @Override
+    public InitializeResult initialize(Boolean compressedOopsOverride, IndexBuildProgressListener listener) {
+        // Done inside a single withSession so the index rebuild (if any) and the
+        // compressed-oops inference share one HeapDumpSession. Calling
+        // resolveAndStoreCompressedOops() first would otherwise open *its own*
+        // session (via heap inference), trigger the index build inside that
+        // throwaway session, and leave initialize()'s session with empty
+        // lastBuildSubPhases().
+        return withSession(session -> {
+            compressedOopsResolver.resolveAndStoreInSession(compressedOopsOverride, session);
+            HeapSummary summary = HeapSummaryAnalyzer.analyze(session.view());
+            return new InitializeResult(summary, session.lastBuildSubPhases());
+        }, listener).orElseGet(() -> new InitializeResult(null, List.<SubPhaseTiming>of()));
+    }
+
+    @Override
+    public List<ClassHistogramEntry> getClassHistogram(int topN) {
+        return getClassHistogram(topN, SortBy.SIZE);
+    }
+
+    @Override
+    public List<ClassHistogramEntry> getClassHistogram(int topN, SortBy sortBy) {
+        return withSession(session -> ClassHistogramAnalyzer.analyze(session.view(), topN, sortBy))
+                .orElse(List.of());
+    }
+
+    // --- OQL execution against the heap-dump-index DuckDB ---------------
+
+    @Override
+    public SqlQueryResult executeSql(String sql, int maxRows) {
+        int cap = Math.clamp(maxRows, 1, MAX_SQL_ROWS);
+        return withSession(session -> {
+            try {
+                return session.view().query(sql, cap);
+            } catch (SQLException e) {
+                // The engine's own message names the missing column or table, which is the only thing
+                // the caller can correct itself from; a generic failure would send it guessing.
+                throw new IllegalArgumentException("Query failed: " + e.getMessage(), e);
+            }
+        }).orElseThrow(() -> new IllegalStateException(
+                "Heap dump not available for this profile, or its index has not been built."));
+    }
+
+    @Override
+    public OQLQueryResult executeQuery(OQLQueryRequest request) {
+        String query = request.query() == null ? "" : request.query().trim();
+        if (query.isBlank()) {
+            return OQLQueryResult.error("Query is empty", 0);
+        }
+
+        int effectiveLimit = Math.clamp(request.limit(), 1, MAX_QUERY_LIMIT);
+
+        OqlStatement stmt;
+        try {
+            stmt = oqlEngine.parse(query);
+        } catch (OqlParseException e) {
+            return OQLQueryResult.error("Parse error at " + e.location() + ": " + e.getMessage(), 0);
+        }
+
+        ExecutionPlan plan;
+        try {
+            plan = oqlEngine.compile(stmt, new OqlCompileOptions(request.scanLargeStrings()));
+        } catch (RuntimeException e) {
+            return OQLQueryResult.error("Compile error: " + e.getMessage(), 0);
+        }
+
+        var elapsed = Measuring.s(() -> withSession(session -> {
+            if (plan.needsDominatorTree() || request.includeRetainedSize()) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            try {
+                return oqlEngine.execute(plan, session.view(),
+                        new PageWindow(request.offset(), effectiveLimit, request.resumeAfter()));
+            } catch (SQLException e) {
+                LOG.warn("OQL execution failed: query={} error={}", query, e.getMessage());
+                return OQLQueryResult.error("Query failed: " + e.getMessage(), 0);
+            }
+        }).orElseGet(() -> OQLQueryResult.error("Heap dump not available for this profile", 0)));
+
+        OQLQueryResult r = elapsed.entity();
+        return new OQLQueryResult(
+                r.results(), r.totalCount(), r.hasMore(),
+                elapsed.duration().toMillis(), r.errorMessage(), r.resumeAfter());
+    }
+
+    // --- Threads ---------------------------------------------------------
+
+    @Override
+    public List<HeapThreadInfo> getThreads() {
+        return getThreads(false);
+    }
+
+    @Override
+    public List<HeapThreadInfo> getThreads(boolean includeRetainedSize) {
+        return withSession(session -> {
+            if (includeRetainedSize) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            return ThreadAnalyzer.analyze(session.view());
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<ThreadStackFrame> getThreadStack(long threadObjectId) {
+        return withSession(session -> ThreadStackAnalyzer.getStack(session.view(), threadObjectId))
+                .orElse(List.of());
+    }
+
+    @Override
+    public GCRootSummary getGCRootSummary() {
+        return withSession(session -> GcRootAnalyzer.analyze(session.view()))
+                .orElse(GCRootSummary.EMPTY);
+    }
+
+    @Override
+    public List<GCRootRetainer> getTopRetainers(int limit, List<Integer> rootKinds) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return GcRootRetainersAnalyzer.analyze(session.view(), limit, rootKinds);
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<GCRootClassAggregate> getRootsByClass(int limit) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return GcRootByClassAnalyzer.analyze(session.view(), limit);
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<GCRootClassLoaderAggregate> getRootsByClassLoader(int limit) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return GcRootByClassLoaderAnalyzer.analyze(session.view(), limit);
+        }).orElse(List.of());
+    }
+
+    @Override
+    public List<LeakHintFinding> getLeakHints() {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return LeakHintsAnalyzer.analyze(session.view());
+        }).orElse(List.of());
+    }
+
+    // --- Heap lifecycle / cleanup ----------------------------------------
+
+    @Override
+    public void unloadHeap() {
+        cacheService.unloadHeap();
+    }
+
+    /**
+     * Clearing the cache also drops the stored init run: with the index and every cached analysis gone,
+     * a "last initialization" summary would describe work that no longer exists.
+     */
+    @Override
+    public void deleteCache() {
+        cacheService.deleteCache();
+        pipelineRuns.deleteAll(HeapDumpStages.PIPELINE_ID);
+    }
+
+    // --- Stored reports --------------------------------------------------
+
+    @Override
+    public boolean reportExists(CachedAnalysis<?> analysis) {
+        return reports.exists(analysis);
+    }
+
+    @Override
+    public <T> Optional<T> report(CachedAnalysis<T> analysis) {
+        return runner.read(analysis);
+    }
+
+    @Override
+    public void runReport(CachedAnalysis<?> analysis) {
+        runner.run(analysis);
+    }
+
+    // --- Dominator tree build --------------------------------------------
+
+    @Override
+    public List<SubPhaseTiming> runComputeDominator() {
+        return withSession(session -> session.buildDominatorTreeIfNeeded()
+                .map(r -> r.subPhases())
+                .orElse(List.<SubPhaseTiming>of()))
+                .orElse(List.<SubPhaseTiming>of());
+    }
+
+    // --- Instance browsing -----------------------------------------------
+
+    @Override
+    public InstanceDetail getInstanceDetail(long objectId, boolean includeRetainedSize) {
+        return withSession(session -> {
+            if (includeRetainedSize) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            return InstanceDetailAnalyzer.analyze(session.view(), objectId).orElse(null);
+        }).orElse(null);
+    }
+
+    @Override
+    public InstanceTreeResponse getReferrers(long objectId, int limit, int offset) {
+        return withSession(session -> InstanceTreeAnalyzer.analyze(
+                session.view(),
+                InstanceTreeRequest.referrers(objectId, limit, offset)))
+                .orElse(InstanceTreeResponse.notFound());
+    }
+
+    @Override
+    public InstanceTreeResponse getReachables(long objectId, int limit, int offset) {
+        return withSession(session -> InstanceTreeAnalyzer.analyze(
+                session.view(),
+                InstanceTreeRequest.reachables(objectId, limit, offset)))
+                .orElse(InstanceTreeResponse.notFound());
+    }
+
+    // --- Path to GC Root -------------------------------------------------
+
+    @Override
+    public List<GCRootPath> getPathsToGCRoot(long objectId, boolean excludeWeakRefs, int maxPaths) {
+        return withSession(session -> PathToGCRootAnalyzer.findPaths(
+                session.view(), objectId, excludeWeakRefs, maxPaths))
+                .orElse(List.of());
+    }
+
+    @Override
+    public Optional<GCRootPath> getSelfRootPath(long objectId) {
+        return withSession(session -> PathToGCRootAnalyzer.selfRoot(session.view(), objectId))
+                .flatMap(path -> path);
+    }
+
+    // --- Heap Dump Config (compressed oops detection only — correction is not applied) ----
+
+    @Override
+    public HeapDumpConfig resolveAndStoreCompressedOops(Boolean manualOverride) {
+        return compressedOopsResolver.resolveAndStore(manualOverride);
+    }
+
+    @Override
+    public Optional<HeapDumpConfig> getHeapDumpConfig() {
+        return compressedOopsResolver.read();
+    }
+
+    // --- Init pipeline result --------------------------------------------
+
+    @Override
+    public Optional<PipelineRunResult> getInitPipelineResult() {
+        return pipelineRuns.find(HeapDumpStages.PIPELINE_ID, PROFILE_SCOPE);
+    }
+
+    @Override
+    public void storeInitPipelineResult(PipelineRunResult result) {
+        pipelineRuns.upsert(result);
+    }
+
+    // --- Dominator Tree --------------------------------------------------
+
+    @Override
+    public DominatorTreeResponse getDominatorTreeRoots(int limit) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return DominatorTreeAnalyzer.children(session.view(), DOMINATOR_ROOT_ID, limit);
+        }).orElse(EMPTY_DOMINATOR_TREE);
+    }
+
+    @Override
+    public DominatorTreeResponse getDominatorTreeChildren(long objectId, int offset, int limit) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return DominatorTreeAnalyzer.children(session.view(), objectId, offset, limit);
+        }).orElse(EMPTY_DOMINATOR_TREE);
+    }
+
+    // --- Class Instance Browser ------------------------------------------
+
+    @Override
+    public ClassInstancesResponse getClassInstances(
+            String className, int limit, int offset, boolean includeRetainedSize) {
+        return getClassInstances(className, limit, offset, includeRetainedSize, InstanceSortBy.OBJECT_ID);
+    }
+
+    @Override
+    public ClassInstancesResponse getClassInstances(
+            String className, int limit, int offset, boolean includeRetainedSize, InstanceSortBy sortBy) {
+        return withSession(session -> {
+            if (includeRetainedSize || sortBy == InstanceSortBy.RETAINED_SIZE) {
+                session.buildDominatorTreeIfNeeded();
+            }
+            HeapView view = session.view();
+            List<JavaClassRow> matches = view.findClassesByName(className);
+            if (matches.isEmpty()) {
+                return new ClassInstancesResponse(className, 0, List.of(), false);
+            }
+            return ClassInstanceBrowserAnalyzer.browse(view, matches.get(0).classId(), offset, limit, sortBy);
+        }).orElse(new ClassInstancesResponse(className, 0, List.of(), false));
+    }
+
+    // --- Class loader detail ---------------------------------------------
+
+    @Override
+    public Optional<ClassLoaderDetail> getClassLoaderDetail(long loaderId) {
+        return withSession(session -> {
+            session.buildDominatorTreeIfNeeded();
+            return ClassLoaderDetailService.loadDetail(session.view(), loaderId).orElse(null);
+        });
+    }
+}

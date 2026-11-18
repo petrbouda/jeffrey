@@ -1,0 +1,157 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.parser;
+
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpDatabaseClient;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpStatement;
+import org.eclipse.collections.api.map.primitive.LongIntMap;
+import org.eclipse.collections.api.map.primitive.LongObjectMap;
+import org.eclipse.collections.api.map.primitive.MutableLongIntMap;
+import org.eclipse.collections.api.tuple.primitive.LongIntPair;
+import org.eclipse.collections.impl.map.mutable.primitive.LongIntHashMap;
+import cafe.jeffrey.microscope.profile.heapdump.view.HprofTag;
+
+/**
+ * Phase 6 — corrects instance.shallow_size to match the JVM's allocated size:
+ *
+ * <ol>
+ *   <li>Subtracts compressed-oops over-count for INSTANCE rows. The HPROF
+ *       file encodes every OBJECT field as {@code idSize} bytes (8 on a
+ *       64-bit dump), but at runtime each compressed OOP occupies
+ *       {@code oopSize} (4). For every class we count OBJECT fields along
+ *       the full super-class chain and subtract
+ *       {@code chainOopCount * (idSize - oopSize)} from each instance.</li>
+ *   <li>Rounds shallow_size up to {@link InstanceLayout#objectAlignment()}
+ *       for every row (instances and arrays alike) — the JVM aligns each
+ *       allocation to {@code MinObjAlignment}, default 8.</li>
+ * </ol>
+ *
+ * <p>Both corrections collapse to no-ops when they're not needed:
+ * uncompressed 64-bit / 32-bit heaps have {@code oopOverheadDelta() == 0},
+ * and rows already aligned to the boundary are left untouched.
+ */
+public final class HprofShallowSizeCorrector {
+
+    private HprofShallowSizeCorrector() {
+    }
+
+    public static void apply(
+            HeapDumpDatabaseClient client,
+            LongObjectMap<HprofRecord.ClassDump> classDumps,
+            InstanceLayout layout) {
+        int oopDelta = layout.oopOverheadDelta();
+        int alignment = layout.objectAlignment();
+
+        if (oopDelta > 0 && !classDumps.isEmpty()) {
+            LongIntMap chainOopByClass = computeChainOopCounts(classDumps);
+            client.execute(HeapDumpStatement.CREATE_TEMP_CLASS_CHAIN_OOP,
+                    "CREATE TEMP TABLE _class_chain_oop (class_id BIGINT, oop_count INTEGER)");
+            client.withAppender(HeapDumpStatement.APPEND_CLASS_CHAIN_OOP, "_class_chain_oop", app -> {
+                long rows = 0;
+                for (LongIntPair e : chainOopByClass.keyValuesView()) {
+                    if (e.getTwo() == 0) {
+                        continue; // skip zero rows to keep the table tight
+                    }
+                    app.beginRow();
+                    app.append(e.getOne());
+                    app.append(e.getTwo());
+                    app.endRow();
+                    rows++;
+                }
+                return rows;
+            });
+            // `?::INTEGER` rather than a bare `?`: DuckDB cannot infer a type for a
+            // parameter standing alone in arithmetic and reports it as the literal
+            // type name "INVALID", which the JDBC driver resolves through
+            // DuckDBColumnType.valueOf -- an enum with no INVALID constant. The
+            // IllegalArgumentException that follows is caught by the driver and
+            // mapped to UNKNOWN, so nothing fails; it is thrown twice per parameter
+            // on every prepare, and each one fills in a stack trace. The cast costs
+            // nothing and makes the prepare silent.
+            client.update(HeapDumpStatement.UPDATE_INSTANCE_SHALLOW_SIZE_OOPS,
+                    "UPDATE instance SET shallow_size = shallow_size - c.oop_count * ?::INTEGER "
+                            + "FROM _class_chain_oop c "
+                            + "WHERE instance.class_id = c.class_id "
+                            + "  AND instance.record_kind = " + HprofIndex.RECORD_KIND_INSTANCE,
+                    oopDelta);
+            client.execute(HeapDumpStatement.DROP_TEMP_CLASS_CHAIN_OOP, "DROP TABLE _class_chain_oop");
+        }
+
+        // Round every row up to objectAlignment. Arrays are already aligned by
+        // Pass B's append helpers, but instances were written without alignment
+        // and may have just become unaligned again after the OOP-delta
+        // subtraction. Use modular arithmetic (no division) so the math stays
+        // in INTEGER domain — DuckDB's `/` promotes to floating point on
+        // bound parameters.
+        //
+        // The alignment is written into the statement rather than bound. A bare
+        // `?` inside `%` arithmetic is reported by DuckDB as the type "INVALID",
+        // which the driver feeds to DuckDBColumnType.valueOf -- an enum with no
+        // such constant -- and the IllegalArgumentException it catches is thrown
+        // twice per parameter on every prepare: eight stack traces in every
+        // heap-dump trace. The `?::INTEGER` cast silences that today, but only
+        // because of how the driver infers the expression around it. The value
+        // is a JVM layout constant (8 or 16) that never comes from input, so a
+        // bound parameter protects nothing and interpolating it removes the
+        // dependency on that inference for good.
+        client.update(HeapDumpStatement.UPDATE_INSTANCE_SHALLOW_SIZE_ALIGN, alignmentSql(alignment));
+    }
+
+    /** The alignment UPDATE with {@code alignment} interpolated; see the caller for why. */
+    private static String alignmentSql(int alignment) {
+        return "UPDATE instance SET shallow_size = "
+                + "shallow_size + ((" + alignment + " - shallow_size % " + alignment + ") % " + alignment + ") "
+                + "WHERE shallow_size % " + alignment + " <> 0";
+    }
+
+    private static LongIntMap computeChainOopCounts(
+            LongObjectMap<HprofRecord.ClassDump> classDumps) {
+        MutableLongIntMap memo = new LongIntHashMap(classDumps.size());
+        // forEachKey accepts a LongProcedure (primitive long), avoiding a
+        // Long boxing per class entry.
+        classDumps.forEachKey(classId -> chainOopCount(classId, classDumps, memo));
+        return memo;
+    }
+
+    private static int chainOopCount(
+            long classId,
+            LongObjectMap<HprofRecord.ClassDump> classDumps,
+            MutableLongIntMap memo) {
+        // LongIntHashMap stores 0 as the absent-value sentinel by default, so
+        // we use containsKey to disambiguate "cached 0" from "not yet computed".
+        if (memo.containsKey(classId)) {
+            return memo.get(classId);
+        }
+        HprofRecord.ClassDump cd = classDumps.get(classId);
+        if (cd == null) {
+            memo.put(classId, 0);
+            return 0;
+        }
+        int ownCount = 0;
+        for (int type : cd.instanceFieldTypes()) {
+            if (type == HprofTag.BasicType.OBJECT) {
+                ownCount++;
+            }
+        }
+        long superId = cd.superClassId();
+        int total = superId == 0L
+                ? ownCount
+                : ownCount + chainOopCount(superId, classDumps, memo);
+        memo.put(classId, total);
+        return total;
+    }
+}

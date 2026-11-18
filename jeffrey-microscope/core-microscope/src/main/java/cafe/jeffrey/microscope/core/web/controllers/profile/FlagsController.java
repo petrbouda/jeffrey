@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.FlagsData;
+import cafe.jeffrey.microscope.profile.management.manager.FlagsData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/flags")

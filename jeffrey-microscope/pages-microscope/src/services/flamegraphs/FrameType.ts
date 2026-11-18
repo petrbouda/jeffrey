@@ -16,7 +16,7 @@
  */
 
 /**
- * Frontend counterpart to the Java `cafe.jeffrey.profile.common.model.FrameType` enum.
+ * Frontend counterpart to the Java `cafe.jeffrey.microscope.profile.common.model.FrameType` enum.
  * String values match the Java enum names exactly — they travel over protobuf as the
  * `FRAME_TYPE_*` enum, by number (see {@link FrameType.fromProtoNumber}).
  */

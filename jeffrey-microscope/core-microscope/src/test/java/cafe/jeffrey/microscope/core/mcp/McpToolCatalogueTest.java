@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.mcp.tools.McpToolCatalogue;
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.profile.mcp.McpToolWeight;
+import cafe.jeffrey.microscope.mcp.server.McpToolWeight;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

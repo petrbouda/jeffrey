@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 import java.util.ArrayList;
 import java.util.List;

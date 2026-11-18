@@ -1,0 +1,138 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.manager;
+
+import cafe.jeffrey.microscope.profile.management.manager.gc.GarbageCollectionManager;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.AllocationManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.HeapMemoryManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.LeakCandidatesManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryManager;
+import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryTrackingManager;
+import cafe.jeffrey.microscope.profile.management.manager.thread.ThreadManager;
+import cafe.jeffrey.microscope.profile.management.manager.thread.VirtualThreadManager;
+import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersManager;
+import cafe.jeffrey.microscope.profile.management.tools.collapse.CollapseFramesManager;
+import cafe.jeffrey.microscope.profile.management.tools.otlp.OtlpExportManager;
+import cafe.jeffrey.microscope.profile.management.tools.pprof.PprofExportManager;
+
+
+import cafe.jeffrey.microscope.model.ProfileInfo;
+
+import java.util.function.Function;
+
+public interface ProfileManager {
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, ProfileManager> {
+    }
+
+    ProfileInfo info();
+
+    ProfileConfigurationManager profileConfigurationManager();
+
+    AutoAnalysisManager autoAnalysisManager();
+
+    FlamegraphManager flamegraphManager();
+
+    DifferentialFlamegraphManager diffFlamegraphManager(ProfileManager secondaryManager);
+
+    SubSecondManager subSecondManager();
+
+    TimeseriesManager timeseriesManager();
+
+    TimeseriesManager diffTimeseriesManager(ProfileManager secondaryManager);
+
+    EventViewerManager eventViewerManager();
+
+    FlagsManager flagsManager();
+
+    SamplerHealthManager samplerHealthManager();
+
+    ThreadManager threadManager();
+
+    JITCompilationManager jitCompilationManager();
+
+    JITDeoptimizationManager jitDeoptimizationManager();
+
+    PerfCountersManager perfCountersManager();
+
+    GarbageCollectionManager gcManager();
+
+    ClassLoadingManager classLoadingManager();
+
+    ExceptionsManager exceptionsManager();
+
+    NativeMemoryManager nativeMemoryManager();
+
+    NativeMemoryTrackingManager nativeMemoryTrackingManager();
+
+    SystemResourcesManager systemResourcesManager();
+
+    VmOperationManager vmOperationManager();
+
+    BlockingManager blockingManager();
+
+    VirtualThreadManager virtualThreadManager();
+
+    IoManager ioManager();
+
+    AllocationManager allocationManager();
+
+    LeakCandidatesManager leakCandidatesManager();
+
+    SecurityManager securityManager();
+
+    ContainerManager containerManager();
+
+    HeapMemoryManager heapMemoryManager();
+
+    HeapDumpManager heapDumpManager();
+
+    SpanManager spanManager();
+
+    TraceManager traceManager();
+
+    TraceAttributesManager traceAttributesManager();
+
+    ProfileFeaturesManager featuresManager();
+
+    ProfileToolsManager toolsManager();
+
+    CollapseFramesManager collapseFramesManager();
+
+    PprofExportManager pprofExportManager();
+
+    OtlpExportManager otlpExportManager();
+
+    ProfileCustomManager custom();
+
+    ProfileInfo updateName(String name);
+
+    void markModified();
+
+    /**
+     * Returns the total size of the profile directory in bytes.
+     * This includes the DuckDB database and whatever else the profile directory holds.
+     *
+     * @return size in bytes
+     */
+    long sizeInBytes();
+
+    void delete();
+}

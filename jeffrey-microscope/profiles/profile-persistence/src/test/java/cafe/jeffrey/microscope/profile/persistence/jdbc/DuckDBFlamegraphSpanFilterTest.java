@@ -1,0 +1,161 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.persistence.jdbc;
+
+import cafe.jeffrey.microscope.profile.persistence.api.EventQueryConfigurer;
+import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.shared.persistence.GroupLabel;
+import cafe.jeffrey.shared.persistence.StatementLabel;
+import cafe.jeffrey.shared.persistence.client.DatabaseClient;
+import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
+import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.shared.test.TestUtils;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+
+import javax.sql.DataSource;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+/**
+ * Exercises the real flamegraph SIMPLE query (resolved from {@link DuckDBFlamegraphQueries}) against
+ * DuckDB to prove the span-scope predicate keeps only the samples taken on a span's own thread within
+ * its window. Running the actual query through Spring's named-parameter binding also validates that the
+ * {@code [:span_*]} list params expand into DuckDB list literals correctly for more than one span.
+ */
+@DuckDBTest(migration = "classpath:db/migration/profile")
+class DuckDBFlamegraphSpanFilterTest {
+
+    private static final String EVENT_TYPE = "jdk.ExecutionSample";
+    private static final long A_FROM = Instant.parse("2025-01-15T10:00:00.000Z").toEpochMilli();
+    private static final long A_TO = Instant.parse("2025-01-15T10:00:00.300Z").toEpochMilli();
+    private static final long B_FROM = Instant.parse("2025-01-15T10:00:02.000Z").toEpochMilli();
+    private static final long B_TO = Instant.parse("2025-01-15T10:00:02.200Z").toEpochMilli();
+
+    private static long totalSamples(DatabaseClient client, List<SpanInterval> spanIntervals) {
+        return totalSamples(client, SpanScope.of(spanIntervals));
+    }
+
+    private static long totalSamples(DatabaseClient client, SpanScope scope) {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withSpanScope(scope);
+        String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(configurer);
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        SpanScopeSql.apply(params, scope);
+
+        return client.query(StatementLabel.STREAM_EVENTS, sql, params, (rs, _) -> rs.getLong("total_samples"))
+                .stream()
+                .mapToLong(Long::longValue)
+                .sum();
+    }
+
+    @Test
+    void keepsOnlyPerSpanThreadAndWindowSamples(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        List<SpanInterval> spanIntervals = List.of(
+                SpanInterval.ofMillis(2001L, A_FROM, A_TO),
+                SpanInterval.ofMillis(2002L, B_FROM, B_TO));
+
+        // Only thread 2001 inside span A and thread 2002 inside span B survive; the GC thread and the
+        // out-of-window 2001 sample are filtered out.
+        assertEquals(2, totalSamples(client, spanIntervals));
+    }
+
+    /**
+     * A sample's millisecond is its timestamp floored, as the window's bounds are: one taken in the
+     * window's last millisecond is inside it, one taken a fraction of a millisecond before it opens is
+     * not — the two a rounded millisecond would get the other way round.
+     */
+    @Test
+    void aSamplesMillisecondIsFlooredAsTheWindowsBoundsAre(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph-edges.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        assertEquals(2, totalSamples(client, List.of(SpanInterval.ofMillis(2001L, A_FROM, A_TO))),
+                "span A's sample and the one in its last millisecond");
+        assertEquals(1, totalSamples(client, List.of(SpanInterval.ofMillis(2002L, B_FROM, B_TO))),
+                "span B's sample, not the one before it opened");
+    }
+
+    @Test
+    void singleSpanScopesToThatThreadAndWindow(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        List<SpanInterval> spanIntervals = List.of(SpanInterval.ofMillis(2001L, A_FROM, A_TO));
+
+        // Span A only → just the one thread-2001 sample inside its window.
+        assertEquals(1, totalSamples(client, spanIntervals));
+    }
+
+    @Test
+    void disabledFilterCountsEverySample(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        // No span scope → the predicate is spliced out entirely and all four execution samples count.
+        String sql = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(new EventQueryConfigurer());
+        assertFalse(sql.contains("span_thread_hashes"));
+
+        assertEquals(4, totalSamples(client, (SpanScope) null));
+    }
+
+    /**
+     * The scope's relation has to be declared in front of whatever the template opens with, and the
+     * templates differ: {@code SIMPLE} opens with a CTE of its own, {@code SIMPLE_OPTIMIZED} with a
+     * bare SELECT. Both are exercised, because getting that seam wrong yields SQL that does not
+     * parse — and because a scope that silently stopped filtering would still parse.
+     */
+    @Test
+    void theScopeRelationIsDeclaredAheadOfEitherTemplateShape(DataSource dataSource) throws SQLException {
+        TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+        DatabaseClient client = new DatabaseClientProvider(dataSource).provide(GroupLabel.PROFILE_EVENTS);
+
+        SpanScope scope = SpanScope.of(List.of(
+                SpanInterval.ofMillis(2001L, A_FROM, A_TO),
+                SpanInterval.ofMillis(2002L, B_FROM, B_TO)));
+        EventQueryConfigurer configurer = new EventQueryConfigurer().withSpanScope(scope);
+
+        String openingWithItsOwnCte = DuckDBFlamegraphQueries.of(EVENT_TYPE, "").simple(configurer);
+        String openingWithASelect = EventQueryFilters.splice(DuckDBFlamegraphQueries.SIMPLE_OPTIMIZED, configurer)
+                .replace("<<event_type>>", "'" + EVENT_TYPE + "'")
+                .replace("<<additional_filters>>", "");
+
+        for (String sql : List.of(openingWithItsOwnCte, openingWithASelect)) {
+            MapSqlParameterSource params = new MapSqlParameterSource();
+            SpanScopeSql.apply(params, scope);
+
+            long samples = client
+                    .query(StatementLabel.STREAM_EVENTS, sql, params, (rs, _) -> rs.getLong("total_samples"))
+                    .stream()
+                    .mapToLong(Long::longValue)
+                    .sum();
+
+            assertEquals(2, samples, "the two in-window samples, however the query opens");
+        }
+    }
+}

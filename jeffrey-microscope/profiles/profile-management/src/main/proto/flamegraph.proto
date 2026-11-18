@@ -17,9 +17,11 @@
 
 syntax = "proto3";
 
+// The protobuf namespace, which names the UI's generated TypeScript (pages-microscope/src/proto) and is
+// not a Java package: the Java classes take java_package. The wire format does not carry it.
 package cafe.jeffrey.flamegraph.proto;
 
-option java_package = "cafe.jeffrey.flamegraph.proto";
+option java_package = "cafe.jeffrey.microscope.profile.management.flamegraph.proto";
 option java_outer_classname = "FlamegraphProtos";
 option java_multiple_files = true;
 

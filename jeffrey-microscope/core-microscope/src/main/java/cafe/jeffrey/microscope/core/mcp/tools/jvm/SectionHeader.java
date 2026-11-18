@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 /**
  * What every {@code jvm_} section answer carries beside its dashboard: whether there is one, why not,

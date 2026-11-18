@@ -20,9 +20,9 @@ package cafe.jeffrey.microscope.core.mcp.tools.heap;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.profile.heapdump.model.GCRootPath;
-import cafe.jeffrey.profile.heapdump.model.PathStep;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.profile.heapdump.model.GCRootPath;
+import cafe.jeffrey.microscope.profile.heapdump.model.PathStep;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.shared.common.BytesUtils;
 
 import java.util.ArrayList;

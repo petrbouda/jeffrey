@@ -25,13 +25,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.SystemResourcesManager;
-import cafe.jeffrey.profile.manager.model.system.LaunchedProcessInfo;
-import cafe.jeffrey.profile.manager.model.system.ModuleEdge;
-import cafe.jeffrey.profile.manager.model.system.ModuleExport;
-import cafe.jeffrey.profile.manager.model.system.SystemOverview;
-import cafe.jeffrey.profile.manager.model.system.SystemProcessInfo;
-import cafe.jeffrey.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.profile.management.manager.SystemResourcesManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.system.LaunchedProcessInfo;
+import cafe.jeffrey.microscope.profile.management.manager.model.system.ModuleEdge;
+import cafe.jeffrey.microscope.profile.management.manager.model.system.ModuleExport;
+import cafe.jeffrey.microscope.profile.management.manager.model.system.SystemOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.system.SystemProcessInfo;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 
 import java.util.List;
 

@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.SecurityManager;
-import cafe.jeffrey.profile.manager.model.security.SecurityData;
+import cafe.jeffrey.microscope.profile.management.manager.SecurityManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/security")

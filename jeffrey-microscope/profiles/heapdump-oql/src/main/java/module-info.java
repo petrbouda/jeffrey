@@ -25,13 +25,13 @@ module cafe.jeffrey.microscope.profile.heapdump.oql {
     requires duckdb.jdbc;
     requires org.slf4j;
 
-    exports cafe.jeffrey.profile.heapdump.oql;
-    exports cafe.jeffrey.profile.heapdump.oql.ast;
-    exports cafe.jeffrey.profile.heapdump.oql.compiler;
-    exports cafe.jeffrey.profile.heapdump.oql.config;
-    exports cafe.jeffrey.profile.heapdump.oql.executor;
-    exports cafe.jeffrey.profile.heapdump.oql.function;
-    exports cafe.jeffrey.profile.heapdump.oql.parser;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql.ast;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql.compiler;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql.config;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql.executor;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql.function;
+    exports cafe.jeffrey.microscope.profile.heapdump.oql.parser;
 
-    opens cafe.jeffrey.profile.heapdump.oql.config to spring.core, spring.beans, spring.context;
+    opens cafe.jeffrey.microscope.profile.heapdump.oql.config to spring.core, spring.beans, spring.context;
 }

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.export.AiExportConfig;
+import cafe.jeffrey.microscope.profile.management.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
@@ -31,22 +31,22 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.model.time.UndefinedTimeRange;
-import cafe.jeffrey.profile.common.config.GraphComponents;
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolMeta;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.ToolParamBounds;
-import cafe.jeffrey.profile.mcp.ToolParamValues;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.profile.model.FlamegraphPanel;
-import cafe.jeffrey.profile.model.WeightKind;
-import cafe.jeffrey.profile.model.WeightOption;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
+import cafe.jeffrey.microscope.mcp.server.ToolParamValues;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
+import cafe.jeffrey.microscope.profile.management.model.WeightKind;
+import cafe.jeffrey.microscope.profile.management.model.WeightOption;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 

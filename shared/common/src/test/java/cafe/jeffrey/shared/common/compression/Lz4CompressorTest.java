@@ -269,7 +269,7 @@ class Lz4CompressorTest {
          * module's tests. Read here by path, not from the classpath: {@code shared/test} depends on
          * this module, so this module's tests cannot depend on it.
          */
-        private static final Path JFRS_DIR = Path.of("../test/src/main/resources/cafe/jeffrey/test/recording");
+        private static final Path JFRS_DIR = Path.of("../test/src/main/resources/cafe/jeffrey/shared/test/recording");
 
         @Test
         void compressAndDecompressProfile1RoundTrip() throws IOException {

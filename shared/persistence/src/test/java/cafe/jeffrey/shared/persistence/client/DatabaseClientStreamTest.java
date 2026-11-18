@@ -21,7 +21,7 @@ import cafe.jeffrey.jfr.events.jdbc.statement.JdbcStreamEvent;
 import cafe.jeffrey.jfr.events.test.JfrRecordings;
 import cafe.jeffrey.shared.persistence.GroupLabel;
 import cafe.jeffrey.shared.persistence.StatementLabel;
-import cafe.jeffrey.test.DuckDBTest;
+import cafe.jeffrey.shared.test.DuckDBTest;
 import jdk.jfr.consumer.RecordedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

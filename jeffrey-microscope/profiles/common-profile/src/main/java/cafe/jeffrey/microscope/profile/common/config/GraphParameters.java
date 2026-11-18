@@ -1,0 +1,102 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.common.config;
+
+import cafe.jeffrey.microscope.model.GraphType;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.WeightUnit;
+import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public record GraphParameters(
+        Type eventType,
+        RelativeTimeRange timeRange,
+        // The threads the graph is scoped to: one for a plain thread, all of them for a lane that
+        // stands for a group of identically named threads. Empty means every thread.
+        List<ThreadInfo> threads,
+        String searchPattern,
+        boolean threadMode,
+        Boolean useWeight,
+        boolean excludeNonJavaSamples,
+        boolean excludeIdleSamples,
+        boolean onlyUnsafeAllocationSamples,
+        boolean parseLocations,
+        GraphType graphType,
+        GraphComponents graphComponents,
+        SpanScope spanScope,
+        // How the sample weight is measured (bytes / duration / none). Resolved from the event type's
+        // stored sample unit; drives builder + frame-processor selection for aggregated stack-sample
+        // formats (pprof / OTLP). NONE for JFR (which is classified by the event-type Type instead).
+        WeightUnit weightUnit,
+        // Whether the profile is a flamegraph-only import (pprof / OTLP). When true the generator selects the
+        // builder / frame-processor purely from weightUnit and never falls back to JFR event-type predicates —
+        // so an imported count dimension whose code equals a JFR allocation/blocking code still renders plain.
+        boolean flamegraphOnlyImport) {
+
+    public List<StacktraceTag> stacktraceTags() {
+        List<StacktraceTag> tags = new ArrayList<>();
+        if (onlyUnsafeAllocationSamples) {
+            tags.add(StacktraceTag.UNSAFE_ALLOCATION);
+        }
+        if (excludeIdleSamples) {
+            tags.add(StacktraceTag.EXCLUDE_IDLE);
+        }
+        return tags;
+    }
+
+    public List<StacktraceType> stacktraceTypes() {
+        List<StacktraceType> types = new ArrayList<>();
+        if (excludeNonJavaSamples) {
+            types.add(StacktraceType.APPLICATION);
+        }
+        return types;
+    }
+
+    public boolean containsSearchPattern() {
+        return searchPattern != null;
+    }
+
+    public GraphParametersBuilder toBuilder() {
+        return builder()
+                .withEventType(eventType)
+                .withTimeRange(timeRange)
+                .withThreads(threads)
+                .withSearchPattern(searchPattern)
+                .withThreadMode(threadMode)
+                .withUseWeight(useWeight)
+                .withExcludeNonJavaSamples(excludeNonJavaSamples)
+                .withExcludeIdleSamples(excludeIdleSamples)
+                .withOnlyUnsafeAllocationSamples(onlyUnsafeAllocationSamples)
+                .withParseLocation(parseLocations)
+                .withGraphType(graphType)
+                .withGraphComponents(graphComponents)
+                .withSpanScope(spanScope)
+                .withWeightUnit(weightUnit)
+                .withFlamegraphOnlyImport(flamegraphOnlyImport);
+    }
+
+    public static GraphParametersBuilder builder() {
+        return new GraphParametersBuilder();
+    }
+}

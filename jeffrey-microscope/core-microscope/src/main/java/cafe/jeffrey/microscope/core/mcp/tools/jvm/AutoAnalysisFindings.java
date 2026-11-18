@@ -18,12 +18,12 @@
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.common.analysis.AnalysisResult;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.profile.mcp.finding.McpFindings;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFindings;
 
 import java.util.List;
 import java.util.Map;

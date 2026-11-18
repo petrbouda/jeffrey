@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
 
 import java.util.List;
 import java.util.Map;

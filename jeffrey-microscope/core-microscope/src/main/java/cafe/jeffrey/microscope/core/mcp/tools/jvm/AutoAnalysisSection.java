@@ -24,11 +24,11 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.profile.mcp.finding.McpFindings;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFindings;
 
 import java.util.List;
 import java.util.Map;

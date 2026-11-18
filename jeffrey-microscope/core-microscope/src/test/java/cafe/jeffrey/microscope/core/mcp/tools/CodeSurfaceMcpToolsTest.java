@@ -17,20 +17,20 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.code.CallSites;
-import cafe.jeffrey.flamegraph.code.MethodKey;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CallSites;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.TraceAttributesManager;
-import cafe.jeffrey.profile.manager.TraceManager;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.provider.profile.api.TraceOperationId;
-import cafe.jeffrey.provider.profile.api.CallSiteSelection;
-import cafe.jeffrey.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.TraceAttributesManager;
+import cafe.jeffrey.microscope.profile.management.manager.TraceManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationsPage;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationId;
+import cafe.jeffrey.microscope.profile.persistence.api.CallSiteSelection;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.CallSiteQuery;
 import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

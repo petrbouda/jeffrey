@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.flamegraph.code.MethodKey;
-import cafe.jeffrey.flamegraph.code.MethodRef;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
+import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodRef;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,9 +33,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static cafe.jeffrey.test.recording.CheckoutRecording.BASELINE;
-import static cafe.jeffrey.test.recording.CheckoutRecording.CANDIDATE;
-import static cafe.jeffrey.test.recording.CheckoutRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.shared.test.recording.CheckoutRecording.BASELINE;
+import static cafe.jeffrey.shared.test.recording.CheckoutRecording.CANDIDATE;
+import static cafe.jeffrey.shared.test.recording.CheckoutRecording.EXECUTION_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

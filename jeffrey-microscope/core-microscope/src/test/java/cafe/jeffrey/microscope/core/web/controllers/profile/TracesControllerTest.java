@@ -18,15 +18,15 @@
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.TraceManager;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationsPage;
-import cafe.jeffrey.profile.manager.model.trace.TraceSpanRunMembers;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.provider.profile.api.TraceOperationListQuery;
-import cafe.jeffrey.provider.profile.api.TraceOperationSortField;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.TraceManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationsPage;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceSpanRunMembers;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationListQuery;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationSortField;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;

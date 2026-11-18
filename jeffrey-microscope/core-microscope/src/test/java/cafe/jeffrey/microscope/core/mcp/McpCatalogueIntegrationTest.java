@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.shared.common.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;

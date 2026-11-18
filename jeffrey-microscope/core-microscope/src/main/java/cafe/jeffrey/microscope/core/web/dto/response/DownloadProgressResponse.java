@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.recordings.core.download.DownloadProgress;
-import cafe.jeffrey.recordings.core.download.FileProgress;
+import cafe.jeffrey.microscope.core.manager.download.DownloadProgress;
+import cafe.jeffrey.microscope.core.manager.download.FileProgress;
 
 import java.util.List;
 

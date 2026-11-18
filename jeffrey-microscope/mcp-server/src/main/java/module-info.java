@@ -19,7 +19,7 @@
  * Jeffrey's MCP adapter over the protocol module: the Spring MVC boundary, {@code @Tool} reflection,
  * profile scoping, the tool hints and the finding convention.
  */
-module cafe.jeffrey.microscope.profile.mcp {
+module cafe.jeffrey.microscope.mcp.server {
     requires transitive cafe.jeffrey.microscope.mcp.protocol;
     requires cafe.jeffrey.shared.common;
     requires cafe.jeffrey.jfr.events;
@@ -28,8 +28,8 @@ module cafe.jeffrey.microscope.profile.mcp {
     requires spring.web;
     requires tools.jackson.databind;
 
-    exports cafe.jeffrey.profile.mcp;
-    exports cafe.jeffrey.profile.mcp.finding;
+    exports cafe.jeffrey.microscope.mcp.server;
+    exports cafe.jeffrey.microscope.mcp.server.finding;
 
-    opens cafe.jeffrey.profile.mcp to tools.jackson.databind;
+    opens cafe.jeffrey.microscope.mcp.server to tools.jackson.databind;
 }

@@ -24,9 +24,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.memory.LeakCandidatesManager;
-import cafe.jeffrey.profile.manager.model.leak.LeakCandidate;
-import cafe.jeffrey.profile.manager.model.leak.LeakOverview;
+import cafe.jeffrey.microscope.profile.management.manager.memory.LeakCandidatesManager;
+import cafe.jeffrey.microscope.profile.management.manager.model.leak.LeakCandidate;
+import cafe.jeffrey.microscope.profile.management.manager.model.leak.LeakOverview;
 
 import java.util.List;
 

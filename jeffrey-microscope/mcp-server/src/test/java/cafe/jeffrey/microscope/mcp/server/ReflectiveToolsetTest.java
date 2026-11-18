@@ -1,0 +1,180 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.mcp.server;
+
+import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.protocol.UnknownToolException;
+import org.junit.jupiter.api.Test;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
+import cafe.jeffrey.shared.common.Json;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
+
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class ReflectiveToolsetTest {
+
+    private final ReflectiveToolset toolset = new ReflectiveToolset(new SampleTools(), "test");
+
+    @Test
+    void exposesEachToolMethodWithPrefixedName() {
+        List<String> names = toolset.specs().stream().map(McpToolSpec::name).toList();
+        assertTrue(names.contains("test_echo"));
+        assertTrue(names.contains("test_add"));
+    }
+
+    @Test
+    void buildsJsonSchemaWithParameterTypes() {
+        McpToolSpec add = toolset.specs().stream()
+                .filter(spec -> spec.name().equals("test_add"))
+                .findFirst()
+                .orElseThrow();
+        ObjectNode properties = (ObjectNode) add.inputSchema().get("properties");
+        assertEquals("integer", properties.get("a").get("type").asString());
+        assertEquals("integer", properties.get("b").get("type").asString());
+    }
+
+    @Test
+    void invokesStringTool() {
+        assertEquals("echo:hello", toolset.call("test_echo", Json.createObject().put("message", "hello")));
+    }
+
+    @Test
+    void invokesNumericToolAndCoercesArguments() {
+        assertEquals("5", toolset.call("test_add",
+                Json.createObject().put("a", 2).put("b", 3)));
+    }
+
+    @Test
+    void defaultsAnOmittedOptionalPrimitiveToZero() {
+        assertEquals("2", toolset.call("test_addOptional", Json.createObject().put("a", 2)));
+    }
+
+    /**
+     * The schema said the argument was required, so a call without it is a call this tool cannot serve.
+     * Binding it to zero instead would answer a question nobody asked, and the model would read the sum
+     * of one number as the sum of two.
+     */
+    @Test
+    void refusesACallOmittingARequiredArgument() {
+        ToolDispatchException e = assertThrows(ToolDispatchException.class,
+                () -> toolset.call("test_add", Json.createObject().put("a", 2)));
+        assertEquals("Missing required argument 'b'. Expected: second addend", e.getMessage());
+        assertFalse(e instanceof UnknownToolException);
+    }
+
+    @Test
+    void emitsAllowedValuesForAStringParameterThatDeclaresThem() {
+        ObjectNode properties = (ObjectNode) specOf("test_pick").inputSchema().get("properties");
+        ArrayNode allowed = (ArrayNode) properties.get("direction").get("enum");
+        assertEquals(2, allowed.size());
+        assertEquals("SERVER", allowed.get(0).asString());
+        assertEquals("CLIENT", allowed.get(1).asString());
+    }
+
+    @Test
+    void emitsAllowedValuesForAnEnumTypedParameter() {
+        ObjectNode properties = (ObjectNode) specOf("test_sort").inputSchema().get("properties");
+        ArrayNode allowed = (ArrayNode) properties.get("order").get("enum");
+        assertEquals(2, allowed.size());
+    }
+
+    @Test
+    void bindsAnEnumTypedArgumentByName() {
+        String result = toolset.call("test_sort", Json.createObject().put("order", "desc"));
+        assertEquals("DESC", result);
+    }
+
+    @Test
+    void refusesAnUnknownEnumValueNamingTheAlternatives() {
+        IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                () -> toolset.call("test_sort", Json.createObject().put("order", "sideways")));
+        assertTrue(e.getMessage().contains("ASC"));
+    }
+
+    @Test
+    void marksEveryToolReadOnlyUnlessItSaysOtherwise() {
+        assertTrue(specOf("test_pick").annotations().readOnly());
+        assertFalse(specOf("test_write").annotations().readOnly());
+    }
+
+    @Test
+    void rejectsUnknownTool() {
+        assertThrows(UnknownToolException.class,
+                () -> toolset.call("test_missing", Json.createObject()));
+    }
+
+    private McpToolSpec specOf(String name) {
+        return toolset.specs().stream()
+                .filter(spec -> spec.name().equals(name))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    static class SampleTools {
+
+        @Tool(description = "Echo a message")
+        public String echo(@ToolParam(description = "text to echo") String message) {
+            return "echo:" + message;
+        }
+
+        @Tool(description = "Add two integers")
+        public String add(
+                @ToolParam(description = "first addend") int a,
+                @ToolParam(description = "second addend") int b) {
+            return String.valueOf(a + b);
+        }
+
+        @Tool(description = "Add two integers, both of them optional")
+        public String addOptional(
+                @ToolParam(required = false, description = "first addend") int a,
+                @ToolParam(required = false, description = "second addend") int b) {
+            return String.valueOf(a + b);
+        }
+
+        @Tool(description = "Pick a direction carried as a string")
+        public String pick(
+                @ToolParam(required = false, description = "which side")
+                @ToolParamValues({"SERVER", "CLIENT"})
+                String direction) {
+            return String.valueOf(direction);
+        }
+
+        @Tool(description = "Sort in an order named by a real enum")
+        public String sort(@ToolParam(required = false, description = "which way") Order order) {
+            return order == null ? "none" : order.name();
+        }
+
+        @Tool(description = "A tool that writes")
+        @McpToolHints(readOnly = false)
+        public String write() {
+            return "written";
+        }
+    }
+
+    enum Order {
+        ASC, DESC
+    }
+}

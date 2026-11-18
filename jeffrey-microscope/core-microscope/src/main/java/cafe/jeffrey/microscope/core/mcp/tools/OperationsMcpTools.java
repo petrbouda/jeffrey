@@ -18,9 +18,9 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.profile.mcp.McpToolCost;
-import cafe.jeffrey.profile.mcp.McpToolHints;
-import cafe.jeffrey.profile.mcp.McpToolMeta;
+import cafe.jeffrey.microscope.mcp.server.McpToolCost;
+import cafe.jeffrey.microscope.mcp.server.McpToolHints;
+import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 

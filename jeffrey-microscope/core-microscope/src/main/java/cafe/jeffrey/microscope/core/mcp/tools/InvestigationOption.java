@@ -18,8 +18,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.profile.mcp.McpNextTool;
-import cafe.jeffrey.profile.mcp.McpToolWeight;
+import cafe.jeffrey.microscope.mcp.server.McpNextTool;
+import cafe.jeffrey.microscope.mcp.server.McpToolWeight;
 
 import java.util.List;
 

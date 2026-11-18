@@ -107,7 +107,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <!-- ToolInvocationTest reads the tool-call span back with a JFR recording; the module itself only emits. -->
-                    <argLine>--add-reads cafe.jeffrey.microscope.profile.mcp=jdk.jfr</argLine>
+                    <argLine>--add-reads cafe.jeffrey.microscope.mcp.server=jdk.jfr</argLine>
                 </configuration>
             </plugin>
         </plugins>

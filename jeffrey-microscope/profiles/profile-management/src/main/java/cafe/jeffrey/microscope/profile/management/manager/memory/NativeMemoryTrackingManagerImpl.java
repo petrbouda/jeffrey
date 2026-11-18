@@ -1,0 +1,164 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.manager.memory;
+
+import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtCategoriesBuilder;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtCategory;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtCategoryTimeseriesBuilder;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtRssVsTrackedBuilder;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtTotalStatsBuilder;
+import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtTotalTimeseriesBuilder;
+import cafe.jeffrey.microscope.profile.persistence.api.EventQueryConfigurer;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventRepository;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventStreamRepository;
+import cafe.jeffrey.shared.common.Json;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+
+import java.util.List;
+import java.util.Optional;
+
+public class NativeMemoryTrackingManagerImpl implements NativeMemoryTrackingManager {
+
+    private static final String RSS_SIZE_FIELD = "size";
+
+    private final ProfileInfo profileInfo;
+    private final ProfileEventRepository eventRepository;
+    private final ProfileEventStreamRepository eventStreamRepository;
+
+    public NativeMemoryTrackingManagerImpl(
+            ProfileInfo profileInfo,
+            ProfileEventRepository eventRepository,
+            ProfileEventStreamRepository eventStreamRepository) {
+        this.profileInfo = profileInfo;
+        this.eventRepository = eventRepository;
+        this.eventStreamRepository = eventStreamRepository;
+    }
+
+    private boolean hasNmtData() {
+        return eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE)
+                || eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE_TOTAL);
+    }
+
+    @Override
+    public NmtOverview overview() {
+        if (!hasNmtData()) {
+            return NmtOverview.empty();
+        }
+
+        List<NmtCategory> categories = categories();
+        NmtCategory largest = categories.isEmpty() ? null : categories.getFirst();
+
+        long totalCommitted;
+        long totalReserved;
+        long peakCommitted;
+        if (eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE_TOTAL)) {
+            NmtTotalStatsBuilder.NmtTotalStats stats = totalStats();
+            totalCommitted = stats.lastCommitted();
+            totalReserved = stats.lastReserved();
+            peakCommitted = stats.peakCommitted();
+        } else {
+            totalCommitted = categories.stream().mapToLong(NmtCategory::committedBytes).sum();
+            totalReserved = categories.stream().mapToLong(NmtCategory::reservedBytes).sum();
+            peakCommitted = totalCommitted;
+        }
+
+        long untracked = Math.max(0, lastRssBytes() - totalCommitted);
+
+        return new NmtOverview(
+                true,
+                totalCommitted,
+                totalReserved,
+                peakCommitted,
+                largest == null ? null : largest.category(),
+                largest == null ? 0 : largest.committedBytes(),
+                categories.size(),
+                untracked);
+    }
+
+    @Override
+    public List<NmtCategory> categories() {
+        if (!eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE)) {
+            return List.of();
+        }
+        // First/last per category requires a chronological stream.
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.NATIVE_MEMORY_USAGE)
+                .withJsonFields()
+                .orderedByTime();
+
+        return eventStreamRepository.genericStreaming(configurer, new NmtCategoriesBuilder());
+    }
+
+    @Override
+    public TimeseriesData categoryTimeline() {
+        if (!eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE)) {
+            return TimeseriesData.empty();
+        }
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.NATIVE_MEMORY_USAGE)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new NmtCategoryTimeseriesBuilder(timeRange));
+    }
+
+    @Override
+    public TimeseriesData totalTimeline() {
+        if (!eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE_TOTAL)) {
+            return TimeseriesData.empty();
+        }
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.NATIVE_MEMORY_USAGE_TOTAL)
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new NmtTotalTimeseriesBuilder(timeRange));
+    }
+
+    @Override
+    public TimeseriesData rssVsTrackedTimeline() {
+        if (!eventRepository.containsEventType(Type.NATIVE_MEMORY_USAGE_TOTAL)) {
+            return TimeseriesData.empty();
+        }
+        RelativeTimeRange timeRange = new RelativeTimeRange(profileInfo.profilingStartEnd());
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventTypes(List.of(Type.RESIDENT_SET_SIZE, Type.NATIVE_MEMORY_USAGE_TOTAL))
+                .withJsonFields();
+
+        return eventStreamRepository.genericStreaming(configurer, new NmtRssVsTrackedBuilder(timeRange));
+    }
+
+    private NmtTotalStatsBuilder.NmtTotalStats totalStats() {
+        EventQueryConfigurer configurer = new EventQueryConfigurer()
+                .withEventType(Type.NATIVE_MEMORY_USAGE_TOTAL)
+                .withJsonFields()
+                .orderedByTime();
+
+        return eventStreamRepository.genericStreaming(configurer, new NmtTotalStatsBuilder());
+    }
+
+    private long lastRssBytes() {
+        Optional<ObjectNode> rss = eventRepository.latestJsonFields(Type.RESIDENT_SET_SIZE);
+        return rss.map(fields -> Math.max(0, Json.readLong(fields, RSS_SIZE_FIELD))).orElse(0L);
+    }
+}

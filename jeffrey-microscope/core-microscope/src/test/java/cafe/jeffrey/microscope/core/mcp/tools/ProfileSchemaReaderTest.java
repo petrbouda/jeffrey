@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.shared.common.Json;
-import cafe.jeffrey.test.DuckDBTest;
+import cafe.jeffrey.shared.test.DuckDBTest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

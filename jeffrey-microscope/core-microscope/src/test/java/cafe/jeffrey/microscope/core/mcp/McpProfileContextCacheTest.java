@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.provider.profile.api.ProfileDatabases;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabases;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.common.exception.ErrorCode;

@@ -22,11 +22,11 @@ import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.feature.FeatureType;
-import cafe.jeffrey.profile.manager.AutoAnalysisManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.model.FlamegraphPanel;
-import cafe.jeffrey.provider.profile.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
+import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
 
 import java.util.ArrayList;
 import java.util.HashSet;

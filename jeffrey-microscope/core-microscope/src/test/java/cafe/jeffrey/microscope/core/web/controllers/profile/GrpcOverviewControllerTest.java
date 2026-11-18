@@ -23,9 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.ProfileCustomManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.manager.custom.GrpcManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.custom.GrpcManager;
 import cafe.jeffrey.shared.common.exception.Exceptions;
 
 import static org.assertj.core.api.Assertions.assertThat;

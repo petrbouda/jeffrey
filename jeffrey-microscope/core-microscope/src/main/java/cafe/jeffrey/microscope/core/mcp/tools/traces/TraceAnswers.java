@@ -19,10 +19,10 @@ package cafe.jeffrey.microscope.core.mcp.tools.traces;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.profile.manager.model.trace.TraceOperationRow;
-import cafe.jeffrey.profile.manager.model.trace.TraceOverview;
-import cafe.jeffrey.profile.manager.model.trace.TraceRow;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOperationRow;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceOverview;
+import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceRow;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.List;
 

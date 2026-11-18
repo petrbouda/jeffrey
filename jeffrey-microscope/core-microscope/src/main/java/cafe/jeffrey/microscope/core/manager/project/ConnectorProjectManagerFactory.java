@@ -20,10 +20,10 @@ package cafe.jeffrey.microscope.core.manager.project;
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.core.client.ConnectorMappers;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorMappers;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.model.connector.ConnectorInfo;
-import cafe.jeffrey.recordings.core.OriginContext;
+import cafe.jeffrey.microscope.core.manager.download.OriginContext;
 
 /**
  * Turns a project the connector reported into its manager. Everything the manager needs comes with the

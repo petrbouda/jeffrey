@@ -4,7 +4,8 @@ paths:
   - "shared/volume/**"
   - "jeffrey-microscope/connectors/volume-connector/**"
   - "jeffrey-microscope/connectors/azure-files-connector/**"
-  - "jeffrey-microscope/core-microscope/**/recordings/core/**"
+  - "jeffrey-microscope/core-microscope/**/core/manager/download/**"
+  - "jeffrey-microscope/core-microscope/**/core/manager/recordings/**"
 ---
 
 ## Recording volume, volume-scheduler jobs and file-download rules

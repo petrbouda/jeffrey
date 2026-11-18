@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.flamegraph.export.AiExportConfig;
-import cafe.jeffrey.flamegraph.export.AiExportView;
+import cafe.jeffrey.microscope.profile.management.flamegraph.export.AiExportConfig;
+import cafe.jeffrey.microscope.profile.management.flamegraph.export.AiExportView;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
@@ -27,15 +27,15 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.common.config.GraphParameters;
-import cafe.jeffrey.profile.manager.FlamegraphManager;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpNextToolConformance;
-import cafe.jeffrey.profile.mcp.McpToolOutput;
-import cafe.jeffrey.profile.mcp.ReflectiveToolset;
-import cafe.jeffrey.profile.model.EventSummaryResult;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.shared.common.Json;
 import cafe.jeffrey.shared.common.model.EventTypeName;
 import org.junit.jupiter.api.AfterEach;

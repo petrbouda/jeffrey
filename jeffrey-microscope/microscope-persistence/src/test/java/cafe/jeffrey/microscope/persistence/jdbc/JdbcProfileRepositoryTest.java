@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.test.DuckDBTest;
-import cafe.jeffrey.test.TestUtils;
+import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.shared.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;

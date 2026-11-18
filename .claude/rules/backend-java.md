@@ -6,7 +6,7 @@ paths:
 ## Java Backend Rules
 
 ### Packages and layout
-- `cafe.jeffrey.microscope.*` (microscope), `cafe.jeffrey.volumescheduler.*` (volume scheduler), `cafe.jeffrey.profile.*` (profiles), `cafe.jeffrey.*` (shared).
+- Every module owns **one root package, and its `module-info` name is that root**: `cafe.jeffrey.microscope.<module>` for everything under `jeffrey-microscope/` (`microscope.core`, `microscope.model`, `microscope.persistence`, `microscope.connector.{volume,azure}`, `microscope.mcp.{protocol,server}`, `microscope.notification`), `cafe.jeffrey.microscope.profile.<module>` for the profiles modules (`common`, `heapdump`, `heapdump.oql`, `management`, `persistence`, `parser`), `cafe.jeffrey.volumescheduler` for the volume scheduler and `cafe.jeffrey.shared.<module>` for `shared/` (`common`, `persistence`, `sql`, `test`, `volume`). A package that lands in another module through a merge is renamed under the new owner's root — never left under the name of a module that no longer exists. `utilities/`, the provisioner, JIB and the IntelliJ plugin are products of their own and keep theirs.
 - REST: Spring MVC `@RestController` + class-level `@RequestMapping`, picked up by component scan — never declared as `@Bean`. Microscope controllers: `/api/internal/**`; profile-scoped ones live in `core-microscope/.../web/controllers/profile/` (`profiles/profile-management/.../resources/` holds request DTOs only). Volume-scheduler controllers in `volume-scheduler/.../volumescheduler/web/`, DTOs in `.../web/response/`.
 - Manager pattern with service-layer separation; errors are custom exceptions mapped to HTTP status by `JeffreyExceptionHandler`.
 

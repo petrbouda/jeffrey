@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.workspace.ConnectorWorkspaceManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManagerFactory;
-import cafe.jeffrey.recordings.core.download.DownloadTaskRegistry;
+import cafe.jeffrey.microscope.core.manager.download.DownloadTaskRegistry;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

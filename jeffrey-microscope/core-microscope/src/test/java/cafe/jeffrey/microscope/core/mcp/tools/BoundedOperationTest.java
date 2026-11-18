@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;

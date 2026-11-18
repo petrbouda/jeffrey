@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.profile.mcp.McpToolOutput;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 
 import java.util.ArrayList;
 import java.util.List;

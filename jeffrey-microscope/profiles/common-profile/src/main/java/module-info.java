@@ -17,19 +17,19 @@
 module cafe.jeffrey.microscope.profile.common {
     requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
-    requires cafe.jeffrey.shared.notifications;
+    requires cafe.jeffrey.microscope.notification;
     requires transitive tools.jackson.databind;
     requires org.slf4j;
     requires cafe.jeffrey.jfr.events;
 
-    exports cafe.jeffrey.profile.common.analysis;
-    exports cafe.jeffrey.profile.common.config;
-    exports cafe.jeffrey.profile.common.event;
-    exports cafe.jeffrey.profile.common.exceptions;
-    exports cafe.jeffrey.profile.common.model;
-    exports cafe.jeffrey.profile.common.pipeline;
-    exports cafe.jeffrey.profile.common.operation;
-    exports cafe.jeffrey.profile.common.treetable;
+    exports cafe.jeffrey.microscope.profile.common.analysis;
+    exports cafe.jeffrey.microscope.profile.common.config;
+    exports cafe.jeffrey.microscope.profile.common.event;
+    exports cafe.jeffrey.microscope.profile.common.exceptions;
+    exports cafe.jeffrey.microscope.profile.common.model;
+    exports cafe.jeffrey.microscope.profile.common.pipeline;
+    exports cafe.jeffrey.microscope.profile.common.operation;
+    exports cafe.jeffrey.microscope.profile.common.treetable;
     // The JFR model types (frames, stack traces, threads, methods) a parsed recording is read as
-    exports cafe.jeffrey.jfrparser.api.type;
+    exports cafe.jeffrey.microscope.profile.common.jfr;
 }

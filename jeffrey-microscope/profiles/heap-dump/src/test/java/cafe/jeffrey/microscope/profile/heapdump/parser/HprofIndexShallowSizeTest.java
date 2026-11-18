@@ -1,0 +1,268 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.profile.heapdump.parser;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import cafe.jeffrey.jfr.events.test.JfrRecordings;
+import jdk.jfr.consumer.RecordedEvent;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
+import cafe.jeffrey.microscope.profile.heapdump.view.HprofTag;
+import cafe.jeffrey.microscope.profile.heapdump.view.InstanceRow;
+
+/**
+ * Covers the shallow-size accounting in {@link HprofIndex}:
+ *
+ * <ul>
+ *   <li>Compressed-oops correction — OOP fields are counted as 4 bytes on a
+ *       64-bit dump under the JVM's 32 GiB compressed-pointer limit, not the
+ *       on-disk 8 bytes the HPROF spec records.</li>
+ *   <li>{@code MinObjAlignment} (8 bytes) rounding for both instances and
+ *       arrays.</li>
+ *   <li>Super-class chain field counting — corrections apply to every OOP
+ *       slot the JVM allocated, including those declared on an ancestor.</li>
+ * </ul>
+ */
+class HprofIndexShallowSizeTest {
+
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.ofEpochMilli(1L), ZoneOffset.UTC);
+    private static final int ID_SIZE = 8;
+
+    @Nested
+    class CompressedOops {
+
+        /**
+         * Three OBJECT fields:
+         * <ul>
+         *   <li>On-disk field block: 3 × 8 = 24 bytes</li>
+         *   <li>Object header (compressed-oops 64-bit): 16</li>
+         *   <li>Raw shallow: 16 + 24 = 40</li>
+         *   <li>OOP correction: 3 × (8 − 4) = 12 → 40 − 12 = 28</li>
+         *   <li>Aligned to 8: 32</li>
+         * </ul>
+         */
+        @Test
+        void instanceShallowDeductsOopOvercountAndAligns(@TempDir Path tmp) throws IOException, SQLException {
+            long holderClass = 0xC001L;
+            long instId = 0x100L;
+            long ref = 0x200L; // ids point at a non-existent object — that's fine for shallow accounting
+
+            Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                    .string(0xA001L, "Holder")
+                    .string(0xA002L, "a")
+                    .string(0xA003L, "b")
+                    .string(0xA004L, "c")
+                    .loadClass(1, holderClass, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .classDumpWithFields(holderClass, 0L, 0L, 3 * ID_SIZE,
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.OBJECT))
+                            .instanceDump(instId, holderClass, threeOopFields(ref, ref, ref)))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "three-oop.hprof");
+
+            assertShallowSize(hprof, instId, 32);
+        }
+
+        /**
+         * Field spread across a super-class. Superclass has 2 OBJECT fields,
+         * subclass adds 1. The HPROF instance record carries all 3 fields, so
+         * raw shallow is identical to a flat-three-field class — the test
+         * verifies the chain walk reaches the super-class's field count.
+         */
+        @Test
+        void chainOopCountFollowsSuperClass(@TempDir Path tmp) throws IOException, SQLException {
+            long superClass = 0xC100L;
+            long subClass = 0xC200L;
+            long inst = 0x100L;
+            long ref = 0x200L;
+
+            Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                    .string(0xA001L, "Parent")
+                    .string(0xA002L, "Child")
+                    .string(0xA003L, "p1")
+                    .string(0xA004L, "p2")
+                    .string(0xA005L, "c1")
+                    .loadClass(1, superClass, 0, 0xA001L)
+                    .loadClass(2, subClass, 0, 0xA002L)
+                    .heapDumpSegment(seg -> seg
+                            .classDumpWithFields(superClass, 0L, 0L, 2 * ID_SIZE,
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.OBJECT))
+                            .classDumpWithFields(subClass, superClass, 0L, ID_SIZE,
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA005L, HprofTag.BasicType.OBJECT))
+                            // Subclass instance lays out: c1 (own) then p1, p2 (super) — order is
+                            // most-derived-first, but for shallow accounting we only care about
+                            // the total byte count (3 × idSize).
+                            .instanceDump(inst, subClass, threeOopFields(ref, ref, ref)))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "chain-oop.hprof");
+
+            assertShallowSize(hprof, inst, 32);
+        }
+
+        /**
+         * Object arrays use the on-heap OOP width, not idSize.
+         * 10 references × 4 bytes (compressed) + array header 16 = 56,
+         * already aligned to 8.
+         */
+        @Test
+        void objectArrayUsesOopSize(@TempDir Path tmp) throws IOException, SQLException {
+            long elementClass = 0xC001L;
+            long arrId = 0x900L;
+            long[] slots = new long[10]; // all-zero is fine
+
+            Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                    .string(0xA001L, "Element")
+                    .string(0xA002L, "f")
+                    .loadClass(1, elementClass, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .topLevelObjectClassDump(elementClass, 0xA002L)
+                            .objectArrayDump(arrId, elementClass, slots))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "oop-array.hprof");
+
+            assertShallowSize(hprof, arrId, 56);
+        }
+
+        /**
+         * Primitive arrays are not affected by the OOP correction, but the
+         * payload-length is not a multiple of 8, so alignment must kick in.
+         * 3 bytes × 1 + array header 16 = 19, aligned to 24.
+         */
+        @Test
+        void primitiveArrayAlignedToObjectBoundary(@TempDir Path tmp) throws IOException, SQLException {
+            long arrId = 0x900L;
+
+            Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                    .string(0xA001L, "Holder")
+                    .loadClass(1, 0xC001L, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .primitiveArrayDump(arrId, HprofTag.BasicType.BYTE, new byte[]{1, 2, 3}, 3))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "prim-array.hprof");
+
+            assertShallowSize(hprof, arrId, 24);
+        }
+    }
+
+    @Nested
+    class PreparedStatementNoise {
+
+        private static final String THROW_EVENT = "jdk.JavaExceptionThrow";
+        private static final String DRIVER_ENUM_MESSAGE = "DuckDBColumnType";
+
+        /**
+         * The correction statements bound their layout constants, and DuckDB reports a bare bound
+         * parameter inside arithmetic as the type "INVALID" -- a name the JDBC driver feeds to
+         * {@code DuckDBColumnType.valueOf}, which throws. The driver catches it, so nothing failed;
+         * but every build put eight caught IllegalArgumentExceptions into the recording, and a
+         * trace export that lists throws listed them. Whether a {@code ?::INTEGER} cast silences
+         * the prepare depends on the driver's inference of the expression around it, so the
+         * alignment is interpolated instead, and this pins that a build's prepares stay silent.
+         */
+        @Test
+        void correctionStatementsPrepareWithoutDriverThrows(@TempDir Path tmp) throws IOException {
+            long holderClass = 0xC001L;
+            long instId = 0x100L;
+            long ref = 0x200L;
+
+            Path hprof = SyntheticHprof.create("1.0.2", ID_SIZE, 0L)
+                    .string(0xA001L, "Holder")
+                    .string(0xA002L, "a")
+                    .string(0xA003L, "b")
+                    .string(0xA004L, "c")
+                    .loadClass(1, holderClass, 0, 0xA001L)
+                    .heapDumpSegment(seg -> seg
+                            .classDumpWithFields(holderClass, 0L, 0L, 3 * ID_SIZE,
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA002L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA003L, HprofTag.BasicType.OBJECT),
+                                    new SyntheticHprof.SubBuilder.FieldSpec(0xA004L, HprofTag.BasicType.OBJECT))
+                            .instanceDump(instId, holderClass, threeOopFields(ref, ref, ref)))
+                    .heapDumpEnd()
+                    .writeTo(tmp, "silent-prepare.hprof");
+
+            List<RecordedEvent> throwsRecorded = JfrRecordings.all(THROW_EVENT, () -> buildIndex(hprof));
+
+            List<String> driverThrows = throwsRecorded.stream()
+                    .filter(event -> event.getString("message") != null
+                            && event.getString("message").contains(DRIVER_ENUM_MESSAGE))
+                    .map(event -> event.getClass("thrownClass").getName() + ": " + event.getString("message"))
+                    .toList();
+            assertTrue(driverThrows.isEmpty(),
+                    () -> "the shallow-size prepares must not throw inside the driver: " + driverThrows);
+        }
+
+        private static void buildIndex(Path hprof) {
+            try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+                HprofIndex.build(file, HeapDumpIndexPaths.indexFor(hprof), CLOCK);
+            } catch (IOException | SQLException e) {
+                throw new IllegalStateException(e);
+            }
+        }
+    }
+
+    /**
+     * Drives an end-to-end index build for {@code hprof} and asserts the
+     * single instance row matches {@code expectedShallow}.
+     */
+    private static void assertShallowSize(Path hprof, long instanceId, int expectedShallow)
+            throws IOException, SQLException {
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        try (HeapView view = HeapView.open(indexDb)) {
+            InstanceRow row = view.findInstanceById(instanceId).orElseThrow(() ->
+                    new AssertionError("instance not in index: id=" + Long.toHexString(instanceId)));
+            assertEquals(expectedShallow, row.shallowSize(),
+                    "shallow_size mismatch for instance 0x" + Long.toHexString(instanceId));
+        }
+    }
+
+    /** Three 8-byte OOP fields, big-endian. */
+    private static byte[] threeOopFields(long a, long b, long c) {
+        try {
+            ByteArrayOutputStream buf = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(buf);
+            d.writeLong(a);
+            d.writeLong(b);
+            d.writeLong(c);
+            return buf.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+}

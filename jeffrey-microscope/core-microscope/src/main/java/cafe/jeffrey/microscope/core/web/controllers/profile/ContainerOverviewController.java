@@ -24,8 +24,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.manager.model.container.ContainerConfigurationData;
-import cafe.jeffrey.profile.manager.model.container.ContainerCpuThrottlingData;
+import cafe.jeffrey.microscope.profile.management.manager.model.container.ContainerConfigurationData;
+import cafe.jeffrey.microscope.profile.management.manager.model.container.ContainerCpuThrottlingData;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/container")

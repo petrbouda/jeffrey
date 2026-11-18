@@ -1,0 +1,122 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.manager.custom.builder;
+
+import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.MethodTracingSlowestData;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.MethodTracingSlowestHeader;
+import cafe.jeffrey.microscope.profile.management.manager.custom.model.method.SlowestMethodTrace;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+
+import java.util.*;
+
+/**
+ * Builder for extracting slowest method traces from individual GenericRecords.
+ *
+ * <p>Each GenericRecord represents a single method trace event with:
+ * - method name from weightEntity (JfrMethod)
+ * - actual duration from duration()
+ * - thread info from thread()
+ *
+ * <p>This builder is optimized for the Slowest Traces page and computes:
+ * - Top N slowest individual method invocations (actual slow calls, not aggregated)
+ * - P99 and P95 duration percentiles ({@link LatencyStats})
+ * - Unique method count
+ */
+public class MethodTracingSlowestBuilder implements RecordBuilder<GenericRecord, MethodTracingSlowestData> {
+
+    private static final int MAX_SLOW_METHODS = 100;
+
+    // Track unique methods
+    private final Set<String> uniqueMethods = new HashSet<>();
+
+    private final LatencyStats durations = new LatencyStats();
+
+    // For slowest methods tracking (min-heap by duration)
+    private final PriorityQueue<SlowestMethodTrace> slowestMethods = new PriorityQueue<>(
+            Comparator.comparingLong(SlowestMethodTrace::duration));
+
+    @Override
+    public void onRecord(GenericRecord record) {
+        // Get method name from weightEntity (JfrMethod)
+        if (!(record.weightEntity() instanceof JfrMethod method)) {
+            return;
+        }
+
+        String className = method.className();
+        String methodName = method.methodName();
+        if (className == null) {
+            return;
+        }
+
+        // Use combined key for unique method tracking
+        String key = methodName != null ? className + "#" + methodName : className;
+
+        // The call's own latency, inclusive of its callees, which is what this dashboard ranks and
+        // averages -- deliberately not the event's weight. Weight carries the call's *self* time so
+        // that summing nested traced calls in a flamegraph does not count the inner one twice; see
+        // MethodTraceWeightRepository. A dashboard row is one invocation, not a sum, so the two
+        // numbers part ways here.
+        // The invocation's own latency, inclusive of its callees -- deliberately not the event's
+        // weight, which carries the call's *self* time so that a flamegraph summing nested traced
+        // calls does not count the inner one twice (see MethodTraceWeightRepository). A row here is
+        // one invocation rather than a sum, so it wants the whole call.
+        long duration = record.duration() == null ? 0L : record.duration().toNanos();
+
+        // Track unique methods
+        uniqueMethods.add(key);
+
+        durations.record(duration);
+
+        // Track for slowest methods list
+        String threadName = record.thread() != null ? record.thread().name() : SlowestMethodTrace.UNKNOWN_THREAD;
+
+        SlowestMethodTrace trace = new SlowestMethodTrace(
+                className,
+                methodName != null ? methodName : "",
+                duration,
+                threadName
+        );
+
+        if (slowestMethods.size() < MAX_SLOW_METHODS) {
+            slowestMethods.offer(trace);
+        } else {
+            SlowestMethodTrace smallest = slowestMethods.peek();
+            if (smallest != null && duration > smallest.duration()) {
+                slowestMethods.poll();
+                slowestMethods.offer(trace);
+            }
+        }
+    }
+
+    @Override
+    public MethodTracingSlowestData build() {
+        MethodTracingSlowestHeader header = new MethodTracingSlowestHeader(
+                durations.p99(),
+                durations.p95(),
+                uniqueMethods.size()
+        );
+
+        // Convert slowest methods to list (sorted by duration descending)
+        List<SlowestMethodTrace> slowestList = new ArrayList<>(slowestMethods);
+        slowestList.sort(Comparator.comparingLong(SlowestMethodTrace::duration).reversed());
+
+        return new MethodTracingSlowestData(header, slowestList);
+    }
+}

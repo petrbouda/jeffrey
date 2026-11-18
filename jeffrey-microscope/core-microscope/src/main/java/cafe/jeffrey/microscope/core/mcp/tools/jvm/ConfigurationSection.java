@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import tools.jackson.databind.JsonNode;
 
 import java.util.ArrayList;

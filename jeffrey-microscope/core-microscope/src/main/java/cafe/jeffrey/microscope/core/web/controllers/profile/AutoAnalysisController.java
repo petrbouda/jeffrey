@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 
 import java.util.List;
 

@@ -13,7 +13,7 @@ All proto files are licensed under the Apache License 2.0 (see the header in eac
 `perftools/profiles/profile.proto` is vendored from
 [google/pprof](https://github.com/google/pprof/blob/main/proto/profile.proto) (`main` branch,
 2026-07-16). pprof's `profile.proto` has been stable for years (unlike the OpenTelemetry profiles
-`v1development` schema), so this rarely needs re-vendoring. It is read by `cafe.jeffrey.pprofparser`.
+`v1development` schema), so this rarely needs re-vendoring. It is read by `cafe.jeffrey.microscope.profile.parser.pprof`.
 
 ## OpenTelemetry
 
@@ -42,4 +42,4 @@ Vendoring a pinned copy means:
 
 Download the four files from the `main` branch (or a tagged release) and overwrite
 the copies here, then update the date above and fix any compilation fallout in
-`cafe.jeffrey.otlpparser`.
+`cafe.jeffrey.microscope.profile.parser.otlp`.

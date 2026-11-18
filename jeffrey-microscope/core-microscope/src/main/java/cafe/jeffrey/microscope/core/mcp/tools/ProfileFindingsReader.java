@@ -23,14 +23,14 @@ import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisFindings;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
-import cafe.jeffrey.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.profile.manager.AutoAnalysisManager;
-import cafe.jeffrey.profile.feature.ProfileDisabledFeatures;
-import cafe.jeffrey.profile.manager.ProfileManager;
-import cafe.jeffrey.profile.mcp.finding.McpFinding;
-import cafe.jeffrey.profile.mcp.finding.McpFindings;
-import cafe.jeffrey.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
+import cafe.jeffrey.microscope.profile.management.feature.ProfileDisabledFeatures;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
+import cafe.jeffrey.microscope.mcp.server.finding.McpFindings;
+import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.List;
 

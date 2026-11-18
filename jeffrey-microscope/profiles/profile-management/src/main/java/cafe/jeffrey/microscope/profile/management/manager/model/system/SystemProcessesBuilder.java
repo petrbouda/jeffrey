@@ -1,0 +1,59 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.profile.management.manager.model.system;
+
+import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import cafe.jeffrey.shared.common.Json;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Collapses periodic {@code jdk.SystemProcess} snapshots into one row per process (keyed by pid,
+ * last snapshot wins), ordered by command line for stable display.
+ */
+public class SystemProcessesBuilder implements RecordBuilder<GenericRecord, List<SystemProcessInfo>> {
+
+    private static final String PID_FIELD = "pid";
+    private static final String COMMAND_LINE_FIELD = "commandLine";
+
+    private final Map<String, SystemProcessInfo> processesByPid = new LinkedHashMap<>();
+
+    @Override
+    public void onRecord(GenericRecord record) {
+        ObjectNode fields = record.jsonFields();
+        String pid = Json.readString(fields, PID_FIELD);
+        if (pid == null) {
+            return;
+        }
+        String commandLine = Json.readString(fields, COMMAND_LINE_FIELD);
+        processesByPid.put(pid, new SystemProcessInfo(pid, commandLine == null ? "" : commandLine.strip()));
+    }
+
+    @Override
+    public List<SystemProcessInfo> build() {
+        List<SystemProcessInfo> result = new ArrayList<>(processesByPid.values());
+        result.sort(Comparator.comparing(SystemProcessInfo::commandLine, String.CASE_INSENSITIVE_ORDER));
+        return result;
+    }
+}

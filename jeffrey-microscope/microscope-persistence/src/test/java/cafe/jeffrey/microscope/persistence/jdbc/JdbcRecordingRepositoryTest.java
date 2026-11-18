@@ -30,8 +30,8 @@ import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.shared.persistence.client.DatabaseClientProvider;
-import cafe.jeffrey.test.DuckDBTest;
-import cafe.jeffrey.test.TestUtils;
+import cafe.jeffrey.shared.test.DuckDBTest;
+import cafe.jeffrey.shared.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

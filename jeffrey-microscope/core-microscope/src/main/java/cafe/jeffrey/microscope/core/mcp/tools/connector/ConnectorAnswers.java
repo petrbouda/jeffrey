@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.profile.mcp.McpFollowUp;
+import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.model.recording.FileCategory;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
