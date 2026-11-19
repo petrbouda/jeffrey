@@ -22,6 +22,4 @@ module cafe.jeffrey.shared.volume {
     exports cafe.jeffrey.shared.volume;
     exports cafe.jeffrey.shared.volume.layout;
     exports cafe.jeffrey.shared.volume.recording;
-    // VolumeWriter: test support only
-    exports cafe.jeffrey.shared.volume.test;
 }

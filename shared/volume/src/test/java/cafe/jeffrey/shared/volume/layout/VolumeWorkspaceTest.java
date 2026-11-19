@@ -18,7 +18,7 @@
 package cafe.jeffrey.shared.volume.layout;
 
 import cafe.jeffrey.shared.volume.FilesystemVolume;
-import cafe.jeffrey.shared.volume.test.VolumeWriter;
+import cafe.jeffrey.shared.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

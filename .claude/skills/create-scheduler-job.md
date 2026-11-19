@@ -61,7 +61,7 @@ add them to `JobResponse` the way the retention settings are. The Volume Schedul
 
 - `volume-scheduler/src/test/java/cafe/jeffrey/volumescheduler/{job}/{JobName}JobTest.java`,
   modelled on `CompressionJobTest` (Mockito mocks of `VolumeProjects` and `VolumeProject`,
-  `@Nested` by scenario, `Clock.fixed`); use `VolumeWriter` (`shared/volume`, `cafe.jeffrey.shared.volume.test`) and
+  `@Nested` by scenario, `Clock.fixed`); use `VolumeWriter` (`shared/volume`, `cafe.jeffrey.shared.volume`) and
   `ProjectVolumeFixture` when the job reads a real session layout.
 - Extend `VolumeSchedulerPropertiesTest` for the new defaults and refusals, `JobTypeTest` for the
   id, and `VolumeSchedulerApplicationTest` with a run on demand over a real volume.

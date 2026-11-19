@@ -75,7 +75,7 @@ shared/                                only what Microscope, the volume schedule
                                        read one volume: volume (its names — JeffreyLayout, SessionIds — and its layout
                                        read through a storage port: folder names are the state:
                                        projects/instances/sessions/files; the volume scheduler's reader; plus
-                                       VolumeWriter, the one writer of a test volume, never imported by production code).
+                                       VolumeWriter, the one writer of a volume).
                                        No utilities: each product keeps its own (Microscope's in common
                                        and core's core.utils)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and

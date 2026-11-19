@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.test.recording.RecordedSession;
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.shared.volume.test.VolumeWriter;
+import cafe.jeffrey.shared.volume.VolumeWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

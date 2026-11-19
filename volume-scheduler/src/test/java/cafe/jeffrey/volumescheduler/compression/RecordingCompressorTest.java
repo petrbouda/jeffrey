@@ -21,7 +21,7 @@ import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.recording.RecordingFormat;
-import cafe.jeffrey.shared.volume.test.VolumeWriter;
+import cafe.jeffrey.shared.volume.VolumeWriter;
 import cafe.jeffrey.volumescheduler.volume.ProjectRef;
 import cafe.jeffrey.volumescheduler.volume.ProjectVolumeFixture;
 import cafe.jeffrey.volumescheduler.volume.RecordingSession;

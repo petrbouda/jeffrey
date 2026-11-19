@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core;
 import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.test.recording.RecordedSession;
 import cafe.jeffrey.microscope.core.test.recording.RecordedSession.Chunk;
-import cafe.jeffrey.shared.volume.test.VolumeWriter;
+import cafe.jeffrey.shared.volume.VolumeWriter;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;

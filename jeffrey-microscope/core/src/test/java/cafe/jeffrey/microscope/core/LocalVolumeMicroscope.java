@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.test.recording.RecordedSession;
-import cafe.jeffrey.shared.volume.test.VolumeWriter;
+import cafe.jeffrey.shared.volume.VolumeWriter;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.convention.TestBean;

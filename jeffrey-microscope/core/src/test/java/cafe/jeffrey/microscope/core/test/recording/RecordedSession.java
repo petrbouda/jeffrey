@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.test.recording;
 
-import cafe.jeffrey.shared.volume.test.VolumeWriter;
+import cafe.jeffrey.shared.volume.VolumeWriter;
 
 import java.io.IOException;
 import java.io.InputStream;
