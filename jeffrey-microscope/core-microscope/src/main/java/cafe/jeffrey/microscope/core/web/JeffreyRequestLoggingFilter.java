@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web;
 
-import cafe.jeffrey.microscope.common.IDGenerator;
+import cafe.jeffrey.microscope.core.utils.IDGenerator;
 import cafe.jeffrey.microscope.common.measure.Measuring;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -43,6 +43,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
         </dependency>
+        <!-- IDGenerator (moved from microscope-common into core.utils) -->
+        <dependency>
+            <groupId>com.github.f4b6a3</groupId>
+            <artifactId>uuid-creator</artifactId>
+        </dependency>
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -177,10 +182,10 @@
             <artifactId>pages-microscope</artifactId>
         </dependency>
 
-        <!-- Test -->
+        <!-- Test: VolumeWriter, used by RecordedSession (now in core's test sources) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-test</artifactId>
+            <artifactId>volume</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- McpTestRequests and McpSchemaConformance: the protocol's generic test helpers -->

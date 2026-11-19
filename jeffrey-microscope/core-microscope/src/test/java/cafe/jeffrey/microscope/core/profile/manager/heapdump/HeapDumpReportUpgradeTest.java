@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.heapdump.persistence.HeapDumpIndexPaths;
 import cafe.jeffrey.microscope.core.profile.heapdump.persistence.HeapDumpSession;

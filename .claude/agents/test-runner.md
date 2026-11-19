@@ -17,7 +17,6 @@ Analyze changed files to determine affected modules and run only the relevant te
    - `jeffrey-microscope/core-microscope/` -> `-pl jeffrey-microscope/core-microscope`
    - `volume-scheduler/` -> `-pl volume-scheduler`
    - `jeffrey-microscope/microscope-common/` -> `-pl jeffrey-microscope/microscope-common`
-   - `jeffrey-microscope/microscope-test/` -> `-pl jeffrey-microscope/microscope-test`
    - `shared/volume/` -> `-pl shared/volume`
    - For other modules, derive the Maven module path from the file path
 

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 
 /**
  * How a span is directed and judged, and how the three span-shape projections compose, expressed

@@ -17,15 +17,15 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrParser;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.test.recording.CheckoutRecording;
-import cafe.jeffrey.microscope.test.recording.Lz4Archives;
-import cafe.jeffrey.microscope.test.recording.TestappRecording;
-import cafe.jeffrey.microscope.test.recording.TestappRecording.Counts;
-import cafe.jeffrey.microscope.test.recording.TestappRecording.Traces;
+import cafe.jeffrey.microscope.core.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.core.test.recording.Lz4Archives;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording.Counts;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording.Traces;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,20 +42,20 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.CONNECTION_ACQUIRED;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.EXECUTION_SAMPLE;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_DELETE;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_QUERY;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.JDBC_UPDATE;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.MONITOR_ENTER;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.POOL_STATISTICS;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.PROFILER_CHUNK;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.THREAD_PARK;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.TRACE_SPAN;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.ALLOCATION_IN_NEW_TLAB;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.CONNECTION_ACQUIRED;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.HTTP_SERVER_EXCHANGE;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.JDBC_DELETE;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.JDBC_QUERY;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.JDBC_UPDATE;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.MONITOR_ENTER;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.POOL_STATISTICS;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.PROFILER_CHUNK;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.THREAD_PARK;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.TRACE_SPAN;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.WALL_CLOCK_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

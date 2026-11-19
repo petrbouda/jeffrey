@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.classloading.ClassLoad
 import cafe.jeffrey.microscope.core.profile.manager.model.classloading.ClassLoaderStat;
 import cafe.jeffrey.microscope.core.profile.manager.model.classloading.ClassLoadingOverview;
 import cafe.jeffrey.microscope.core.profile.manager.model.classloading.RedefinitionData;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

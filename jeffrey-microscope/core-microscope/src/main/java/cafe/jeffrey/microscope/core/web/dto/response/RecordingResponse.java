@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
-import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
 
 import java.util.List;

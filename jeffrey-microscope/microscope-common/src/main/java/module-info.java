@@ -24,11 +24,7 @@ module cafe.jeffrey.microscope.common {
     requires transitive org.slf4j;
     requires transitive tools.jackson.core;
     requires transitive tools.jackson.databind;
-    requires com.github.f4b6a3.uuid;
-    requires org.lz4.java;
-
     exports cafe.jeffrey.microscope.common;
-    exports cafe.jeffrey.microscope.common.compression;
     exports cafe.jeffrey.microscope.common.exception;
     exports cafe.jeffrey.microscope.common.filesystem;
     exports cafe.jeffrey.microscope.common.measure;

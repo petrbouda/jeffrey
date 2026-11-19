@@ -26,11 +26,11 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.microscope.core.profile.flamegraph.diff.DbBasedDiffgraphGenerator;
 import cafe.jeffrey.microscope.core.profile.flamegraph.diff.ProfileComparison;
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.SpanScope;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
 

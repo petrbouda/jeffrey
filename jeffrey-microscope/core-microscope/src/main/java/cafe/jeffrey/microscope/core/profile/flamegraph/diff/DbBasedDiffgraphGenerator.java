@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.flamegraph.diff;
 
-import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.flamegraph.GraphGenerator;

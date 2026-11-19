@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.io.IoMetric;
 import cafe.jeffrey.microscope.core.profile.manager.model.io.IoOperation;
 import cafe.jeffrey.microscope.core.profile.manager.model.io.IoOverview;
 import cafe.jeffrey.microscope.core.profile.manager.model.io.IoTargetFilter;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

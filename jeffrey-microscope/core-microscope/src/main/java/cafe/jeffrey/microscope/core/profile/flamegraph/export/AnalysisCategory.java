@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.flamegraph.export;
 
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Set;
 

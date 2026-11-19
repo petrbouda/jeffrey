@@ -22,7 +22,7 @@ import org.eclipse.collections.api.tuple.primitive.IntLongPair;
 import org.eclipse.collections.impl.map.mutable.primitive.IntLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.http.*;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;

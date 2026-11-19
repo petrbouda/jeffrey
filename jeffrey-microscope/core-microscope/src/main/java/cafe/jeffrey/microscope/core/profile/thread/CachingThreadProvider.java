@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.thread;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.CachingSupplier;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileCacheRepository;
-import cafe.jeffrey.microscope.common.CacheKey;
+import cafe.jeffrey.microscope.core.utils.CacheKey;
 
 /**
  * A caching decorator for {@link ThreadInfoProvider} that caches the result in a {@link ProfileCacheRepository}.

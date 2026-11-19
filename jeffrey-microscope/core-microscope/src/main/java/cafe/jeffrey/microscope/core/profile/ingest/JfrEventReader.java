@@ -19,10 +19,10 @@ package cafe.jeffrey.microscope.core.profile.ingest;
 
 import tools.jackson.databind.JsonNode;
 import jdk.jfr.consumer.*;
-import cafe.jeffrey.microscope.model.HiddenClassName;
-import cafe.jeffrey.microscope.model.StacktraceTag;
-import cafe.jeffrey.microscope.model.StacktraceType;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.HiddenClassName;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.EventProcessor;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.ProcessableEvents;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SingleThreadedEventWriter;

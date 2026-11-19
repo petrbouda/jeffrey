@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.List;
 import java.util.Map;

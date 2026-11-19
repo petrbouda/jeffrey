@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager.model.io;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 /**
  * Scopes an I/O event stream to a single endpoint — a socket peer ({@code host:port}) or a file

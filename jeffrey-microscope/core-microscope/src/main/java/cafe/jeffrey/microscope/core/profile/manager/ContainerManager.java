@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerConfigurationData;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerCpuThrottlingData;
 

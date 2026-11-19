@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager.builder;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.event.ContainerCpuThrottling;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ThrottlingSample;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;

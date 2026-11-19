@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.model.thread.dump;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.dump.ThreadDumpAnalysis.StuckThread;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 import java.util.List;
 

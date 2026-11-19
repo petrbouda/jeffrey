@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.flamegraph.diff;
 import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.microscope.core.profile.flamegraph.export.WeightContext;
 import cafe.jeffrey.microscope.core.profile.frameir.DiffFrame;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.ArrayList;
 import java.util.Comparator;

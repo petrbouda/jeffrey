@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.memory;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.model.heap.HeapMemoryOverviewData;
 import cafe.jeffrey.microscope.core.profile.manager.model.heap.HeapMemoryTimeseriesType;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;

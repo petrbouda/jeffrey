@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.flamegraph.export;
 
 import cafe.jeffrey.microscope.core.profile.frameir.Frame;
-import cafe.jeffrey.microscope.model.SearchPattern;
+import cafe.jeffrey.microscope.core.profile.model.SearchPattern;
 
 import java.util.Collections;
 import java.util.IdentityHashMap;

@@ -38,8 +38,8 @@ import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient;
 import cafe.jeffrey.microscope.core.manager.ide.JfrProfilerPluginBridge;
 import cafe.jeffrey.microscope.core.manager.ide.PortRange;
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
-import cafe.jeffrey.microscope.common.StringUtils;
+import cafe.jeffrey.microscope.core.profile.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.core.utils.StringUtils;
 
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;

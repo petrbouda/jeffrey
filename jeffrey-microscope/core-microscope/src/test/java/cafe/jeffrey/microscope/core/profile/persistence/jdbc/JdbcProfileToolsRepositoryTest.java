@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsRepository.FrameSample;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsRepository.StacktraceRecord;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.TestUtils;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;

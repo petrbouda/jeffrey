@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.thread;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceContextCategory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -30,8 +30,8 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventReposito
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 

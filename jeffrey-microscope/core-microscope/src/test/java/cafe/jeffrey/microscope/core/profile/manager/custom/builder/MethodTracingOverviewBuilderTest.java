@@ -27,8 +27,8 @@ import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodSt
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTracingHeader;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTracingOverviewData;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 import java.time.Duration;
 import java.time.Instant;

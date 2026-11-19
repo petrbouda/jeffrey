@@ -39,7 +39,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.TraceSpanRunRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceSpanShape;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceWindowRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceSummaryRecord;
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

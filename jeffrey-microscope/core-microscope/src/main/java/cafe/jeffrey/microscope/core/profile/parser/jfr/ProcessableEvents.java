@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.parser.jfr;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Collection;
 import java.util.List;

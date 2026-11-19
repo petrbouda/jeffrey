@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import tools.jackson.databind.JsonNode;

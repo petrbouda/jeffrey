@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager;
 
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
-import cafe.jeffrey.microscope.model.ProfilingStartEnd;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;

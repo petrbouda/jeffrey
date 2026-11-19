@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.pipeline.PipelineState;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;

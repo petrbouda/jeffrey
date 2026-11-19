@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.custom;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.CumulationMode;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTimingData;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTracingCumulatedData;

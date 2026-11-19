@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.profile.event.*;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.configuration.GCConfigurationData;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

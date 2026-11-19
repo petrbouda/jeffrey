@@ -49,10 +49,10 @@ import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformationParser;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 
 import java.io.IOException;

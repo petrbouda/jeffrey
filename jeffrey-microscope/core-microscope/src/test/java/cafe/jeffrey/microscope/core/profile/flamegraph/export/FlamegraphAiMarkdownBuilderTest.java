@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.flamegraph.export;
 
 import cafe.jeffrey.microscope.core.profile.frameir.Frame;
 import cafe.jeffrey.microscope.core.profile.model.FrameType;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

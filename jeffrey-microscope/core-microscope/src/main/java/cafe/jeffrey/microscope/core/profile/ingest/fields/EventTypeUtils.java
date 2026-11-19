@@ -21,8 +21,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 import jdk.jfr.*;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.SpanConventionKeys;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.SpanConventionKeys;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

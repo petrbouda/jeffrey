@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
-import cafe.jeffrey.microscope.common.exception.ErrorResponse;
+import cafe.jeffrey.microscope.core.web.ErrorResponse;
 import cafe.jeffrey.microscope.common.exception.ErrorType;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;
 

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.core.profile.model.FrameResolutionMode;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
 
 import javax.sql.DataSource;

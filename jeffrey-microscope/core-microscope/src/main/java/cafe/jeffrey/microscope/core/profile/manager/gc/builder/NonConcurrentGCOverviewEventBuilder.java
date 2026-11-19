@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager.gc.builder;
 
 import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCOverviewData;
 
 public class NonConcurrentGCOverviewEventBuilder extends GCOverviewEventBuilder {

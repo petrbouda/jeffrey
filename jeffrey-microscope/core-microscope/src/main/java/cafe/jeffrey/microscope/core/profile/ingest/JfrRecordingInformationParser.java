@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrChunk;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrParser;

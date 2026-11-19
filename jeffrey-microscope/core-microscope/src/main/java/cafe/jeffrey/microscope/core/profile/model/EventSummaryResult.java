@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.model;
 
 
-import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
 
 import java.util.HashMap;
 import java.util.Map;

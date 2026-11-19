@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.timeseries;
 
-import cafe.jeffrey.microscope.model.SearchPattern;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.SearchPattern;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;

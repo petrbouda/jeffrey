@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.configuration.serde;
 import tools.jackson.core.JsonGenerator;
 import tools.jackson.databind.SerializationContext;
 import tools.jackson.databind.ser.std.StdSerializer;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 public class RelativeTimeRangeSerializer extends StdSerializer<RelativeTimeRange> {
 

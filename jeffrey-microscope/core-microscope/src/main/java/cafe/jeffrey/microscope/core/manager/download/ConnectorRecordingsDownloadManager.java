@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.connector.api.RepositoryClient;
 import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.microscope.connector.api.manager.TempDirProvider;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import org.slf4j.Logger;
@@ -55,7 +55,7 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.core.notification.NotificationType;
 import cafe.jeffrey.microscope.core.notification.Notifications;
 

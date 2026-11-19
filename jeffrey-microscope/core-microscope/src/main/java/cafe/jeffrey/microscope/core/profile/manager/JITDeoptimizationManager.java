@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationEvent;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationMethodAggregate;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationReasonCount;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationStats;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 
 import java.util.List;

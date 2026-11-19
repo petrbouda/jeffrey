@@ -1,0 +1,33 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.model.time;
+
+import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
+
+public sealed interface TimeRange permits AbsoluteTimeRange, RelativeTimeRange, UndefinedTimeRange {
+
+    RelativeTimeRange toRelativeTimeRange(ProfilingStartEnd profilingStartEnd);
+
+    static TimeRange create(long startInMillis, long endInMillis, boolean absolute) {
+        if (absolute) {
+            return new AbsoluteTimeRange(startInMillis, endInMillis);
+        } else {
+            return new RelativeTimeRange(startInMillis, endInMillis);
+        }
+    }
+}

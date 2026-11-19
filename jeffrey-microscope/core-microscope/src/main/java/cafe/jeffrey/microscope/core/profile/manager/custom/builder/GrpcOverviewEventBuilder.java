@@ -23,7 +23,7 @@ import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.grpc.*;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesUtils;
 
 import java.math.BigDecimal;

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseLease;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
 

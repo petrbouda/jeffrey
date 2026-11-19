@@ -21,9 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
-import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingStorageLayout;
 
 import java.nio.file.Files;
 import java.nio.file.Path;

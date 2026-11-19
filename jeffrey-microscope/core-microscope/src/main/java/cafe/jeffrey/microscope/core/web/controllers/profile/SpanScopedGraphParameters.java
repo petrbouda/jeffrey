@@ -19,12 +19,12 @@ package cafe.jeffrey.microscope.core.web.controllers.profile;
 
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.resources.request.SpanFlamegraphOptions;
-import cafe.jeffrey.microscope.model.GraphType;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.ProfilingStartEnd;
-import cafe.jeffrey.microscope.model.SpanScope;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.model.time.UndefinedTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.GraphType;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.UndefinedTimeRange;
 
 /**
  * Builds the {@link GraphParameters} for a flamegraph narrowed to a {@link SpanScope}.

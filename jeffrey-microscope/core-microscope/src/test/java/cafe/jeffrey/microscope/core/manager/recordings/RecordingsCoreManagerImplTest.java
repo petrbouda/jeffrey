@@ -30,11 +30,11 @@ import cafe.jeffrey.microscope.core.persistence.api.RecordingTagsRepository;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser.RecordingMetadata;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManagerImpl;
-import cafe.jeffrey.microscope.model.recording.Bundle;
-import cafe.jeffrey.microscope.model.recording.BundleFile;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Bundle;
+import cafe.jeffrey.microscope.core.manager.recordings.BundleFile;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 
 import java.io.ByteArrayInputStream;
 import java.nio.file.Files;

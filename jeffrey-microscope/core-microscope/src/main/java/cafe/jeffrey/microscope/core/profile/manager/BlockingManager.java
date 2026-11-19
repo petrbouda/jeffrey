@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.blocking.ContentionSta
 import cafe.jeffrey.microscope.core.profile.manager.model.blocking.MonitorWaitStat;
 import cafe.jeffrey.microscope.core.profile.manager.model.blocking.PinnedThreadEntry;
 import cafe.jeffrey.microscope.core.profile.manager.model.blocking.SleepStat;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

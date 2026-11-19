@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.timeseries;
 
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 
 import java.util.List;

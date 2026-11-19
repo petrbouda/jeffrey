@@ -21,10 +21,10 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TimeseriesSearchRecord;
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.TestUtils;
+import cafe.jeffrey.microscope.core.profile.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.TestUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

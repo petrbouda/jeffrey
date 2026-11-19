@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 
 import java.util.List;
 

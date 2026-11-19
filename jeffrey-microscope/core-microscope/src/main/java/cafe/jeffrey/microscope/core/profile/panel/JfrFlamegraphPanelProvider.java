@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.panel;
 
 import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
 import cafe.jeffrey.microscope.core.profile.model.FlamegraphPanel;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.ArrayList;
 import java.util.EnumMap;

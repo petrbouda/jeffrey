@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTr
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTracingSlowestHeader;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.SlowestMethodTrace;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

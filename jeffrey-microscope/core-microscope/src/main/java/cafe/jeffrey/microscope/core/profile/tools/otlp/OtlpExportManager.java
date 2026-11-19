@@ -32,9 +32,9 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepo
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SecondValue;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TimeseriesRecord;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.time.Instant;
 import java.util.ArrayList;

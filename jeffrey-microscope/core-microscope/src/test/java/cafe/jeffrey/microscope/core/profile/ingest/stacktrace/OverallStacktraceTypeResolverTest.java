@@ -21,7 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventThread;
 

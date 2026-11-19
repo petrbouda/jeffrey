@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.custom;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Locale;
 

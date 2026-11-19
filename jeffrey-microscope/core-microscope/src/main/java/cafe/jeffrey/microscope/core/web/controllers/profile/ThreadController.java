@@ -41,8 +41,8 @@ import cafe.jeffrey.microscope.core.profile.thread.ThreadSort;
 import cafe.jeffrey.microscope.core.profile.thread.ThreadState;
 import cafe.jeffrey.microscope.core.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.microscope.core.profile.persistence.api.AllocatingThread;
-import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 
 import java.time.Duration;

@@ -18,15 +18,15 @@
 package cafe.jeffrey.microscope.core.profile.manager;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.common.DurationUtils;
+import cafe.jeffrey.microscope.core.utils.DurationUtils;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.profile.event.JITCompilationStats;
 import cafe.jeffrey.microscope.core.profile.event.JITLongCompilation;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.StacktraceType;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.builder.JITLongCompilationBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.model.jit.CodeCacheData;
 import cafe.jeffrey.microscope.core.profile.manager.model.jit.CodeCacheSegmentsBuilder;

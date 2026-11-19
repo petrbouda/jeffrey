@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.manager.memory;
 
 import cafe.jeffrey.microscope.core.profile.manager.model.nmt.NmtCategory;
 import cafe.jeffrey.microscope.core.profile.manager.model.nmt.NmtOverview;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

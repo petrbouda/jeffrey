@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest.stacktrace;
 
-import cafe.jeffrey.microscope.model.StacktraceType;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventThread;
 

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.ingest.data;
 
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import org.openjdk.jmc.common.IDisplayable;

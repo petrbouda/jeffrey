@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;

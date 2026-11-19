@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.core.profile.graph;
 
-import cafe.jeffrey.microscope.model.GraphType;
-import cafe.jeffrey.microscope.model.SpanScope;
-import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.WeightUnit;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.GraphType;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.WeightUnit;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 import java.util.List;
 

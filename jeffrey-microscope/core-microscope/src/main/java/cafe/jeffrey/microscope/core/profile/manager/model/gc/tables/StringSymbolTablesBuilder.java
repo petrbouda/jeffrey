@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager.model.gc.tables;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.tables.StringSymbolTablesData.Deduplication;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.tables.StringSymbolTablesData.Header;
 import cafe.jeffrey.microscope.core.profile.timeseries.MaxPerSecondSeries;

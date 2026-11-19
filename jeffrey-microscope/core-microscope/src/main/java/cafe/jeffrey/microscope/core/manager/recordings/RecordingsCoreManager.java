@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.core.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
-import cafe.jeffrey.microscope.model.recording.Bundle;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Bundle;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 
 import java.io.InputStream;
 import java.nio.file.Path;

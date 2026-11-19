@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager;
 
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 /**
  * A {@link FlamegraphManager} over a <em>pair</em> of profiles.

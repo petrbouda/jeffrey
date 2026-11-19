@@ -38,8 +38,8 @@ import cafe.jeffrey.microscope.core.profile.thread.ThreadSort;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
 
 import java.time.Duration;
 import java.time.Instant;

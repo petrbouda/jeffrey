@@ -32,7 +32,7 @@ import cafe.jeffrey.microscope.core.profile.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.microscope.core.profile.tools.pprof.PprofExportManager;
 
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 import java.util.function.Function;
 

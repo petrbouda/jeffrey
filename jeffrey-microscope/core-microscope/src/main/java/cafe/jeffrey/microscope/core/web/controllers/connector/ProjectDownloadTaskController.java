@@ -34,7 +34,7 @@ import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.core.manager.download.DownloadProgress;
 import cafe.jeffrey.microscope.core.manager.download.DownloadTask;
 import cafe.jeffrey.microscope.core.manager.download.DownloadTaskRegistry;
-import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.core.web.dto.response.DownloadProgressResponse;

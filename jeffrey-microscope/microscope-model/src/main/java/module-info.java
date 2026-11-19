@@ -20,9 +20,7 @@ module cafe.jeffrey.microscope.model {
     exports cafe.jeffrey.microscope.model.connector;
     exports cafe.jeffrey.microscope.model.repository;
     exports cafe.jeffrey.microscope.model.repository.matcher;
-    exports cafe.jeffrey.microscope.model.time;
     exports cafe.jeffrey.microscope.model.workspace;
-    exports cafe.jeffrey.microscope.model.settings;
-    // Microscope's store of imported recordings: their files and bundles, and the catalogue of file kinds (ManagedFile)
+    // Microscope's store of imported recordings: the catalogue of file kinds (ManagedFile) and categories
     exports cafe.jeffrey.microscope.model.recording;
 }

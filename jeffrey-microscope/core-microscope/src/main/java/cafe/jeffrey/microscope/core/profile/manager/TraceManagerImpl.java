@@ -66,7 +66,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.TraceSpanShape;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceSummaryRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 
 import java.util.ArrayList;
 import java.util.Arrays;

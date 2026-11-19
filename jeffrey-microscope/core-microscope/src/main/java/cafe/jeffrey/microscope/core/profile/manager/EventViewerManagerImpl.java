@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.manager;
 
 import tools.jackson.databind.JsonNode;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.treetable.EventViewerData;
 import cafe.jeffrey.microscope.core.profile.treetable.Tree;
 import cafe.jeffrey.microscope.core.profile.treetable.TreeData;

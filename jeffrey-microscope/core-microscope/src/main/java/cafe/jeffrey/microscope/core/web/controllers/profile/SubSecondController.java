@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.resources.request.GetSubSecondRequest;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.ProfilingStartEnd;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import tools.jackson.databind.JsonNode;
 
 import static cafe.jeffrey.microscope.core.web.controllers.profile.FlamegraphController.toTimeRange;

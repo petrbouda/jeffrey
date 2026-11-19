@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.profile.heapdump.oql.OqlEngine;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.OqlStatement;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.compiler.ExecutionPlan;
 import cafe.jeffrey.microscope.core.profile.heapdump.view.HeapView;
-import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

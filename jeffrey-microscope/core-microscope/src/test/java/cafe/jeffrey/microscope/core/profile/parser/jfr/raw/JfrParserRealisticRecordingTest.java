@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.profile.parser.jfr.raw;
 
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformation;
-import cafe.jeffrey.microscope.test.recording.CheckoutRecording;
-import cafe.jeffrey.microscope.test.recording.Lz4Archives;
-import cafe.jeffrey.microscope.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.core.test.recording.Lz4Archives;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;

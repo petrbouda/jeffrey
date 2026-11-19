@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.trace.export;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Map;
 import java.util.Objects;

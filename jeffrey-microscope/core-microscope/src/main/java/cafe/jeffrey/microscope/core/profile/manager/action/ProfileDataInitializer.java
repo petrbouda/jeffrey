@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.action;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

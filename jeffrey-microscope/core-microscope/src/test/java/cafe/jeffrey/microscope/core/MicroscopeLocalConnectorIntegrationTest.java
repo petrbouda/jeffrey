@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.test.recording.RecordedSession;
-import cafe.jeffrey.microscope.test.recording.RecordedSession.Chunk;
+import cafe.jeffrey.microscope.core.test.recording.RecordedSession;
+import cafe.jeffrey.microscope.core.test.recording.RecordedSession.Chunk;
 import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,8 +35,8 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 
-import static cafe.jeffrey.microscope.test.recording.RecordedSession.CHUNKS;
-import static cafe.jeffrey.microscope.test.recording.RecordedSession.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.core.test.recording.RecordedSession.CHUNKS;
+import static cafe.jeffrey.microscope.core.test.recording.RecordedSession.EXECUTION_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

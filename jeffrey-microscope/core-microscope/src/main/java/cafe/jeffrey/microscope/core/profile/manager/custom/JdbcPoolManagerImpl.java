@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.custom;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.custom.builder.JdbcPoolStatisticsBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.custom.builder.JdbcPooledEventBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.jdbc.pool.JdbcPoolData;

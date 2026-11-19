@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeCarrier;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeCondition;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeKeyId;

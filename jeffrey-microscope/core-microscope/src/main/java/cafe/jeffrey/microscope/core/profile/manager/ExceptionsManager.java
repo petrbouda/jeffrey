@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionSi
 import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionTypeStat;
 import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionsOverview;
 import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ThrowAnalysis;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

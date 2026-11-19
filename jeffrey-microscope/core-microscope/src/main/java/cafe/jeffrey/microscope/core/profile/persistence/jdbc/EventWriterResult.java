@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
-import cafe.jeffrey.microscope.model.settings.ActiveSetting;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSetting;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventThreadWithHash;
 

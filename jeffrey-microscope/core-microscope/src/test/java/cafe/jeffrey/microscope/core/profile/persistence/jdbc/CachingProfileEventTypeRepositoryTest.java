@@ -21,12 +21,12 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.CachingProfileEventT
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeWithFields;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FieldDescription;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.SpanScope;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.TestUtils;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.TestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

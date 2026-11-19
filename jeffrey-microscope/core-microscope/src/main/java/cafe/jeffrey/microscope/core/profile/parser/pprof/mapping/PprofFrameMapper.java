@@ -24,8 +24,8 @@ import com.google.perftools.profiles.ProfileProto.Mapping;
 import cafe.jeffrey.microscope.core.profile.parser.pprof.PprofTables;
 import cafe.jeffrey.microscope.core.profile.model.FrameType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
-import cafe.jeffrey.microscope.model.HiddenClassName;
-import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.HiddenClassName;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
 
 import java.util.ArrayList;
 import java.util.List;

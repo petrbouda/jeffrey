@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.event.JITCompilationStats;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationMethodAggregate;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationReasonCount;

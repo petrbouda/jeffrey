@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.persistence.jdbc;
 import cafe.jeffrey.microscope.core.persistence.api.*;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;

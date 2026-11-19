@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.configuration;
 
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.core.profile.ingest.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;

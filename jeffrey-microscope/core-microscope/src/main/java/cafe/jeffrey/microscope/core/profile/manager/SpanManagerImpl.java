@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanTagStat;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SpanRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SpanRepository;
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 
 import java.util.ArrayList;
 import java.util.Comparator;

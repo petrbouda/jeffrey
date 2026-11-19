@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.flamegraph;
 
-import cafe.jeffrey.microscope.common.BytesUtils;
-import cafe.jeffrey.microscope.common.DurationUtils;
+import cafe.jeffrey.microscope.core.utils.BytesUtils;
+import cafe.jeffrey.microscope.core.utils.DurationUtils;
 import cafe.jeffrey.microscope.core.profile.model.FrameType;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.FlamegraphData;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.Frame;

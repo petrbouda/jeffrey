@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTi
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTimingStat;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

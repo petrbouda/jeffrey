@@ -40,7 +40,7 @@ import cafe.jeffrey.microscope.core.profile.thread.ThreadSort;
 import cafe.jeffrey.microscope.core.profile.thread.ThreadState;
 import cafe.jeffrey.microscope.core.profile.thread.ThreadWindowEvents;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 

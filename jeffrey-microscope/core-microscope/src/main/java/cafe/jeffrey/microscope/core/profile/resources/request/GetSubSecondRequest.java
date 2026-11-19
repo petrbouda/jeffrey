@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.resources.request;
 
 import cafe.jeffrey.microscope.core.profile.TimeRangeRequest;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 public record GetSubSecondRequest(
         Type eventType,

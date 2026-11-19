@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileRepositories;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.MethodTraceWeightRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceRepository;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseLease;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;

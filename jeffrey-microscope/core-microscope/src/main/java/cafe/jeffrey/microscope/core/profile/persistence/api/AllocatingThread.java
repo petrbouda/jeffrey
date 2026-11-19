@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
 
 /**
  * A thread that is allocating memory.

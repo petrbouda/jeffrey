@@ -48,7 +48,7 @@ import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
