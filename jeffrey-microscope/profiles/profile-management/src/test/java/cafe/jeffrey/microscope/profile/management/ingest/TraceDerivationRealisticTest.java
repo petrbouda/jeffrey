@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.BatchFlushLimit;
@@ -24,10 +28,6 @@ import cafe.jeffrey.microscope.profile.persistence.jdbc.DuckDBEventWriters;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.JdbcTraceAttributeRepository;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.JdbcTraceRepository;
 import cafe.jeffrey.microscope.profile.persistence.jdbc.SQLEventWriter;
-import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.test.DuckDBTest;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Test;
@@ -101,7 +101,7 @@ class TraceDerivationRealisticTest {
         EventWriter writer = new SQLEventWriter(() -> new DuckDBEventWriters(
                 Schedulers.sharedDbWriter(), dataSource, BATCH_SIZE, DIRECT.recordingStartedAt(),
                 BatchFlushLimit.ofSlots(Schedulers.DB_WRITER_THREADS)));
-        new JfrRecordingEventParser(scratch, new Lz4Compressor(scratch), ALWAYS_SPLIT).start(writer, RecordingSources.of(file));
+        new JfrRecordingEventParser(scratch, new Lz4Decompressor(scratch), ALWAYS_SPLIT).start(writer, RecordingSources.of(file));
         writer.onComplete();
     }
 

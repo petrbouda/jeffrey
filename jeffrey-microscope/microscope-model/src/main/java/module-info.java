@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 module cafe.jeffrey.microscope.model {
-    requires transitive cafe.jeffrey.shared.common;
+    requires cafe.jeffrey.shared.volume;
     exports cafe.jeffrey.microscope.model;
     exports cafe.jeffrey.microscope.model.connector;
     exports cafe.jeffrey.microscope.model.repository;

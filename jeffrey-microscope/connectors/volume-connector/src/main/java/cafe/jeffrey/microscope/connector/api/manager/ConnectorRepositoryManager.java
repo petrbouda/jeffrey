@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.connector.api.manager;
 
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.connector.api.FileStreamClient;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.connector.api.RepositoryClient;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;

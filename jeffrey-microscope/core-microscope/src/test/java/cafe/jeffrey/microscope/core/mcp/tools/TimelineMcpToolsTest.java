@@ -17,12 +17,16 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
+import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
+import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
@@ -31,19 +35,15 @@ import cafe.jeffrey.microscope.profile.management.manager.ProfileFeaturesManager
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.management.manager.SubSecondManager;
 import cafe.jeffrey.microscope.profile.management.manager.TimeseriesManager;
-import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
-import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;

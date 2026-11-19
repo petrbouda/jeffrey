@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common.compression;
+package cafe.jeffrey.microscope.common.compression;
 
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
 import net.jpountz.lz4.LZ4FrameInputStream;
-import net.jpountz.lz4.LZ4FrameOutputStream;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,33 +26,19 @@ import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-
 /**
- * Utility class for LZ4 compression and decompression of files.
+ * Reads the LZ4 archives on the recording volume. Microscope never compresses: the volume
+ * scheduler's compression job writes each archive as one standard LZ4 frame, and the frame header
+ * says how it was written (block size, checksums), so any frame decoder reads it.
  */
-public class Lz4Compressor {
+public class Lz4Decompressor {
 
     private static final String LZ4_EXTENSION = ".lz4";
 
     private final TempDirFactory tempDirFactory;
 
-    public Lz4Compressor(TempDirFactory tempDirFactory) {
+    public Lz4Decompressor(TempDirFactory tempDirFactory) {
         this.tempDirFactory = tempDirFactory;
-    }
-
-
-    /**
-     * Compresses a file to LZ4 format in a specified target directory.
-     * The compressed file will have the same name with ".lz4" suffix appended.
-     *
-     * @param source    the source file to compress
-     * @param targetDir the target directory for the compressed output
-     * @return the path to the compressed file in the target directory
-     */
-    public Path compressToDir(Path source, Path targetDir) {
-        String targetFilename = source.getFileName() + LZ4_EXTENSION;
-        Path targetPath = targetDir.resolve(targetFilename);
-        return compress(source, targetPath);
     }
 
     /**
@@ -75,23 +60,6 @@ public class Lz4Compressor {
 
         decompress(source, targetPath);
         return targetPath;
-    }
-
-    /**
-     * Compresses a file to LZ4 format with a specific target path.
-     *
-     * @param source the source file to compress
-     * @param target the target file path for the compressed output
-     */
-    public static Path compress(Path source, Path target) {
-        try (InputStream in = Files.newInputStream(source);
-             OutputStream out = new LZ4FrameOutputStream(Files.newOutputStream(target))) {
-            in.transferTo(out);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to compress file: source=" + source + " target=" + target, e);
-        }
-
-        return target;
     }
 
     /**

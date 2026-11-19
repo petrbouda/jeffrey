@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common;
+package cafe.jeffrey.shared.volume.layout;
 
 import java.time.Instant;
 import java.time.ZoneOffset;

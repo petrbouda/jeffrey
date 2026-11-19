@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.connector.api.manager;
 
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 
 /**
  * Supplies fresh temporary directories for streaming downloads. Abstracts the app-specific

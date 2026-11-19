@@ -16,15 +16,15 @@
  */
 package cafe.jeffrey.microscope.profile.heapdump.parser;
 
-import cafe.jeffrey.microscope.profile.heapdump.model.IndexBuildProgressListener;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
-import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpDatabaseClient;
-import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpStatement;
-import cafe.jeffrey.shared.common.measure.Elapsed;
+import cafe.jeffrey.jfr.events.trace.Tracer;
+import cafe.jeffrey.microscope.common.measure.Elapsed;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
-import cafe.jeffrey.shared.common.measure.Measuring;
-import cafe.jeffrey.jfr.events.trace.Tracer;
+import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.profile.heapdump.model.IndexBuildProgressListener;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpDatabaseClient;
+import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpStatement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

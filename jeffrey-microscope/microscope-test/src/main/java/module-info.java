@@ -20,7 +20,7 @@ module cafe.jeffrey.microscope.test {
     requires spring.core;
     requires spring.jdbc;
     requires flyway.core;
-    requires cafe.jeffrey.shared.common;
+    requires org.lz4.java;
     requires transitive cafe.jeffrey.shared.volume;
 
     exports cafe.jeffrey.microscope.test;

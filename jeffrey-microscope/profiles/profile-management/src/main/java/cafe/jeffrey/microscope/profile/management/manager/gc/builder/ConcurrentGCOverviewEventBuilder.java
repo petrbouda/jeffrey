@@ -17,17 +17,17 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.gc.builder;
 
-import tools.jackson.databind.node.ObjectNode;
-import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.ConcurrentEvent;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.ConcurrentPhase;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.GCOverviewData;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.*;
 import java.util.stream.Collectors;

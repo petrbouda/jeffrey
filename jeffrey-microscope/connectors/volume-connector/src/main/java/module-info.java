@@ -23,7 +23,6 @@
  */
 module cafe.jeffrey.microscope.connector.volume {
     requires transitive cafe.jeffrey.microscope.common;
-    requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive cafe.jeffrey.shared.volume;
     requires org.slf4j;

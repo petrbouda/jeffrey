@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -58,12 +58,12 @@ sealed interface SourceParseMode permits ChunkedSources, WholeFileSources {
      * with one compressed file in it is not a shape the profiler produces, and treating it as
      * compressed is the safe reading.
      */
-    static SourceParseMode of(RecordingSources sources, int threshold, Lz4Compressor lz4Compressor) {
+    static SourceParseMode of(RecordingSources sources, int threshold, Lz4Decompressor lz4Decompressor) {
         List<Path> files = sources.files();
-        boolean anyCompressed = files.stream().anyMatch(Lz4Compressor::isLz4Compressed);
+        boolean anyCompressed = files.stream().anyMatch(Lz4Decompressor::isLz4Compressed);
         if (files.size() >= threshold && !anyCompressed) {
             return new WholeFileSources();
         }
-        return new ChunkedSources(lz4Compressor);
+        return new ChunkedSources(lz4Decompressor);
     }
 }

@@ -18,6 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
@@ -25,7 +26,6 @@ import cafe.jeffrey.microscope.profile.common.treetable.EventViewerData;
 import cafe.jeffrey.microscope.profile.management.manager.EventViewerManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.persistence.api.FieldDescription;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

@@ -24,7 +24,6 @@ module cafe.jeffrey.microscope.duckdb {
     requires transitive java.sql;
     requires transitive duckdb.jdbc;
     requires jdk.jfr;
-    requires transitive cafe.jeffrey.shared.common;
     requires cafe.jeffrey.jfr.events;
     requires transitive com.zaxxer.hikari;
     requires transitive spring.jdbc;

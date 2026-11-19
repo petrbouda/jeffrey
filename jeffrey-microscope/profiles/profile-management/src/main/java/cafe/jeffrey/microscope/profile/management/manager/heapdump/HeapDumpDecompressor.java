@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.heapdump;
 
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.microscope.common.measure.Elapsed;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.model.repository.FileExtensions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

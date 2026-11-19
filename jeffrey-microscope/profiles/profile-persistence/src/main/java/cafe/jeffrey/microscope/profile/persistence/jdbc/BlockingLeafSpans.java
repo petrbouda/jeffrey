@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.microscope.model.EventTypeName;
 
 import java.util.List;
 import java.util.Set;

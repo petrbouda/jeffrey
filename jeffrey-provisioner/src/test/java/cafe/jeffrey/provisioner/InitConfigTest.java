@@ -25,9 +25,10 @@ import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.provisioner.feature.TracingJfrEvents;
 import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.CliConstants;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -46,6 +47,19 @@ class InitConfigTest {
             jdk-java-options { enabled = false }
             """;
 
+    /** A test resource as a path on disk. */
+    private static Path resource(String name) {
+        URL url = InitConfigTest.class.getClassLoader().getResource(name);
+        if (url == null) {
+            throw new IllegalArgumentException("Not on the test classpath: " + name);
+        }
+        try {
+            return Path.of(url.toURI());
+        } catch (URISyntaxException e) {
+            throw new IllegalArgumentException("Not a file on disk: " + name, e);
+        }
+    }
+
     private static String configWithOverrides(String... overrides) {
         StringBuilder config = new StringBuilder(BASE_CONFIG);
         for (String override : overrides) {
@@ -57,7 +71,7 @@ class InitConfigTest {
     @Nested
     class ParseFullConfig {
 
-        private static final Path CONFIG_FILE = FileSystemUtils.classpathPath("valid-full-config.conf");
+        private static final Path CONFIG_FILE = resource("valid-full-config.conf");
 
         @Test
         void parsesAllFieldsCorrectly() {
@@ -111,7 +125,7 @@ class InitConfigTest {
     @Nested
     class ParseMinimalConfig {
 
-        private static final Path CONFIG_FILE = FileSystemUtils.classpathPath("valid-minimal-config.conf");
+        private static final Path CONFIG_FILE = resource("valid-minimal-config.conf");
 
         @Test
         void parsesRequiredFieldsOnly() {
@@ -148,8 +162,8 @@ class InitConfigTest {
     @Nested
     class HelperMethods {
 
-        private static final Path FULL_CONFIG = FileSystemUtils.classpathPath("valid-full-config.conf");
-        private static final Path MINIMAL_CONFIG = FileSystemUtils.classpathPath("valid-minimal-config.conf");
+        private static final Path FULL_CONFIG = resource("valid-full-config.conf");
+        private static final Path MINIMAL_CONFIG = resource("valid-minimal-config.conf");
 
         @Test
         void isPerfCountersEnabledReturnsFalseWhenDisabled() {
@@ -185,8 +199,8 @@ class InitConfigTest {
     @Nested
     class TypeResolution {
 
-        private static final Path FULL_CONFIG = FileSystemUtils.classpathPath("valid-full-config.conf");
-        private static final Path MINIMAL_CONFIG = FileSystemUtils.classpathPath("valid-minimal-config.conf");
+        private static final Path FULL_CONFIG = resource("valid-full-config.conf");
+        private static final Path MINIMAL_CONFIG = resource("valid-minimal-config.conf");
 
         @Test
         void resolveHeapDumpTypeReturnsCrash() {

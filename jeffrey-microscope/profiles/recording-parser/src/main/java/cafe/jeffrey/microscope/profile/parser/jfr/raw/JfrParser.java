@@ -17,14 +17,14 @@
 
 package cafe.jeffrey.microscope.profile.parser.jfr.raw;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,7 +57,7 @@ public abstract class JfrParser {
     private static final Logger LOG = LoggerFactory.getLogger(JfrParser.class);
 
     private static final String LZ4_HAS_NO_CHANNEL = "Recording is LZ4-compressed, and a file channel reads only "
-            + "a plain .jfr: iterate it through Lz4Compressor.decompressStream instead: path=%s";
+            + "a plain .jfr: iterate it through Lz4Decompressor.decompressStream instead: path=%s";
 
     // ========== Disassembly ==========
 
@@ -164,7 +164,7 @@ public abstract class JfrParser {
      */
     public static void iterateChunks(Path recording, BiConsumer<FileChannel, JfrChunk> consumer) {
         validateRecording(recording);
-        if (Lz4Compressor.isLz4Compressed(recording)) {
+        if (Lz4Decompressor.isLz4Compressed(recording)) {
             throw new IllegalArgumentException(LZ4_HAS_NO_CHANNEL.formatted(recording));
         }
         ChunkIterator.iterate(recording, consumer);
@@ -278,10 +278,10 @@ public abstract class JfrParser {
      */
     private static <T> T read(Path recording, Function<Path, T> plain, Function<InputStream, T> compressed) {
         validateRecording(recording);
-        if (!Lz4Compressor.isLz4Compressed(recording)) {
+        if (!Lz4Decompressor.isLz4Compressed(recording)) {
             return plain.apply(recording);
         }
-        try (InputStream input = Lz4Compressor.decompressStream(recording)) {
+        try (InputStream input = Lz4Decompressor.decompressStream(recording)) {
             return compressed.apply(input);
         } catch (IOException e) {
             throw new JfrChunkParsingException("Failed to read LZ4 recording: " + recording, e);

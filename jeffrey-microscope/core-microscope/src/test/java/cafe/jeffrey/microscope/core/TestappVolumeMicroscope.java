@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.microscope.test.recording.Lz4Archives;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -181,7 +181,7 @@ abstract class TestappVolumeMicroscope extends BootedMicroscope {
             Path plain = VolumeWriter.recording(session, pinned, ZoneOffset.UTC, bytes);
             boolean keptPlain = recording == newest && recording.chunkStarts().get(i).equals(newestStart);
             if (!keptPlain) {
-                Lz4Compressor.compress(plain, session.resolve(plain.getFileName() + ARCHIVE_SUFFIX));
+                Lz4Archives.compress(plain, session.resolve(plain.getFileName() + ARCHIVE_SUFFIX));
                 try {
                     Files.delete(plain);
                 } catch (IOException e) {

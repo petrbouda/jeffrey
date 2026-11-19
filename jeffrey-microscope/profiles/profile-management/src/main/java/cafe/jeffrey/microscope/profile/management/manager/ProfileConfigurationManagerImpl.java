@@ -17,16 +17,16 @@
 
 package cafe.jeffrey.microscope.profile.management.manager;
 
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.node.ObjectNode;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.persistence.api.EventTypeWithFields;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventTypeRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
 import java.util.Map;

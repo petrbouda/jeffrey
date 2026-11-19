@@ -17,16 +17,16 @@
 
 package cafe.jeffrey.microscope.profile.parser.otlp;
 
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
 import io.opentelemetry.proto.profiles.v1development.Profile;
 import io.opentelemetry.proto.profiles.v1development.ProfilesData;
 import io.opentelemetry.proto.profiles.v1development.ResourceProfiles;
 import io.opentelemetry.proto.profiles.v1development.Sample;
 import io.opentelemetry.proto.profiles.v1development.ScopeProfiles;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
 
 import java.nio.file.Path;
 import java.time.Instant;

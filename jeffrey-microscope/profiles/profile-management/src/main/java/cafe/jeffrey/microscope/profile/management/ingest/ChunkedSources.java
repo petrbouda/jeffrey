@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
+import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -36,10 +36,10 @@ import java.util.function.Consumer;
  * write of the recording, which is worth paying only while there are fewer files than there are
  * workers to read them — {@link SourceParseMode#of} is where that is decided.
  *
- * @param lz4Compressor used only by the eager fallback, when streaming the compressed source
- *                      straight into chunk files fails partway
+ * @param lz4Decompressor used only by the eager fallback, when streaming the compressed source
+ *                        straight into chunk files fails partway
  */
-record ChunkedSources(Lz4Compressor lz4Compressor) implements SourceParseMode {
+record ChunkedSources(Lz4Decompressor lz4Decompressor) implements SourceParseMode {
 
     private static final Logger LOG = LoggerFactory.getLogger(ChunkedSources.class);
 
@@ -49,7 +49,7 @@ record ChunkedSources(Lz4Compressor lz4Compressor) implements SourceParseMode {
 
     @Override
     public void expand(Path source, Path scratchDir, Consumer<Path> onUnit) {
-        if (Lz4Compressor.isLz4Compressed(source)) {
+        if (Lz4Decompressor.isLz4Compressed(source)) {
             // Handed over only once the whole split has succeeded. A compressed source may fail
             // partway through and be retried from scratch, and chunks already handed to the
             // writers by the failed attempt would then be ingested twice.
@@ -87,7 +87,7 @@ record ChunkedSources(Lz4Compressor lz4Compressor) implements SourceParseMode {
                     .emit();
 
             Path decompressedDir = scratchDir.resolve(DECOMPRESSED_DIR);
-            Path decompressed = lz4Compressor.decompressToDir(source, decompressedDir);
+            Path decompressed = lz4Decompressor.decompressToDir(source, decompressedDir);
             return JfrParser.disassemble(decompressed, scratchDir.resolve(CHUNKS_FALLBACK_DIR));
         }
     }

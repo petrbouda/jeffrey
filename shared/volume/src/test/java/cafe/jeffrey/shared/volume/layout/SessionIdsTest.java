@@ -15,42 +15,51 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common;
+package cafe.jeffrey.shared.volume.layout;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class IDGeneratorTest {
+class SessionIdsTest {
+
+    private static final Instant STARTED = Instant.parse("2026-10-26T06:00:00Z");
+
+    @Nested
+    class Generate {
+
+        @Test
+        void carriesTheTimeOfTheClock() {
+            String id = SessionIds.generate(Clock.fixed(STARTED, ZoneOffset.UTC));
+
+            assertEquals(Optional.of(STARTED), SessionIds.timestampOf(id));
+        }
+
+        @Test
+        void aLaterSessionOrdersAfterAnEarlierOne() {
+            String first = SessionIds.generate(Clock.fixed(STARTED, ZoneOffset.UTC));
+            String second = SessionIds.generate(Clock.fixed(STARTED.plusMillis(1), ZoneOffset.UTC));
+
+            assertTrue(first.compareTo(second) < 0, first + " before " + second);
+        }
+    }
 
     @Nested
     class TimestampOf {
 
         @Test
-        void aGeneratedIdCarriesATime() {
-            assertTrue(IDGenerator.timestampOf(IDGenerator.generate()).isPresent());
-        }
-
-        @Test
         void readsTheEpochMillisOfACanonicalTimeOrderedId() {
             // 0x01a176cb5700 epoch millis is 2026-10-26T06:00:00Z
-            assertEquals(Optional.of(Instant.parse("2026-10-26T06:00:00Z")),
-                    IDGenerator.timestampOf("01a176cb-5700-7abc-9f01-2b3c4d5e6f70"));
-        }
-
-        @Test
-        void idsOfOneProcessOrderAsTheirStrings() {
-            String first = IDGenerator.generate();
-            String second = IDGenerator.generate();
-
-            assertTrue(first.compareTo(second) < 0, first + " before " + second);
+            assertEquals(Optional.of(STARTED), SessionIds.timestampOf("01a176cb-5700-7abc-9f01-2b3c4d5e6f70"));
         }
 
         @ParameterizedTest
@@ -66,12 +75,12 @@ class IDGeneratorTest {
                 "01a176cb-5700-7abc-cf01-2b3c4d5e6f70"
         })
         void anythingElseCarriesNoTime(String id) {
-            assertEquals(Optional.empty(), IDGenerator.timestampOf(id));
+            assertEquals(Optional.empty(), SessionIds.timestampOf(id));
         }
 
         @Test
         void noIdCarriesNoTime() {
-            assertEquals(Optional.empty(), IDGenerator.timestampOf(null));
+            assertEquals(Optional.empty(), SessionIds.timestampOf(null));
         }
     }
 }

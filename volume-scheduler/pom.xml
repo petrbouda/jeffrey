@@ -47,8 +47,8 @@
 
         <!-- Shared modules -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

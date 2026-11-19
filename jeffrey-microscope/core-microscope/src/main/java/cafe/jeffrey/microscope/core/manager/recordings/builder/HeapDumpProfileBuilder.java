@@ -17,10 +17,15 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings.builder;
 
+import cafe.jeffrey.microscope.common.IDGenerator;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
@@ -29,11 +34,6 @@ import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpFiles;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

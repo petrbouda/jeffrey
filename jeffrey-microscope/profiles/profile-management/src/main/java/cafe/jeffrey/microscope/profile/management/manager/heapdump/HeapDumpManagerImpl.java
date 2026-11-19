@@ -17,7 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.heapdump;
 
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.microscope.common.measure.Measuring;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;
@@ -26,14 +29,13 @@ import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootAnalyzer
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootByClassAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootByClassLoaderAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.GcRootRetainersAnalyzer;
-import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.LeakHintsAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.HeapSummaryAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.InstanceDetailAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.InstanceTreeAnalyzer;
+import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.LeakHintsAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ThreadAnalyzer;
 import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ThreadStackAnalyzer;
-import cafe.jeffrey.microscope.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.microscope.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.microscope.profile.heapdump.model.ClassInstancesResponse;
 import cafe.jeffrey.microscope.profile.heapdump.model.ClassLoaderDetail;
@@ -43,22 +45,19 @@ import cafe.jeffrey.microscope.profile.heapdump.model.GCRootClassLoaderAggregate
 import cafe.jeffrey.microscope.profile.heapdump.model.GCRootPath;
 import cafe.jeffrey.microscope.profile.heapdump.model.GCRootRetainer;
 import cafe.jeffrey.microscope.profile.heapdump.model.GCRootSummary;
-import cafe.jeffrey.microscope.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.microscope.profile.heapdump.model.HeapDumpConfig;
 import cafe.jeffrey.microscope.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.microscope.profile.heapdump.model.HeapThreadInfo;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.microscope.profile.persistence.api.PipelineRunRepository;
+import cafe.jeffrey.microscope.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.microscope.profile.heapdump.model.InitializeResult;
 import cafe.jeffrey.microscope.profile.heapdump.model.InstanceDetail;
 import cafe.jeffrey.microscope.profile.heapdump.model.InstanceSortBy;
 import cafe.jeffrey.microscope.profile.heapdump.model.InstanceTreeRequest;
 import cafe.jeffrey.microscope.profile.heapdump.model.InstanceTreeResponse;
+import cafe.jeffrey.microscope.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryRequest;
-import cafe.jeffrey.microscope.profile.heapdump.view.SqlQueryResult;
 import cafe.jeffrey.microscope.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.microscope.profile.heapdump.model.SortBy;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.microscope.profile.heapdump.oql.OqlEngine;
 import cafe.jeffrey.microscope.profile.heapdump.oql.ast.OqlStatement;
@@ -69,12 +68,9 @@ import cafe.jeffrey.microscope.profile.heapdump.oql.parser.OqlParseException;
 import cafe.jeffrey.microscope.profile.heapdump.persistence.HeapDumpSession;
 import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
 import cafe.jeffrey.microscope.profile.heapdump.view.JavaClassRow;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.CachedAnalysisRunner;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.CompressedOopsResolver;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpReportStore;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpSessionTemplate;
-import cafe.jeffrey.shared.common.measure.Measuring;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.profile.heapdump.view.SqlQueryResult;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.microscope.profile.persistence.api.PipelineRunRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

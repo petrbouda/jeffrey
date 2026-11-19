@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.parser.jfr.raw;
 
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.microscope.test.recording.Lz4Archives;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -101,7 +101,7 @@ class RecordingDisassemblerTest implements JfrChunkConstants {
             Path plain = writeRecording("recording.jfr", firstChunk, secondChunk);
 
             Path compressed = tempDir.resolve("recording.jfr.lz4");
-            Lz4Compressor.compress(plain, compressed);
+            Lz4Archives.compress(plain, compressed);
 
             List<Path> chunks = RecordingDisassembler.disassemble(compressed, tempDir.resolve("chunks"));
 
@@ -124,8 +124,8 @@ class RecordingDisassemblerTest implements JfrChunkConstants {
             Path firstPlain = writeRecording("first.jfr", firstChunk);
             Path secondPlain = writeRecording("second.jfr", secondChunk);
 
-            Path firstFrame = Lz4Compressor.compress(firstPlain, tempDir.resolve("first.lz4"));
-            Path secondFrame = Lz4Compressor.compress(secondPlain, tempDir.resolve("second.lz4"));
+            Path firstFrame = Lz4Archives.compress(firstPlain, tempDir.resolve("first.lz4"));
+            Path secondFrame = Lz4Archives.compress(secondPlain, tempDir.resolve("second.lz4"));
 
             // Concatenated LZ4 frames == multi-frame file
             Path multiFrame = tempDir.resolve("recording.jfr.lz4");

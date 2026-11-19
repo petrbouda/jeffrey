@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.shared.volume;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +31,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -74,7 +74,7 @@ public final class FilesystemVolume implements WritableVolume {
     public void delete(VolumePath path) {
         Path target = resolve(path);
         if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
-            FileSystemUtils.removeDirectory(target);
+            removeTree(target);
             return;
         }
         try {
@@ -131,6 +131,17 @@ public final class FilesystemVolume implements WritableVolume {
         } catch (RuntimeException e) {
             closeQuietly(channel);
             throw e;
+        }
+    }
+
+    /** A directory and everything under it, deepest first; a link inside is removed, never followed. */
+    private static void removeTree(Path directory) {
+        try (Stream<Path> tree = Files.walk(directory)) {
+            for (Path entry : tree.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(entry);
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot delete a volume directory: path=" + directory, e);
         }
     }
 

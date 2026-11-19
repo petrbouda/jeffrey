@@ -17,6 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest.data;
 
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
 import org.openjdk.jmc.common.IDisplayable;
 import org.openjdk.jmc.common.item.IItemCollection;
 import org.openjdk.jmc.common.item.ItemCollectionToolkit;
@@ -26,10 +30,6 @@ import org.openjdk.jmc.flightrecorder.rules.*;
 import org.openjdk.jmc.flightrecorder.rules.util.RulesToolkit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

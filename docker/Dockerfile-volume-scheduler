@@ -46,7 +46,7 @@ ENV PATH="/opt/apache-maven-${MAVEN_VERSION}/bin:${PATH}"
 WORKDIR /build
 COPY . .
 
-# Only the volume scheduler's part of the reactor: shared/common, shared/volume, the volume-scheduler
+# Only the volume scheduler's part of the reactor: shared/volume, the volume-scheduler
 # module and build-volume-scheduler-native (Spring AOT + native-image). No frontend, no Microscope.
 RUN --mount=type=cache,target=/root/.m2 \
     mvn -B -q -pl build/build-volume-scheduler-native -am -Pnative package -DskipTests

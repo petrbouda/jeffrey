@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common.model;
+package cafe.jeffrey.microscope.model;
 
 public abstract class EventTypeName {
 

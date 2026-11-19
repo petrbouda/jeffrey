@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.model.Type;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
@@ -24,8 +26,6 @@ import jdk.jfr.consumer.RecordingFile;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.microscope.model.Type;
 
 import java.io.IOException;
 import java.net.URISyntaxException;

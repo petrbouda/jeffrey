@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.shared.volume.layout;
 
-import cafe.jeffrey.shared.common.IDGenerator;
 import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
@@ -170,7 +169,7 @@ public final class ProjectTree {
      * time-ordered id (a UUIDv7), which also says when it started. Nothing is read to tell.
      */
     private static Optional<SessionDirectory> sessionDirectory(VolumePath directory) {
-        return IDGenerator.timestampOf(directory.name())
+        return SessionIds.timestampOf(directory.name())
                 .map(start -> new SessionDirectory(directory, start));
     }
 
@@ -180,7 +179,7 @@ public final class ProjectTree {
      * also says whether it is the newest. An id that is not a session's name asks the volume nothing.
      */
     public Optional<SessionHeader> session(String sessionId) {
-        if (IDGenerator.timestampOf(sessionId).isEmpty()) {
+        if (SessionIds.timestampOf(sessionId).isEmpty()) {
             return Optional.empty();
         }
         for (InstanceDirectory instance : instances()) {

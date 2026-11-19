@@ -31,13 +31,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>at.yawk.lz4</groupId>
-                    <artifactId>lz4-java</artifactId>
-                </exclusion>
-            </exclusions>
+            <artifactId>volume</artifactId>
         </dependency>
         <dependency>
             <groupId>info.picocli</groupId>

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.microscope.model.EventTypeName;
 
 /**
  * The promotion of {@code jdk.MethodTrace} (JEP 520) into spans, and how it differs from

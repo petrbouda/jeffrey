@@ -35,7 +35,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>microscope-common</artifactId>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>

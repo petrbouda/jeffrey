@@ -17,20 +17,20 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.gc.builder;
 
-import tools.jackson.databind.node.ObjectNode;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.profile.common.event.GarbageCollectionCause;
+import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.microscope.profile.management.manager.model.gc.*;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesUtils;
+import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
 import org.HdrHistogram.Histogram;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.eclipse.collections.impl.map.mutable.primitive.LongObjectHashMap;
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectionCause;
-import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.profile.management.manager.model.gc.*;
-import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesUtils;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

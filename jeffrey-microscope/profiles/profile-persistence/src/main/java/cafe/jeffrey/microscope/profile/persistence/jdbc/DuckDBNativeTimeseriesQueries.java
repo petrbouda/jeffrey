@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.persistence.api.EventQueryConfigurer;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 
 public class DuckDBNativeTimeseriesQueries implements ComplexQueries.Timeseries {
 

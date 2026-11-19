@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.connector.azure;
 
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.microscope.common.measure.Elapsed;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import com.azure.core.http.HttpPipelineCallContext;
 import com.azure.core.http.HttpPipelineNextPolicy;
 import com.azure.core.http.HttpPipelineNextSyncPolicy;

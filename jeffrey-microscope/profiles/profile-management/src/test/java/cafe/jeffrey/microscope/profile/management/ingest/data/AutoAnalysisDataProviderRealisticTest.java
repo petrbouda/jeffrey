@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest.data;
 
-import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
 import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
+import cafe.jeffrey.microscope.test.recording.Lz4Archives;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -200,7 +200,7 @@ class AutoAnalysisDataProviderRealisticTest {
     private static Path archive(TestappRecording recording) {
         Path archive = work.resolve(recording + ".jfr.lz4");
         if (Files.notExists(archive)) {
-            Lz4Compressor.compress(plain(recording), archive);
+            Lz4Archives.compress(plain(recording), archive);
         }
         return archive;
     }

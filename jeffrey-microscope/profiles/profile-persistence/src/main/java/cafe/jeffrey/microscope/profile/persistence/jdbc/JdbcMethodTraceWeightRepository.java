@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.profile.persistence.api.MethodTraceWeightRepository;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 import cafe.jeffrey.microscope.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
 import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.profile.persistence.api.MethodTraceWeightRepository;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import static cafe.jeffrey.microscope.duckdb.GroupLabel.PROFILE_EVENTS;

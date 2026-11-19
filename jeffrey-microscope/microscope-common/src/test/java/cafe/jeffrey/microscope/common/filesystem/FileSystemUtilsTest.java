@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common.filesystem;
+package cafe.jeffrey.microscope.common.filesystem;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

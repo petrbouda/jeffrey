@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -147,7 +147,7 @@ class JfrRecordingEventParserTest {
         TempDirFactory tempDirFactory = TempDirFactory.of(tempDir.resolve("scratch"));
 
         EventTally events = new EventTally();
-        new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory), chunkSplitThreshold)
+        new JfrRecordingEventParser(tempDirFactory, new Lz4Decompressor(tempDirFactory), chunkSplitThreshold)
                 .start(events, sources);
         return events.events();
     }

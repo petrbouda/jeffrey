@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.profile.common.pipeline;
 
 import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.microscope.common.measure.Elapsed;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
 

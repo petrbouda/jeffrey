@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -93,7 +93,7 @@ class SourceParseModeTest {
 
     private SourceParseMode mode(RecordingSources sources) {
         TempDirFactory tempDirFactory = TempDirFactory.of(tempDir);
-        return SourceParseMode.of(sources, THRESHOLD, new Lz4Compressor(tempDirFactory));
+        return SourceParseMode.of(sources, THRESHOLD, new Lz4Decompressor(tempDirFactory));
     }
 
     private RecordingSources plainFiles(int count) {

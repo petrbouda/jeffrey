@@ -20,7 +20,7 @@
 @SuppressWarnings("requires-transitive-automatic")
 module cafe.jeffrey.microscope.persistence {
     requires transitive cafe.jeffrey.microscope.duckdb;
-    requires transitive cafe.jeffrey.shared.common;
+    requires transitive cafe.jeffrey.microscope.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires transitive spring.jdbc;
     requires java.sql;

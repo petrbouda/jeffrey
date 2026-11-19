@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.volumescheduler.retention;
 
-import cafe.jeffrey.shared.common.BytesUtils;
 import cafe.jeffrey.volumescheduler.scheduler.Job;
 import cafe.jeffrey.volumescheduler.scheduler.JobType;
 import cafe.jeffrey.volumescheduler.scheduler.ProjectFanOut;
@@ -26,6 +25,8 @@ import cafe.jeffrey.volumescheduler.storage.ProjectStorage;
 import cafe.jeffrey.volumescheduler.volume.VolumeProject;
 import cafe.jeffrey.volumescheduler.volume.VolumeProjects;
 
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,6 +47,11 @@ public final class RetentionJob implements Job {
      */
     record Summary(int projects, int sessionsDeleted, int filesDeleted, int instancesDeleted, long usedBytes) {
 
+        private static final long BYTES_PER_KIB = 1024;
+
+        /** The binary prefixes {@link #formatBytes} steps through, kibi to exbi. */
+        private static final String UNIT_PREFIXES = "KMGTPE";
+
         static Summary of(List<RetentionPass.Outcome> outcomes, List<ProjectStorage> measured) {
             return new Summary(
                     measured.size(),
@@ -58,11 +64,27 @@ public final class RetentionJob implements Job {
         String describe() {
             return "Deleted " + count(sessionsDeleted, "session") + ", " + count(filesDeleted, "file")
                     + " and " + count(instancesDeleted, "instance") + "; "
-                    + BytesUtils.format(usedBytes) + " across " + count(projects, "project");
+                    + formatBytes(usedBytes) + " across " + count(projects, "project");
         }
 
         private static String count(int value, String noun) {
             return value + " " + noun + (value == 1 ? "" : "s");
+        }
+
+        /** Binary units with one decimal, {@code 512 B}, {@code 1.5 GiB}. */
+        private static String formatBytes(long bytes) {
+            long absolute = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
+            if (absolute < BYTES_PER_KIB) {
+                return bytes + " B";
+            }
+            long value = absolute;
+            CharacterIterator units = new StringCharacterIterator(UNIT_PREFIXES);
+            for (int i = 40; i >= 0 && absolute > 0xfffccccccccccccL >> i; i -= 10) {
+                value >>= 10;
+                units.next();
+            }
+            value *= Long.signum(bytes);
+            return String.format("%.1f %ciB", value / (double) BYTES_PER_KIB, units.current());
         }
     }
 

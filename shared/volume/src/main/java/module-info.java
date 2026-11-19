@@ -16,7 +16,8 @@
  */
 
 module cafe.jeffrey.shared.volume {
-    requires transitive cafe.jeffrey.shared.common;
+    requires transitive org.slf4j;
+    requires com.github.f4b6a3.uuid;
 
     exports cafe.jeffrey.shared.volume;
     exports cafe.jeffrey.shared.volume.layout;

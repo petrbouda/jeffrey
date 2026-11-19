@@ -68,10 +68,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>mcp-protocol</artifactId>
         </dependency>
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
-        </dependency>
 
         <!-- Testing -->
         <dependency>

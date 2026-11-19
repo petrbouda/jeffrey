@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.panel;
 
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
 import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
 import cafe.jeffrey.microscope.profile.management.model.WeightKind;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

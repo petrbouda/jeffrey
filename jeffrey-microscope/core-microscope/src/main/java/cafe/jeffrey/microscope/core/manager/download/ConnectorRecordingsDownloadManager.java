@@ -17,25 +17,20 @@
 
 package cafe.jeffrey.microscope.core.manager.download;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
-import cafe.jeffrey.microscope.connector.api.manager.TempDirProvider;
+import cafe.jeffrey.microscope.common.exception.Exceptions;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.connector.api.FileStreamClient;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.connector.api.RepositoryClient;
-import cafe.jeffrey.microscope.core.manager.download.FileProgress;
-import cafe.jeffrey.microscope.core.manager.download.JfrChunkChain;
-import cafe.jeffrey.microscope.core.manager.download.ProgressCallback;
-import cafe.jeffrey.microscope.core.manager.download.ProgressTrackingInputStream;
+import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
+import cafe.jeffrey.microscope.connector.api.manager.TempDirProvider;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;

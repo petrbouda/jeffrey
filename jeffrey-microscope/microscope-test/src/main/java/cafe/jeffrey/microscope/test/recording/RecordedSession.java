@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.test.recording;
 
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.shared.volume.test.VolumeWriter;
 
 import java.io.IOException;
@@ -163,7 +162,7 @@ public final class RecordedSession {
         Path sessionDir = writeTo(instanceDir);
         for (Chunk chunk : CHUNKS.subList(0, CHUNKS.size() - 1)) {
             Path plain = sessionDir.resolve(chunk.volumeName());
-            Lz4Compressor.compress(plain, sessionDir.resolve(chunk.archivedName()));
+            Lz4Archives.compress(plain, sessionDir.resolve(chunk.archivedName()));
             try {
                 Files.delete(plain);
             } catch (IOException e) {

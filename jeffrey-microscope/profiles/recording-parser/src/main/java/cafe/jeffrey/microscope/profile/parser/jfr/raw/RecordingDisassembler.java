@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.profile.parser.jfr.raw;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -76,8 +76,8 @@ public abstract class RecordingDisassembler implements JfrChunkConstants {
     public static List<Path> disassemble(Path recording, Path outputDir, Consumer<Path> onChunkWritten) {
         LOG.debug("Disassembling recording: {} to {}", recording, outputDir);
 
-        if (Lz4Compressor.isLz4Compressed(recording)) {
-            try (InputStream input = Lz4Compressor.decompressStream(recording)) {
+        if (Lz4Decompressor.isLz4Compressed(recording)) {
+            try (InputStream input = Lz4Decompressor.decompressStream(recording)) {
                 return disassembleStream(input, outputDir, onChunkWritten);
             } catch (IOException e) {
                 throw new JfrChunkParsingException("Failed to disassemble LZ4 recording: " + recording, e);

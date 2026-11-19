@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.SessionIds;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -244,7 +244,7 @@ class InitExecutorTest {
             try (Stream<Path> sessions = Files.list(instancePath)) {
                 List<Instant> starts = sessions
                         .filter(Files::isDirectory)
-                        .map(session -> IDGenerator.timestampOf(session.getFileName().toString()).orElseThrow())
+                        .map(session -> SessionIds.timestampOf(session.getFileName().toString()).orElseThrow())
                         .sorted()
                         .toList();
                 assertEquals(List.of(firstRun, secondRun), starts);

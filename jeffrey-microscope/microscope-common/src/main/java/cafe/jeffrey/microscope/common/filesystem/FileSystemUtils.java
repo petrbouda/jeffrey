@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common.filesystem;
+package cafe.jeffrey.microscope.common.filesystem;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

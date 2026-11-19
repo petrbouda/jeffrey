@@ -30,14 +30,20 @@
     <artifactId>volume</artifactId>
     <description>
         The recording volume's layout contract, read through a storage port: workspaces, projects,
-        instances, sessions in the order they started, and their files. Shared by the volume scheduler and, through
+        instances, sessions in the order they started, and their files - with the names and ids the
+        provisioner writes (JeffreyLayout, SessionIds). Shared by the volume scheduler and, through
         other storage backends, by Microscope; each maps these types onto its own model.
     </description>
 
     <dependencies>
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>common</artifactId>
+            <groupId>com.github.f4b6a3</groupId>
+            <artifactId>uuid-creator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.20</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

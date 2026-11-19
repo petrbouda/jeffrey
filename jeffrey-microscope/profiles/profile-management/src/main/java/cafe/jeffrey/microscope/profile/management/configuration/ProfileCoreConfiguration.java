@@ -17,14 +17,19 @@
 
 package cafe.jeffrey.microscope.profile.management.configuration;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.duckdb.DatabaseManager;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
 import cafe.jeffrey.microscope.profile.management.ProfileInitializer;
 import cafe.jeffrey.microscope.profile.management.ProfileInitializerImpl;
+import cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingEventParser;
+import cafe.jeffrey.microscope.profile.management.ingest.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileConfigurationManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManager;
 import cafe.jeffrey.microscope.profile.management.manager.ProfileCustomManagerImpl;
@@ -45,29 +50,24 @@ import cafe.jeffrey.microscope.profile.management.manager.registry.AnalysisFacto
 import cafe.jeffrey.microscope.profile.management.manager.registry.JvmInsightFactories;
 import cafe.jeffrey.microscope.profile.management.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.microscope.profile.management.manager.registry.VisualizationFactories;
-import cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingEventParser;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersCatalog;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersManager;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersManagerImpl;
-import cafe.jeffrey.microscope.profile.management.ingest.data.AutoAnalysisDataProvider;
-import cafe.jeffrey.microscope.profile.parser.otlp.OtlpRecordingEventParser;
-import cafe.jeffrey.microscope.profile.parser.pprof.PprofRecordingEventParser;
 import cafe.jeffrey.microscope.profile.management.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.microscope.profile.management.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.microscope.profile.management.tools.pprof.PprofExportManager;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.microscope.profile.parser.otlp.OtlpRecordingEventParser;
+import cafe.jeffrey.microscope.profile.parser.pprof.PprofRecordingEventParser;
+import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabase;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.microscope.profile.persistence.api.ProfileRepositories;
-import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfilePersistenceProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileRepositories;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParserResolver;
-import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.microscope.duckdb.DatabaseManager;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 
 import java.util.Map;
 
@@ -230,7 +230,7 @@ public class ProfileCoreConfiguration {
             TempDirFactory tempDirFactory,
             Clock clock) {
         RecordingEventParser jfrParser =
-                new JfrRecordingEventParser(tempDirFactory, new Lz4Compressor(tempDirFactory));
+                new JfrRecordingEventParser(tempDirFactory, new Lz4Decompressor(tempDirFactory));
         RecordingEventParserResolver parserResolver = RecordingEventParserResolver.of(
                 Map.of(
                         RecordingEventSource.PPROF, new PprofRecordingEventParser(),
