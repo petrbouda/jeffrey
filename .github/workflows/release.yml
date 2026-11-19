@@ -88,8 +88,14 @@ jobs:
     with:
       version: ${{ needs.version.outputs.version }}
 
+  microscope-runtime:
+    needs: [version, build]
+    uses: ./.github/workflows/release-microscope-runtime.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
   create-release:
-    needs: [version, build, provisioner-native]
+    needs: [version, build, provisioner-native, microscope-runtime]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -121,11 +127,31 @@ jobs:
         name: provisioner-arm64
         path: ./artifacts/native-arm64
 
+    - name: Download runtime archive (linux-amd64)
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-linux-amd64
+        path: ./artifacts/runtimes
+
+    - name: Download runtime archive (linux-arm64)
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-linux-arm64
+        path: ./artifacts/runtimes
+
+    - name: Download runtime archive (macos-arm64)
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-macos-arm64
+        path: ./artifacts/runtimes
+
     - name: Prepare release assets
       run: |
         mv ./artifacts/native-amd64/provisioner ./artifacts/provisioner-amd64
         mv ./artifacts/native-arm64/provisioner ./artifacts/provisioner-arm64
         rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
+        mv ./artifacts/runtimes/*.tar.gz ./artifacts/
+        rm -rf ./artifacts/runtimes
 
     - name: Create Release
       uses: jreleaser/release-action@v2
