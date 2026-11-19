@@ -50,7 +50,7 @@ describe('useProfilerConfig', () => {
       const { generateFromBuilder } = useCustomProfilerConfig();
 
       expect(generateFromBuilder()).toBe(
-        `-agentpath:${DEFAULT_AGENT_PATH}=start,loop=15m,file=${DEFAULT_OUTPUT_FILE}`
+        `-agentpath:${DEFAULT_AGENT_PATH}=start,loop=15m,jfrsync=default,chunksize=5m,file=${DEFAULT_OUTPUT_FILE}`
       );
     });
 
@@ -439,7 +439,7 @@ describe('useProfilerConfig', () => {
     it('is the default, carrying only options and writing into the provisioned session', () => {
       const { generateFromBuilder } = useProfilerConfig();
 
-      expect(generateFromBuilder()).toBe(`start,loop=15m,file=${JEFFREY_SESSION_OUTPUT_FILE}`);
+      expect(generateFromBuilder()).toBe(`start,loop=15m,jfrsync=default,chunksize=5m,file=${JEFFREY_SESSION_OUTPUT_FILE}`);
     });
 
     it('leaves out the typed agent path, since the provisioner supplies the library', () => {

@@ -497,7 +497,6 @@
                   subtitle="Merge AsyncProfiler events with JFR recording"
                   icon="bi-arrow-down-up"
                   :is-enabled="optionStates.jfrsync"
-                  data-jfr-sync-card
                   @toggle="optionStates.jfrsync = $event"
                 >
                   <div class="interval-block">
@@ -565,7 +564,6 @@
                   subtitle="Maximum size of each JFR chunk file"
                   icon="bi-file-binary"
                   :is-enabled="optionStates.chunksize"
-                  data-chunk-size-card
                   @toggle="optionStates.chunksize = $event"
                 >
                   <div class="interval-block">
@@ -675,57 +673,6 @@
           </div>
         </div>
 
-        <!-- Chunk Size Warning Panel -->
-        <div
-          v-if="shouldShowChunkSizeWarning"
-          class="warning-panel clickable-warning"
-          @click="enableChunkSizeConfiguration()"
-        >
-          <div class="step-header-status header-warning">
-            <div class="step-type-info">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-              <span>RECOMMENDATION</span>
-              <span class="header-description">CHUNK SIZE NOT CONFIGURED</span>
-            </div>
-            <div class="configure-icon">
-              <i class="bi bi-gear-fill"></i>
-            </div>
-          </div>
-          <div class="warning-content">
-            <div class="warning-message">
-              <span class="warning-text"
-                ><span class="fw-bold">Chunk Size</span> helps with parallelization of JFR
-                processing with multiple threads</span
-              >
-            </div>
-          </div>
-        </div>
-
-        <!-- JFR Sync Warning Panel -->
-        <div
-          v-if="shouldShowJfrSyncWarning"
-          class="warning-panel clickable-warning"
-          @click="enableJfrSyncConfiguration()"
-        >
-          <div class="step-header-status header-warning">
-            <div class="step-type-info">
-              <i class="bi bi-exclamation-triangle-fill"></i>
-              <span>RECOMMENDATION</span>
-              <span class="header-description">JFR SYNCHRONIZATION NOT CONFIGURED</span>
-            </div>
-            <div class="configure-icon">
-              <i class="bi bi-gear-fill"></i>
-            </div>
-          </div>
-          <div class="warning-content">
-            <div class="warning-message">
-              <span class="warning-text"
-                ><span class="fw-bold">JFR Synchronization</span> merges AsyncProfiler events with
-                JDK's JFR recording for richer profiling data</span
-              >
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -796,7 +743,7 @@ const profilerSourceOptions: ChoiceTileOption<ProfilerSource>[] = [
   {
     id: 'custom',
     label: 'Custom profiler',
-    description: 'Your own libasyncProfiler.so, named in the command as \u2011agentpath.',
+    description: 'Your own libasyncProfiler.so, named in the command as ‑agentpath.',
     icon: 'folder2-open',
     tone: 'warning'
   }
@@ -877,64 +824,6 @@ const copyToClipboard = async () => {
   }
 };
 
-// Check if chunk size warning should be shown
-const shouldShowChunkSizeWarning = computed(() => {
-  return !optionStates.value.chunksize;
-});
-
-// Check if JFR sync warning should be shown
-const shouldShowJfrSyncWarning = computed(() => {
-  return !optionStates.value.jfrsync;
-});
-
-// Enable chunk size configuration. By default, scrolls the chunk-size card
-// into view; pass `{ scroll: false }` to skip the scroll (used when the
-// recommendation is clicked from an inline preview that's already on screen).
-const enableChunkSizeConfiguration = (options: { scroll?: boolean } = {}) => {
-  optionStates.value.chunksize = true;
-
-  if (!config.value.chunksizeValue) {
-    config.value.chunksizeValue = 100;
-    config.value.chunksizeUnit = 'm'; // MB
-  }
-
-  if (options.scroll === false) {
-    return;
-  }
-
-  setTimeout(() => {
-    const chunkSizeCard = document.querySelector('[data-chunk-size-card]');
-    if (chunkSizeCard) {
-      chunkSizeCard.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-    }
-  }, 100);
-};
-
-const enableJfrSyncConfiguration = (options: { scroll?: boolean } = {}) => {
-  optionStates.value.jfrsync = true;
-
-  if (!config.value.jfcMode) {
-    config.value.jfcMode = 'default';
-  }
-
-  if (options.scroll === false) {
-    return;
-  }
-
-  setTimeout(() => {
-    const jfrSyncCard = document.querySelector('[data-jfr-sync-card]');
-    if (jfrSyncCard) {
-      jfrSyncCard.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-    }
-  }, 100);
-};
-
 // Initialize configuration generation
 generateConfig();
 </script>
@@ -959,10 +848,6 @@ generateConfig();
   letter-spacing: 0.5px;
   color: white;
   transition: all 0.2s ease;
-}
-
-.header-warning {
-  background: linear-gradient(135deg, var(--color-amber), var(--color-amber-highlight));
 }
 
 .step-type-info {
@@ -1474,74 +1359,4 @@ generateConfig();
   }
 }
 
-/* Warning Panel Styles */
-.warning-panel {
-  margin-top: 16px;
-  background: var(--color-white);
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--color-border);
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.1),
-    0 1px 2px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.clickable-warning {
-  cursor: pointer;
-  user-select: none;
-}
-
-.clickable-warning:hover {
-  border-color: rgba(245, 158, 11, 0.3);
-  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
-  transform: translateY(-1px);
-}
-
-.clickable-warning:hover .step-header-status {
-  background: linear-gradient(135deg, var(--color-amber-highlight), var(--color-amber-darkest));
-}
-
-.clickable-warning:hover .configure-icon {
-  transform: rotate(15deg);
-}
-
-.warning-panel .step-header-status {
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 12px;
-  font-size: 9px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: white;
-}
-
-.configure-icon {
-  display: flex;
-  align-items: center;
-  font-size: 10px;
-  transition: transform 0.2s ease;
-  opacity: 0.8;
-}
-
-.warning-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-}
-
-.warning-message {
-  flex: 1;
-}
-
-.warning-text {
-  color: var(--color-text-muted);
-  margin: 0;
-  font-size: 0.8rem;
-  line-height: 1.4;
-}
 </style>
