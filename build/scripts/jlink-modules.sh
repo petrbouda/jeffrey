@@ -77,6 +77,14 @@ DISCOVERED_MODULES=$(jdeps \
     "${JDEPS_JARS[@]}" \
     2>/dev/null) || true
 
+# jdeps can silently fail on Windows (path handling, command-line length limits).
+# When it discovers nothing, fall back to the standard set of modules that a
+# Spring Boot + embedded Tomcat application needs.
+if [[ -z "${DISCOVERED_MODULES}" ]]; then
+    echo "Warning: jdeps discovered no modules; using Spring Boot baseline" >&2
+    DISCOVERED_MODULES="java.base,java.logging,java.management,java.naming,java.net.http,java.prefs,java.rmi,java.security.jgss,java.security.sasl,java.sql,java.sql.rowset,java.transaction.xa,java.xml,java.xml.crypto"
+fi
+
 # Modules that jdeps cannot discover through static analysis:
 #   jdk.incubator.vector — incubator module, explicitly required by the app
 #   jdk.unsupported      — Netty, protobuf, etc. use sun.misc.Unsafe
