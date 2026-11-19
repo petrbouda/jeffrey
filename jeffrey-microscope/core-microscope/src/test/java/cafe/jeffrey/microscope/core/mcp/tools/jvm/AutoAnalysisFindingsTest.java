@@ -29,7 +29,7 @@ import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

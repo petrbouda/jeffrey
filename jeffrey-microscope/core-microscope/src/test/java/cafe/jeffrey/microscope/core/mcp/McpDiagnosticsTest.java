@@ -29,7 +29,7 @@ import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.mcp.server.McpToolMetrics;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.ErrorType;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;

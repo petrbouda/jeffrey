@@ -68,7 +68,7 @@ import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;

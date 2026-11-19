@@ -31,7 +31,7 @@ import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;

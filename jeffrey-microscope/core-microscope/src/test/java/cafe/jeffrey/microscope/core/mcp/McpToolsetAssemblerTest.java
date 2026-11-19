@@ -90,7 +90,7 @@ import cafe.jeffrey.microscope.core.profile.trace.export.TraceAiMarkdownBuilder;
 import cafe.jeffrey.microscope.core.profile.trace.export.TraceOnCpu;
 import cafe.jeffrey.microscope.core.profile.trace.export.TraceOperationAiMarkdownBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceNotificationListQuery;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import cafe.jeffrey.microscope.core.test.DuckDBTest;

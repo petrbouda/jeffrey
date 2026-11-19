@@ -26,7 +26,8 @@ import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
-import cafe.jeffrey.microscope.common.Json;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -54,6 +55,9 @@ final class ToolInvocation {
     /** The caller's trace context, under the names the W3C header and the request's {@code _meta} use. */
     private static final String TRACEPARENT_ATTRIBUTE = McpMetaKeys.TRACEPARENT;
     private static final String TRACESTATE_ATTRIBUTE = McpMetaKeys.TRACESTATE;
+
+    /** Writes the span's attributes; they hold only numbers and strings, so Jackson's defaults suffice. */
+    private static final ObjectMapper MAPPER = JsonMapper.builder().build();
 
     private ToolInvocation() {
     }
@@ -115,7 +119,7 @@ final class ToolInvocation {
                 // How much the tool handed back. Everything a tool returns is pasted into the model's
                 // context and paid for on the next round trip, so the size of the answer is as
                 // interesting as the time it took to produce -- and invisible from the duration.
-                span.attributes = Json.toString(attributes(result, context));
+                span.attributes = MAPPER.writeValueAsString(attributes(result, context));
                 span.commit();
             }
         }

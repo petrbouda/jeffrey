@@ -43,7 +43,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.EventStacktrace;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventThread;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SingleThreadedEventWriter;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 

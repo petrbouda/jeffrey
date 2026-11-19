@@ -68,7 +68,7 @@ import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlagValueChange;
 import cafe.jeffrey.microscope.core.profile.persistence.api.JvmFlagDetail;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 

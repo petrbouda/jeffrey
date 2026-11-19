@@ -26,7 +26,6 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestFeatures;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
 import cafe.jeffrey.microscope.common.JeffreyVersion;
-import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;

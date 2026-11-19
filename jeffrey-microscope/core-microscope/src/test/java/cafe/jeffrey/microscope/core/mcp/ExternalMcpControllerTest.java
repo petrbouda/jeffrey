@@ -55,7 +55,7 @@ import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import org.junit.jupiter.api.Nested;

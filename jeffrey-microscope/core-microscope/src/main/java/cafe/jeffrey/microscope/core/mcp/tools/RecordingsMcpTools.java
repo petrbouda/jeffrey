@@ -46,7 +46,7 @@ import cafe.jeffrey.microscope.mcp.server.McpToolHints;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;

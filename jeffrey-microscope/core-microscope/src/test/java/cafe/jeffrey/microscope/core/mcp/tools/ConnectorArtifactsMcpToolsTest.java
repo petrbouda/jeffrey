@@ -43,7 +43,7 @@ import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.model.repository.StreamedFile;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.ErrorType;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;

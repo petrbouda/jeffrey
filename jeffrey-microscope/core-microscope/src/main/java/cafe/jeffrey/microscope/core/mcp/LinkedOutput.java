@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
-import cafe.jeffrey.microscope.common.Json;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.manager.model.nativememory;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 
 /**
  * Computes first/last/peak resident-set-size stats from a time-ordered stream of

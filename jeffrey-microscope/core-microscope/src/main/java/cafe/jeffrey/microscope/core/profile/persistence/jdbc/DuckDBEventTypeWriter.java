@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EnhancedEventType;
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;

@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.Frame;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.GraphData;
-import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.utils.Json;
 import com.google.protobuf.InvalidProtocolBufferException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

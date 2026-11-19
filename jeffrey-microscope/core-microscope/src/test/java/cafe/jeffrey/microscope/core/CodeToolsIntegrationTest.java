@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodKey;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodRef;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;

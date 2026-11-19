@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.core.pipeline.PipelineRunResult;
 import cafe.jeffrey.microscope.core.pipeline.PipelineState;
 import cafe.jeffrey.microscope.core.pipeline.StageResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.PipelineRunRepository;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;

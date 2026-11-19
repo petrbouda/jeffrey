@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.gc.tables;
 
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.tables.StringSymbolTablesData.Deduplication;

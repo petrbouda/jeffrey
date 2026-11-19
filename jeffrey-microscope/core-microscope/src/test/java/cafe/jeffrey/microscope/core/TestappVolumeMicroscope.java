@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.test.recording.Lz4Archives;
 import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;

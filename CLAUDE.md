@@ -20,7 +20,7 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        SpanInterval, SpanConventionKeys, ProfilingStartEnd, ThreadInfo, HiddenClassName,
                                        EventSubtype, SearchPattern, FrameType; core.profile.model.time: TimeRange and
                                        its subtypes; core.profile.settings: ActiveSetting, ActiveSettings),
-                                       general-purpose utilities (core.utils: Schedulers, IDGenerator, BytesUtils,
+                                       general-purpose utilities (core.utils: Json, Schedulers, IDGenerator, BytesUtils,
                                        DurationUtils, CacheKey, TempDirFactory, SemanticVersion, StringUtils),
                                        ErrorResponse in core.web, Lz4Decompressor in core.profile.ingest;
                                        the profile analysis, one package tree per feature under core.profile (flamegraph,
@@ -59,7 +59,7 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        SMB + NFS, SAS or Entra) over volume-connector's clients, a module of its own
                                        so the Azure SDK stays out of everything else; core-microscope takes it at
                                        run time only
-  microscope-common/                   the utilities every Microscope module shares: Json, JeffreyVersion,
+  microscope-common/                   the utilities every Microscope module shares: JeffreyVersion,
                                        InstantUtils; the exception hierarchy (ErrorCode, ErrorType, Exceptions,
                                        JeffreyException and subtypes); FileSystemUtils, TempDirectory; Measuring,
                                        Elapsed

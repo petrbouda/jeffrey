@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
 import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.common;
+package cafe.jeffrey.microscope.core.utils;
 
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;

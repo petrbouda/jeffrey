@@ -72,7 +72,7 @@ import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
 import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.utils.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

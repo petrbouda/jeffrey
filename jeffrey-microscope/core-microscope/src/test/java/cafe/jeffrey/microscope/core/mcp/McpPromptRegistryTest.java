@@ -16,9 +16,9 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkill;
-import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.node.ObjectNode;

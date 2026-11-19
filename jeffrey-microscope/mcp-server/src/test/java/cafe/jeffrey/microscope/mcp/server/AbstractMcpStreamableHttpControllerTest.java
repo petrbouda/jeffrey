@@ -47,7 +47,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpTransportHeaders;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestFeatures;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
-import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

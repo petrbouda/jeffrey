@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.feature.checker;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.event.ContainerConfiguration;
 import cafe.jeffrey.microscope.core.profile.event.ContainerIOUsage;
 import cafe.jeffrey.microscope.core.profile.model.EventSummary;

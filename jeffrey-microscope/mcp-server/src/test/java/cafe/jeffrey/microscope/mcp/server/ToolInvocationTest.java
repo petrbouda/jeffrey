@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpTraceContext;
 import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
-import cafe.jeffrey.microscope.common.Json;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;

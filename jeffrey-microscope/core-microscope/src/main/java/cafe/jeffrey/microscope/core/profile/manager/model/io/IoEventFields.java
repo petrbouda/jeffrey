@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager.model.io;
 
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 
 /**

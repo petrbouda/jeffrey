@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeWithFields;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import tools.jackson.core.type.TypeReference;

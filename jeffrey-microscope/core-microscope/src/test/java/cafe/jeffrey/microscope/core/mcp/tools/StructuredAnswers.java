@@ -32,7 +32,7 @@ import cafe.jeffrey.microscope.core.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.springframework.ai.tool.annotation.Tool;
 import tools.jackson.databind.JsonNode;
 

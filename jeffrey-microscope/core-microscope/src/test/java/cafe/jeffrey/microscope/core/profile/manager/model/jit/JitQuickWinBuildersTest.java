@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.profile.manager.model.jit.CodeCacheData.CodeCacheSegment;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;

@@ -41,7 +41,7 @@ import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import tools.jackson.databind.JsonNode;

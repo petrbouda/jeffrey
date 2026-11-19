@@ -43,6 +43,11 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
         </dependency>
+        <!-- Json (moved from microscope-common into core.utils) -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
         <!-- IDGenerator (moved from microscope-common into core.utils) -->
         <dependency>
             <groupId>com.github.f4b6a3</groupId>
