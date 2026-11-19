@@ -13,43 +13,136 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build Native Provisioner
+# The provisioner's release, independent of Microscope's (release.yml, tag-driven). It runs only
+# by hand: Actions -> Release Jeffrey Provisioner -> Run workflow, with the version typed into the form.
+#
+# It publishes three assets to a GitHub release — provisioner.jar (universal fat jar),
+# provisioner-amd64 and provisioner-arm64 (GraalVM native binaries) — and tags the commit as
+# provisioner-v<version>. The release is created with --latest=false so it never becomes GitHub's
+# "latest" release: that designation belongs to Microscope, whose update check
+# (GitHubReleaseChecker) reads /releases/latest.
+#
+# The provisioner-v prefix keeps the tag out of release.yml's v<version> patterns, and a tag
+# pushed with GITHUB_TOKEN starts no workflow anyway.
+
+name: Release Jeffrey Provisioner
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       version:
-        description: 'Release version without the leading v (e.g. 0.13.22). Resolved by the caller from the tag or from the manually entered version.'
+        description: 'Provisioner release version, with or without the leading v (e.g. 0.15.0, 0.15.0-b2).'
         required: true
         type: string
 
 jobs:
-  build-provisioner-native:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            arch: amd64
-          - os: ubuntu-24.04-arm
-            arch: arm64
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.VERSION }}
+    steps:
+    - name: Resolve version
+      id: resolve
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        VERSION="${INPUT_VERSION#v}"
+        if [[ ! "${VERSION}" =~ ^([0-9]+\.[0-9]+-b[0-9]+|[0-9]+\.[0-9]+\.[0-9]+(-[a-z][a-z0-9-]*)?)$ ]]; then
+          echo "ERROR: version '${VERSION}' does not match [0-9]+.[0-9]+-b[0-9]+ or [0-9]+.[0-9]+.[0-9]+(-<suffix>)? where suffix is -bN or -[a-z][a-z0-9-]*" >&2
+          exit 1
+        fi
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Releasing Provisioner ${VERSION}"
+
+  build-jar:
+    needs: [version]
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v6
 
-    - name: Setup GraalVM
-      uses: graalvm/setup-graalvm@v1
+    - uses: actions/setup-java@v6
       with:
+        distribution: temurin
         java-version: '25'
-        distribution: 'graalvm-community'
+        cache: maven
 
-    - name: Build native provisioner
+    - name: Build provisioner fat JAR
       env:
-        JEFFREY_TAG_VERSION: ${{ inputs.version }}
-      run: mvn -e -pl build/build-provisioner-native -am -Pnative package -DskipTests
+        JEFFREY_TAG_VERSION: ${{ needs.version.outputs.version }}
+      run: mvn -e -pl build/build-provisioner -am verify
 
-    - name: Upload native provisioner
+    - name: Upload provisioner.jar
       uses: actions/upload-artifact@v7
       with:
-        name: provisioner-${{ matrix.arch }}
-        path: ./build/build-provisioner-native/target/provisioner
+        name: provisioner-jar
+        path: ./build/build-provisioner/target/provisioner.jar
+
+  build-native:
+    needs: [version]
+    uses: ./.github/workflows/build-provisioner-native.yml
+    with:
+      version: ${{ needs.version.outputs.version }}
+
+  create-release:
+    needs: [version, build-jar, build-native]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Download provisioner.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: provisioner-jar
+        path: ./artifacts
+
+    - name: Download native provisioner (amd64)
+      uses: actions/download-artifact@v8
+      with:
+        name: provisioner-amd64
+        path: ./artifacts/native-amd64
+
+    - name: Download native provisioner (arm64)
+      uses: actions/download-artifact@v8
+      with:
+        name: provisioner-arm64
+        path: ./artifacts/native-arm64
+
+    - name: Prepare release assets
+      run: |
+        mv ./artifacts/native-amd64/provisioner ./artifacts/provisioner-amd64
+        mv ./artifacts/native-arm64/provisioner ./artifacts/provisioner-arm64
+        rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
+
+    - name: Create tag and GitHub release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ needs.version.outputs.version }}
+      run: |
+        TAG="provisioner-v${VERSION}"
+
+        if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+          echo "Tag ${TAG} already exists, keeping it as it is."
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "refs/tags/${TAG}"
+        fi
+
+        PRERELEASE_FLAG=""
+        if [[ "${VERSION}" =~ -[a-z] ]]; then
+          PRERELEASE_FLAG="--prerelease"
+        fi
+
+        gh release create "${TAG}" \
+          --title "Jeffrey Provisioner ${VERSION}" \
+          --notes "Release ${VERSION}" \
+          --latest=false \
+          ${PRERELEASE_FLAG} \
+          ./artifacts/provisioner.jar \
+          ./artifacts/provisioner-amd64 \
+          ./artifacts/provisioner-arm64

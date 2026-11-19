@@ -16,13 +16,12 @@
 # JReleaser configuration for the Jeffrey Microscope GitHub release.
 #
 # Scope: this file ONLY drives the GitHub release step (changelog + assets +
-# checksums + signatures) of the tag-triggered pipeline. The GraalVM native CLI
-# and the Spring Boot jars are produced in the earlier jobs of
+# checksums + signatures) of the tag-triggered pipeline. The Spring Boot jar and
+# the jlinked runtime archives are produced in the earlier jobs of
 # .github/workflows/release.yml and handed to JReleaser as pre-built files.
 # Microscope ships only as microscope.jar — there is no Microscope container image.
-# The Volume Scheduler is not part of this release: it ships only as its Docker
-# image, released by hand through .github/workflows/release-volume-scheduler.yml, which creates no
-# GitHub release (Microscope's update check reads the latest one).
+# The provisioner and the Volume Scheduler are not part of this release: they ship
+# independently through release-provisioner.yml and release-volume-scheduler.yml.
 #
 # The project version is NOT taken from the pom (which stays 1.0-SNAPSHOT). It is
 # supplied at runtime via JRELEASER_PROJECT_VERSION, derived from the git tag.
@@ -78,9 +77,6 @@ signing:
 files:
   artifacts:
     - path: artifacts/microscope.jar
-    - path: artifacts/provisioner.jar
-    - path: artifacts/provisioner-amd64
-    - path: artifacts/provisioner-arm64
     - path: artifacts/microscope-{{projectVersion}}-linux-amd64.tar.gz
     - path: artifacts/microscope-{{projectVersion}}-macos-arm64.tar.gz
     - path: artifacts/microscope-{{projectVersion}}-windows-amd64.zip

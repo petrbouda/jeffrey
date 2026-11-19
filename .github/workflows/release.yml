@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Microscope's release (with the provisioner): push a tag vX.Y.Z[-bN|-suffix] and the version
-# comes from the tag. The Volume Scheduler is released on its own, by hand, through
-# release-volume-scheduler.yml; its tags are volume-scheduler-v<version>, which the patterns below
-# never match.
+# Microscope's release: push a tag vX.Y.Z[-bN|-suffix] and the version comes from the tag.
+# The provisioner and the Volume Scheduler are released on their own, by hand, through
+# release-provisioner.yml and release-volume-scheduler.yml respectively; their tags
+# (provisioner-v<version>, volume-scheduler-v<version>) never match the patterns below.
 on:
   push:
     tags:
@@ -76,18 +76,6 @@ jobs:
         name: microscope-jar
         path: ./build/build-microscope/target/microscope.jar
 
-    - name: Upload provisioner.jar
-      uses: actions/upload-artifact@v7
-      with:
-        name: provisioner-jar
-        path: ./build/build-provisioner/target/provisioner.jar
-
-  provisioner-native:
-    needs: [version]
-    uses: ./.github/workflows/release-provisioner.yml
-    with:
-      version: ${{ needs.version.outputs.version }}
-
   microscope-runtime:
     needs: [version, build]
     uses: ./.github/workflows/release-microscope-runtime.yml
@@ -95,7 +83,7 @@ jobs:
       version: ${{ needs.version.outputs.version }}
 
   create-release:
-    needs: [version, build, provisioner-native, microscope-runtime]
+    needs: [version, build, microscope-runtime]
     runs-on: ubuntu-latest
     permissions: write-all
 
@@ -108,24 +96,6 @@ jobs:
       with:
         name: microscope-jar
         path: ./artifacts
-
-    - name: Download provisioner.jar
-      uses: actions/download-artifact@v8
-      with:
-        name: provisioner-jar
-        path: ./artifacts
-
-    - name: Download native provisioner (amd64)
-      uses: actions/download-artifact@v8
-      with:
-        name: provisioner-amd64
-        path: ./artifacts/native-amd64
-
-    - name: Download native provisioner (arm64)
-      uses: actions/download-artifact@v8
-      with:
-        name: provisioner-arm64
-        path: ./artifacts/native-arm64
 
     - name: Download runtime archive (linux-amd64)
       uses: actions/download-artifact@v8
@@ -147,9 +117,6 @@ jobs:
 
     - name: Prepare release assets
       run: |
-        mv ./artifacts/native-amd64/provisioner ./artifacts/provisioner-amd64
-        mv ./artifacts/native-arm64/provisioner ./artifacts/provisioner-arm64
-        rm -rf ./artifacts/native-amd64 ./artifacts/native-arm64
         mv ./artifacts/runtimes/* ./artifacts/
         rm -rf ./artifacts/runtimes
 

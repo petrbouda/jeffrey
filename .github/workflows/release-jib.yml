@@ -28,7 +28,7 @@ on:
         required: true
         type: string
       provisionerTag:
-        description: 'Provisioner tag: the Jeffrey release whose provisioner jeffrey-jib bundles — "latest" or a tag such as v0.13.22.'
+        description: 'Provisioner release tag: "latest" or a tag such as provisioner-v0.15.0.'
         required: false
         default: 'latest'
         type: string
@@ -62,13 +62,14 @@ jobs:
           distribution: 'temurin'
 
       # The payload modules ship the provisioner and async-profiler that jeffrey-jib bakes into
-      # application images. The provisioner comes from a published Jeffrey release rather than a build of this repository, because jeffrey-jib
-      # releases on its own cadence: which Jeffrey
-      # release an extension carries is a choice, stated here (or defaulted to the latest
+      # application images. The provisioner comes from a published provisioner release
+      # (release-provisioner.yml) rather than from a Microscope release or a build of this
+      # repository, because jeffrey-jib releases on its own cadence: which provisioner release
+      # an extension carries is a choice, stated here (or defaulted to the latest provisioner
       # release), recorded in each payload jar's descriptor (jeffrey-payload/payload.properties)
       # and printed by the extension at build time. Consumers pick it up by the version of the
       # flavour they declare.
-      - name: Resolve the Jeffrey release to bundle
+      - name: Resolve the provisioner release to bundle
         id: jeffrey
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -77,15 +78,15 @@ jobs:
           if [ -n "${INPUT_RELEASE}" ] && [ "${INPUT_RELEASE}" != "latest" ]; then
             RELEASE="${INPUT_RELEASE}"
           else
-            # `gh release view` with no tag is GitHub's "latest": the newest non-prerelease,
-            # non-draft release — the same one the Releases page badges as Latest.
-            RELEASE=$(gh release view -R petrbouda/jeffrey --json tagName --jq .tagName)
+            # Find the latest provisioner release (provisioner-v* tags, non-draft, non-prerelease).
+            RELEASE=$(gh release list -R petrbouda/jeffrey --json tagName,isDraft,isPrerelease \
+              --jq '[.[] | select(.tagName | startswith("provisioner-v")) | select(.isDraft == false) | select(.isPrerelease == false)][0].tagName')
           fi
-          if [[ ! "${RELEASE}" =~ ^v[0-9] ]]; then
-            echo "ERROR: could not resolve a Jeffrey release tag (got '${RELEASE}')" >&2
+          if [[ ! "${RELEASE}" =~ ^provisioner-v[0-9] ]]; then
+            echo "ERROR: could not resolve a provisioner release tag (got '${RELEASE}')" >&2
             exit 1
           fi
-          echo "Bundling the provisioner from Jeffrey ${RELEASE}"
+          echo "Bundling the provisioner from ${RELEASE}"
           echo "RELEASE=${RELEASE}" >> "$GITHUB_OUTPUT"
 
       - name: Stage provisioner payloads
