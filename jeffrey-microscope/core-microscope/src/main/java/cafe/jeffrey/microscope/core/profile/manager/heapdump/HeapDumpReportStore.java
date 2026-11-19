@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.DuplicateD
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.StringHeapAnalysis;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;

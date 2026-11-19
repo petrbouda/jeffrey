@@ -47,7 +47,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.TraceNotificationLis
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationId;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationListQuery;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationSortField;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

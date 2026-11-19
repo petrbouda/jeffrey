@@ -26,13 +26,13 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.mcp.protocol.UnknownToolException;
-import cafe.jeffrey.microscope.common.Json;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.ai.tool.support.ToolUtils;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.IntNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 import tools.jackson.databind.node.StringNode;
 
@@ -175,7 +175,7 @@ final class ToolMethodIndex {
         meta.put(JeffreyMetaKeys.COST, StringNode.valueOf(declared.cost().name()));
         List<String> requires = requirementsOf(method, declared);
         if (!requires.isEmpty()) {
-            ArrayNode names = Json.createArray();
+            ArrayNode names = JsonNodeFactory.instance.arrayNode();
             requires.forEach(names::add);
             meta.put(JeffreyMetaKeys.REQUIRES, names);
         }
@@ -397,7 +397,7 @@ final class ToolMethodIndex {
     }
 
     private static ObjectNode buildInputSchema(Method method, List<SyntheticParam> syntheticParams) {
-        ObjectNode schema = Json.createObject();
+        ObjectNode schema = JsonNodeFactory.instance.objectNode();
         schema.put(SCHEMA_TYPE, ToolParamTypes.JSON_TYPE_OBJECT);
         ObjectNode properties = schema.putObject(SCHEMA_PROPERTIES);
         List<String> requiredNames = new ArrayList<>();

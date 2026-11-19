@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.g1.G1AnalysisData.PausePhase;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.g1.G1AnalysisData.RegionSnapshot;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 

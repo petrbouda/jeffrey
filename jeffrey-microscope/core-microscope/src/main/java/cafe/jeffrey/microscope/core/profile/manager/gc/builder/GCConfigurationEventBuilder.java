@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.gc.builder;
 
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.event.*;
 import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;

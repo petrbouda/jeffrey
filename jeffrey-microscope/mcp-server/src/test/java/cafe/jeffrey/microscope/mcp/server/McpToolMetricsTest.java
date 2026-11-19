@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.mcp.server;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestFeatures;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
-import cafe.jeffrey.microscope.common.Json;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import tools.jackson.databind.JsonNode;

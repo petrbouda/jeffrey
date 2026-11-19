@@ -30,7 +30,7 @@
     <artifactId>microscope-common</artifactId>
     <description>
         The utilities every Microscope module shares: the exception hierarchy the REST layer maps to
-        statuses, Json, JeffreyVersion, InstantUtils, FileSystemUtils, TempDirectory, and Measuring.
+        statuses, JeffreyVersion, InstantUtils, FileSystemUtils, TempDirectory, and Measuring.
         What Microscope must agree on with the volume scheduler and the provisioner -- the volume's
         names and session ids -- is shared/volume.
     </description>
@@ -40,10 +40,6 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>2.0.20</version>
-        </dependency>
-        <dependency>
-            <groupId>tools.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

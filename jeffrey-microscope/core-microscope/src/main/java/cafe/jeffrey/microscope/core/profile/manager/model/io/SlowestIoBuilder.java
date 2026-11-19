@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.model.io;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.time.Duration;

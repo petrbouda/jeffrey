@@ -23,7 +23,6 @@ import cafe.jeffrey.microscope.mcp.protocol.UnknownToolException;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
-import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ArrayNode;
 import tools.jackson.databind.node.ObjectNode;
 

@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

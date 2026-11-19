@@ -22,8 +22,6 @@
  */
 module cafe.jeffrey.microscope.common {
     requires transitive org.slf4j;
-    requires transitive tools.jackson.core;
-    requires transitive tools.jackson.databind;
     exports cafe.jeffrey.microscope.common;
     exports cafe.jeffrey.microscope.common.exception;
     exports cafe.jeffrey.microscope.common.filesystem;

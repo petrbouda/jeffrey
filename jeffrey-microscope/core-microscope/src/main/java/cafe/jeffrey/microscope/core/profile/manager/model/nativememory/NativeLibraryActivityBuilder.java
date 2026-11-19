@@ -24,7 +24,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.nativememory.NativeLib
 import cafe.jeffrey.microscope.core.profile.manager.model.nativememory.NativeLibraryActivityData.Operation;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;

@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
-import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
@@ -30,6 +29,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.AllocatingThread;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventDurationStats;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlagValueChange;
 import cafe.jeffrey.microscope.core.profile.persistence.api.JvmFlagDetail;
+import cafe.jeffrey.microscope.core.utils.Json;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;

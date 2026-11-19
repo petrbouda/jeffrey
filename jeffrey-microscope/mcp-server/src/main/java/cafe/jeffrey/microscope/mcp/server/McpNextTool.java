@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.mcp.server;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpJsonObject;
-import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.util.List;
@@ -82,7 +82,7 @@ public record McpNextTool(
 
         private final String tool;
         private final McpToolWeight weight;
-        private final ObjectNode arguments = Json.createObject();
+        private final ObjectNode arguments = JsonNodeFactory.instance.objectNode();
 
         private Call(String tool, McpToolWeight weight) {
             this.tool = tool;

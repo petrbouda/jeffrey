@@ -21,7 +21,7 @@ import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.core.profile.manager.model.security.SecurityData.MisdeclarationStat;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.utils.Json;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;

@@ -18,13 +18,13 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard.Refusal;
+import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.mcp.protocol.McpCompletionProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpServerFeatures;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpTransportHeaders;
 import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
-import cafe.jeffrey.microscope.common.Json;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
