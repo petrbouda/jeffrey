@@ -72,7 +72,7 @@ EXTRA_MODULES="jdk.incubator.vector,jdk.unsupported,jdk.jfr,jdk.management,java.
 
 ALL_MODULES=$(echo "${DISCOVERED_MODULES},${EXTRA_MODULES}" \
     | tr ',' '\n' \
-    | sed '/^$/d' \
+    | grep -E '^(java|jdk)\.' \
     | sort -u \
     | paste -s -d ',' -)
 
