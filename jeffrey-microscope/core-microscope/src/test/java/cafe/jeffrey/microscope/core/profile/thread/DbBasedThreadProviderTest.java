@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThreadImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventRepository;

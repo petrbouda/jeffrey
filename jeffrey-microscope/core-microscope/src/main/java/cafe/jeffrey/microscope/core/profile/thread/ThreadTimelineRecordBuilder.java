@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.thread;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThread;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.model.ThreadInfo;

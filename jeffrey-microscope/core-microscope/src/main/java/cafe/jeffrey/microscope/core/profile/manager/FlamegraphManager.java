@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeQuery;
 import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
 
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrame;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileExceptionRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowCountRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowMessageRecord;

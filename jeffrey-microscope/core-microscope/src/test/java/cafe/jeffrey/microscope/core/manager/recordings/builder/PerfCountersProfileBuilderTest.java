@@ -31,7 +31,7 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.persistence.api.ProfileRepository;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.perfcounters.PerfCounterValues;
 import cafe.jeffrey.microscope.core.profile.perfcounters.PerfCountersManager;

@@ -43,10 +43,6 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-model</artifactId>
         </dependency>
-        <dependency>
-            <groupId>cafe.jeffrey</groupId>
-            <artifactId>notifications</artifactId>
-        </dependency>
         <!-- Spring Boot -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -58,10 +54,6 @@
         </dependency>
 
         <!-- JFR model types, analysis and settings shared with the profile analysis below -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>common-profile</artifactId>
-        </dependency>
         <!-- MCP: the pure 2026-07-28 protocol, and Jeffrey's adapter over it (Spring MVC, @Tool toolsets) -->
         <dependency>
             <groupId>${project.groupId}</groupId>

@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.profile.frameir.frame;
 
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrClass;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThread;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrClass;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
 
 public class FrameNameBuilder {
 

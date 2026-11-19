@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.manager.builder;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.profile.common.event.JITCompilerType;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationEvent;
+import cafe.jeffrey.microscope.core.profile.event.JITCompilerType;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationEvent;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 

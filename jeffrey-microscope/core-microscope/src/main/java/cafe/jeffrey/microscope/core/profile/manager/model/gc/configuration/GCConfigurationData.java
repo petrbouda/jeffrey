@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.gc.configuration;
 
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.microscope.profile.common.event.*;
+import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;
+import cafe.jeffrey.microscope.core.profile.event.*;
 
 public record GCConfigurationData(
         GarbageCollectorType detectedType,

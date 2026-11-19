@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.proto.FlamegraphData;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.Frame;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.Level;
 import cafe.jeffrey.microscope.core.profile.frameir.DiffFrame;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 
 import java.util.ArrayList;
 import java.util.HashMap;

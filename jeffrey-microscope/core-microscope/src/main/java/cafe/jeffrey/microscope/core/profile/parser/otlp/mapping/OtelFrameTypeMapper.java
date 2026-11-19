@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.parser.otlp.mapping;
 
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 
 import java.util.Locale;
 import java.util.Map;

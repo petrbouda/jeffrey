@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;

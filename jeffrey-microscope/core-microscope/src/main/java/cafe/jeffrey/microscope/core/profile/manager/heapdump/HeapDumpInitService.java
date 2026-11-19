@@ -27,14 +27,14 @@ import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.ThreadHeap
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
-import cafe.jeffrey.microscope.profile.common.operation.OperationState;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRun;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRequest;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.core.operation.OperationHandle;
+import cafe.jeffrey.microscope.core.operation.OperationState;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRun;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRequest;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.IndexBuildProgressListener;
 
 import java.time.Clock;

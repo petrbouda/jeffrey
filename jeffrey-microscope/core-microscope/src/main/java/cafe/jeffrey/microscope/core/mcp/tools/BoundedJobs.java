@@ -16,9 +16,9 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
-import cafe.jeffrey.microscope.profile.common.operation.OperationSnapshot;
-import cafe.jeffrey.microscope.profile.common.operation.OperationState;
+import cafe.jeffrey.microscope.core.operation.OperationHandle;
+import cafe.jeffrey.microscope.core.operation.OperationSnapshot;
+import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.common.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

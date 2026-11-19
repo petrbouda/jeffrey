@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
 import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.ClassHistogramAnalyzer;
 import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.ClassInstanceBrowserAnalyzer;
 import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.ClassLoaderDetailService;

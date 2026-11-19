@@ -41,7 +41,7 @@ import cafe.jeffrey.microscope.core.profile.heapdump.model.LeakHintFinding;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.SortBy;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.ThreadStackFrame;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;
 

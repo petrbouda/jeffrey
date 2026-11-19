@@ -15,7 +15,6 @@ Analyze changed files to determine affected modules and run only the relevant te
 
 2. **Map changed files to Maven modules**:
    - `jeffrey-microscope/core-microscope/` -> `-pl jeffrey-microscope/core-microscope`
-   - `jeffrey-microscope/common-profile/` -> `-pl jeffrey-microscope/common-profile` (and `jeffrey-microscope/core-microscope`, which builds on it)
    - `volume-scheduler/` -> `-pl volume-scheduler`
    - `jeffrey-microscope/microscope-common/` -> `-pl jeffrey-microscope/microscope-common`
    - `jeffrey-microscope/microscope-test/` -> `-pl jeffrey-microscope/microscope-test`

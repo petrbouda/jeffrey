@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;

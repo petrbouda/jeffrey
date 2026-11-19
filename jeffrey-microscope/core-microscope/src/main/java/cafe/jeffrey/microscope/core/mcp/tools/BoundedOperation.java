@@ -20,7 +20,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
-import cafe.jeffrey.microscope.profile.common.operation.OperationHandle;
+import cafe.jeffrey.microscope.core.operation.OperationHandle;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.common.Json;

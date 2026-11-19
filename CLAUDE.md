@@ -15,7 +15,11 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download);
                                        the profile analysis, one package tree per feature under core.profile (flamegraph,
                                        frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
-                                       orchestration, …), the recording parsers (core.profile.parser: JFR via the JDK and
+                                       orchestration, …) and the profile model it reads (core.profile.jfr: the JFR model
+                                       types; core.profile.{event,exceptions,analysis,treetable,graph}; FrameType in
+                                       core.profile.model), the init pipelines (core.pipeline) and the long-running
+                                       operations polled over MCP (core.operation), Jeffrey's own jeffrey.Notification
+                                       events (core.notification), the recording parsers (core.profile.parser: JFR via the JDK and
                                        raw chunks, pprof, OTLP), heap dumps (core.profile.heapdump, OQL in .oql), the
                                        per-profile DuckDB (core.profile.persistence: repository API + impl), the core
                                        DuckDB of recordings and profiles (core.persistence) and the DuckDB plumbing every
@@ -42,9 +46,6 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
-  notifications/
-  common-profile/                      the profile model core-microscope analyses (incl. the JFR model types;
-                                       cafe.jeffrey.microscope.profile.common)
 volume-scheduler/                      one module: VolumeSchedulerApplication (cafe.jeffrey.volumescheduler: config/ (typed
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:

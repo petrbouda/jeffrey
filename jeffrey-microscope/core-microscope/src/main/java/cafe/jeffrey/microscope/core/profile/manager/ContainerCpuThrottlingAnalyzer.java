@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.profile.common.event.ContainerConfiguration;
-import cafe.jeffrey.microscope.profile.common.event.ContainerCpuThrottling;
+import cafe.jeffrey.microscope.core.profile.event.ContainerConfiguration;
+import cafe.jeffrey.microscope.core.profile.event.ContainerCpuThrottling;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerCpuThrottlingData;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerCpuThrottlingData.Severity;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerCpuThrottlingData.Summary;

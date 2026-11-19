@@ -21,7 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import tools.jackson.databind.node.JsonNodeFactory;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThreadImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 

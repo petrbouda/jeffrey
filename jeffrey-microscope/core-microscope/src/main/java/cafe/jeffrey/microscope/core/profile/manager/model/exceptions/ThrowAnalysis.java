@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.exceptions;
 
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrame;
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowOrigin;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;
 
 import java.util.List;
 import java.util.Map;

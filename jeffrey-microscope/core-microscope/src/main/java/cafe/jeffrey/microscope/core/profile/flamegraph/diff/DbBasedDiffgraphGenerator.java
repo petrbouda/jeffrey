@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.flamegraph.diff;
 
 import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.flamegraph.GraphGenerator;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.TimeseriesPoint;
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.TimeseriesSeries;

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.action;
 
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.microscope.model.ProfileInfo;

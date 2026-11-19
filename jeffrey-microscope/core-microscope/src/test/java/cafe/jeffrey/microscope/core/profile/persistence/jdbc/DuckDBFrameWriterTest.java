@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrameImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrameImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrameWithHash;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;

@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationEvent;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationMethodAggregate;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationReasonCount;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationStats;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationEvent;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationMethodAggregate;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationReasonCount;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationStats;
 import cafe.jeffrey.microscope.core.profile.manager.JITDeoptimizationManager;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 

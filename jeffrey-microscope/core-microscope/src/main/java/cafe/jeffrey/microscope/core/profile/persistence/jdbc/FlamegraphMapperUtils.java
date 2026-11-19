@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrameImpl;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThreadImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrameImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 
 import java.sql.Array;
 import java.sql.ResultSet;

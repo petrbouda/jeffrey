@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.flamegraph.provider;
 
 import cafe.jeffrey.microscope.core.profile.flamegraph.proto.FlamegraphData;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.flamegraph.FlameGraphProtoBuilder;
 import cafe.jeffrey.microscope.core.profile.frameir.Frame;
 import cafe.jeffrey.microscope.core.profile.frameir.FrameBuilder;

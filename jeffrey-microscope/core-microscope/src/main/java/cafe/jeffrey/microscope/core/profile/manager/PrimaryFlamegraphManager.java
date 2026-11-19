@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.WeightUnit;

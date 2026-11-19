@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.resources.request;
 
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
 
 /**
  * Request for a flamegraph scoped to a single async-profiler span {@code tag}. Unlike

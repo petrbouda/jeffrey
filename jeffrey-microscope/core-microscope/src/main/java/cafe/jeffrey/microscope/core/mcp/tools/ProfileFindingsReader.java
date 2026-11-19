@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisFindings;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.feature.ProfileDisabledFeatures;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;

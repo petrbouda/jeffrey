@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.container;
 
-import cafe.jeffrey.microscope.profile.common.event.ContainerConfiguration;
+import cafe.jeffrey.microscope.core.profile.event.ContainerConfiguration;
 
 public record ContainerConfigurationData(
         ContainerConfiguration configuration

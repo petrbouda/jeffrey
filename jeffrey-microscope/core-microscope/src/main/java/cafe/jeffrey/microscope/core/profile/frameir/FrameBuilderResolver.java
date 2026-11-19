@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.frameir;
 
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.WeightUnit;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.frameir.frame.AllocationTopFrameProcessor;
 import cafe.jeffrey.microscope.core.profile.frameir.frame.BlockingTopFrameProcessor;
 import cafe.jeffrey.microscope.core.profile.frameir.frame.MethodTraceTopFrameProcessor;

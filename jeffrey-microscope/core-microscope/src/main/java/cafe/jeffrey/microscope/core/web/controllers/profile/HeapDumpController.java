@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.HeapDumpConfig;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.HeapSummary;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunResult;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;
 

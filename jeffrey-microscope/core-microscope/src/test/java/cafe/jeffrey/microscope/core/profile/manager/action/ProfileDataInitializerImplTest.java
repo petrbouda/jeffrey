@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager.action;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.thread.ThreadManager;

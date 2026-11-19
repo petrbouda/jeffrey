@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunResult;
 
 import java.util.List;
 import java.util.Optional;

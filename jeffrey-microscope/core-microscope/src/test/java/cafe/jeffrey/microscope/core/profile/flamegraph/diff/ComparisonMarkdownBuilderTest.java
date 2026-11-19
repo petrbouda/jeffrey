@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.flamegraph.diff;
 
 import cafe.jeffrey.microscope.core.profile.frameir.DiffTreeGenerator;
 import cafe.jeffrey.microscope.core.profile.frameir.Frame;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 import cafe.jeffrey.microscope.model.Type;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -22,10 +22,10 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.Line
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.MethodCost;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.MethodValue;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.TierValue;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 

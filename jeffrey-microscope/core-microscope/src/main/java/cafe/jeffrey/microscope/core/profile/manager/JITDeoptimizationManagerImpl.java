@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationEvent;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationMethodAggregate;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationReasonCount;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationStats;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationEvent;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationMethodAggregate;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationReasonCount;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationStats;
 import cafe.jeffrey.microscope.core.profile.manager.builder.JITDeoptimizationCountTimeseriesBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.builder.JITDeoptimizationEventsBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.builder.JITDeoptimizationReasonDistributionBuilder;

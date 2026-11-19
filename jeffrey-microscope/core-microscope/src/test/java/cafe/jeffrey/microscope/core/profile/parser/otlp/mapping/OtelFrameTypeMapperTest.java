@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.parser.otlp.mapping;
 
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

@@ -156,11 +156,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>notifications</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>pages-microscope</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -192,11 +187,6 @@
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>azure-files-connector</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>common-profile</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -20,7 +20,7 @@ import cafe.jeffrey.microscope.common.measure.Elapsed;
 import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.core.duckdb.DuckDBMemoryMonitor;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 
 import java.io.IOException;
 import java.nio.file.Files;

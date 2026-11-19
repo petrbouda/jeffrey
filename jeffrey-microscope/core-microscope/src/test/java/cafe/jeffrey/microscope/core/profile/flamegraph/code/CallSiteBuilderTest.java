@@ -18,10 +18,10 @@
 package cafe.jeffrey.microscope.core.profile.flamegraph.code;
 
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CallSites.CallSite;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrClass;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrClass;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 import cafe.jeffrey.microscope.core.profile.persistence.api.CallSiteReader;
 import cafe.jeffrey.microscope.core.profile.persistence.api.CallSiteRow;
 import cafe.jeffrey.microscope.core.profile.persistence.api.CallSiteTotals;

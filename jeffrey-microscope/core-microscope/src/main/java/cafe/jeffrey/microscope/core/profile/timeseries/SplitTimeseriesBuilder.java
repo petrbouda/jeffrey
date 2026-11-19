@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.timeseries;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SecondValue;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TimeseriesRecord;

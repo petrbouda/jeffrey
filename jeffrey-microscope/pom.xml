@@ -34,8 +34,6 @@
         <module>microscope-common</module>
         <module>microscope-test</module>
         <module>microscope-model</module>
-        <module>common-profile</module>
-        <module>notifications</module>
         <module>connectors</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>

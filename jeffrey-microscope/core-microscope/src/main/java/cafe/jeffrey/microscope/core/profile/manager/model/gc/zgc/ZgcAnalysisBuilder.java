@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.model.gc.zgc;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThread;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.zgc.ZgcAnalysisData.StallSite;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.zgc.ZgcAnalysisData.StallType;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.zgc.ZgcAnalysisData.ZCycle;

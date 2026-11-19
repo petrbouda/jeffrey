@@ -19,12 +19,12 @@ package cafe.jeffrey.microscope.core.profile.frameir;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 import cafe.jeffrey.microscope.core.profile.frameir.frame.*;
 import cafe.jeffrey.microscope.core.profile.frameir.frame.FrameProcessor.NewFrame;
 import cafe.jeffrey.microscope.core.profile.frameir.frame.FrameProcessor.ProcessedFrames;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
 

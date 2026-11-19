@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.resources.request;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationId;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
 
 /**
  * Request for a flamegraph scoped to every trace of one type. Carries no time range or thread — the

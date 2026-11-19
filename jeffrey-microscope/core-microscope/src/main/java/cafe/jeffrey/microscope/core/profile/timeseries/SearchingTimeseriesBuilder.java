@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.profile.timeseries;
 
 import cafe.jeffrey.microscope.model.SearchPattern;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 
 public class SearchingTimeseriesBuilder extends SplitTimeseriesBuilder {
 

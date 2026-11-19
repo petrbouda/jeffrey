@@ -22,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.event.ContainerConfiguration;
+import cafe.jeffrey.microscope.core.profile.event.ContainerConfiguration;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerConfigurationData;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.model.Type;

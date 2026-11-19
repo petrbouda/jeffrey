@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrame;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
 
 import java.util.List;
 import java.util.Map;
