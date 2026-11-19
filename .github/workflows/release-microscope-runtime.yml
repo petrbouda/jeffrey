@@ -35,9 +35,15 @@ jobs:
           - os: ubuntu-latest
             arch: amd64
             platform: linux
+            ext: tar.gz
           - os: macos-latest
             arch: arm64
             platform: macos
+            ext: tar.gz
+          - os: windows-latest
+            arch: amd64
+            platform: windows
+            ext: zip
 
     steps:
     - uses: actions/checkout@v6
@@ -54,6 +60,7 @@ jobs:
         path: ./artifacts
 
     - name: Build jlink runtime and package
+      shell: bash
       run: |
         bash build/scripts/build-jlink-runtime.sh \
           --jar ./artifacts/microscope.jar \
@@ -63,6 +70,7 @@ jobs:
     # Boot Microscope with the jlinked runtime and verify server/discover answers.
     # Same readiness probe as validate-mcp.yml: stateless POST, no handshake.
     - name: Verify the jlinked runtime boots
+      shell: bash
       run: |
         ARCHIVE_DIR="./dist/microscope-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}"
         JEFFREY_HOME="${RUNNER_TEMP}/jeffrey-microscope-home"
@@ -70,10 +78,20 @@ jobs:
 
         "${ARCHIVE_DIR}/runtime/bin/java" --version
 
-        "${ARCHIVE_DIR}/bin/microscope" \
-          -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
-          -Dserver.port="${MICROSCOPE_PORT}" \
-          > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          "${ARCHIVE_DIR}/runtime/bin/java" \
+            --add-modules jdk.incubator.vector \
+            -XX:NativeMemoryTracking=summary \
+            -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
+            -Dserver.port="${MICROSCOPE_PORT}" \
+            -jar "${ARCHIVE_DIR}/lib/microscope.jar" \
+            > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
+        else
+          "${ARCHIVE_DIR}/bin/microscope" \
+            -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
+            -Dserver.port="${MICROSCOPE_PORT}" \
+            > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
+        fi
         MICROSCOPE_PID=$!
 
         request='{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"jlink-verify","version":"1.0.0"}}}}'
@@ -106,4 +124,4 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: microscope-${{ matrix.platform }}-${{ matrix.arch }}
-        path: ./dist/microscope-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.tar.gz
+        path: ./dist/microscope-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.ext }}

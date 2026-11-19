@@ -34,6 +34,10 @@ if [[ ! -f "${FAT_JAR}" ]]; then
 fi
 FAT_JAR="$(cd "$(dirname "${FAT_JAR}")" && echo "$(pwd)/$(basename "${FAT_JAR}")")"
 
+OS_LOWER="$(uname -s | tr '[:upper:]' '[:lower:]')"
+IS_WINDOWS=false
+case "${OS_LOWER}" in mingw*|msys*) IS_WINDOWS=true ;; esac
+
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
@@ -49,7 +53,11 @@ if [[ ! -d "${LIB_DIR}" ]]; then
     exit 1
 fi
 
-LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | paste -s -d ':' -)"
+if ${IS_WINDOWS}; then
+    LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | cygpath -f - -w | paste -s -d ';' -)"
+else
+    LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | paste -s -d ':' -)"
+fi
 
 echo "Running jdeps to discover platform module dependencies..." >&2
 DISCOVERED_MODULES=$(jdeps \

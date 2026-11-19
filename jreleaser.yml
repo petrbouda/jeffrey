@@ -83,3 +83,4 @@ files:
     - path: artifacts/provisioner-arm64
     - path: artifacts/microscope-{{projectVersion}}-linux-amd64.tar.gz
     - path: artifacts/microscope-{{projectVersion}}-macos-arm64.tar.gz
+    - path: artifacts/microscope-{{projectVersion}}-windows-amd64.zip

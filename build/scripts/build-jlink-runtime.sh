@@ -57,6 +57,7 @@ OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
 case "${OS}" in
     linux)  PLATFORM="linux" ;;
     darwin) PLATFORM="macos" ;;
+    mingw*|msys*) PLATFORM="windows" ;;
     *)      echo "error: unsupported OS: ${OS}" >&2; exit 1 ;;
 esac
 
@@ -97,8 +98,12 @@ echo "Runtime size: $(du -sh "${DIST_DIR}/runtime" | cut -f1)"
 # 3. Assemble the distribution layout.
 mkdir -p "${DIST_DIR}/bin" "${DIST_DIR}/lib"
 cp "${JAR}" "${DIST_DIR}/lib/microscope.jar"
-cp "${SCRIPT_DIR}/microscope-launcher.sh" "${DIST_DIR}/bin/microscope"
-chmod +x "${DIST_DIR}/bin/microscope"
+if [[ "${PLATFORM}" == "windows" ]]; then
+    cp "${SCRIPT_DIR}/microscope-launcher.cmd" "${DIST_DIR}/bin/microscope.cmd"
+else
+    cp "${SCRIPT_DIR}/microscope-launcher.sh" "${DIST_DIR}/bin/microscope"
+    chmod +x "${DIST_DIR}/bin/microscope"
+fi
 
 if [[ -f "${REPO_ROOT}/LICENSE" ]]; then
     cp "${REPO_ROOT}/LICENSE" "${DIST_DIR}/"
@@ -109,9 +114,18 @@ fi
 
 # 4. Create the tarball.
 echo ""
-echo "Packaging ${ARCHIVE_NAME}.tar.gz..."
-(cd "${OUTPUT_DIR}" && tar czf "${ARCHIVE_NAME}.tar.gz" "${ARCHIVE_NAME}")
-ARCHIVE_SIZE="$(du -sh "${OUTPUT_DIR}/${ARCHIVE_NAME}.tar.gz" | cut -f1)"
+if [[ "${PLATFORM}" == "windows" ]]; then
+    ARCHIVE_FILE="${ARCHIVE_NAME}.zip"
+    echo "Packaging ${ARCHIVE_FILE}..."
+    WIN_SRC="$(cygpath -w "${OUTPUT_DIR}/${ARCHIVE_NAME}")"
+    WIN_DST="$(cygpath -w "${OUTPUT_DIR}/${ARCHIVE_FILE}")"
+    powershell.exe -NoProfile -Command "Compress-Archive -Path '${WIN_SRC}' -DestinationPath '${WIN_DST}'"
+else
+    ARCHIVE_FILE="${ARCHIVE_NAME}.tar.gz"
+    echo "Packaging ${ARCHIVE_FILE}..."
+    (cd "${OUTPUT_DIR}" && tar czf "${ARCHIVE_FILE}" "${ARCHIVE_NAME}")
+fi
+ARCHIVE_SIZE="$(du -sh "${OUTPUT_DIR}/${ARCHIVE_FILE}" | cut -f1)"
 
 echo ""
-echo "Done: ${OUTPUT_DIR}/${ARCHIVE_NAME}.tar.gz (${ARCHIVE_SIZE})"
+echo "Done: ${OUTPUT_DIR}/${ARCHIVE_FILE} (${ARCHIVE_SIZE})"
