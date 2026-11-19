@@ -46,7 +46,7 @@ if [[ -z "${JAR}" || -z "${VERSION}" || -z "${OUTPUT_DIR}" ]]; then
     exit 1
 fi
 
-JAR="$(realpath "${JAR}")"
+JAR="$(cd "$(dirname "${JAR}")" && echo "$(pwd)/$(basename "${JAR}")")"
 if [[ ! -f "${JAR}" ]]; then
     echo "error: ${JAR} does not exist" >&2
     exit 1
@@ -76,7 +76,7 @@ echo "  Platform: ${PLATFORM}-${ARCH}"
 
 # 1. Discover required JDK modules.
 echo ""
-MODULES=$("${SCRIPT_DIR}/jlink-modules.sh" "${JAR}")
+MODULES=$(bash "${SCRIPT_DIR}/jlink-modules.sh" "${JAR}")
 
 # 2. Build the custom runtime with jlink.
 echo ""
