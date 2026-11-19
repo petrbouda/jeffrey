@@ -53,10 +53,18 @@ if [[ ! -d "${LIB_DIR}" ]]; then
     exit 1
 fi
 
+# jdeps.exe on Windows cannot read MSYS POSIX paths; convert everything with cygpath.
 if ${IS_WINDOWS}; then
     LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | cygpath -f - -w | paste -s -d ';' -)"
+    JDEPS_CLASSES="$(cygpath -w "${CLASSES_DIR}")"
+    JDEPS_JARS=()
+    for jar in "${LIB_DIR}"/*.jar; do
+        JDEPS_JARS+=("$(cygpath -w "$jar")")
+    done
 else
     LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | paste -s -d ':' -)"
+    JDEPS_CLASSES="${CLASSES_DIR}"
+    JDEPS_JARS=("${LIB_DIR}"/*.jar)
 fi
 
 echo "Running jdeps to discover platform module dependencies..." >&2
@@ -65,8 +73,8 @@ DISCOVERED_MODULES=$(jdeps \
     --ignore-missing-deps \
     --print-module-deps \
     --class-path "${LIB_CP}" \
-    "${CLASSES_DIR}" \
-    "${LIB_DIR}"/*.jar \
+    "${JDEPS_CLASSES}" \
+    "${JDEPS_JARS[@]}" \
     2>/dev/null) || true
 
 # Modules that jdeps cannot discover through static analysis:
@@ -77,7 +85,8 @@ DISCOVERED_MODULES=$(jdeps \
 #   java.compiler        — annotation processing at runtime
 #   java.instrument      — Spring's load-time weaving / agent support
 #   java.desktop         — java.beans.PropertyEditorSupport, used by Spring Boot property binding
-EXTRA_MODULES="jdk.incubator.vector,jdk.unsupported,jdk.jfr,jdk.management,java.compiler,java.instrument,java.desktop"
+#   java.logging         — Tomcat's DirectJDKLog uses java.util.logging directly
+EXTRA_MODULES="jdk.incubator.vector,jdk.unsupported,jdk.jfr,jdk.management,java.compiler,java.instrument,java.desktop,java.logging"
 
 ALL_MODULES=$(echo "${DISCOVERED_MODULES},${EXTRA_MODULES}" \
     | tr ',' '\n' \
