@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.action;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
@@ -33,8 +33,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
-import cafe.jeffrey.microscope.notification.NotificationType;
-import cafe.jeffrey.microscope.notification.Notifications;
+import cafe.jeffrey.microscope.core.notification.NotificationType;
+import cafe.jeffrey.microscope.core.notification.Notifications;
 
 public class ProfileDataInitializerImpl implements ProfileDataInitializer {
 

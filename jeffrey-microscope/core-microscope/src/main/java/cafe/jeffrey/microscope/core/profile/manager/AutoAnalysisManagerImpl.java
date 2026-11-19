@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager;
 import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileCacheRepository;
 import cafe.jeffrey.microscope.common.CacheKey;
 

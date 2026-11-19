@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.exceptions;
 
-import cafe.jeffrey.microscope.profile.common.exceptions.JvmInternalThrows;
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrame;
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrames;
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowOrigin;
+import cafe.jeffrey.microscope.core.profile.exceptions.JvmInternalThrows;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrames;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;
 import cafe.jeffrey.microscope.core.profile.manager.TraceIds;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowCountRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowMessageRecord;

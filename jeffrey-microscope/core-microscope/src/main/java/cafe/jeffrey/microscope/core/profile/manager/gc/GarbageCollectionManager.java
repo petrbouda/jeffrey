@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.gc;
 
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.G1PlabStatistics;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCPhaseParallelAggregate;

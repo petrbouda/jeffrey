@@ -16,8 +16,8 @@
  */
 package cafe.jeffrey.microscope.core.web.controllers.profile;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

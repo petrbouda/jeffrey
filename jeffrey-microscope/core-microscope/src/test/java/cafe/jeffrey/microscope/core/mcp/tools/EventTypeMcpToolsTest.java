@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.treetable.EventViewerData;
+import cafe.jeffrey.microscope.core.profile.treetable.EventViewerData;
 import cafe.jeffrey.microscope.core.profile.manager.EventViewerManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FieldDescription;

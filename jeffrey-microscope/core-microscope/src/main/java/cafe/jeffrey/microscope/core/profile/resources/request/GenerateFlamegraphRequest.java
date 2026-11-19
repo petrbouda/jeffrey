@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.resources.request;
 import cafe.jeffrey.microscope.core.profile.TimeRangeRequest;
 import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
 
 
 public record GenerateFlamegraphRequest(

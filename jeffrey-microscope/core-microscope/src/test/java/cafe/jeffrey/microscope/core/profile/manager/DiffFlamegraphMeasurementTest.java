@@ -21,8 +21,8 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.diff.DbBasedDiffgraphGene
 import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.microscope.core.profile.frameir.DiffTreeGenerator;
 import cafe.jeffrey.microscope.core.profile.frameir.Frame;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;

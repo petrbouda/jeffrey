@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.profile.common.exceptions.ClassLoadingFramePrefixes;
+import cafe.jeffrey.microscope.core.profile.exceptions.ClassLoadingFramePrefixes;
 
 import java.util.List;
 

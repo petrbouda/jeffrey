@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.frameir;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 
 import static org.junit.jupiter.api.Assertions.*;
 

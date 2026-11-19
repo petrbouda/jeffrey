@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
+import cafe.jeffrey.microscope.core.pipeline.StageResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.PipelineRunRepository;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;

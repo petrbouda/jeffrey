@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 
 /**
  * The events one operation's traces committed on one stack — what an operation's entry into the reader's

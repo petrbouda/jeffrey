@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.SpanInterval;
-import cafe.jeffrey.microscope.profile.common.exceptions.JvmInternalThrows;
+import cafe.jeffrey.microscope.core.profile.exceptions.JvmInternalThrows;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFieldRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThreadWindowEventRecord;

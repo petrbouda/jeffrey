@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.model.vmoperation;
 import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThreadImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.Type;

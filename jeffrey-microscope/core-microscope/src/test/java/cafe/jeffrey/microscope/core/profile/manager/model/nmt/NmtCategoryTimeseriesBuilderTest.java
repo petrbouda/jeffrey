@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.nmt;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThreadImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;

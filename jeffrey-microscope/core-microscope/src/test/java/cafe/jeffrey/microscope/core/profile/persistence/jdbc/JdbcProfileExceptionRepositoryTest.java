@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowFrame;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowCountRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowMessageRecord;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;

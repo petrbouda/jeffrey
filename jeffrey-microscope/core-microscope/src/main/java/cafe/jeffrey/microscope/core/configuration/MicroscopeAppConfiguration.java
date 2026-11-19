@@ -42,7 +42,7 @@ import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.profile.ProfileInitializer;
 import cafe.jeffrey.microscope.core.profile.ProfileInitializerImpl;
 import cafe.jeffrey.microscope.core.profile.configuration.ProfilesConfiguration;

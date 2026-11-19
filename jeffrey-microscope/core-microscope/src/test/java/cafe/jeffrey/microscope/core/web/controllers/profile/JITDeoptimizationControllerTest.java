@@ -23,7 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationStats;
+import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationStats;
 import cafe.jeffrey.microscope.core.profile.manager.JITDeoptimizationManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.common.exception.Exceptions;

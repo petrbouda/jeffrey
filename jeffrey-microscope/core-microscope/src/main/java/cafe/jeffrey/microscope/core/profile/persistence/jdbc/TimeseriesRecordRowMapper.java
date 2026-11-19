@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
 import org.springframework.jdbc.core.RowMapper;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTraceImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTraceImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SecondValue;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TimeseriesRecord;
 

@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.profile.persistence.api;
 import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.model.ThreadInfo;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThread;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
 
 import java.time.Duration;
 import java.time.Instant;

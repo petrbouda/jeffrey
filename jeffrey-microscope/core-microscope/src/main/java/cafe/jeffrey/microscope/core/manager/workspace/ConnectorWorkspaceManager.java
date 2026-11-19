@@ -26,8 +26,8 @@ import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
 
-import cafe.jeffrey.microscope.notification.NotificationType;
-import cafe.jeffrey.microscope.notification.Notifications;
+import cafe.jeffrey.microscope.core.notification.NotificationType;
+import cafe.jeffrey.microscope.core.notification.Notifications;
 
 public class ConnectorWorkspaceManager implements WorkspaceManager {
 

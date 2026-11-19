@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class OperationPhaseTest {
 
     /**
-     * The profile pipeline publishes its phase from common-profile, which knows nothing of this enum;
+     * The profile pipeline publishes its phase from core.pipeline, which knows nothing of this enum;
      * the code it writes is pinned to the constant that reads it back.
      */
     @Test

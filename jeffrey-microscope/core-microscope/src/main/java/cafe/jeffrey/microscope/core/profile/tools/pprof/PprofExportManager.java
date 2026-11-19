@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.tools.pprof;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 import cafe.jeffrey.microscope.core.profile.parser.pprof.PprofProfileWriter;
 import cafe.jeffrey.microscope.core.profile.parser.pprof.PprofProfileWriter.ExportFrame;
 import cafe.jeffrey.microscope.core.profile.parser.pprof.PprofProfileWriter.ExportSample;

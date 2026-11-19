@@ -56,8 +56,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.microscope.notification.NotificationType;
-import cafe.jeffrey.microscope.notification.Notifications;
+import cafe.jeffrey.microscope.core.notification.NotificationType;
+import cafe.jeffrey.microscope.core.notification.Notifications;
 
 public class ConnectorRecordingsDownloadManager implements RecordingsDownloadManager {
 

@@ -25,8 +25,8 @@ import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.K
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.ProfileSummary;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.RecordingFigures;
 import cafe.jeffrey.microscope.core.web.dto.response.IdeRecordingStateResponse.State;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;

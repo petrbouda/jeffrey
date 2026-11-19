@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 
 /**
  * What a call-site read is built by, in the order the repository calls it: each distinct stack the events

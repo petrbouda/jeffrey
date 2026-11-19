@@ -27,8 +27,8 @@ import cafe.jeffrey.microscope.model.GraphType;
 import cafe.jeffrey.microscope.model.SpanScope;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 
 import java.util.ArrayList;
 import java.util.Arrays;

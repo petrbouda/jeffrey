@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.tools.otlp;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 import cafe.jeffrey.microscope.core.profile.parser.otlp.OtlpProfileWriter;
 import cafe.jeffrey.microscope.core.profile.parser.otlp.OtlpProfileWriter.ExportFrame;
 import cafe.jeffrey.microscope.core.profile.parser.otlp.OtlpProfileWriter.ExportSample;

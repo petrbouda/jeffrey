@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.custom.builder;
 
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.CumulatedStats;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.CumulationMode;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.method.MethodTracingCumulatedData;

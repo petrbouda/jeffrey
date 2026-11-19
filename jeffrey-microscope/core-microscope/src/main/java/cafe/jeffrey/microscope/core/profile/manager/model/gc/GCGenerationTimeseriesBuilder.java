@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager.model.gc;
 
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.common.Json;

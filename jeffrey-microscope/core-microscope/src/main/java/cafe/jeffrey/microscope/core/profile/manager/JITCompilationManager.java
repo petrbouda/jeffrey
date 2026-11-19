@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager;
 
 import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.profile.common.event.JITCompilationStats;
-import cafe.jeffrey.microscope.profile.common.event.JITLongCompilation;
+import cafe.jeffrey.microscope.core.profile.event.JITCompilationStats;
+import cafe.jeffrey.microscope.core.profile.event.JITLongCompilation;
 import cafe.jeffrey.microscope.core.profile.manager.model.jit.CodeCacheData;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;

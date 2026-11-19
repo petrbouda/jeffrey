@@ -22,8 +22,8 @@ import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.event.JITCompilerType;
-import cafe.jeffrey.microscope.profile.common.event.JITLongCompilation;
+import cafe.jeffrey.microscope.core.profile.event.JITCompilerType;
+import cafe.jeffrey.microscope.core.profile.event.JITLongCompilation;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.model.Type;
 

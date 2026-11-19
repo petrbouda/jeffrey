@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.resources.request;
 
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
+import cafe.jeffrey.microscope.core.profile.graph.GraphComponents;
 
 /**
  * The rendering options common to every span-scoped flamegraph request, independent of how the spans are

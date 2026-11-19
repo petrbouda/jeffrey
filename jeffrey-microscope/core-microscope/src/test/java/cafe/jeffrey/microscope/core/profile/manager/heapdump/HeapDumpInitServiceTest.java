@@ -18,12 +18,12 @@
 package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.profile.common.operation.OperationState;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageProgress;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.core.operation.OperationState;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
+import cafe.jeffrey.microscope.core.pipeline.StageProgress;
+import cafe.jeffrey.microscope.core.pipeline.StageStatus;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.IndexBuildProgressListener;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.InitializeResult;
 import org.junit.jupiter.api.Test;

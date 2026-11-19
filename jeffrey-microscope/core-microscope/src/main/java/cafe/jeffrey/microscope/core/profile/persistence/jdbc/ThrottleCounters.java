@@ -27,8 +27,8 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
  * about the stretch between them, and an absolute value says nothing at all. A container with no CFS
  * quota cannot be throttled and writes all three as null.
  * <p>
- * These names are duplicated from {@code ContainerCpuThrottling} in {@code common-profile}, which
- * this module does not depend on, and the same delta rule is implemented a second time in
+ * These names mirror the components of {@code ContainerCpuThrottling} in {@code core.profile.event},
+ * and the same delta rule is implemented a second time in
  * {@code ContainerCpuThrottlingAnalyzer} for the Containers page. The two readings must agree — a
  * band in a trace and a verdict on that page describing the same window differently is a bug the
  * reader has no way to resolve. If a field is renamed or the rule changes, both move together.

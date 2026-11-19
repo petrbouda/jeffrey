@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.heapdump.model;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 
 import java.util.List;
 

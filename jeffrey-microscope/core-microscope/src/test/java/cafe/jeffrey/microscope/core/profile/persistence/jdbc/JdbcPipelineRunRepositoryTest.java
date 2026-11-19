@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunResult;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageResult;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
+import cafe.jeffrey.microscope.core.pipeline.StageResult;
+import cafe.jeffrey.microscope.core.pipeline.StageStatus;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;

@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.event.ContainerConfiguration;
+import cafe.jeffrey.microscope.core.profile.event.ContainerConfiguration;
 import cafe.jeffrey.microscope.core.profile.manager.ContainerManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.model.container.ContainerCpuThrottlingData;

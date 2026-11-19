@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.microscope.core.profile;
 
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageProgress;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
+import cafe.jeffrey.microscope.core.pipeline.StageProgress;
+import cafe.jeffrey.microscope.core.pipeline.StageStatus;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventWriter;

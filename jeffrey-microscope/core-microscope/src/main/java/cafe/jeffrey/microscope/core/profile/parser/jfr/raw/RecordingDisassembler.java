@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.parser.jfr.raw;
 
 import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
-import cafe.jeffrey.microscope.notification.NotificationType;
-import cafe.jeffrey.microscope.notification.Notifications;
+import cafe.jeffrey.microscope.core.notification.NotificationType;
+import cafe.jeffrey.microscope.core.notification.Notifications;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

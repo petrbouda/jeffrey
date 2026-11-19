@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.profile.common.exceptions.ThrowOrigin;
+import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;
 import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionRateTimeseriesBuilder;
 import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionSiteStat;
 import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionTypeStat;

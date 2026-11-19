@@ -22,7 +22,7 @@ import tools.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThread;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.ThreadWithCpuLoad;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;

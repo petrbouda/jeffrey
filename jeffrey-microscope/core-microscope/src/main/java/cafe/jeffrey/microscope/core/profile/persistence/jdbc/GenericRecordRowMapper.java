@@ -23,10 +23,10 @@ import tools.jackson.databind.node.ObjectNode;
 import org.springframework.jdbc.core.RowMapper;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethod;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThread;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrMethodImpl;
-import cafe.jeffrey.microscope.profile.common.jfr.JfrThreadImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrMethodImpl;
+import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 

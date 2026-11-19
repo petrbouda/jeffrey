@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageProgress;
-import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
+import cafe.jeffrey.microscope.core.pipeline.StageProgress;
+import cafe.jeffrey.microscope.core.pipeline.StageStatus;
 
 import java.util.List;
 

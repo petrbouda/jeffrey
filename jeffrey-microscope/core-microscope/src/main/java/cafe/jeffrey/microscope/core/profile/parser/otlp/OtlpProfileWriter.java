@@ -37,7 +37,7 @@ import io.opentelemetry.proto.profiles.v1development.ValueType;
 import io.opentelemetry.proto.resource.v1.Resource;
 import cafe.jeffrey.microscope.core.profile.parser.otlp.mapping.OtelFrameTypeMapper;
 import cafe.jeffrey.microscope.core.profile.parser.otlp.mapping.OtelSemconv;
-import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.model.FrameType;
 
 import java.util.ArrayList;
 import java.util.HashMap;

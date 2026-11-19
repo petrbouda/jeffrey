@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.PipelineDefinition;
+import cafe.jeffrey.microscope.core.pipeline.PipelineDefinition;
 
 import java.util.List;
 

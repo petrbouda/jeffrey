@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.container;
 
-import cafe.jeffrey.microscope.profile.common.event.ContainerCpuThrottling;
+import cafe.jeffrey.microscope.core.profile.event.ContainerCpuThrottling;
 
 /**
  * One {@code jdk.ContainerCPUThrottling} sample with its offset (millis since profiling start) and

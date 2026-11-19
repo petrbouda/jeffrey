@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.manager.TimeseriesManager;
 import cafe.jeffrey.microscope.core.profile.resources.request.GenerateTimeseriesRequest;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;

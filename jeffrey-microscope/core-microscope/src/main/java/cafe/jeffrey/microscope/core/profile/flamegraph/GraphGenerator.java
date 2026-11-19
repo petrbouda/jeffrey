@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.flamegraph;
 
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 
 public interface GraphGenerator {
 

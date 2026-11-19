@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.heapdump.model;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 
 /**
  * Notified as each index-build sub-phase completes, so callers can surface

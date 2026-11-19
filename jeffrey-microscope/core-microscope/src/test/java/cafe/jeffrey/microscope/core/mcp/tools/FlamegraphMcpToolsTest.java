@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
 import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
 import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportView;
 import cafe.jeffrey.microscope.core.profile.manager.FlamegraphManager;

@@ -17,7 +17,7 @@
 package cafe.jeffrey.microscope.core.profile.heapdump.persistence;
 
 import cafe.jeffrey.microscope.core.profile.heapdump.model.IndexBuildProgressListener;
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

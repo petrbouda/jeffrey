@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager;
 
 import tools.jackson.core.type.TypeReference;
-import cafe.jeffrey.microscope.profile.common.analysis.AnalysisResult.Severity;
-import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult.Severity;
+import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileCacheRepository;
 import cafe.jeffrey.microscope.common.CacheKey;
 import org.junit.jupiter.api.DisplayName;

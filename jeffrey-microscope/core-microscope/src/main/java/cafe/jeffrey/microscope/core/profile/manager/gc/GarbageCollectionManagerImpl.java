@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager.gc;
 
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
+import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
