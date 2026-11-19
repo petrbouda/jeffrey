@@ -39,12 +39,45 @@
             <div class="methods-grid">
               <div class="method-card recommended">
                 <div class="method-header">
+                  <div class="method-icon runtime">
+                    <i class="bi bi-box-seam"></i>
+                  </div>
+                  <div class="method-title">
+                    <h4>Self-Contained Runtime</h4>
+                    <span class="badge">Recommended</span>
+                  </div>
+                </div>
+                <p class="method-description">Download a platform archive with a bundled JDK — <strong>no Java installation needed</strong>.</p>
+                <div class="method-steps">
+                  <div class="step">
+                    <div class="step-content">
+                      <p>Download the archive for your platform from <a href="https://github.com/petrbouda/jeffrey/releases/latest"
+                                                                        target="_blank">GitHub Releases</a>, extract and start:</p>
+                      <pre><code>tar xzf microscope-*-linux-amd64.tar.gz
+cd microscope-*-linux-amd64
+bin/microscope</code></pre>
+                    </div>
+                  </div>
+                  <div class="step">
+                    <div class="step-content">
+                      <p>Open <a href="http://localhost:8585" target="_blank">http://localhost:8585</a> in your browser</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="platform-tags">
+                  <span class="platform-tag">Linux amd64 · .tar.gz</span>
+                  <span class="platform-tag">macOS arm64 · .tar.gz</span>
+                  <span class="platform-tag">Windows amd64 · .zip</span>
+                </div>
+              </div>
+
+              <div class="method-card">
+                <div class="method-header">
                   <div class="method-icon java">
                     <i class="bi bi-cup-hot"></i>
                   </div>
                   <div class="method-title">
                     <h4>Plain Java</h4>
-                    <span class="badge">Recommended</span>
                   </div>
                 </div>
                 <p class="method-description">Run Microscope as a standalone Java application. Requires <strong>Java 25 or newer</strong>.</p>
@@ -216,6 +249,10 @@ java -jar microscope.jar</code></pre>
   color: white;
 }
 
+.method-icon.runtime {
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
 .method-icon.examples {
   background: linear-gradient(135deg, #0db7ed, #0aa2d4);
 }
@@ -322,5 +359,26 @@ pre code {
 
 .step-content strong {
   color: #2c3e50;
+}
+
+.platform-tags {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.platform-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
 }
 </style>
