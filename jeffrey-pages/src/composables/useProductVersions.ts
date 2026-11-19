@@ -55,7 +55,7 @@ async function fetchMicroscope(): Promise<ProductVersion | null> {
     const release: GitHubRelease = await response.json();
     return {
       version: release.tag_name,
-      url: 'https://github.com/petrbouda/jeffrey/releases',
+      url: release.html_url,
       source: 'GitHub Releases'
     };
   } catch {
@@ -76,7 +76,7 @@ async function fetchProvisioner(): Promise<ProductVersion | null> {
     }
     return {
       version: provisioner.tag_name.replace('provisioner-', ''),
-      url: 'https://github.com/petrbouda/jeffrey/releases',
+      url: provisioner.html_url,
       source: 'GitHub Releases'
     };
   } catch {
