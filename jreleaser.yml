@@ -72,10 +72,15 @@ signing:
   armored: true
 
 # The pre-built artifacts produced by the earlier jobs, staged by the workflow
-# into ./artifacts before JReleaser runs.
+# into ./artifacts before JReleaser runs. The runtime archives are platform-specific
+# distributions containing a jlinked JDK and microscope.jar; the universal
+# microscope.jar is kept for users who bring their own JDK.
 files:
   artifacts:
     - path: artifacts/microscope.jar
     - path: artifacts/provisioner.jar
     - path: artifacts/provisioner-amd64
     - path: artifacts/provisioner-arm64
+    - path: artifacts/microscope-{{projectVersion}}-linux-amd64.tar.gz
+    - path: artifacts/microscope-{{projectVersion}}-macos-arm64.tar.gz
+    - path: artifacts/microscope-{{projectVersion}}-windows-amd64.zip

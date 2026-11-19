@@ -1,0 +1,126 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Build Microscope Runtime
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version without the leading v (e.g. 0.15.0). Resolved by the caller from the tag.'
+        required: true
+        type: string
+
+env:
+  MICROSCOPE_PORT: 8686
+
+jobs:
+  build-runtime:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: amd64
+            platform: linux
+            ext: tar.gz
+          - os: macos-latest
+            arch: arm64
+            platform: macos
+            ext: tar.gz
+          - os: windows-latest
+            arch: amd64
+            platform: windows
+            ext: zip
+
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '25'
+
+    - name: Download microscope.jar
+      uses: actions/download-artifact@v8
+      with:
+        name: microscope-jar
+        path: ./artifacts
+
+    - name: Build jlink runtime and package
+      shell: bash
+      run: |
+        bash build/scripts/build-jlink-runtime.sh \
+          --jar ./artifacts/microscope.jar \
+          --version "${{ inputs.version }}" \
+          --output ./dist
+
+    # Boot Microscope with the jlinked runtime and verify server/discover answers.
+    # Same readiness probe as validate-mcp.yml: stateless POST, no handshake.
+    - name: Verify the jlinked runtime boots
+      shell: bash
+      run: |
+        ARCHIVE_DIR="./dist/microscope-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}"
+        JEFFREY_HOME="${RUNNER_TEMP}/jeffrey-microscope-home"
+        mkdir -p "${JEFFREY_HOME}"
+
+        "${ARCHIVE_DIR}/runtime/bin/java" --version
+
+        if [ "${{ matrix.platform }}" = "windows" ]; then
+          "${ARCHIVE_DIR}/runtime/bin/java" \
+            --add-modules jdk.incubator.vector \
+            -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
+            -Dserver.port="${MICROSCOPE_PORT}" \
+            -jar "${ARCHIVE_DIR}/lib/microscope.jar" \
+            > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
+        else
+          "${ARCHIVE_DIR}/bin/microscope" \
+            -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
+            -Dserver.port="${MICROSCOPE_PORT}" \
+            > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
+        fi
+        MICROSCOPE_PID=$!
+
+        request='{"jsonrpc":"2.0","id":1,"method":"server/discover","params":{"_meta":{"io.modelcontextprotocol/protocolVersion":"2026-07-28","io.modelcontextprotocol/clientCapabilities":{},"io.modelcontextprotocol/clientInfo":{"name":"jlink-verify","version":"1.0.0"}}}}'
+        for _ in $(seq 1 60); do
+          if ! kill -0 "${MICROSCOPE_PID}" 2>/dev/null; then
+            echo "Microscope process exited before answering server/discover:"
+            cat "${RUNNER_TEMP}/microscope-runtime.log"
+            exit 1
+          fi
+          http_code=$(curl --silent --show-error --max-time 5 \
+            -o /dev/null -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json, text/event-stream' \
+            -H 'MCP-Protocol-Version: 2026-07-28' \
+            -H 'Mcp-Method: server/discover' \
+            -d "${request}" "http://localhost:${MICROSCOPE_PORT}/api/mcp" 2>/dev/null || true)
+          if [ "${http_code}" = "200" ]; then
+            echo "Microscope with jlinked runtime started successfully on ${{ matrix.platform }}-${{ matrix.arch }}."
+            kill "${MICROSCOPE_PID}" 2>/dev/null || true
+            exit 0
+          fi
+          sleep 1
+        done
+        echo "FAILED: Microscope did not start within 60s on ${{ matrix.platform }}-${{ matrix.arch }}. Log:"
+        cat "${RUNNER_TEMP}/microscope-runtime.log"
+        kill "${MICROSCOPE_PID}" 2>/dev/null || true
+        exit 1
+
+    - name: Upload runtime archive
+      uses: actions/upload-artifact@v7
+      with:
+        name: microscope-${{ matrix.platform }}-${{ matrix.arch }}
+        path: ./dist/microscope-${{ inputs.version }}-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.ext }}
