@@ -1,9 +1,9 @@
 ---
 paths:
   - "jeffrey-intellij-plugin/**"
-  - "jeffrey-microscope/core-microscope/**/ide/**"
-  - "jeffrey-microscope/core-microscope/**/IdeRecordingLookup*.java"
-  - "jeffrey-microscope/pages-microscope/src/router/profile-routes.json"
+  - "jeffrey-microscope/core/**/ide/**"
+  - "jeffrey-microscope/core/**/IdeRecordingLookup*.java"
+  - "jeffrey-microscope/pages/src/router/profile-routes.json"
 ---
 
 ## IntelliJ plugin rules

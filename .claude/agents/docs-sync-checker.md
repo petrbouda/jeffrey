@@ -15,9 +15,9 @@ side of each finding.
 ## Instructions
 
 1. **Scan the Microscope frontend** for user-visible pages and features:
-   - `jeffrey-microscope/pages-microscope/src/router/index.ts` and `src/router/profileChildRoutes.ts`
-   - `jeffrey-microscope/pages-microscope/src/views/profiles/navigation/profileNavConfig.ts` (the profile sidebar: every `item(...)` is a page a reader can open)
-   - `jeffrey-microscope/pages-microscope/src/views/` (connector, global, profiles)
+   - `jeffrey-microscope/pages/src/router/index.ts` and `src/router/profileChildRoutes.ts`
+   - `jeffrey-microscope/pages/src/views/profiles/navigation/profileNavConfig.ts` (the profile sidebar: every `item(...)` is a page a reader can open)
+   - `jeffrey-microscope/pages/src/views/` (connector, global, profiles)
 
 2. **Scan the documentation** under `jeffrey-pages/src/views/docs/` and its wiring:
    - routes in `jeffrey-pages/src/router/index.ts`
@@ -28,7 +28,7 @@ side of each finding.
 
    | Code module | Documentation pages |
    |---|---|
-   | `jeffrey-microscope/core-microscope`, `jeffrey-microscope/pages-microscope` | `microscope/` (overview, quick start, recordings, storage, profiler builder), `microscope/configuration/`, `connectors/` (workspaces, projects, instances) |
+   | `jeffrey-microscope/core`, `jeffrey-microscope/pages` | `microscope/` (overview, quick start, recordings, storage, profiler builder), `microscope/configuration/`, `connectors/` (workspaces, projects, instances) |
    | `jeffrey-microscope/connectors/**` (connector-api, volume-connector with its local-directory kind, azure-files-connector) | `connectors/` (overview, declaring, the available-connectors catalog, one page per connector kind with its `jeffrey.microscope.connector.<kind>.*` block — `ConnectorAzureFilesPage.vue` — workspaces, `projects/`; every connector kind must appear in the catalog table and the sidebar group), plus the pointers in `microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector` and `DocsMicroscopePage.vue#connector` |
    | `jeffrey-microscope/profiles/**` | `microscope/profiles/` — one page per analysis feature, plus the feature cards on `microscope/profiles/ProfilesPage.vue` |
    | `volume-scheduler` | `volume-scheduler/` (overview, architecture, storage, `configuration/`, the REST API page) |
@@ -37,16 +37,16 @@ side of each finding.
    | tracing instrumentation (`utilities/`) | `tracing/`, `tracing/tracer-api/` |
    | `jeffrey-provisioner/` | `provisioner/` |
    | Jib build/deployment | `jib/` |
-   | External MCP server (`core-microscope/.../mcp/`, `mcp-server`) + `jeffrey-agent-plugin/` | `microscope-mcp/` |
+   | External MCP server (`core/.../mcp/`, `mcp-server`) + `jeffrey-agent-plugin/` | `microscope-mcp/` |
    | IntelliJ plugin | `intellij-plugin/` |
    | Architecture changes | `architecture/ArchitectureOverviewPage.vue` |
    | Install/onboarding changes | `microscope/MicroscopeQuickStartPage.vue`, `DocsIndexPage.vue` |
 
 4. **Check the MCP section with particular care** — its numbers are repeated in prose that nothing compiles:
-   - count `@Tool(` across `jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/**` and compare with every tool count, family count and per-family count the docs state (`McpOverviewPage.vue`, `McpToolsPage.vue`, `McpClaudeCodePage.vue`, `McpCodexPage.vue`, `McpGeminiPage.vue`, `McpOtherClientsPage.vue`, `DocsIndexPage.vue`); `McpToolsetAssemblerTest` pins the authoritative total
+   - count `@Tool(` across `jeffrey-microscope/core/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/**` and compare with every tool count, family count and per-family count the docs state (`McpOverviewPage.vue`, `McpToolsPage.vue`, `McpClaudeCodePage.vue`, `McpCodexPage.vue`, `McpGeminiPage.vue`, `McpOtherClientsPage.vue`, `DocsIndexPage.vue`); `McpToolsetAssemblerTest` pins the authoritative total
    - every tool name the docs mention must exist, and every tool must appear in the tool reference
    - the non-read-only set is the `WRITES` set in `McpToolsetAssemblerTest`; check every page that names the writers, and that the agent pages describe each agent's allow/deny lists as `jeffrey-agent-plugin/agents/*.md` actually declares them
-   - every `jeffrey.microscope.mcp.*` key in `core-microscope/src/main/resources/application.properties` is documented with the same default, and no documented property is missing from the code — a switch the docs describe that the code does not have is a finding
+   - every `jeffrey.microscope.mcp.*` key in `core/src/main/resources/application.properties` is documented with the same default, and no documented property is missing from the code — a switch the docs describe that the code does not have is a finding
    - methods, capabilities and error codes in `mcp-protocol`'s `McpDispatcher` and `mcp-server/.../AbstractMcpStreamableHttpController.java` match `McpOtherClientsPage.vue`. There is no `initialize` method: the page shows it only as a refused request, which must match `McpRequestValidator`
    - skills in `jeffrey-agent-plugin/skills/` match the skills page and the `prompts/list` example
 

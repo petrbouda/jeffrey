@@ -22,7 +22,7 @@ import java.util.function.Function;
 
 /**
  * Profile-scoped toolsets for tests whose tool object holds nothing that needs releasing: each call
- * resolves a target and has nothing to close afterwards. Shipped in the test-jar, so core-microscope's
+ * resolves a target and has nothing to close afterwards. Shipped in the test-jar, so core's
  * tool tests build them the same way.
  */
 public final class McpTestToolsets {

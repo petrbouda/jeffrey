@@ -32,7 +32,7 @@
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-common</artifactId>
+            <artifactId>common</artifactId>
         </dependency>
         <!-- Tracer: every MCP tool invocation is recorded as a span -->
         <dependency>
@@ -89,7 +89,7 @@
         <plugins>
             <!--
               McpNextToolConformance and McpTestToolsets, Jeffrey's own test helpers, ship as a test-jar
-              so core-microscope's tool tests check follow-up calls and build toolsets the same way.
+              so core's tool tests check follow-up calls and build toolsets the same way.
             -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

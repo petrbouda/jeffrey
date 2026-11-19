@@ -11,7 +11,7 @@ Review changed Vue files for design system violations and component reuse.
 
 ## Instructions
 
-1. **Identify changed frontend files** using `git diff --name-only` filtered to `*.vue` and `*.css` files in `jeffrey-microscope/pages-microscope/`.
+1. **Identify changed frontend files** using `git diff --name-only` filtered to `*.vue` and `*.css` files in `jeffrey-microscope/pages/`.
 
 2. **For each changed file**, check against these categories:
 

@@ -9,9 +9,9 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 ## Repository map
 
 ```
-jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope; its generic
+jeffrey-microscope/                    MicroscopeApplication (core), Vue SPA (pages; its generic
                                        components, services and design tokens in src/shared, imported as @shared)
-  core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
+  core/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
                                        (…/core/mcp/), the recordings store (core.manager.recordings: Recording,
                                        RecordingFile, Bundle, BundleFile, RecordingStorageLayout) and downloads
                                        (core.manager.download); the profile model types that only core uses
@@ -43,17 +43,17 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        interfaces and DTOs (connector.api), the managers over them (api.manager) and
                                        the connector kinds as ServiceLoader providers (connector.api.spi:
                                        ConnectorProvider, DeclaredConnector whose open() hands back the clients,
-                                       found through module-info provides + META-INF/services); core-microscope
+                                       found through module-info provides + META-INF/services); core
                                        compiles against this module only, so a non-volume kind needs nothing else
     volume-connector/                  the connector over a recording volume (writable or read-only): the clients
                                        (connector.volume, over a VolumeSource) and the local kind (connector.local:
                                        LocalDirectoryAddress, FilesystemVolume kept inside its root, no link out,
-                                       read live; for testing and copied trees); core-microscope takes it at run time only
+                                       read live; for testing and copied trees); core takes it at run time only
     azure-files-connector/             the Azure file share kind (AzureFilesAddress, its provider and settings;
                                        SMB + NFS, SAS or Entra) over volume-connector's clients, a module of its own
-                                       so the Azure SDK stays out of everything else; core-microscope takes it at
+                                       so the Azure SDK stays out of everything else; core takes it at
                                        run time only
-  microscope-common/                   what every Microscope module shares, no third-party dependency of its own
+  common/                   what every Microscope module shares, no third-party dependency of its own
                                        (only shared/volume, for JeffreyLayout): the utilities — JeffreyVersion,
                                        InstantUtils; the exception hierarchy (ErrorCode, ErrorType, Exceptions,
                                        JeffreyException and subtypes); FileSystemUtils, TempDirectory; Measuring,
@@ -76,8 +76,8 @@ shared/                                only what Microscope, the volume schedule
                                        read through a storage port: folder names are the state:
                                        projects/instances/sessions/files; the volume scheduler's reader; plus
                                        VolumeWriter, the one writer of a test volume, never imported by production code).
-                                       No utilities: each product keeps its own (Microscope's in microscope-common
-                                       and core-microscope's core.utils)
+                                       No utilities: each product keeps its own (Microscope's in common
+                                       and core's core.utils)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
@@ -103,7 +103,7 @@ MVN=/home/pbouda/.sdkman/candidates/maven/current/bin/mvn
 $MVN -q compile                                    # whole reactor (runs the frontend build too)
 $MVN -q -pl volume-scheduler -am test              # one module — -am is required, siblings are not in ~/.m2
 
-cd jeffrey-microscope/pages-microscope
+cd jeffrey-microscope/pages
 npm run dev | build | test | typecheck | format    # build = vue-tsc + vite; `npm run lint` is currently broken
 npm run proto:generate                             # after editing flamegraph.proto (also update ProtobufConverter)
 
@@ -115,7 +115,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 ### Inspecting DuckDB files
 - Per-profile DB `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (`events`, `threads`, `event_types`, …); core DB `~/.jeffrey-microscope/jeffrey-data.db`.
 - A running app holds an exclusive lock: **copy the file first** (plus `.wal` if present) and open the copy read-only. No `duckdb` CLI is installed — `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
-- Schema is `CREATE TABLE` in each `V001__init.sql` (`core-microscope/src/main/resources/db/migration/`: `microscope/core` for the core DB, `profile` per profile, `heap-dump-index`); edit it in place — there are no migrations and no backward compatibility: Flyway validates the core DB on startup, so an existing data dir is wiped with `./run-microscope.sh --clean` after a schema change. JFR event fields reference: https://sap.github.io/jfrevents/
+- Schema is `CREATE TABLE` in each `V001__init.sql` (`core/src/main/resources/db/migration/`: `microscope/core` for the core DB, `profile` per profile, `heap-dump-index`); edit it in place — there are no migrations and no backward compatibility: Flyway validates the core DB on startup, so an existing data dir is wiped with `./run-microscope.sh --clean` after a schema change. JFR event fields reference: https://sap.github.io/jfrevents/
 
 ## Rules that apply everywhere
 
@@ -125,14 +125,14 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **Time:** inject `java.time.Clock`, never `Instant.now()`; elapsed time via `Measuring`. Frontend timestamps are UTC epoch millis, formatted only by `FormattingService`.
 - **Literals:** anything matched, compared, put in SQL or used as config is a named `private static final`; set membership is `Set.of(...).contains`, not an `equals` ladder.
 - **Annotations** on classes/fields/methods go on their own line; always `import`, never an inline FQCN; Apache-2.0 header (2026) on every Java file; SLF4J `"what happened: k1={} k2={}"` without commas.
-- **Frontend shared-first:** check `@shared` first, then the app's own `src/components`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `pages-microscope/src/shared` (`@shared`).
+- **Frontend shared-first:** check `@shared` first, then the app's own `src/components`, and the design tokens / `shared-components.css` before writing any markup; no hex colors, literal shadows or radii; `DataTable`, `GenericModal`, `Badge`, `PageHeader`/`MainCardHeader`, three-state (`LoadingState` → `ErrorState` → content, `EmptyState`) are mandatory. Generic components go to `pages/src/shared` (`@shared`).
 - **Records** for DTOs and for any 3+ parameters or callbacks that travel together; validate in compact constructors with standard exceptions; domain code never depends on Spring types — map at the boundary.
 
 ## Architecture invariants (never)
 
 - **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
 - **The volume scheduler has no API to Microscope.** It runs its two jobs on the volume (retention, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
-- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-common`'s `common.model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/` gets no domain record and no utility one product could keep itself: the volume scheduler writes the LZ4 archives and Microscope reads them, each with its own code over the standard frame format.
+- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`common`'s `common.model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/` gets no domain record and no utility one product could keep itself: the volume scheduler writes the LZ4 archives and Microscope reads them, each with its own code over the standard frame format.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the volume scheduler — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.
@@ -142,7 +142,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 ## Testing
 
-JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `core-microscope`'s `cafe.jeffrey.microscope.core.test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
+JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `core`'s `cafe.jeffrey.microscope.core.test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
 
 ## Git
 

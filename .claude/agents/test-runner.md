@@ -14,14 +14,14 @@ Analyze changed files to determine affected modules and run only the relevant te
 1. **Identify changed files** using `git diff --name-only` (include both staged and unstaged).
 
 2. **Map changed files to Maven modules**:
-   - `jeffrey-microscope/core-microscope/` -> `-pl jeffrey-microscope/core-microscope`
+   - `jeffrey-microscope/core/` -> `-pl jeffrey-microscope/core`
    - `volume-scheduler/` -> `-pl volume-scheduler`
-   - `jeffrey-microscope/microscope-common/` -> `-pl jeffrey-microscope/microscope-common`
+   - `jeffrey-microscope/common/` -> `-pl jeffrey-microscope/common`
    - `shared/volume/` -> `-pl shared/volume`
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/microscope-common`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector` (and `jeffrey-microscope/core-microscope` when `VolumeWriter` changes)
+   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/common`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector` (and `jeffrey-microscope/core` when `VolumeWriter` changes)
 
 4. **Run targeted tests**:
    ```bash

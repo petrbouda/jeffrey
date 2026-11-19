@@ -1,14 +1,14 @@
 ---
 paths:
   - "**/*.vue"
-  - "jeffrey-microscope/pages-microscope/**/*.ts"
+  - "jeffrey-microscope/pages/**/*.ts"
 ---
 
 ## Vue/TypeScript Frontend Rules
 
 ### Shared-first (MUST)
 - Before writing any markup or component, check the shared modules for something to use, compose or extend — `@shared` first, then the app's own `src/components`; and check `@shared/assets/design-tokens.css` + `@shared/styles/shared-components.css` for existing styles. Only write custom markup when nothing fits. Never duplicate a shared component locally.
-- `pages-microscope` is the one app (the Volume Scheduler has no UI). Its aliases: `@` → `src`, `@shared` → `src/shared` (generic components, `FormattingService`, `BasePlatformClient`, `HttpUtils`, `ToastService`, styles, tokens). In pages-microscope, the connector browser (the one connector → workspaces → projects) lives in `src/components/connector/` with its clients in `src/services/api/connector/`, and the recording components in `src/components/recordings/`.
+- `pages` is the one app (the Volume Scheduler has no UI). Its aliases: `@` → `src`, `@shared` → `src/shared` (generic components, `FormattingService`, `BasePlatformClient`, `HttpUtils`, `ToastService`, styles, tokens). In pages, the connector browser (the one connector → workspaces → projects) lives in `src/components/connector/` with its clients in `src/services/api/connector/`, and the recording components in `src/components/recordings/`.
 - A **generic** component (chart, table, form input, badge, breadcrumb, layout, modal, drawer — no page/JFR semantics) goes in `src/shared/components/`. The app's `src/components/` is for page/feature-bound components (flamegraph, heap, gc, jdbc, …). When unsure, prefer `@shared`.
 
 ### Design tokens
@@ -26,11 +26,11 @@ paths:
 
 ### Code
 - `<script setup lang="ts">`, typed `defineProps<{}>()` / `defineEmits<{}>()`; braces on every control-flow body.
-- API clients extend `BasePlatformClient` (workspace/project) or `BaseProfileClient` (profile features) in `pages-microscope/src/services/api/`.
+- API clients extend `BasePlatformClient` (workspace/project) or `BaseProfileClient` (profile features) in `pages/src/services/api/`.
 - State: ref-based stores in `src/stores/` (no Pinia); composables in `src/composables/`; event bus `mitt`.
 - Timestamps are UTC epoch millis (numbers). Never `new Date()` for parsing/formatting and never propagate date strings — `FormattingService` only; `datetime-local` inputs convert at the boundary. Propose a new `FormattingService` function rather than formatting inline.
 - `vue3-apexcharts` JSON-clones `:options`, dropping formatter functions on reactive re-apply — keep interaction state out of options computeds.
 - Flamegraph protobuf: `services/flamegraphs/ProtobufConverter.ts` decodes `flamegraph.proto` by hand, straight into the columns of `FlamegraphData`. After editing the proto, update its field numbers and regenerate the code with `npm run proto:generate`; that code is a test oracle only (`ProtobufConverter.test.ts`), protobufjs is a dev dependency.
-- MCP answers link into this UI, held by tests to three pinned files in `pages-microscope/src/router/`: `profile-routes.json` and `global-routes.json` (the routes — rewrite them with `npx vitest run -u` after changing a route, then fix the `MicroscopeView`/`MicroscopePage` constants the Java tests name) and `link-params.json` (the query params each linked page reads). A page that reads a linked param takes its name from `link-params.json` (`FlamegraphLinkQuery`, `BaselineQuery`, `EventLinkQuery`); `linkParams.spec.ts` checks both ways: it pins the file, and it checks that each linked page (or a module it imports) still reads every param the file declares for it. Renaming or dropping one means editing that file, `linkParams.spec.ts` and the Java link that writes it.
+- MCP answers link into this UI, held by tests to three pinned files in `pages/src/router/`: `profile-routes.json` and `global-routes.json` (the routes — rewrite them with `npx vitest run -u` after changing a route, then fix the `MicroscopeView`/`MicroscopePage` constants the Java tests name) and `link-params.json` (the query params each linked page reads). A page that reads a linked param takes its name from `link-params.json` (`FlamegraphLinkQuery`, `BaselineQuery`, `EventLinkQuery`); `linkParams.spec.ts` checks both ways: it pins the file, and it checks that each linked page (or a module it imports) still reads every param the file declares for it. Renaming or dropping one means editing that file, `linkParams.spec.ts` and the Java link that writes it.
 - Shared CSS: `@shared/styles/shared-components.css` (search containers, cards, buttons, loading/empty states, drawers, form fields, info rows) and `@/assets/_sidebar-menu.scss`; add reused patterns there instead of duplicating scoped styles.
 - Verify with `npm run build` (runs `vue-tsc`) and `npm run test`; run the `design-token-compliance` agent after editing Vue files.

@@ -60,7 +60,7 @@
             <!--
               The generic test helpers - McpTestRequests (the modern 2026-07-28 request every JSON-RPC
               test sends), McpSchemaConformance and McpTestFeatures - ship as a test-jar, so mcp-server
-              and core-microscope build the same requests and check the same schemas. They live in the
+              and core build the same requests and check the same schemas. They live in the
               .testing package: a package of the main module on another module's classpath would be split.
             -->
             <plugin>

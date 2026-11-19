@@ -86,7 +86,7 @@ class WhatChangesTheAnswers(unittest.TestCase):
             if arguments[0] == "diff":
                 return "\n".join(["jeffrey-microscope/core/src/main/java/A.java",
                                   "jeffrey-microscope/core/src/test/java/ATest.java",
-                                  "jeffrey-microscope/pages-microscope/src/router/x.ts",
+                                  "jeffrey-microscope/pages/src/router/x.ts",
                                   "build/scripts/record-plugin-eval-mocks.py"])
             return ""
         with patch.object(refresh, "git", side_effect=git):

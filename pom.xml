@@ -156,7 +156,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>pages-microscope</artifactId>
+                <artifactId>pages</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -176,7 +176,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>core-microscope</artifactId>
+                <artifactId>core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -285,7 +285,7 @@
                 <version>${flyway-core.version}</version>
             </dependency>
 
-            <!-- ANTLR4 runtime — used by core-microscope for the heap-dump OQL grammar -->
+            <!-- ANTLR4 runtime — used by core for the heap-dump OQL grammar -->
             <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-runtime</artifactId>
