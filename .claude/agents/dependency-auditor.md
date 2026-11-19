@@ -29,12 +29,12 @@ Check dependency health across the multi-module Maven and NPM project.
 
 4. **Check for vulnerabilities**:
    ```bash
-   cd jeffrey-microscope/pages-microscope && npm audit --omit=dev 2>/dev/null
+   cd jeffrey-microscope/pages && npm audit --omit=dev 2>/dev/null
    ```
 
 5. **Check for outdated packages**:
    ```bash
-   cd jeffrey-microscope/pages-microscope && npm outdated 2>/dev/null
+   cd jeffrey-microscope/pages && npm outdated 2>/dev/null
    ```
 
 ### Report Format

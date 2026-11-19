@@ -41,7 +41,7 @@ jobs:
             module: volume-scheduler
             phase: test
           - component: Microscope
-            module: jeffrey-microscope/core-microscope
+            module: jeffrey-microscope/core
             phase: test
           - component: Provisioner
             module: build/build-provisioner

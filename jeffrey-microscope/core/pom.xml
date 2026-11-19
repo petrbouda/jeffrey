@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Jeffrey
+  ~ Copyright (C) 2026 Petr Bouda
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     https://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>cafe.jeffrey</groupId>
+        <artifactId>jeffrey-microscope</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>core</artifactId>
+
+    <properties>
+        <mainClass>cafe.jeffrey.microscope.core.MicroscopeApplication</mainClass>
+        <finalName>jeffrey</finalName>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>common</artifactId>
+        </dependency>
+        <!-- Json (moved from common into core.utils) -->
+        <dependency>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!-- IDGenerator (moved from common into core.utils) -->
+        <dependency>
+            <groupId>com.github.f4b6a3</groupId>
+            <artifactId>uuid-creator</artifactId>
+        </dependency>
+        <!-- Spring Boot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- JFR model types, analysis and settings shared with the profile analysis below -->
+        <!-- MCP: the pure 2026-07-28 protocol, and Jeffrey's adapter over it (Spring MVC, @Tool toolsets) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-protocol</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-server</artifactId>
+        </dependency>
+
+        <!-- Third-party -->
+        <!--
+          Reads the skills' YAML frontmatter (McpSkillCatalogue). Already on the classpath through
+          spring-boot-starter; declared because this module uses it directly. Version from the Boot BOM.
+        -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-events</artifactId>
+        </dependency>
+        <!--
+          Replaces the hand-written JFR HTTP filter this module used to carry: the
+          starter registers it, and jeffrey.tracing.* below keeps the same URL
+          patterns, ordering and parameter capture the filter had.
+        -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- The starter brings the ThreadLocal storage; Microscope runs on Java 25, so ScopedValue takes over. -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing-scoped-value</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- DuckDB: the data sources and pools (core.duckdb), the core and per-profile databases
+             (core.persistence, core.profile.persistence) and the heap-dump index -->
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-duckdb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+        <!-- The flamegraph wire format (src/main/proto/flamegraph.proto) and the pprof/OTLP readers -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <!-- The heap-dump OQL grammar (src/main/antlr4): the generated parser needs the runtime -->
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+        </dependency>
+        <!-- Primitive-specialised collections for the HPROF walkers and the profile repositories -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+        </dependency>
+        <!-- lz4-java: the XXHash64 that groups byte-identical instances in the heap-dump analysis -->
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmc</groupId>
+            <artifactId>flightrecorder.rules.jdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.hdrhistogram</groupId>
+            <artifactId>HdrHistogram</artifactId>
+        </dependency>
+        <!-- What Microscope asks of its connector: the clients, DTOs, managers and the connector SPI; no kind -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>connector-api</artifactId>
+        </dependency>
+        <!-- The recording volume's clients and the local-directory kind: found by ServiceLoader at run time, never
+             named by Microscope's code; its tests open local volumes through it -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume-connector</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- The Azure file share connector kind: found by ServiceLoader at run time, never named by Microscope's code -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>azure-files-connector</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- Frontend -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>pages</artifactId>
+        </dependency>
+
+        <!-- Test: VolumeWriter, used by RecordedSession (now in core's test sources) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- McpTestRequests and McpSchemaConformance: the protocol's generic test helpers -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-protocol</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <!-- McpNextToolConformance and McpTestToolsets: Jeffrey's own MCP test helpers -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>mcp-server</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- JfrRecordings/SpansAssert: spans asserted through what a real flight recording committed -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
+        <plugins>
+            <!-- src/main/proto: flamegraph.proto (the flamegraph wire format) and the vendored pprof and OTLP schemas -->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- src/main/antlr4: the heap-dump OQL grammar; the Java package follows the grammar's directory -->
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>${antlr4.version}</version>
+                <configuration>
+                    <visitor>true</visitor>
+                    <listener>false</listener>
+                    <sourceDirectory>${basedir}/src/main/antlr4</sourceDirectory>
+                    <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>exec-maven-plugin</artifactId>
+                <groupId>org.codehaus.mojo</groupId>
+            </plugin>
+
+            <!--
+                The plugin's skills, every file of every skill, copied in at build time rather than kept
+                as a second copy in this module: a client with the plugin reads the files themselves, and
+                a client that cannot take a plugin reads them over the protocol - as MCP prompts and over
+                the skills extension, both from this one classpath copy - and the two must not drift
+                apart. The bytes are copied unfiltered: the digests served are those of the files.
+            -->
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-mcp-skills</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.outputDirectory}/mcp-skills</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.basedir}/../../jeffrey-agent-plugin/skills</directory>
+                                    <includes>
+                                        <include>*/**</include>
+                                    </includes>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+</project>

@@ -10,37 +10,37 @@
 .DS_Store
 
 # Logs
-jeffrey-microscope/pages-microscope/logs
-jeffrey-microscope/pages-microscope/*.log
-jeffrey-microscope/pages-microscope/npm-debug.log*
-jeffrey-microscope/pages-microscope/yarn-debug.log*
-jeffrey-microscope/pages-microscope/yarn-error.log*
-jeffrey-microscope/pages-microscope/pnpm-debug.log*
-jeffrey-microscope/pages-microscope/lerna-debug.log*
+jeffrey-microscope/pages/logs
+jeffrey-microscope/pages/*.log
+jeffrey-microscope/pages/npm-debug.log*
+jeffrey-microscope/pages/yarn-debug.log*
+jeffrey-microscope/pages/yarn-error.log*
+jeffrey-microscope/pages/pnpm-debug.log*
+jeffrey-microscope/pages/lerna-debug.log*
 
 # dependencies
-jeffrey-microscope/pages-microscope/node_modules
-jeffrey-microscope/pages-microscope/package-lock.json
-jeffrey-microscope/pages-microscope/yarn.lock
+jeffrey-microscope/pages/node_modules
+jeffrey-microscope/pages/package-lock.json
+jeffrey-microscope/pages/yarn.lock
 
-jeffrey-microscope/pages-microscope/.DS_Store
-jeffrey-microscope/pages-microscope/dist
-jeffrey-microscope/pages-microscope/dist-ssr
-jeffrey-microscope/pages-microscope/coverage
-jeffrey-microscope/pages-microscope/*.local
+jeffrey-microscope/pages/.DS_Store
+jeffrey-microscope/pages/dist
+jeffrey-microscope/pages/dist-ssr
+jeffrey-microscope/pages/coverage
+jeffrey-microscope/pages/*.local
 
 /cypress/videos/
 /cypress/screenshots/
 
 # Editor directories and files
-jeffrey-microscope/pages-microscope/.vscode/*
-jeffrey-microscope/pages-microscope/!.vscode/extensions.json
-jeffrey-microscope/pages-microscope/.idea
-jeffrey-microscope/pages-microscope/*.suo
-jeffrey-microscope/pages-microscope/*.ntvs*
-jeffrey-microscope/pages-microscope/*.njsproj
-jeffrey-microscope/pages-microscope/*.sln
-jeffrey-microscope/pages-microscope/*.sw?
+jeffrey-microscope/pages/.vscode/*
+jeffrey-microscope/pages/!.vscode/extensions.json
+jeffrey-microscope/pages/.idea
+jeffrey-microscope/pages/*.suo
+jeffrey-microscope/pages/*.ntvs*
+jeffrey-microscope/pages/*.njsproj
+jeffrey-microscope/pages/*.sln
+jeffrey-microscope/pages/*.sw?
 
 package-lock.json
 /node_modules/*

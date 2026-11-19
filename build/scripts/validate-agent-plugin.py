@@ -256,7 +256,7 @@ def check_agent_contracts(root: Path) -> None:
         if "Never call a `heap_` tool" not in rules:
             fail(str(path), "the JFR analyst must explicitly forbid the heap_ tools")
 
-    connector_source = root / "jeffrey-microscope/core-microscope/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/ConnectorMcpTools.java"
+    connector_source = root / "jeffrey-microscope/core/src/main/java/cafe/jeffrey/microscope/core/mcp/tools/ConnectorMcpTools.java"
     default = re.search(r"DEFAULT_LIMIT\s*=\s*(\d+)", connector_source.read_text())
     skill = plugin / "skills/analyze-connector/SKILL.md"
     documented = re.search(r"connector_sessions` defaults to (\d+) rows", skill.read_text())

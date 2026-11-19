@@ -9,7 +9,7 @@ Paths below are relative to `jeffrey-pages/src/views/docs/`.
 
 | Code module | Documentation pages |
 |---|---|
-| `jeffrey-microscope/core-microscope`, `jeffrey-microscope/pages-microscope` | `docs/microscope/` (overview, quick start, recordings, storage, profiler builder), `docs/microscope/configuration/`, `docs/connectors/` (the Connector page: workspaces, projects, instances) |
+| `jeffrey-microscope/core`, `jeffrey-microscope/pages` | `docs/microscope/` (overview, quick start, recordings, storage, profiler builder), `docs/microscope/configuration/`, `docs/connectors/` (the Connector page: workspaces, projects, instances) |
 | `jeffrey-microscope/connectors/**` (connector-api, volume-connector with its local backend, azure-files-connector) | `docs/connectors/` — overview, `ConnectorsDeclaringPage.vue` (what every kind shares: the common `jeffrey.microscope.connector.name`, read-only, startup), `ConnectorsAvailablePage.vue` (the catalog), one page per connector kind holding its own `jeffrey.microscope.connector.<kind>.*` block (`ConnectorAzureFilesPage.vue`, `ConnectorLocalPage.vue`), workspaces, `projects/`; plus the pointers in `docs/microscope/configuration/MicroscopeConfigApplicationPropertiesPage.vue#connector` and `docs/DocsMicroscopePage.vue#connector`. Browsing pages stay kind-neutral; storage-specific behaviour goes on the kind's page. A new connector kind needs: its page, a route, a child in the *Available Connectors* sidebar group, a row in the catalog table, a link card on the catalog page, and a mention in the overview's *Available Connectors* section |
 | `jeffrey-microscope/profiles/**` | `docs/microscope/profiles/` — one page per analysis feature |
 | `volume-scheduler` | `docs/volume-scheduler/` (overview, architecture, storage, `configuration/`, the REST API page `VolumeSchedulerApiPage.vue`); its `jeffrey.volume-scheduler.*` keys on `configuration/VolumeSchedulerConfigurationPage.vue`, its `/api/v1` endpoints and error codes on the API page |
@@ -18,7 +18,7 @@ Paths below are relative to `jeffrey-pages/src/views/docs/`.
 | tracing instrumentation (`utilities/`) | `docs/tracing/`, `docs/tracing/tracer-api/` (one page per Tracer API method) |
 | `jeffrey-provisioner/` | `docs/provisioner/` |
 | Jib build | `docs/jib/` |
-| MCP server (`jeffrey-microscope/mcp-protocol`, `jeffrey-microscope/mcp-server`, `core-microscope/**/mcp/**`) + `jeffrey-agent-plugin/` | `docs/microscope-mcp/` — overview, enabling, every client, Claude Code / Codex / Gemini, tool reference, skills, agents, recipes |
+| MCP server (`jeffrey-microscope/mcp-protocol`, `jeffrey-microscope/mcp-server`, `core/**/mcp/**`) + `jeffrey-agent-plugin/` | `docs/microscope-mcp/` — overview, enabling, every client, Claude Code / Codex / Gemini, tool reference, skills, agents, recipes |
 | IntelliJ plugin | `docs/intellij-plugin/` |
 | Architecture changes | `docs/architecture/ArchitectureOverviewPage.vue` |
 | Install/onboarding | `docs/microscope/MicroscopeQuickStartPage.vue`, `docs/DocsIndexPage.vue` |

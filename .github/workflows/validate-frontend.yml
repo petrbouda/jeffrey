@@ -77,7 +77,7 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Test frontend
-        working-directory: jeffrey-microscope/pages-microscope
+        working-directory: jeffrey-microscope/pages
         run: npm test
 
       - name: Build production frontend

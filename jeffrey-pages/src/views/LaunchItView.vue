@@ -116,8 +116,8 @@ java -jar microscope.jar</code></pre>
                   </div>
                   <div class="step">
                     <div class="step-content">
-                      <p><strong>Frontend:</strong> Run in <code>/jeffrey-microscope/pages-microscope</code> directory:</p>
-                      <pre><code>cd jeffrey-microscope/pages-microscope && npm run dev</code></pre></div>
+                      <p><strong>Frontend:</strong> Run in <code>/jeffrey-microscope/pages</code> directory:</p>
+                      <pre><code>cd jeffrey-microscope/pages && npm run dev</code></pre></div>
                   </div>
                 </div>
               </div>

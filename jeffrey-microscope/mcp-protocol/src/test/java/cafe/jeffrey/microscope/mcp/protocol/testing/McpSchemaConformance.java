@@ -30,7 +30,7 @@ import java.util.Set;
  * {@code properties}, {@code required}, {@code additionalProperties} (false or a subschema),
  * {@code items}, {@code enum} and {@code minimum}, with {@code description} ignored — and fails on any
  * other keyword rather than passing a check it did not make. Shipped in this module's test-jar so the
- * tool tests in {@code core-microscope} use the same check.
+ * tool tests in {@code core} use the same check.
  */
 public final class McpSchemaConformance {
 

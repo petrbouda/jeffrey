@@ -79,7 +79,7 @@ intellijPlatform {
 // does not serve. That is how a heap-dump tile spent a release landing readers on the recordings
 // list — the two builds had no way to disagree out loud.
 val profileRouteManifest = layout.projectDirectory
-    .file("../jeffrey-microscope/pages-microscope/src/router/profile-routes.json")
+    .file("../jeffrey-microscope/pages/src/router/profile-routes.json")
 
 val copyProfileRouteManifest by tasks.registering(Copy::class) {
     from(profileRouteManifest)

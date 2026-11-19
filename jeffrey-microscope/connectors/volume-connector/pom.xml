@@ -45,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-common</artifactId>
+            <artifactId>common</artifactId>
         </dependency>
         <dependency>
             <groupId>tools.jackson.core</groupId>

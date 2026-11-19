@@ -1,16 +1,16 @@
 ---
 paths:
-  - "jeffrey-microscope/core-microscope/**/core/profile/**"
-  - "jeffrey-microscope/core-microscope/**/core/manager/download/**"
-  - "jeffrey-microscope/core-microscope/**/core/manager/recordings/**"
-  - "jeffrey-microscope/microscope-common/**/common/model/recording/**"
+  - "jeffrey-microscope/core/**/core/profile/**"
+  - "jeffrey-microscope/core/**/core/manager/download/**"
+  - "jeffrey-microscope/core/**/core/manager/recordings/**"
+  - "jeffrey-microscope/common/**/common/model/recording/**"
 ---
 
 ## Recording parsing and storage rules
 
 ### A recording is however many files it arrived as — they are never joined
 - `RecordingSources` carries them; `RecordingEventParser`, `RecordingInformationParser`, `ProfileInitializer` and `ProfileDataInitializer.startAutoAnalysis` all take it. Each file is a self-contained JFR read independently into one `EventWriter`; the only thing spanning the set is the window, `min(start)`/`max(end)` over all chunk headers (`JfrParser.buildRecordingInfo`).
-- `JfrParser`'s `Path` methods read a `.jfr.lz4` through a decompressing stream (`JfrParser.read`); read as it lies an archive has no chunk header and once came back as a recording with no chunks — no span, source `JDK` — rather than failing. `iterateChunks(Path, BiConsumer<FileChannel, …>)` hands out a channel, which only a plain file has, so it refuses an archive by name. A file can hold two chains of chunks that overlap in time (`jfrsync`: the JDK's and async-profiler's, their event types numbered differently); the span is the earliest start to the latest end, never the chunks' durations added up. `TestappRecording` (`core-microscope/src/test`'s `core.test.recording`) is such a file — the JDK's two chunks, async-profiler's one — with its figures pinned.
+- `JfrParser`'s `Path` methods read a `.jfr.lz4` through a decompressing stream (`JfrParser.read`); read as it lies an archive has no chunk header and once came back as a recording with no chunks — no span, source `JDK` — rather than failing. `iterateChunks(Path, BiConsumer<FileChannel, …>)` hands out a channel, which only a plain file has, so it refuses an archive by name. A file can hold two chains of chunks that overlap in time (`jfrsync`: the JDK's and async-profiler's, their event types numbered differently); the span is the earliest start to the latest end, never the chunks' durations added up. `TestappRecording` (`core/src/test`'s `core.test.recording`) is such a file — the JDK's two chunks, async-profiler's one — with its figures pinned.
 - Splitting a file into chunks only **manufactures** parse units: `SourceParseMode` splits while there are fewer than `availableProcessors() * 2` files, otherwise parses files as they lie. A `.jfr.lz4` is always split (`EventStream` cannot open one; the split decompresses in the same pass).
 - Each source gets its **own** scratch directory — chunk files are named by position, and a shared directory would have the second source overwrite the first's `chunk_0` silently.
 - Sources expand on virtual threads; their units parse on the bulk pool. Never share the two pools (an expander would block a bulk thread waiting on parses queued behind it).
@@ -24,9 +24,9 @@ paths:
 - A span's start is stored to the microsecond, so a last step ending with its request could appear to end up to a microsecond after it. A trace takes its root's own duration when the overhang past the root is shorter than that resolution (`TIMESTAMP_RESOLUTION_NS`); a child that really outlives its root still extends the trace. Figures over traces equal their exchanges exactly.
 
 ### Files are stored flat under `<recordingId>-<name>`
-- The prefix keeps the directory unique across recordings; it is **not** part of the name. `recording_files.filename` holds the name without it, `RecordingStorageLayout` (in `core-microscope`, package `cafe.jeffrey.microscope.core.manager.recordings`) is the one place that joins the two, and `StoredFile` carries name beside path. Reading the name back off the storage path yields a doubled prefix that finds nothing (analysis reports missing, deletion leaves it, `IdeRecordingLookup` reads every recording as never imported).
+- The prefix keeps the directory unique across recordings; it is **not** part of the name. `recording_files.filename` holds the name without it, `RecordingStorageLayout` (in `core`, package `cafe.jeffrey.microscope.core.manager.recordings`) is the one place that joins the two, and `StoredFile` carries name beside path. Reading the name back off the storage path yields a doubled prefix that finds nothing (analysis reports missing, deletion leaves it, `IdeRecordingLookup` reads every recording as never imported).
 - Never concatenate the prefix yourself: `RecordingsCoreManagerImpl` writes files, `ProfileRecordingsManager` and `RecordingFileLookup` read them back, and all of them go through `RecordingStorageLayout`. Readers start from the recording's `recording_files` rows and never list the directory to find a recording's files by name.
 - `RecordingFileLookup` (auto-analysis on demand, a `@Bean` in `ProfileAnalysisConfiguration`) returns **every** JFR file of the recording, the same set the import ran the rules over, and nothing else: no heap dump, pprof, OTLP or log. If any of them is gone from disk it returns none, as the import does. Anything it returns makes `canGenerate()` answer true, so a non-JFR answer advertises an analysis that can only fail.
 
 ### Microscope's `ManagedFile` is the only type that knows a heap dump from a log
-- `microscope-common`'s `cafe.jeffrey.microscope.common.model.recording` (`ManagedFile`, `FileCategory`, `FileExtensions`) carries description, extension, matcher and category; `Recording` and `RecordingFile` are in `core-microscope`'s `cafe.jeffrey.microscope.core.manager.recordings`. The volume scheduler cannot see any of them and must not depend on them.
+- `common`'s `cafe.jeffrey.microscope.common.model.recording` (`ManagedFile`, `FileCategory`, `FileExtensions`) carries description, extension, matcher and category; `Recording` and `RecordingFile` are in `core`'s `cafe.jeffrey.microscope.core.manager.recordings`. The volume scheduler cannot see any of them and must not depend on them.

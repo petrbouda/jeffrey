@@ -14,8 +14,8 @@ Review API contracts for consistency between backend (Java) and frontend (TypeSc
 1. **Identify changed API-related files** using `git diff --name-only`, filtering for:
    - Java REST resources (`*Resource.java`, `*Resources.java`)
    - Java DTOs/records used in API responses
-   - TypeScript API clients (`jeffrey-microscope/pages-microscope/src/services/api/*.ts`)
-   - TypeScript model types (`jeffrey-microscope/pages-microscope/src/services/api/model/*.ts`)
+   - TypeScript API clients (`jeffrey-microscope/pages/src/services/api/*.ts`)
+   - TypeScript model types (`jeffrey-microscope/pages/src/services/api/model/*.ts`)
 
 2. **Check REST API consistency**:
    - TypeScript API client URLs must match Java `@Path` annotations
@@ -37,4 +37,4 @@ Run this agent after:
 - Adding or modifying REST resources or endpoints
 - Changing Java DTOs or record types used in API responses
 - Adding or updating TypeScript API clients or model types
-- Changing the connector REST API (`/api/internal/connector/**`, `core-microscope/.../web/controllers/connector/`)
+- Changing the connector REST API (`/api/internal/connector/**`, `core/.../web/controllers/connector/`)

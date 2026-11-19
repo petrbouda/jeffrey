@@ -31,10 +31,10 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>microscope-common</module>
+        <module>common</module>
         <module>connectors</module>
-        <module>pages-microscope</module>
-        <module>core-microscope</module>
+        <module>pages</module>
+        <module>core</module>
         <module>mcp-protocol</module>
         <module>mcp-server</module>
     </modules>
@@ -49,7 +49,7 @@
         <dependencies>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-common</artifactId>
+                <artifactId>common</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

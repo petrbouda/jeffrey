@@ -38,7 +38,7 @@ import java.util.function.Consumer;
  * One place, so a test that means "a well-formed call" cannot drift into a legacy request by leaving a
  * header out, and a test that means "a malformed call" starts from a correct one and breaks exactly one
  * thing ({@link Request#withHeaders}, {@link Request#editBody}). Shipped in this module's test-jar so
- * the adapter's tests in {@code mcp-server} and the controller tests in {@code core-microscope} build
+ * the adapter's tests in {@code mcp-server} and the controller tests in {@code core} build
  * the same requests.
  */
 public final class McpTestRequests {
