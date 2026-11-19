@@ -133,12 +133,6 @@ jobs:
         name: microscope-linux-amd64
         path: ./artifacts/runtimes
 
-    - name: Download runtime archive (linux-arm64)
-      uses: actions/download-artifact@v8
-      with:
-        name: microscope-linux-arm64
-        path: ./artifacts/runtimes
-
     - name: Download runtime archive (macos-arm64)
       uses: actions/download-artifact@v8
       with:

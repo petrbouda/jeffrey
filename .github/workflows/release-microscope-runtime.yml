@@ -35,9 +35,6 @@ jobs:
           - os: ubuntu-latest
             arch: amd64
             platform: linux
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            platform: linux
           - os: macos-latest
             arch: arm64
             platform: macos
