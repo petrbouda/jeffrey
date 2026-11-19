@@ -87,8 +87,8 @@ jobs:
             > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
         else
           "${ARCHIVE_DIR}/bin/microscope" \
-            -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
-            -Dserver.port="${MICROSCOPE_PORT}" \
+            --jeffrey.microscope.home.dir="${JEFFREY_HOME}" \
+            --server.port="${MICROSCOPE_PORT}" \
             > "${RUNNER_TEMP}/microscope-runtime.log" 2>&1 &
         fi
         MICROSCOPE_PID=$!
