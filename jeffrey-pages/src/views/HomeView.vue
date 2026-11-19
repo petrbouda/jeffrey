@@ -17,6 +17,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { useProductVersions, jibVersionLinks } from '@/composables/useProductVersions';
 
 const MICROSCOPE_JAR_URL = 'https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar';
 const COPIED_FEEDBACK_MS = 1400;
@@ -436,6 +437,7 @@ const productTabs: ProductTab[] = [
 
 const activeTab = ref<Tab>('microscope');
 const copied = ref(false);
+const { versionFor } = useProductVersions();
 
 const active = computed(() => productTabs.find(p => p.id === activeTab.value)!);
 
@@ -629,12 +631,34 @@ async function copyCmd(): Promise<void> {
             <p>{{ active.oneLiner }}</p>
           </div>
           <div class="panel-body">
-            <div class="features">
-              <article v-for="f in active.features" :key="f.title" class="feature">
+            <div class="features-col">
+              <div v-if="versionFor(active.id)" class="version-banner">
+                <span class="version-icon"><i class="bi bi-bookmark-star-fill"></i></span>
+                <div class="version-info">
+                  <span class="version-label">Latest release</span>
+                  <code class="version-number">{{ versionFor(active.id)!.version }}</code>
+                </div>
+                <template v-if="active.id === 'jib' && versionFor('jib')">
+                  <div class="version-links">
+                    <a :href="jibVersionLinks(versionFor('jib')!.version).maven" target="_blank" rel="noopener noreferrer" class="version-link">
+                      Maven <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                    <a :href="jibVersionLinks(versionFor('jib')!.version).gradle" target="_blank" rel="noopener noreferrer" class="version-link">
+                      Gradle <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                  </div>
+                </template>
+                <a v-else :href="versionFor(active.id)!.url" target="_blank" rel="noopener noreferrer" class="version-link">
+                  {{ versionFor(active.id)!.source }} <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+              </div>
+              <div class="features">
+                <article v-for="f in active.features" :key="f.title" class="feature">
                 <span class="feature-ic"><i class="bi" :class="f.icon"></i></span>
                 <h4>{{ f.title }}</h4>
                 <p>{{ f.desc }}</p>
               </article>
+              </div>
             </div>
 
             <aside class="dep">
@@ -1466,10 +1490,83 @@ async function copyCmd(): Promise<void> {
   align-items: start;
 }
 
+.features-col {
+  min-width: 0;
+}
+
 .features {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 12px;
+}
+
+.version-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--tab-accent) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--tab-accent) 30%, transparent);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.version-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: var(--on-accent);
+  background: var(--tab-accent);
+  flex-shrink: 0;
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.version-label {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.version-number {
+  font: 600 12.5px/1 var(--font-mono);
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--tab-accent) 18%, transparent);
+  color: var(--tab-accent);
+}
+
+.version-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--tab-accent);
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+
+.version-link:hover {
+  opacity: 0.75;
+}
+
+.version-links {
+  margin-left: auto;
+  display: flex;
+  gap: 14px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .feature {
