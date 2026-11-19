@@ -46,8 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MethodTracingIntegrationTest extends CheckoutVolumeMicroscope {
 
     /** The recording, kept with the parser's tests. */
-    private static final Path RECORDING = Path.of("..", "profiles", "profile-management", "src", "test", "resources",
-            "jfr", "method-trace.jfr");
+    private static final Path RECORDING = Path.of("src", "test", "resources", "jfr", "method-trace.jfr");
 
     private static final String FIXTURE = "MethodTraceFixture";
     private static final String INNER = "inner";

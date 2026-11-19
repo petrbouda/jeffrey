@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.manager.ide;
 
 import cafe.jeffrey.microscope.core.configuration.AppConfiguration;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

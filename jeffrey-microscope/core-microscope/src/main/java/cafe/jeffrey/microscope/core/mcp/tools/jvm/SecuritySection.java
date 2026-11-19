@@ -22,9 +22,9 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.IoKind;
-import cafe.jeffrey.microscope.profile.management.manager.model.security.SecurityData;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.IoKind;
+import cafe.jeffrey.microscope.core.profile.manager.model.security.SecurityData;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.List;

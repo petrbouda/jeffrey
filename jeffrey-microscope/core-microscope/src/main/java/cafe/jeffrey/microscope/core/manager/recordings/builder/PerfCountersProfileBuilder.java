@@ -28,11 +28,11 @@ import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
+import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.core.persistence.api.ProfileRepository;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersOverview;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.perfcounters.PerfCountersOverview;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

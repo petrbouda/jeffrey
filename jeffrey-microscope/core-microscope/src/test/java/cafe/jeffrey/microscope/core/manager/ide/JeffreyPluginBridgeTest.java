@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.manager.ide;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginInstance;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginNavigateResult;
 import cafe.jeffrey.microscope.core.manager.ide.JeffreyPluginClient.PluginProject;
-import cafe.jeffrey.microscope.persistence.api.IdeTargetsRepository;
+import cafe.jeffrey.microscope.core.persistence.api.IdeTargetsRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

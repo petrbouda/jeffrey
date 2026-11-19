@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.download.OriginContext;
 import cafe.jeffrey.microscope.model.ProfileKind;

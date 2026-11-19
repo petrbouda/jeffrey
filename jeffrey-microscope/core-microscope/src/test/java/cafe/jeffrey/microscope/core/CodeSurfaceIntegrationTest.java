@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodRef;
-import cafe.jeffrey.microscope.profile.persistence.api.CallSiteRow;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodKey;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodRef;
+import cafe.jeffrey.microscope.core.profile.persistence.api.CallSiteRow;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;

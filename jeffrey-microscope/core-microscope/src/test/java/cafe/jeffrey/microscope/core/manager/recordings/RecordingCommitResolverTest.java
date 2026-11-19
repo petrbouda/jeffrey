@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTagsRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

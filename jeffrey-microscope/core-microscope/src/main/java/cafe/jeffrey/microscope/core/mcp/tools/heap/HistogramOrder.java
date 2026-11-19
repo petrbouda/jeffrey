@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.heap;
 
-import cafe.jeffrey.microscope.profile.heapdump.model.SortBy;
+import cafe.jeffrey.microscope.core.profile.heapdump.model.SortBy;
 
 /**
  * What {@code heap_getClassHistogram} ranks by, named as its answer reports it.

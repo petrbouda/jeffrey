@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
 import cafe.jeffrey.microscope.model.recording.Recording;
 

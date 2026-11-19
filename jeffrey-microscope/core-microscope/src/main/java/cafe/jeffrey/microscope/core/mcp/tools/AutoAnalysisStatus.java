@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
+import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 
 /**
  * Whether the auto-analysis rules have run for a profile: the one vocabulary every answer that

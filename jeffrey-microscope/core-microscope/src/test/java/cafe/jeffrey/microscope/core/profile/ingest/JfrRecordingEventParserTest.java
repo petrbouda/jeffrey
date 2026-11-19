@@ -1,0 +1,177 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.ingest;
+
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrParser;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@DisplayName("JfrRecordingEventParser")
+class JfrRecordingEventParserTest {
+
+    private static final String RECORDING_RESOURCE = "/jfr/method-trace.jfr";
+
+    /** Low enough that a handful of files is already "enough files". */
+    private static final int WHOLE_FILE_THRESHOLD = 1;
+
+    /** High enough that nothing reaches it, so every source is split. */
+    private static final int ALWAYS_SPLIT_THRESHOLD = Integer.MAX_VALUE;
+
+    @TempDir
+    Path tempDir;
+
+    private Path whole;
+    private List<Path> pieces;
+    private Map<String, Long> singleChunkEvents;
+
+    /**
+     * The fixture is a single-chunk recording, so it is written out twice to get a recording worth
+     * splitting. That is not a trick: a JFR file is a run of self-contained chunks, which is the
+     * very reason a session's files can be read independently — and it makes the expected answer
+     * exact, since two copies must hold twice what one does.
+     */
+    @BeforeEach
+    void splitTheFixture() throws IOException {
+        byte[] fixture = fixtureBytes();
+        singleChunkEvents = parse(RecordingSources.of(writeRecording("single.jfr", fixture)), ALWAYS_SPLIT_THRESHOLD);
+
+        whole = writeRecording("whole.jfr", fixture, fixture);
+        pieces = JfrParser.disassemble(whole, tempDir.resolve("pieces"));
+    }
+
+    /**
+     * The claim the whole change rests on: a recording held as several files is the same recording.
+     * Nothing joins them, so were this false the merge would have been doing real work rather than
+     * undoing itself one step later.
+     */
+    @Nested
+    @DisplayName("One recording, however many files")
+    class Equivalence {
+
+        @Test
+        @DisplayName("the files separately hold what the single file holds")
+        void filesAreEquivalentToTheirConcatenation() {
+            assertEquals(2, pieces.size(), "the doubled fixture must split back into its two chunks");
+
+            Map<String, Long> fromWhole = parse(RecordingSources.of(whole), ALWAYS_SPLIT_THRESHOLD);
+            Map<String, Long> fromPieces = parse(new RecordingSources(pieces), ALWAYS_SPLIT_THRESHOLD);
+
+            assertEquals(fromWhole, fromPieces);
+
+            // And both are exactly the one chunk twice over, so neither dropped nor doubled a file.
+            assertEquals(total(singleChunkEvents) * 2, total(fromPieces));
+        }
+
+        /**
+         * The same recording read both ways round, so the two runs differ in the mode they took
+         * rather than only in how the bytes were laid out on disk.
+         */
+        @Test
+        @DisplayName("splitting the files changes nothing about what is parsed out of them")
+        void holdsAcrossParseModes() {
+            Map<String, Long> split = parse(new RecordingSources(pieces), ALWAYS_SPLIT_THRESHOLD);
+            Map<String, Long> wholeFiles = parse(new RecordingSources(pieces), WHOLE_FILE_THRESHOLD);
+
+            assertEquals(split, wholeFiles);
+        }
+
+        @Test
+        @DisplayName("a single file is unchanged by the file-count rule")
+        void aSingleFileReadsTheSameEitherWay() {
+            Map<String, Long> split = parse(RecordingSources.of(whole), ALWAYS_SPLIT_THRESHOLD);
+            Map<String, Long> asItLies = parse(RecordingSources.of(whole), WHOLE_FILE_THRESHOLD);
+
+            assertEquals(split, asItLies);
+        }
+    }
+
+    @Nested
+    @DisplayName("Several sources at once")
+    class SeveralSources {
+
+        /**
+         * Chunk files are named by their position within one recording, so sources sharing a
+         * scratch directory would overwrite each other's {@code chunk_0}. Nothing downstream could
+         * tell: the profile would simply be missing whatever those chunks held. Splitting every
+         * source is the case that would lose them, so it is the case asserted here.
+         */
+        @Test
+        @DisplayName("keeps every source's chunks, rather than letting them overwrite each other")
+        void keepsSourcesApart() {
+            assertEquals(2, pieces.size(), "the doubled fixture must split back into its two chunks");
+
+            Map<String, Long> all = parse(new RecordingSources(pieces), ALWAYS_SPLIT_THRESHOLD);
+            Map<String, Long> justTheFirst = parse(
+                    RecordingSources.of(pieces.getFirst()), ALWAYS_SPLIT_THRESHOLD);
+
+            // Both sources landed. Sharing a scratch directory would have left one of them,
+            // and the total would have matched a single source exactly.
+            assertEquals(total(justTheFirst) * 2, total(all));
+            assertTrue(total(all) > total(justTheFirst), "every source contributed, not just the last one");
+        }
+    }
+
+    private Map<String, Long> parse(RecordingSources sources, int chunkSplitThreshold) {
+        TempDirFactory tempDirFactory = TempDirFactory.of(tempDir.resolve("scratch"));
+
+        EventTally events = new EventTally();
+        new JfrRecordingEventParser(tempDirFactory, new Lz4Decompressor(tempDirFactory), chunkSplitThreshold)
+                .start(events, sources);
+        return events.events();
+    }
+
+    private static long total(Map<String, Long> counts) {
+        return counts.values().stream().mapToLong(Long::longValue).sum();
+    }
+
+    private static byte[] fixtureBytes() throws IOException {
+        try (InputStream source = JfrRecordingEventParserTest.class.getResourceAsStream(RECORDING_RESOURCE)) {
+            if (source == null) {
+                throw new IllegalStateException("Missing test recording: " + RECORDING_RESOURCE);
+            }
+            return source.readAllBytes();
+        }
+    }
+
+    private Path writeRecording(String name, byte[]... chunks) throws IOException {
+        Path target = tempDir.resolve(name);
+        try (OutputStream out = Files.newOutputStream(target)) {
+            for (byte[] chunk : chunks) {
+                out.write(chunk);
+            }
+        }
+        return target;
+    }
+}

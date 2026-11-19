@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.FollowUpCalls;
 import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 

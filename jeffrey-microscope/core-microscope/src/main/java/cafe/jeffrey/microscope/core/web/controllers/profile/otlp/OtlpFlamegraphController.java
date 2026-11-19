@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
-import cafe.jeffrey.microscope.profile.management.panel.PanelContext;
-import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.model.FlamegraphPanel;
+import cafe.jeffrey.microscope.core.profile.panel.PanelContext;
+import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.List;
 

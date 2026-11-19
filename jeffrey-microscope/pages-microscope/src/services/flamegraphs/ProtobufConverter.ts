@@ -25,7 +25,7 @@ import ProtoWireReader, { WireType } from '@/services/flamegraphs/ProtoWireReade
 import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 import Serie from '@/services/timeseries/model/Serie';
 
-// Field numbers of flamegraph.proto (profiles/profile-management/src/main/proto). ProtobufConverter.test
+// Field numbers of flamegraph.proto (core-microscope/src/main/proto). ProtobufConverter.test
 // encodes every field with the code generated from that file and checks this decoder reads it back.
 const GRAPH_DATA = { FLAMEGRAPH: 1, TIMESERIES: 2 } as const;
 const FLAMEGRAPH_DATA = { DEPTH: 1, LEVELS: 2, TITLE_POOL: 3 } as const;

@@ -25,10 +25,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.memory.HeapMemoryManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.heap.HeapMemoryOverviewData;
-import cafe.jeffrey.microscope.profile.management.manager.model.heap.HeapMemoryTimeseriesType;
-import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.core.profile.manager.memory.HeapMemoryManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.heap.HeapMemoryOverviewData;
+import cafe.jeffrey.microscope.core.profile.manager.model.heap.HeapMemoryTimeseriesType;
+import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 
 @RestController
 @RequestMapping("/api/internal/profiles/{profileId}/heap-memory")

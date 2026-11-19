@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.manager.ide;
 
-import cafe.jeffrey.microscope.persistence.api.IdeTargetLink;
-import cafe.jeffrey.microscope.persistence.api.IdeTargetsRepository;
+import cafe.jeffrey.microscope.core.persistence.api.IdeTargetLink;
+import cafe.jeffrey.microscope.core.persistence.api.IdeTargetsRepository;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

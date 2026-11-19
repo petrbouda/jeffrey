@@ -24,11 +24,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.ExceptionsManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.exceptions.ExceptionSiteStat;
-import cafe.jeffrey.microscope.profile.management.manager.model.exceptions.ExceptionTypeStat;
-import cafe.jeffrey.microscope.profile.management.manager.model.exceptions.ExceptionsOverview;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.core.profile.manager.ExceptionsManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionSiteStat;
+import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionTypeStat;
+import cafe.jeffrey.microscope.core.profile.manager.model.exceptions.ExceptionsOverview;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;
 

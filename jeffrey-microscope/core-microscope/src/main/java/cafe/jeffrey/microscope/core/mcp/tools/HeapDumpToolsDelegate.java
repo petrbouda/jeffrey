@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
-import cafe.jeffrey.microscope.profile.heapdump.model.*;
-import cafe.jeffrey.microscope.profile.heapdump.view.SqlQueryResult;
+import cafe.jeffrey.microscope.core.profile.heapdump.model.*;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.SqlQueryResult;
 
 import java.util.List;
 import java.util.Optional;

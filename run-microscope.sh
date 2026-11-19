@@ -39,7 +39,7 @@
 # controllers, with nothing to keep up to date. Those events land in the same .jfr, and because a
 # controller runs inside the /api/* span the tracing starter opens, each one shows up as a bar
 # inside its own request in Jeffrey's trace waterfall. Set METHOD_TRACE="<jep520 filter>" to replace
-# the filter (e.g. "cafe.jeffrey.microscope.profile.management.ProfileInitializerImpl;::<clinit>"),
+# the filter (e.g. "cafe.jeffrey.microscope.core.profile.ProfileInitializerImpl;::<clinit>"),
 # METHOD_TRACE_THRESHOLD=<duration> to raise the 0ms floor, or METHOD_TRACE=off to disable it.
 #
 # Trace context: the spans above say when something happened, but the Trace modal's "I/O ops" and
@@ -352,14 +352,14 @@ fi
 # query() is many-per-request, so it carries a 1ms latency threshold to keep only the slow queries.
 DEFAULT_TRACE_METHODS=(
     # Managers / providers behind the controllers — see where the time inside a request goes
-    cafe.jeffrey.microscope.profile.management.manager.PrimaryFlamegraphManager.generate
-    cafe.jeffrey.microscope.profile.management.manager.PrimaryTimeseriesManager.timeseries
-    cafe.jeffrey.microscope.profile.management.flamegraph.provider.FlamegraphDataProvider.provideFrame
-    cafe.jeffrey.microscope.profile.management.flamegraph.FlameGraphProtoBuilder.build
+    cafe.jeffrey.microscope.core.profile.manager.PrimaryFlamegraphManager.generate
+    cafe.jeffrey.microscope.core.profile.manager.PrimaryTimeseriesManager.timeseries
+    cafe.jeffrey.microscope.core.profile.flamegraph.provider.FlamegraphDataProvider.provideFrame
+    cafe.jeffrey.microscope.core.profile.flamegraph.FlameGraphProtoBuilder.build
     # Recording ingestion — one event per parsed recording
-    cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingEventParser.start
+    cafe.jeffrey.microscope.core.profile.ingest.JfrRecordingEventParser.start
     # DuckDB query chokepoint — many per request, so only trace calls slower than 1ms
-    cafe.jeffrey.microscope.duckdb.client.DatabaseClient.query:1ms
+    cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient.query:1ms
 )
 
 # The two REST entry points this list used to open with — FlamegraphController.generate and

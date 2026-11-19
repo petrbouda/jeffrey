@@ -1,0 +1,166 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
+
+import cafe.jeffrey.microscope.core.profile.persistence.api.*;
+
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.settings.ActiveSetting;
+import cafe.jeffrey.microscope.model.settings.ActiveSettings;
+import cafe.jeffrey.microscope.core.profile.persistence.api.DatabaseWriter;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeBuilder;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EnhancedEventType;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventThreadWithHash;
+import cafe.jeffrey.microscope.core.profile.persistence.jdbc.*;
+
+import java.time.Instant;
+import java.util.*;
+import java.util.stream.Stream;
+
+public class WriterResultCollector {
+
+    private final DatabaseWriter<EnhancedEventType> eventTypeWriter;
+    private final DatabaseWriter<EventThreadWithHash> threadWriter;
+
+    private EventWriterResult combined = new EventWriterResult(
+            new ArrayList<>(), new ArrayList<>(), new HashMap<>(), new HashSet<>(), Instant.MIN);
+
+    public WriterResultCollector(
+            DatabaseWriter<EnhancedEventType> eventTypeWriter,
+            DatabaseWriter<EventThreadWithHash> threadWriter) {
+
+        this.eventTypeWriter = eventTypeWriter;
+        this.threadWriter = threadWriter;
+    }
+
+    public void add(EventWriterResult newResults) {
+        List<EventTypeBuilder> events =
+                combineEventTypes(combined.eventTypes(), newResults.eventTypes());
+
+        Map<String, ActiveSetting> activeSettings =
+                combineActiveSettings(combined.activeSettings(), newResults.activeSettings());
+
+        List<EventThreadWithHash> threads = new ArrayList<>();
+        threads.addAll(combined.eventThreads());
+        threads.addAll(newResults.eventThreads());
+
+        // To resolve the latest event, figure out when the processing finished
+        Instant latestEvent = resolveLatestEvent(combined, newResults);
+
+        // Combine information if the event types contain stacktraces
+        Set<String> containStacktraces = combined.eventTypesContainingStacktraces();
+        containStacktraces.addAll(newResults.eventTypesContainingStacktraces());
+
+        this.combined = new EventWriterResult(threads, events, activeSettings, containStacktraces, latestEvent);
+    }
+
+    public void combine() {
+        List<EventTypeEnhancer> enhancers = resolveEventTypeEnhancers(
+                new ActiveSettings(combined.activeSettings()));
+
+        for (EventTypeBuilder eventTypeBuilder : combined.eventTypes()) {
+            applyEnhancers(enhancers, eventTypeBuilder);
+            ActiveSetting activeSetting = combined.activeSettings()
+                    .get(eventTypeBuilder.getEventType().name());
+
+            if (activeSetting != null) {
+                eventTypeBuilder.putParams(activeSetting.params());
+            }
+
+            boolean containsStackTraces = combined.eventTypesContainingStacktraces()
+                    .contains(eventTypeBuilder.getEventType().name());
+
+            eventTypeBuilder.withContainsStackTraces(containsStackTraces);
+
+            eventTypeWriter.insert(eventTypeBuilder.build());
+        }
+
+        // Threads names can be cleaned/modified by several approaches to ensure the better consistency and completeness
+        // e.g. missing names [tid=25432], shorter names from AsyncProfiler (based on Linux filesystem info), ...
+        // In most cases, it's about JVM threads (GC, JIT, ...), JDK-based JFR events provides valid threads names
+        List<EventThreadWithHash> modifiedThreads = new EventThreadCleaner()
+                .clean(combined.eventThreads());
+
+        modifiedThreads.forEach(threadWriter::insert);
+    }
+
+    private List<EventTypeEnhancer> resolveEventTypeEnhancers(ActiveSettings settings) {
+        return List.of(
+                // Complex enhancers with unique logic
+                new ExecutionSamplesExtraEnhancer(settings),
+                new WallClockSamplesWeightEnhancer(settings),
+                new ExecutionSamplesWeightEnhancer(settings)
+        );
+    }
+
+    private static void applyEnhancers(List<EventTypeEnhancer> enhancers, EventTypeBuilder builder) {
+        Type type = Type.fromCode(builder.getEventType().name());
+
+        if (enhancers != null) {
+            for (EventTypeEnhancer enhancer : enhancers) {
+                if (enhancer.isApplicable(type)) {
+                    enhancer.apply(builder);
+                }
+            }
+        }
+    }
+
+    private static List<EventTypeBuilder> combineEventTypes(
+            List<EventTypeBuilder> partial1,
+            List<EventTypeBuilder> partial2) {
+
+        List<EventTypeBuilder> mergedBuilders = new ArrayList<>();
+        Stream.concat(partial1.stream(), partial2.stream()).forEach(builder -> {
+            Optional<EventTypeBuilder> builderOpt = mergedBuilders.stream()
+                    .filter(type -> type.getEventType().name().equals(builder.getEventType().name()))
+                    .findFirst();
+
+            if (builderOpt.isEmpty()) {
+                mergedBuilders.add(builder);
+            }
+        });
+
+        return mergedBuilders;
+    }
+
+    private static Map<String, ActiveSetting> combineActiveSettings(
+            Map<String, ActiveSetting> partial1,
+            Map<String, ActiveSetting> partial2) {
+
+        Map<String, ActiveSetting> combined = new HashMap<>(partial1);
+        for (Map.Entry<String, ActiveSetting> entry : partial2.entrySet()) {
+            combined.merge(entry.getKey(), entry.getValue(), WriterResultCollector::mergeActiveSetting);
+        }
+        return combined;
+    }
+
+    private static Instant resolveLatestEvent(EventWriterResult first, EventWriterResult second) {
+        return first.latestEvent().isAfter(second.latestEvent()) ? first.latestEvent() : second.latestEvent();
+    }
+
+    private static ActiveSetting mergeActiveSetting(ActiveSetting setting1, ActiveSetting setting2) {
+        Map<String, String> params = new HashMap<>();
+        if (setting1.enabled()) {
+            params.putAll(setting1.params());
+        }
+        if (setting2.enabled()) {
+            params.putAll(setting2.params());
+        }
+        return new ActiveSetting(setting1.event(), params);
+    }
+}

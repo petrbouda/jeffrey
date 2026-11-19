@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.mcp.server.McpToolMetrics;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.common.Json;

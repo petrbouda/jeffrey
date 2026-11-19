@@ -30,10 +30,10 @@ import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
-import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
-import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingRepository;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTagsRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -19,14 +19,14 @@ package cafe.jeffrey.microscope.core.mcp.tools.traces;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceAttributeKeyRow;
-import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceAttributeSearchResult;
-import cafe.jeffrey.microscope.profile.management.manager.model.trace.TraceAttributeValues;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeKeyRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeSearchResult;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeValues;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeCarrier;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeOperator;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeScope;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceAttributeSource;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeCarrier;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeOperator;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeScope;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeSource;
 
 import java.util.List;
 

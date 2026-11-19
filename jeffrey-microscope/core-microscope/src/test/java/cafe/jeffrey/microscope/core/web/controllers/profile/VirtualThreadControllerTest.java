@@ -23,12 +23,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.thread.VirtualThreadManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.virtualthread.VirtualThreadData;
-import cafe.jeffrey.microscope.profile.management.manager.model.virtualthread.VirtualThreadData.VtHeader;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.thread.VirtualThreadManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.virtualthread.VirtualThreadData;
+import cafe.jeffrey.microscope.core.profile.manager.model.virtualthread.VirtualThreadData.VtHeader;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;
 

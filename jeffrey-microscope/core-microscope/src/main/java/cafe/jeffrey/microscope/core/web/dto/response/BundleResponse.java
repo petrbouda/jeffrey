@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.model.recording.Bundle;
 
 import java.util.List;

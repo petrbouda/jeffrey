@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.microscope.profile.management.flamegraph.proto.Frame;
-import cafe.jeffrey.microscope.profile.management.flamegraph.proto.GraphData;
+import cafe.jeffrey.microscope.core.profile.flamegraph.proto.Frame;
+import cafe.jeffrey.microscope.core.profile.flamegraph.proto.GraphData;
 import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import com.google.protobuf.InvalidProtocolBufferException;

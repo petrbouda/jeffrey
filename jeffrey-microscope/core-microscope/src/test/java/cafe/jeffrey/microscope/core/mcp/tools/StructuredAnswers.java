@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.core.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;

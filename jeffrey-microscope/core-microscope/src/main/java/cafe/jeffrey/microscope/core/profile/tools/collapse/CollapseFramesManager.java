@@ -1,0 +1,169 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.tools.collapse;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileCacheRepository;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsRepository;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsRepository.FrameSample;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsRepository.StacktraceRecord;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
+import cafe.jeffrey.microscope.core.profile.persistence.jdbc.SingleThreadHasher;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+
+public class CollapseFramesManager {
+
+    @FunctionalInterface
+    public interface Factory extends Function<ProfileInfo, CollapseFramesManager> {
+    }
+
+    public record CollapseRequest(List<String> patterns, String label) {
+    }
+
+    public record CollapsePreviewResult(int matchingFrames, int affectedStacktraces, List<FrameSample> samples) {
+    }
+
+    public record CollapseApplyResult(int affectedStacktraces, int mergedStacktraces) {
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(CollapseFramesManager.class);
+
+    private static final int PREVIEW_LIMIT = 10;
+
+    private final ProfileToolsRepository toolsRepository;
+    private final ProfileCacheRepository cacheRepository;
+
+    public CollapseFramesManager(
+            ProfileToolsRepository toolsRepository,
+            ProfileCacheRepository cacheRepository) {
+
+        this.toolsRepository = toolsRepository;
+        this.cacheRepository = cacheRepository;
+    }
+
+    public CollapsePreviewResult preview(CollapseRequest request) {
+        LOG.debug("Previewing frame collapse: patterns={} label={}", request.patterns(), request.label());
+
+        Set<Long> allMatchingHashes = new LinkedHashSet<>();
+        List<ProfileToolsRepository.FrameSample> allSamples = new ArrayList<>();
+
+        for (String pattern : request.patterns()) {
+            allMatchingHashes.addAll(toolsRepository.findMatchingFrameHashes(pattern));
+            if (allSamples.size() < PREVIEW_LIMIT) {
+                allSamples.addAll(toolsRepository.sampleMatchingFrames(pattern, PREVIEW_LIMIT));
+            }
+        }
+
+        int matchingFrames = allMatchingHashes.size();
+        int affectedStacktraces = allMatchingHashes.isEmpty() ? 0
+                : toolsRepository.findAffectedStacktraces(new ArrayList<>(allMatchingHashes)).size();
+        var samples = allSamples.stream().distinct().limit(PREVIEW_LIMIT).toList();
+
+        return new CollapsePreviewResult(matchingFrames, affectedStacktraces, samples);
+    }
+
+    public CollapseApplyResult execute(CollapseRequest request) {
+        LOG.info("Executing frame collapse: patterns={} label={}", request.patterns(), request.label());
+
+        Set<Long> allMatchingHashes = new LinkedHashSet<>();
+        for (String pattern : request.patterns()) {
+            allMatchingHashes.addAll(toolsRepository.findMatchingFrameHashes(pattern));
+        }
+
+        List<Long> matchingFrameHashes = new ArrayList<>(allMatchingHashes);
+        if (matchingFrameHashes.isEmpty()) {
+            return new CollapseApplyResult(0, 0);
+        }
+
+        SingleThreadHasher hasher = new SingleThreadHasher();
+
+        // Create synthetic frame
+        EventFrame syntheticFrame = new EventFrame(request.label(), "", "Interpreted", 0, 0);
+        long syntheticFrameHash = hasher.hashFrame(syntheticFrame);
+        toolsRepository.insertSyntheticFrame(syntheticFrameHash, request.label());
+
+        Set<Long> matchingSet = new HashSet<>(matchingFrameHashes);
+        List<StacktraceRecord> affected = toolsRepository.findAffectedStacktraces(matchingFrameHashes);
+
+        Map<Long, Long> oldToNewMapping = new HashMap<>();
+        Map<Long, StacktraceRecord> newStacktraces = new LinkedHashMap<>();
+        int mergedCount = 0;
+
+        for (StacktraceRecord st : affected) {
+            long[] collapsed = collapseConsecutive(st.frameHashes(), matchingSet, syntheticFrameHash);
+            long newHash = hasher.hashStackTrace(collapsed);
+
+            oldToNewMapping.put(st.stacktraceHash(), newHash);
+
+            if (newStacktraces.containsKey(newHash)) {
+                mergedCount++;
+            } else {
+                newStacktraces.put(newHash, new StacktraceRecord(newHash, st.typeId(), collapsed, st.tagIds()));
+            }
+        }
+
+        // Apply the transformation
+        if (!oldToNewMapping.isEmpty()) {
+            toolsRepository.applyStacktraceTransformation(oldToNewMapping, new ArrayList<>(newStacktraces.values()));
+        }
+
+        // Cleanup orphaned data
+        toolsRepository.deleteOrphanedStacktraces();
+        toolsRepository.deleteOrphanedFrames();
+        toolsRepository.deleteOrphanedThreads();
+        cacheRepository.clearAll();
+
+        LOG.info("Frame collapse completed: affected_stacktraces={} merged={}", affected.size(), mergedCount);
+
+        return new CollapseApplyResult(affected.size(), mergedCount);
+    }
+
+    /**
+     * Replace consecutive runs of matching frames with a single synthetic frame hash.
+     */
+    static long[] collapseConsecutive(long[] frameHashes, Set<Long> matchingSet, long syntheticHash) {
+        List<Long> result = new ArrayList<>();
+        boolean lastWasMatch = false;
+
+        for (long hash : frameHashes) {
+            if (matchingSet.contains(hash)) {
+                if (!lastWasMatch) {
+                    result.add(syntheticHash);
+                    lastWasMatch = true;
+                }
+                // Skip consecutive matches (collapsed into the synthetic)
+            } else {
+                result.add(hash);
+                lastWasMatch = false;
+            }
+        }
+
+        return result.stream().mapToLong(Long::longValue).toArray();
+    }
+}

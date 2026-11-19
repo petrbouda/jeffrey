@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.common.BytesUtils;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
-import cafe.jeffrey.microscope.profile.heapdump.model.HeapThreadState;
+import cafe.jeffrey.microscope.core.profile.heapdump.model.HeapThreadState;
 
 import java.time.Instant;
 import java.util.List;

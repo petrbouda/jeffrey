@@ -23,17 +23,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.IoManager;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.FileForceStats;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.IoEndpoint;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.IoEndpointTimeline;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.IoKind;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.IoMetric;
-import cafe.jeffrey.microscope.profile.management.manager.model.io.IoTargetFilter;
+import cafe.jeffrey.microscope.core.profile.manager.IoManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.FileForceStats;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.IoEndpoint;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.IoEndpointTimeline;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.IoKind;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.IoMetric;
+import cafe.jeffrey.microscope.core.profile.manager.model.io.IoTargetFilter;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;
 

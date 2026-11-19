@@ -18,18 +18,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.heap;
 
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.BiggestCollectionsAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.BiggestObjectsAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.CachedAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.CollectionHeapAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.ConsumerReportAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.DuplicateDataAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.LeakSuspectsAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.StringHeapAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.analysis.ThreadHeapAnalysis;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpStages;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.CachedAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.ClassLoaderHeapAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.CollectionHeapAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.ConsumerReportAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.DuplicateDataAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.StringHeapAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.ThreadHeapAnalysis;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpStages;
 
 import java.util.Arrays;
 import java.util.EnumSet;

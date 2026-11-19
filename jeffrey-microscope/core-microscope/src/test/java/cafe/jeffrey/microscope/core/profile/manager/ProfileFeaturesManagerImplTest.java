@@ -1,0 +1,166 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.manager;
+
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventRepository;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceRepository;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("ProfileFeaturesManagerImpl")
+class ProfileFeaturesManagerImplTest {
+
+    @Mock
+    ProfileEventRepository eventRepository;
+
+    @Mock
+    ProfileEventTypeRepository eventTypeRepository;
+
+    @Mock
+    TraceRepository traceRepository;
+
+    private static EventSummary summary(Type type, long samples) {
+        return new EventSummary(type.code(), type.code(), null, samples, 0, false, false, List.of(), Map.of(), Map.of());
+    }
+
+    @Nested
+    @DisplayName("Feature detection with no events")
+    class NoEvents {
+
+        @Test
+        @DisplayName("All sample-based features are disabled when no event summaries exist")
+        void allSampleFeaturesDisabledWhenEmpty() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of());
+            // Container checker: no container events
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertTrue(disabledFeatures.contains(FeatureType.HTTP_SERVER_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.HTTP_CLIENT_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.JDBC_STATEMENTS_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.JDBC_POOL_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.METHOD_TRACING_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
+            assertTrue(disabledFeatures.contains(FeatureType.CONTAINER_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
+        }
+    }
+
+    @Nested
+    @DisplayName("Individual feature detection")
+    class IndividualFeatures {
+
+        @Test
+        @DisplayName("HTTP server feature is enabled when HTTP_SERVER_EXCHANGE has samples")
+        void httpServerEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.HTTP_SERVER_EXCHANGE, 10)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.HTTP_SERVER_DASHBOARD));
+            assertTrue(disabledFeatures.contains(FeatureType.HTTP_CLIENT_DASHBOARD));
+        }
+
+        @Test
+        @DisplayName("Tracing feature is enabled when METHOD_TRACE has samples")
+        void tracingEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.METHOD_TRACE, 5)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.METHOD_TRACING_DASHBOARD));
+        }
+
+        @Test
+        @DisplayName("JDBC statements feature is enabled when any JDBC statement type has samples")
+        void jdbcStatementsEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.JDBC_QUERY, 3)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.JDBC_STATEMENTS_DASHBOARD));
+        }
+
+        @Test
+        @DisplayName("Async-profiler spans feature is enabled when SPAN has samples")
+        void asyncProfilerSpansEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.SPAN, 7)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.ASYNC_PROFILER_SPANS));
+        }
+
+        @Test
+        @DisplayName("GC feature is enabled when GC_CONFIGURATION has samples")
+        void gcEnabled() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.GC_CONFIGURATION, 1)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertFalse(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
+        }
+
+        @Test
+        @DisplayName("GC feature stays disabled when only GC_HEAP_SUMMARY was recorded (async-profiler without jfrsync)")
+        void gcDisabledWithHeapSummaryOnly() {
+            when(eventTypeRepository.eventSummaries()).thenReturn(List.of(
+                    summary(Type.GC_HEAP_SUMMARY, 21)));
+            when(eventRepository.latestJsonFields(any())).thenReturn(Optional.empty());
+
+            var manager = new ProfileFeaturesManagerImpl(eventRepository, eventTypeRepository, traceRepository);
+            List<FeatureType> disabledFeatures = manager.getDisabledFeatures();
+
+            assertTrue(disabledFeatures.contains(FeatureType.GC_DASHBOARD));
+        }
+    }
+}

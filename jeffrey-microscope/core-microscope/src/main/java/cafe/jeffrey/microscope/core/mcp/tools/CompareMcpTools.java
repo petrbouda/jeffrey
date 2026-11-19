@@ -17,14 +17,14 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.FocusCost;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.MethodCost;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeAttribution.MethodValue;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.CodeQuery;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodKey;
-import cafe.jeffrey.microscope.profile.management.flamegraph.code.MethodRef;
-import cafe.jeffrey.microscope.profile.management.flamegraph.export.WeightContext;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.FocusCost;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.MethodCost;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.MethodValue;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeQuery;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodKey;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodRef;
+import cafe.jeffrey.microscope.core.profile.flamegraph.export.WeightContext;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.LinkedOutput;
 import cafe.jeffrey.microscope.core.mcp.tools.CodeAnswers.CodeStatus;
@@ -39,15 +39,15 @@ import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.common.config.GraphComponents;
 import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
-import cafe.jeffrey.microscope.profile.management.manager.DifferentialFlamegraphManager;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.DifferentialFlamegraphManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolCost;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
-import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 
