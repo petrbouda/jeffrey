@@ -18,16 +18,15 @@
 package cafe.jeffrey.microscope.core.manager.connector;
 
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
-import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
-import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
+import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
 import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * The clients of the one declared connector, whatever its kind: its provider opens the volume, once,
- * and the clients over it are kept for as long as Microscope runs.
+ * The clients of the one declared connector, whatever its kind: its provider opens them, once,
+ * and they are kept for as long as Microscope runs.
  */
 public final class ConnectorClientsFactory {
 
@@ -49,6 +48,6 @@ public final class ConnectorClientsFactory {
         DeclaredConnector connector = declared
                 .filter(candidate -> candidate.address().equals(address))
                 .orElseThrow(() -> new IllegalArgumentException("Not the declared connector: address=" + address));
-        return cache.computeIfAbsent(address, _ -> VolumeConnectorClients.of(connector.open()));
+        return cache.computeIfAbsent(address, _ -> connector.open());
     }
 }

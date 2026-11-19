@@ -34,8 +34,9 @@
     </description>
 
     <dependencies>
-        <!-- The connector SPI this kind provides, and the volume source it opens; its tests drive the
-             volume connector over this share end to end, against a share written as the provisioner writes -->
+        <!-- The volume source it opens and the clients over it (the connector SPI it provides comes with
+             it, from connector-api); its tests drive the volume connector over this share end to end,
+             against a share written as the provisioner writes -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume-connector</artifactId>

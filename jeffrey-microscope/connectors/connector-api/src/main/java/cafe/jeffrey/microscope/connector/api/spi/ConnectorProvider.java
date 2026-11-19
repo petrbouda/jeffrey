@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.connector.spi;
+package cafe.jeffrey.microscope.connector.api.spi;
 
 import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 
 /**
- * One kind of connector — where a recording volume can lie and how it is opened — found by
+ * One kind of connector — where its source lies and how it is opened — found by
  * {@link java.util.ServiceLoader}: a module that brings a kind declares it with {@code provides} in its
  * {@code module-info} and in {@code META-INF/services} (the classpath, where Microscope runs, reads
  * only the latter). Nothing above this interface names a kind.

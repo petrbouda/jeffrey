@@ -29,7 +29,7 @@
 
     <artifactId>volume-connector</artifactId>
     <description>
-        The connector clients answered by a recording volume reached straight on its storage, with no
+        The connector clients (connector-api) answered by a recording volume reached straight on its storage, with no
         service in between: the same workspaces, projects, instances, sessions and files, mapped from
         shared/volume onto Microscope's own model, and the user's changes made through VolumeChanges
         unless the source is read-only. A backend supplies the VolumeAccess: the local-directory one is here
@@ -38,6 +38,11 @@
     </description>
 
     <dependencies>
+        <!-- The client interfaces it implements and the SPI its local kind provides -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>connector-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>microscope-common</artifactId>

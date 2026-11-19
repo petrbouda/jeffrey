@@ -17,9 +17,11 @@
 
 package cafe.jeffrey.microscope.connector.azure;
 
-import cafe.jeffrey.microscope.connector.spi.ConnectorProvider;
-import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
+import cafe.jeffrey.microscope.connector.api.ConnectorClients;
+import cafe.jeffrey.microscope.connector.api.spi.ConnectorProvider;
+import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
 import cafe.jeffrey.microscope.connector.volume.BoundedReadFanOut;
+import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
 import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 import org.slf4j.Logger;
@@ -77,13 +79,17 @@ public final class AzureFilesConnectorProvider implements ConnectorProvider<Azur
             return address.share();
         }
 
+        @Override
+        public ConnectorClients open() {
+            return VolumeConnectorClients.of(source());
+        }
+
         /**
          * The independent reads of one call go out {@link BoundedReadFanOut#DEFAULT_MAX_IN_FLIGHT} at a
          * time, so their round-trips overlap. Nothing is remembered: a level is one listing of its
          * parent, with no file in it to read.
          */
-        @Override
-        public VolumeSource open() {
+        private VolumeSource source() {
             if (credential instanceof AzureFilesCredential.Sas sas) {
                 warnOnRights(address, SasPermissions.of(sas.token()));
             }

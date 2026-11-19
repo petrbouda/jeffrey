@@ -15,24 +15,25 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.connector.spi;
+package cafe.jeffrey.microscope.connector.api.spi;
 
-import cafe.jeffrey.microscope.connector.volume.VolumeSource;
+import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
 
 /**
- * A connector as its configuration declares it: where the volume lies, and how to open it. A kind
+ * A connector as its configuration declares it: where its source lies, and how to open it. A kind
  * that signs in with a secret keeps it here, behind {@link #open()} — never in the address, which is
- * logged and shown.
+ * logged and shown. What the source is — a recording volume, a service — is the kind's own business:
+ * it hands back the clients, and nothing above this interface knows how they are answered.
  */
 public interface DeclaredConnector {
 
-    /** Where the volume lies; never carries a credential. */
+    /** Where the source lies; never carries a credential. */
     ConnectorAddress address();
 
     /** What the connector is called when its configuration does not name it: the share, the directory. */
     String defaultName();
 
-    /** Opens the volume. Called once; the clients over it are kept for as long as Microscope runs. */
-    VolumeSource open();
+    /** Opens the source and returns its clients. Called once; they are kept for as long as Microscope runs. */
+    ConnectorClients open();
 }

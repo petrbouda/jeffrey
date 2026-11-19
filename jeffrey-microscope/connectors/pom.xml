@@ -27,15 +27,18 @@
     </parent>
 
     <!--
-        Microscope's connector to the recording volume (volume-connector: the client API, the clients
-        over a volume and its local-directory backend) and the Azure file share backend in a module of its
-        own (azure-files-connector), which keeps the Azure SDK out of everything else.
+        Microscope's connectors: what Microscope asks of any connector (connector-api: the client
+        interfaces, DTOs, managers and the SPI a kind implements, with no storage behind them), the
+        clients over a recording volume with its local-directory kind (volume-connector), and the Azure
+        file share kind in a module of its own (azure-files-connector), which keeps the Azure SDK out of
+        everything else.
     -->
     <artifactId>connectors</artifactId>
 
     <packaging>pom</packaging>
 
     <modules>
+        <module>connector-api</module>
         <module>volume-connector</module>
         <module>azure-files-connector</module>
     </modules>

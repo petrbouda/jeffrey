@@ -17,8 +17,10 @@
 
 package cafe.jeffrey.microscope.connector.local;
 
-import cafe.jeffrey.microscope.connector.spi.ConnectorProvider;
-import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
+import cafe.jeffrey.microscope.connector.api.ConnectorClients;
+import cafe.jeffrey.microscope.connector.api.spi.ConnectorProvider;
+import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
+import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
 import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 import org.slf4j.Logger;
@@ -68,7 +70,12 @@ public final class LocalConnectorProvider implements ConnectorProvider<LocalSett
     private record Declared(LocalDirectoryAddress address, String defaultName) implements DeclaredConnector {
 
         @Override
-        public VolumeSource open() {
+        public ConnectorClients open() {
+            return VolumeConnectorClients.of(source());
+        }
+
+        /** The directory as a recording volume, keeping the declaration's read-only flag. */
+        private VolumeSource source() {
             ContainedFilesystemVolume volume = LocalVolumes.open(address);
             LOG.info("Opened a local recording volume: address={} root={}", address, volume.root());
             return new VolumeSource(volume, LocalDirectoryAddress.KIND.block(), address.readOnly());

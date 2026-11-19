@@ -17,8 +17,11 @@
 
 package cafe.jeffrey.microscope.connector.local;
 
-import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
-import cafe.jeffrey.microscope.connector.volume.VolumeSource;
+import cafe.jeffrey.microscope.common.exception.ErrorCode;
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.connector.api.ConnectorClients;
+import cafe.jeffrey.microscope.connector.api.spi.ConnectorProviders;
+import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -26,16 +29,25 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LocalConnectorProviderTest {
 
+    /** A workspace that is not on the volume: deleting it is refused, for one reason or the other. */
+    private static final String MISSING_WORKSPACE = "missing";
+
     private final LocalConnectorProvider provider = new LocalConnectorProvider();
 
     @TempDir
     Path root;
+
+    /** This module provides the local kind, declared with {@code provides} and in {@code META-INF/services}. */
+    @Test
+    void isFoundAmongTheConnectorProviders() {
+        assertTrue(ConnectorProviders.load().stream()
+                .anyMatch(found -> found.kind().equals(LocalDirectoryAddress.KIND)));
+    }
 
     @Nested
     class Declare {
@@ -75,13 +87,25 @@ class LocalConnectorProviderTest {
     class Open {
 
         @Test
-        void opensTheDirectoryAsAVolumeSourceThatKeepsItsReadOnlyFlag() {
-            VolumeSource writable = provider.declare(new LocalSettings(root.toString(), false)).open();
-            VolumeSource readOnly = provider.declare(new LocalSettings(root.toString(), true)).open();
+        void opensTheDirectoryAsClientsThatReportTheKind() {
+            ConnectorClients clients = provider.declare(new LocalSettings(root.toString(), false)).open();
 
-            assertFalse(writable.readOnly());
-            assertTrue(readOnly.readOnly());
-            assertEquals(LocalDirectoryAddress.KIND.block(), writable.description());
+            assertEquals(LocalDirectoryAddress.KIND.block(), clients.discovery().info().version());
+        }
+
+        /** A writable volume looks the workspace up and finds nothing; a read-only one refuses first. */
+        @Test
+        void keepsItsReadOnlyFlag() {
+            ConnectorClients writable = provider.declare(new LocalSettings(root.toString(), false)).open();
+            ConnectorClients readOnly = provider.declare(new LocalSettings(root.toString(), true)).open();
+
+            assertEquals(ErrorCode.WORKSPACE_NOT_FOUND, refusalOfDeleting(writable));
+            assertEquals(ErrorCode.INVALID_REQUEST, refusalOfDeleting(readOnly));
+        }
+
+        private static ErrorCode refusalOfDeleting(ConnectorClients clients) {
+            return assertThrows(JeffreyClientException.class,
+                    () -> clients.discovery().deleteWorkspace(MISSING_WORKSPACE)).getCode();
         }
     }
 }

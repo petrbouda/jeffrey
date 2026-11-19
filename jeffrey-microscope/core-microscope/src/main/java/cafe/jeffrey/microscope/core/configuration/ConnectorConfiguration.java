@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.configuration;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.connector.spi.ConnectorProviders;
+import cafe.jeffrey.microscope.connector.api.spi.ConnectorProviders;
 import cafe.jeffrey.microscope.core.configuration.properties.ConfiguredConnector;
 import cafe.jeffrey.microscope.core.manager.project.ConnectorProjectManagerFactory;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
