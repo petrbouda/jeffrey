@@ -22,13 +22,12 @@ import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 
 import java.util.OptionalLong;
 
 /**
  * @param sequence        the file number async-profiler wrote into a recording's name
- *                        ({@link JeffreyLayout#recordingSequence}), {@code null} for a name without
+ *                        ({@link RepositoryFile#sequence()}), {@code null} for a name without
  *                        one and for any other file: what a session's chunks are ordered by, so a
  *                        reader holding them orders them as the backend does
  * @param newestRecording whether it is the newest recording of its instance's newest session: the
@@ -66,10 +65,7 @@ public record RepositoryFileResponse(
     }
 
     private static Long sequenceOf(RepositoryFile file) {
-        if (!file.isRecordingFile()) {
-            return null;
-        }
-        OptionalLong sequence = JeffreyLayout.recordingSequence(file.id());
+        OptionalLong sequence = file.sequence();
         return sequence.isPresent() ? sequence.getAsLong() : null;
     }
 

@@ -16,25 +16,19 @@
  */
 
 /**
- * Microscope's connector to the recording volume: the client interfaces and DTOs every caller uses
- * ({@code api}), the clients over a volume ({@code volume}), and the connector kinds as providers
- * ({@code spi}). It brings one kind itself, a directory on this machine ({@code local}); the Azure
- * file share is a module of its own, which keeps the Azure SDK out of everything else.
+ * Microscope's connector to the recording volume: the clients over a volume ({@code volume}), which
+ * implement the connector API ({@code connector-api}), and one connector kind, a directory on this
+ * machine ({@code local}). The Azure file share is a kind of its own module, which keeps the Azure SDK
+ * out of everything else.
  */
 module cafe.jeffrey.microscope.connector.volume {
-    requires transitive cafe.jeffrey.microscope.common;
-    requires transitive cafe.jeffrey.microscope.model;
+    requires transitive cafe.jeffrey.microscope.connector.api;
     requires transitive cafe.jeffrey.shared.volume;
     requires org.slf4j;
 
-    exports cafe.jeffrey.microscope.connector.api;
-    exports cafe.jeffrey.microscope.connector.api.dto;
-    exports cafe.jeffrey.microscope.connector.api.manager;
     exports cafe.jeffrey.microscope.connector.volume;
     exports cafe.jeffrey.microscope.connector.local;
-    exports cafe.jeffrey.microscope.connector.spi;
 
-    uses cafe.jeffrey.microscope.connector.spi.ConnectorProvider;
-    provides cafe.jeffrey.microscope.connector.spi.ConnectorProvider
+    provides cafe.jeffrey.microscope.connector.api.spi.ConnectorProvider
             with cafe.jeffrey.microscope.connector.local.LocalConnectorProvider;
 }

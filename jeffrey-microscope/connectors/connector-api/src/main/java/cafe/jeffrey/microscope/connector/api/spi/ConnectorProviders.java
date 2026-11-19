@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.connector.spi;
+package cafe.jeffrey.microscope.connector.api.spi;
 
 import java.util.ArrayList;
 import java.util.Comparator;

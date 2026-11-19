@@ -18,9 +18,9 @@
 package cafe.jeffrey.microscope.connector.azure;
 
 import cafe.jeffrey.microscope.connector.local.LocalDirectoryAddress;
-import cafe.jeffrey.microscope.connector.spi.ConnectorProvider;
-import cafe.jeffrey.microscope.connector.spi.ConnectorProviders;
-import cafe.jeffrey.microscope.connector.spi.DeclaredConnector;
+import cafe.jeffrey.microscope.connector.api.spi.ConnectorProvider;
+import cafe.jeffrey.microscope.connector.api.spi.ConnectorProviders;
+import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

@@ -17,8 +17,11 @@
 
 package cafe.jeffrey.microscope.model.repository;
 
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
+
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.OptionalLong;
 
 /**
  * One file of a recording session, as a repository reports it.
@@ -54,6 +57,17 @@ public record RepositoryFile(
 
     public boolean isRecordingFile() {
         return recording;
+    }
+
+    /**
+     * The file number async-profiler wrote into a recording's name ({@link JeffreyLayout#recordingSequence}):
+     * what a session's chunks are ordered by. Empty for a recording named without one and for any other file.
+     */
+    public OptionalLong sequence() {
+        if (!recording) {
+            return OptionalLong.empty();
+        }
+        return JeffreyLayout.recordingSequence(id);
     }
 
     /**

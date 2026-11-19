@@ -30,15 +30,20 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        model.connector, naming no kind; the imported recordings' files, their kinds
                                        (ManagedFile) and RecordingStorageLayout in model.recording)
   connectors/
-    volume-connector/                  the connector over a recording volume (writable or read-only): the client
-                                       interfaces and DTOs (connector.api), the clients (connector.volume), the
-                                       connector kinds as ServiceLoader providers (connector.spi: ConnectorProvider,
-                                       found through module-info provides + META-INF/services) and the local kind
-                                       (connector.local: LocalDirectoryAddress, FilesystemVolume kept inside its
-                                       root, no link out, read live; for testing and copied trees)
+    connector-api/                     what Microscope asks of any connector, with no storage behind it: the client
+                                       interfaces and DTOs (connector.api), the managers over them (api.manager) and
+                                       the connector kinds as ServiceLoader providers (connector.api.spi:
+                                       ConnectorProvider, DeclaredConnector whose open() hands back the clients,
+                                       found through module-info provides + META-INF/services); core-microscope
+                                       compiles against this module only, so a non-volume kind needs nothing else
+    volume-connector/                  the connector over a recording volume (writable or read-only): the clients
+                                       (connector.volume, over a VolumeSource) and the local kind (connector.local:
+                                       LocalDirectoryAddress, FilesystemVolume kept inside its root, no link out,
+                                       read live; for testing and copied trees); core-microscope takes it at run time only
     azure-files-connector/             the Azure file share kind (AzureFilesAddress, its provider and settings;
-                                       SMB + NFS, SAS or Entra), a module of its own so the Azure SDK stays out of
-                                       everything else; core-microscope takes it at run time only
+                                       SMB + NFS, SAS or Entra) over volume-connector's clients, a module of its own
+                                       so the Azure SDK stays out of everything else; core-microscope takes it at
+                                       run time only
   microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers,
                                        FileSystemUtils, Measuring, IDGenerator, the volume archives' Lz4Decompressor, …
   microscope-test/                     Microscope's test support: @DuckDBTest, RecordedSession (real chunks),

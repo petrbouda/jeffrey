@@ -24,6 +24,6 @@ module cafe.jeffrey.microscope.connector.azure {
 
     exports cafe.jeffrey.microscope.connector.azure;
 
-    provides cafe.jeffrey.microscope.connector.spi.ConnectorProvider
+    provides cafe.jeffrey.microscope.connector.api.spi.ConnectorProvider
             with cafe.jeffrey.microscope.connector.azure.AzureFilesConnectorProvider;
 }

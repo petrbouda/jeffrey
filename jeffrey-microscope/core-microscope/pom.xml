@@ -152,10 +152,17 @@
             <groupId>org.hdrhistogram</groupId>
             <artifactId>HdrHistogram</artifactId>
         </dependency>
-        <!-- The connector over a recording volume: its API (clients, DTOs, managers), the connector SPI and the local-directory kind -->
+        <!-- What Microscope asks of its connector: the clients, DTOs, managers and the connector SPI; no kind -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>connector-api</artifactId>
+        </dependency>
+        <!-- The recording volume's clients and the local-directory kind: found by ServiceLoader at run time, never
+             named by Microscope's code; its tests open local volumes through it -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>volume-connector</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <!-- The Azure file share connector kind: found by ServiceLoader at run time, never named by Microscope's code -->
         <dependency>

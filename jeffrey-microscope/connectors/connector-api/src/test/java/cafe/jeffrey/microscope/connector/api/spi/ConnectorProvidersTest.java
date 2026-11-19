@@ -15,10 +15,8 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.microscope.connector.spi;
+package cafe.jeffrey.microscope.connector.api.spi;
 
-import cafe.jeffrey.microscope.connector.local.LocalConnectorProvider;
-import cafe.jeffrey.microscope.connector.local.LocalDirectoryAddress;
 import cafe.jeffrey.microscope.model.connector.ConnectorKind;
 import org.junit.jupiter.api.Test;
 
@@ -26,9 +24,10 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ConnectorProvidersTest {
+
+    private static final ConnectorKind LOCAL = new ConnectorKind("LOCAL", "local");
 
     /** A kind that claims a block already taken, as a second module bringing "local" would. */
     private static ConnectorProvider<Object> claiming(ConnectorKind kind) {
@@ -50,13 +49,6 @@ class ConnectorProvidersTest {
         };
     }
 
-    /** This module provides the local kind itself, declared with {@code provides} in its module-info. */
-    @Test
-    void findsTheLocalKindThisModuleProvides() {
-        assertTrue(ConnectorProviders.load().stream()
-                .anyMatch(provider -> provider.kind().equals(LocalDirectoryAddress.KIND)));
-    }
-
     @Test
     void ordersTheKindsByTheirBlock() {
         ConnectorProvider<Object> zeta = claiming(new ConnectorKind("ZETA", "zeta"));
@@ -67,16 +59,16 @@ class ConnectorProvidersTest {
 
     @Test
     void refusesTwoKindsClaimingOneBlock() {
-        List<ConnectorProvider<?>> twice = List.of(new LocalConnectorProvider(),
-                claiming(new ConnectorKind("OTHER", LocalDirectoryAddress.KIND.block())));
+        List<ConnectorProvider<?>> twice = List.of(claiming(LOCAL),
+                claiming(new ConnectorKind("OTHER", LOCAL.block())));
 
         assertThrows(IllegalStateException.class, () -> ConnectorProviders.of(twice));
     }
 
     @Test
     void refusesTwoKindsClaimingOneName() {
-        List<ConnectorProvider<?>> twice = List.of(new LocalConnectorProvider(),
-                claiming(new ConnectorKind(LocalDirectoryAddress.KIND.name(), "elsewhere")));
+        List<ConnectorProvider<?>> twice = List.of(claiming(LOCAL),
+                claiming(new ConnectorKind(LOCAL.name(), "elsewhere")));
 
         assertThrows(IllegalStateException.class, () -> ConnectorProviders.of(twice));
     }
