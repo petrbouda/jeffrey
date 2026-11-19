@@ -81,7 +81,6 @@ jobs:
         if [ "${{ matrix.platform }}" = "windows" ]; then
           "${ARCHIVE_DIR}/runtime/bin/java" \
             --add-modules jdk.incubator.vector \
-            -XX:NativeMemoryTracking=summary \
             -Djeffrey.microscope.home.dir="${JEFFREY_HOME}" \
             -Dserver.port="${MICROSCOPE_PORT}" \
             -jar "${ARCHIVE_DIR}/lib/microscope.jar" \

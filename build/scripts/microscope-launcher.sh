@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")") && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")" && pwd)"
 INSTALL_DIR="$(dirname "${SCRIPT_DIR}")"
 
 if [[ -n "${JAVA_HOME:-}" ]] && [[ -x "${JAVA_HOME}/bin/java" ]]; then
@@ -35,7 +35,6 @@ fi
 
 exec "${JAVA_BIN}" \
     --add-modules jdk.incubator.vector \
-    -XX:NativeMemoryTracking=summary \
     ${JAVA_OPTS:-} \
     -jar "${JAR}" \
     "$@"

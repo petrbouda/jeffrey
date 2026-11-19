@@ -30,4 +30,4 @@ if defined JAVA_HOME (
     set "JAVA_CMD=%APP_HOME%\runtime\bin\java.exe"
 )
 
-"%JAVA_CMD%" --add-modules jdk.incubator.vector -XX:NativeMemoryTracking=summary %JAVA_OPTS% -jar "%APP_HOME%\lib\microscope.jar" %*
+"%JAVA_CMD%" --add-modules jdk.incubator.vector %JAVA_OPTS% -jar "%APP_HOME%\lib\microscope.jar" %*
