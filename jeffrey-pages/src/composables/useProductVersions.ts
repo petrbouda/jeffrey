@@ -37,9 +37,12 @@ type ProductId = keyof ProductVersions;
 const GITHUB_API_URL = 'https://api.github.com/repos/petrbouda/jeffrey';
 const GITHUB_TAGS_URL = `${GITHUB_API_URL}/tags`;
 const GITHUB_RELEASES_URL = `${GITHUB_API_URL}/releases`;
-const MAVEN_METADATA_URL = 'https://repo1.maven.org/maven2/cafe/jeffrey-analyst/jeffrey-jib-gradle/maven-metadata.xml';
 const JETBRAINS_PLUGIN_ID = '31963';
-const JETBRAINS_API_URL = `https://plugins.jetbrains.com/api/plugins/${JETBRAINS_PLUGIN_ID}/updates`;
+
+// Pinned versions — Maven Central and JetBrains Marketplace do not support CORS,
+// so these cannot be fetched at runtime from a static site.
+const JIB_VERSION = '0.4.0';
+const INTELLIJ_PLUGIN_VERSION = '0.3.11';
 
 interface GitHubRelease {
   tag_name: string;
@@ -133,54 +136,20 @@ async function fetchVolumeScheduler(): Promise<ProductVersion | null> {
   }
 }
 
-async function fetchJib(): Promise<ProductVersion | null> {
-  try {
-    const response = await fetch(MAVEN_METADATA_URL);
-    if (!response.ok) {
-      return null;
-    }
-    const xml = await response.text();
-    const doc = new DOMParser().parseFromString(xml, 'text/xml');
-    const latest = doc.querySelector('versioning > latest')?.textContent
-      ?? doc.querySelector('versioning > release')?.textContent;
-    if (!latest) {
-      return null;
-    }
-    return {
-      version: `v${latest}`,
-      url: `https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle/${latest}`,
-      source: 'Maven'
-    };
-  } catch {
-    return null;
-  }
+function jibVersion(): ProductVersion {
+  return {
+    version: `v${JIB_VERSION}`,
+    url: `https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle/${JIB_VERSION}`,
+    source: 'Maven'
+  };
 }
 
-interface JetBrainsUpdate {
-  version: string;
-  id: number;
-}
-
-async function fetchPlugin(): Promise<ProductVersion | null> {
-  try {
-    const params = new URLSearchParams({ channel: 'stable', size: '1' });
-    const response = await fetch(`${JETBRAINS_API_URL}?${params}`);
-    if (!response.ok) {
-      return null;
-    }
-    const updates: JetBrainsUpdate[] = await response.json();
-    const latest = updates[0];
-    if (!latest) {
-      return null;
-    }
-    return {
-      version: `v${latest.version}`,
-      url: `https://plugins.jetbrains.com/plugin/${JETBRAINS_PLUGIN_ID}-jeffrey-microscope/versions/stable/${latest.id}`,
-      source: 'JetBrains Marketplace'
-    };
-  } catch {
-    return null;
-  }
+function pluginVersion(): ProductVersion {
+  return {
+    version: `v${INTELLIJ_PLUGIN_VERSION}`,
+    url: `https://plugins.jetbrains.com/plugin/${JETBRAINS_PLUGIN_ID}-jeffrey-microscope`,
+    source: 'JetBrains Marketplace'
+  };
 }
 
 const JIB_GRADLE_URL = 'https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle';
@@ -212,20 +181,18 @@ export function useProductVersions() {
   const loading = ref(true);
 
   onMounted(async () => {
-    const [microscope, provisioner, volumeScheduler, jib, plugin] = await Promise.all([
+    const [microscope, provisioner, volumeScheduler] = await Promise.all([
       fetchMicroscope(),
       fetchProvisioner(),
-      fetchVolumeScheduler(),
-      fetchJib(),
-      fetchPlugin()
+      fetchVolumeScheduler()
     ]);
 
     versions.value = {
       microscope,
       mcp: microscope ? { ...microscope, source: 'GitHub Releases' } : null,
       provisioner,
-      jib,
-      plugin,
+      jib: jibVersion(),
+      plugin: pluginVersion(),
       'volume-scheduler': volumeScheduler
     };
 
