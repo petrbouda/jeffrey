@@ -49,7 +49,7 @@ if [[ ! -d "${LIB_DIR}" ]]; then
     exit 1
 fi
 
-LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | paste -sd ':')"
+LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | paste -s -d ':' -)"
 
 echo "Running jdeps to discover platform module dependencies..." >&2
 DISCOVERED_MODULES=$(jdeps \
@@ -74,7 +74,7 @@ ALL_MODULES=$(echo "${DISCOVERED_MODULES},${EXTRA_MODULES}" \
     | tr ',' '\n' \
     | sed '/^$/d' \
     | sort -u \
-    | paste -sd ',')
+    | paste -s -d ',' -)
 
 echo "Discovered modules: ${ALL_MODULES}" >&2
 echo "${ALL_MODULES}"
