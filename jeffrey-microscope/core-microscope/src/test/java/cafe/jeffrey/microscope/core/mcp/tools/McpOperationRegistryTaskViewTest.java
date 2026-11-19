@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.operation.OperationHandle;
 import cafe.jeffrey.microscope.core.operation.OperationSnapshot;
 import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.test.MutableClock;
+import cafe.jeffrey.microscope.core.test.MutableClock;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;

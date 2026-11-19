@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 
 import java.util.List;
 import java.util.Optional;

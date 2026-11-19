@@ -23,8 +23,8 @@ import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowCountRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThrowMessageRecord;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.TestUtils;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.TestUtils;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.core.test.recording.CheckoutRecording;
 import cafe.jeffrey.shared.volume.test.VolumeWriter;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;

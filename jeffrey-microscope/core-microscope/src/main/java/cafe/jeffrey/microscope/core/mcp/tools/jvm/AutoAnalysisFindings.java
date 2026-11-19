@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.mcp.tools.NextCalls;

@@ -23,7 +23,7 @@ import tools.jackson.core.type.TypeReference;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
 
 import javax.sql.DataSource;
 import java.util.List;

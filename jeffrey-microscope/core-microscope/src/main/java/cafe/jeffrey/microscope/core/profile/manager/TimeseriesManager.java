@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.function.BiFunction;

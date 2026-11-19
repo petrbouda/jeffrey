@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.feature.checker.ContainerDashboardFeatureChecker;

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.manager.thread;
 
 import cafe.jeffrey.microscope.core.profile.manager.model.virtualthread.VirtualThreadData;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 import java.util.function.Function;
 

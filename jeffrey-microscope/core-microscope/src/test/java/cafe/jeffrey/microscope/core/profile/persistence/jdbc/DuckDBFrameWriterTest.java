@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrameWithHash;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

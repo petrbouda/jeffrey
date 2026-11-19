@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.parser.jfr.raw;
 
-import cafe.jeffrey.microscope.test.recording.Lz4Archives;
+import cafe.jeffrey.microscope.core.test.recording.Lz4Archives;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

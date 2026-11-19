@@ -33,9 +33,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static cafe.jeffrey.microscope.test.recording.CheckoutRecording.BASELINE;
-import static cafe.jeffrey.microscope.test.recording.CheckoutRecording.CANDIDATE;
-import static cafe.jeffrey.microscope.test.recording.CheckoutRecording.EXECUTION_SAMPLE;
+import static cafe.jeffrey.microscope.core.test.recording.CheckoutRecording.BASELINE;
+import static cafe.jeffrey.microscope.core.test.recording.CheckoutRecording.CANDIDATE;
+import static cafe.jeffrey.microscope.core.test.recording.CheckoutRecording.EXECUTION_SAMPLE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;

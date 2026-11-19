@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.StacktraceTag;
-import cafe.jeffrey.microscope.model.settings.ActiveSetting;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSetting;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventWriters;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SingleThreadedEventWriter;
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;

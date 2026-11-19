@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.ingest.tag;
 
 import jdk.jfr.consumer.RecordedStackTrace;
-import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
 
 import java.util.function.Function;
 

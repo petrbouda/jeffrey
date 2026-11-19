@@ -31,7 +31,7 @@ import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryResult;

@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager;
 
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.treetable.EventViewerData;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FieldDescription;
 

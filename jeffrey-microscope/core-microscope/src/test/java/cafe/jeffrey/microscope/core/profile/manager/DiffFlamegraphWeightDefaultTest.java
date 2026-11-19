@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.manager;
 
 import cafe.jeffrey.microscope.core.profile.flamegraph.diff.DbBasedDiffgraphGenerator;
 import cafe.jeffrey.microscope.core.profile.graph.GraphParameters;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

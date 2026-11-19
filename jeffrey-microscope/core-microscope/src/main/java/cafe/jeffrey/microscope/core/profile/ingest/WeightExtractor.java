@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.common.BytesUtils;
-import cafe.jeffrey.microscope.common.DurationUtils;
+import cafe.jeffrey.microscope.core.utils.BytesUtils;
+import cafe.jeffrey.microscope.core.utils.DurationUtils;
 import jdk.jfr.consumer.RecordedClass;
 import jdk.jfr.consumer.RecordedEvent;
 

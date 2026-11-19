@@ -29,22 +29,13 @@
 
     <artifactId>microscope-common</artifactId>
     <description>
-        The utilities every Microscope module shares and nothing else does: the exception hierarchy
-        the REST layer maps to statuses, Json, Schedulers, cache keys, versions and string and time
-        helpers, filesystem and temp directories, Measuring, Microscope's own ids and the LZ4 reader
-        for the volume's archives. What Microscope must agree on with the volume scheduler and the
-        provisioner -- the volume's names and session ids -- is shared/volume.
+        The utilities every Microscope module shares: the exception hierarchy the REST layer maps to
+        statuses, Json, JeffreyVersion, InstantUtils, FileSystemUtils, TempDirectory, and Measuring.
+        What Microscope must agree on with the volume scheduler and the provisioner -- the volume's
+        names and session ids -- is shared/volume.
     </description>
 
     <dependencies>
-        <dependency>
-            <groupId>com.github.f4b6a3</groupId>
-            <artifactId>uuid-creator</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>at.yawk.lz4</groupId>
-            <artifactId>lz4-java</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>

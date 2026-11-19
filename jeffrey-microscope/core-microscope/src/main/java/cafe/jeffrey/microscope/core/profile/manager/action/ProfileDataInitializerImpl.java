@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseLease;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;

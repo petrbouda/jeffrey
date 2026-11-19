@@ -1,0 +1,306 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.ingest;
+
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
+import net.jpountz.lz4.LZ4FrameOutputStream;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class Lz4DecompressorTest {
+
+    @TempDir
+    Path tempDir;
+
+    /** An archive as the volume scheduler's compression job writes one: a single LZ4 frame. */
+    private static Path archive(Path source, Path target) throws IOException {
+        try (InputStream in = Files.newInputStream(source);
+             OutputStream out = new LZ4FrameOutputStream(Files.newOutputStream(target))) {
+            in.transferTo(out);
+        }
+        return target;
+    }
+
+    @Nested
+    class StaticCompressDecompress {
+
+        @Test
+        void compressAndDecompressRoundTrip() throws IOException {
+            String content = "Hello, this is test content for LZ4 compression!";
+            Path sourceFile = tempDir.resolve("test.txt");
+            Files.writeString(sourceFile, content);
+
+            Path compressedFile = tempDir.resolve("test.txt.lz4");
+            Path decompressedFile = tempDir.resolve("test-decompressed.txt");
+
+            archive(sourceFile, compressedFile);
+            assertTrue(Files.exists(compressedFile));
+            assertTrue(Files.size(compressedFile) > 0);
+
+            Lz4Decompressor.decompress(compressedFile, decompressedFile);
+            assertTrue(Files.exists(decompressedFile));
+
+            String decompressedContent = Files.readString(decompressedFile);
+            assertEquals(content, decompressedContent);
+        }
+
+        @Test
+        void compressLargeFile() throws IOException {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 10000; i++) {
+                sb.append("Line ").append(i).append(": This is some repeated content for testing.\n");
+            }
+            String content = sb.toString();
+
+            Path sourceFile = tempDir.resolve("large.txt");
+            Files.writeString(sourceFile, content);
+
+            Path compressedFile = tempDir.resolve("large.txt.lz4");
+            Path decompressedFile = tempDir.resolve("large-decompressed.txt");
+
+            archive(sourceFile, compressedFile);
+
+            Lz4Decompressor.decompress(compressedFile, decompressedFile);
+            String decompressedContent = Files.readString(decompressedFile);
+            assertEquals(content, decompressedContent);
+        }
+
+        @Test
+        void compressBinaryData() throws IOException {
+            byte[] binaryContent = new byte[1024];
+            for (int i = 0; i < binaryContent.length; i++) {
+                binaryContent[i] = (byte) (i % 256);
+            }
+
+            Path sourceFile = tempDir.resolve("binary.dat");
+            Files.write(sourceFile, binaryContent);
+
+            Path compressedFile = tempDir.resolve("binary.dat.lz4");
+            Path decompressedFile = tempDir.resolve("binary-decompressed.dat");
+
+            archive(sourceFile, compressedFile);
+            Lz4Decompressor.decompress(compressedFile, decompressedFile);
+
+            byte[] decompressedContent = Files.readAllBytes(decompressedFile);
+            assertArrayEquals(binaryContent, decompressedContent);
+        }
+
+        @Test
+        void compressEmptyFile() throws IOException {
+            Path sourceFile = tempDir.resolve("empty.txt");
+            Files.writeString(sourceFile, "");
+
+            Path compressedFile = tempDir.resolve("empty.txt.lz4");
+            Path decompressedFile = tempDir.resolve("empty-decompressed.txt");
+
+            archive(sourceFile, compressedFile);
+            Lz4Decompressor.decompress(compressedFile, decompressedFile);
+
+            assertEquals(0, Files.size(decompressedFile));
+        }
+    }
+
+    @Nested
+    class DecompressStream {
+
+        @Test
+        void decompressStreamReturnsValidInputStream() throws IOException {
+            String content = "Stream test content";
+            Path sourceFile = tempDir.resolve("stream-test.txt");
+            Files.writeString(sourceFile, content);
+
+            Path compressedFile = tempDir.resolve("stream-test.txt.lz4");
+            archive(sourceFile, compressedFile);
+
+            try (InputStream stream = Lz4Decompressor.decompressStream(compressedFile)) {
+                byte[] bytes = stream.readAllBytes();
+                String result = new String(bytes, StandardCharsets.UTF_8);
+                assertEquals(content, result);
+            }
+        }
+    }
+
+    @Nested
+    class IsLz4Compressed {
+
+        @Test
+        void detectsLz4Extension() {
+            assertTrue(Lz4Decompressor.isLz4Compressed(Path.of("file.lz4")));
+            assertTrue(Lz4Decompressor.isLz4Compressed(Path.of("file.jfr.lz4")));
+            assertTrue(Lz4Decompressor.isLz4Compressed(Path.of("/path/to/file.lz4")));
+        }
+
+        @Test
+        void rejectsNonLz4Extension() {
+            assertFalse(Lz4Decompressor.isLz4Compressed(Path.of("file.txt")));
+            assertFalse(Lz4Decompressor.isLz4Compressed(Path.of("file.jfr")));
+            assertFalse(Lz4Decompressor.isLz4Compressed(Path.of("file.gz")));
+            assertFalse(Lz4Decompressor.isLz4Compressed(Path.of("lz4")));
+        }
+
+        @Test
+        void rejectsPartialMatch() {
+            assertFalse(Lz4Decompressor.isLz4Compressed(Path.of("file.lz4.backup")));
+            assertFalse(Lz4Decompressor.isLz4Compressed(Path.of("filelz4")));
+        }
+    }
+
+    @Nested
+    class InstanceMethods {
+
+        @Test
+        void decompressToDirRemovesLz4Extension() throws IOException {
+            Path homeDir = tempDir.resolve("home");
+            Path jeffreyTempDir = tempDir.resolve("jeffrey-temp");
+            Files.createDirectories(homeDir);
+            Files.createDirectories(jeffreyTempDir);
+
+            Lz4Decompressor compressor = new Lz4Decompressor(TempDirFactory.of(jeffreyTempDir));
+
+            String content = "Test content";
+            Path sourceFile = tempDir.resolve("test.txt");
+            Files.writeString(sourceFile, content);
+
+            Path compressedFile = tempDir.resolve("test.txt.lz4");
+            archive(sourceFile, compressedFile);
+
+            Path targetDir = tempDir.resolve("decompressed");
+            Files.createDirectories(targetDir);
+
+            Path decompressedFile = compressor.decompressToDir(compressedFile, targetDir);
+
+            assertEquals("test.txt", decompressedFile.getFileName().toString());
+            assertEquals(content, Files.readString(decompressedFile));
+        }
+
+        @Test
+        void decompressToDirAddsDecompressedSuffixIfNoLz4Extension() throws IOException {
+            Path homeDir = tempDir.resolve("home");
+            Path jeffreyTempDir = tempDir.resolve("jeffrey-temp");
+            Files.createDirectories(homeDir);
+            Files.createDirectories(jeffreyTempDir);
+
+            Lz4Decompressor compressor = new Lz4Decompressor(TempDirFactory.of(jeffreyTempDir));
+
+            String content = "Test content";
+            Path sourceFile = tempDir.resolve("test.txt");
+            Files.writeString(sourceFile, content);
+
+            // Compress but rename without .lz4 extension
+            Path compressedFile = tempDir.resolve("test.compressed");
+            archive(sourceFile, compressedFile);
+
+            Path targetDir = tempDir.resolve("decompressed");
+            Files.createDirectories(targetDir);
+
+            Path decompressedFile = compressor.decompressToDir(compressedFile, targetDir);
+
+            assertEquals("test.compressed.decompressed", decompressedFile.getFileName().toString());
+            assertEquals(content, Files.readString(decompressedFile));
+        }
+    }
+
+    @Nested
+    class ErrorHandling {
+
+        @Test
+        void decompressInvalidLz4FileThrowsException() throws IOException {
+            Path invalidFile = tempDir.resolve("invalid.lz4");
+            Files.writeString(invalidFile, "This is not valid LZ4 data");
+            Path target = tempDir.resolve("target.txt");
+
+            assertThrows(RuntimeException.class, () -> Lz4Decompressor.decompress(invalidFile, target));
+        }
+    }
+
+    @Nested
+    class RealJfrFiles {
+
+        private static final Path JFRS_DIR = Path.of(
+                "src/test/resources/cafe/jeffrey/microscope/core/test/recording");
+
+        @Test
+        void compressAndDecompressProfile1RoundTrip() throws IOException {
+            Path jfrFile = JFRS_DIR.resolve("chunk-1.jfr");
+            verifyRoundTrip(jfrFile);
+        }
+
+        @Test
+        void decompressStreamWorksWithAllJfrFiles() throws IOException {
+            try (var stream = Files.list(JFRS_DIR)) {
+                stream.filter(p -> p.toString().endsWith(".jfr")).forEach(jfrFile -> {
+                    try {
+                        byte[] originalContent = Files.readAllBytes(jfrFile);
+                        String fileName = jfrFile.getFileName().toString();
+
+                        Path compressedFile = tempDir.resolve(fileName + ".lz4");
+                        archive(jfrFile, compressedFile);
+
+                        try (InputStream decompressStream = Lz4Decompressor.decompressStream(compressedFile)) {
+                            byte[] decompressedContent = decompressStream.readAllBytes();
+                            assertArrayEquals(originalContent, decompressedContent, "Decompression stream failed for: " + fileName);
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed for file: " + jfrFile, e);
+                    }
+                });
+            }
+        }
+
+        @Test
+        void allJfrFilesRoundTripSuccessfully() throws IOException {
+            try (var stream = Files.list(JFRS_DIR)) {
+                stream.filter(p -> p.toString().endsWith(".jfr")).forEach(jfrFile -> {
+                    try {
+                        verifyRoundTrip(jfrFile);
+                    } catch (IOException e) {
+                        throw new RuntimeException("Failed for file: " + jfrFile, e);
+                    }
+                });
+            }
+        }
+
+        private void verifyRoundTrip(Path jfrFile) throws IOException {
+            byte[] originalContent = Files.readAllBytes(jfrFile);
+            String fileName = jfrFile.getFileName().toString();
+
+            Path compressedFile = tempDir.resolve(fileName + ".lz4");
+            Path decompressedFile = tempDir.resolve(fileName + ".decompressed");
+
+            archive(jfrFile, compressedFile);
+            assertTrue(Files.exists(compressedFile), "Compressed file should exist for: " + fileName);
+            assertTrue(Files.size(compressedFile) > 0, "Compressed file should not be empty for: " + fileName);
+
+            Lz4Decompressor.decompress(compressedFile, decompressedFile);
+            assertTrue(Files.exists(decompressedFile), "Decompressed file should exist for: " + fileName);
+
+            byte[] decompressedContent = Files.readAllBytes(decompressedFile);
+            assertArrayEquals(originalContent, decompressedContent, "Round trip failed for: " + fileName);
+        }
+    }
+}

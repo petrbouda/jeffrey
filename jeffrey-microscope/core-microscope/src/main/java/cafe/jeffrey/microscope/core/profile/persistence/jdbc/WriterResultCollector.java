@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.settings.ActiveSetting;
-import cafe.jeffrey.microscope.model.settings.ActiveSettings;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSetting;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSettings;
 import cafe.jeffrey.microscope.core.profile.persistence.api.DatabaseWriter;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EnhancedEventType;

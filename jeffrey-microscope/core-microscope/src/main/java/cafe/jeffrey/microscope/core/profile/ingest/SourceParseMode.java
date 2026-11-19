@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
 
 import java.nio.file.Path;

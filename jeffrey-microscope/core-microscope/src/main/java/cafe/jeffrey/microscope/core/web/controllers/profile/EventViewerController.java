@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.profile.treetable.EventViewerData;
 import cafe.jeffrey.microscope.core.profile.manager.EventViewerManager;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FieldDescription;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import tools.jackson.databind.JsonNode;
 
 import java.util.List;

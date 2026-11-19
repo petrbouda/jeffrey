@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.heapdump.persistence.HeapDumpIndexPaths;
 
 import java.io.IOException;

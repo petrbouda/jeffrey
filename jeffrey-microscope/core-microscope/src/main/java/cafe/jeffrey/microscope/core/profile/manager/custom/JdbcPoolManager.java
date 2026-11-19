@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.custom;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 

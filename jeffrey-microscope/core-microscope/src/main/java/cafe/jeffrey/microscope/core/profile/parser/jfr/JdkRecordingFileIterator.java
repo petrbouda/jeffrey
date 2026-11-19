@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.parser.jfr;
 
 import jdk.jfr.consumer.EventStream;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.io.IOException;
 import java.nio.file.Files;

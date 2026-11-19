@@ -28,9 +28,9 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventStreamRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.time.Duration;
 import java.time.Instant;

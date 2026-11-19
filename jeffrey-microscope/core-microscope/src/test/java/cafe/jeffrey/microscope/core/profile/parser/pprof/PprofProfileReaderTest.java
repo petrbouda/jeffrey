@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventStacktrace;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventThread;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventType;
-import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

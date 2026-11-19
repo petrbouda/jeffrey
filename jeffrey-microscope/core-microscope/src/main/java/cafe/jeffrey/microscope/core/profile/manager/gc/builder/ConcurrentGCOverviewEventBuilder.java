@@ -18,9 +18,9 @@
 package cafe.jeffrey.microscope.core.profile.manager.gc.builder;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.ConcurrentEvent;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.ConcurrentPhase;

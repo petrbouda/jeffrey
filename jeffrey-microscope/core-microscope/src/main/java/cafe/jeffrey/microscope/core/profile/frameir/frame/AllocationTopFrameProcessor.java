@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.frameir.frame;
 
 import cafe.jeffrey.microscope.core.profile.ingest.fields.RecordedClassMapper;
 import cafe.jeffrey.microscope.core.profile.model.FrameType;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
 

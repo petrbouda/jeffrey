@@ -22,8 +22,8 @@ import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanEventRow;
 import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanOverview;
 import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanSlowestRow;
 import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanTagStat;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 
 import java.util.List;
 import java.util.function.Function;

@@ -34,13 +34,13 @@ import cafe.jeffrey.microscope.core.profile.model.FlamegraphPanel;
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.PanelContext;
 import cafe.jeffrey.microscope.core.profile.resources.request.GenerateFlamegraphRequest;
-import cafe.jeffrey.microscope.model.GraphType;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.microscope.model.ProfilingStartEnd;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.model.time.TimeRange;
-import cafe.jeffrey.microscope.model.time.UndefinedTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.GraphType;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.TimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.UndefinedTimeRange;
 
 import java.util.List;
 

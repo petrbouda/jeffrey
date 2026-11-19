@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;

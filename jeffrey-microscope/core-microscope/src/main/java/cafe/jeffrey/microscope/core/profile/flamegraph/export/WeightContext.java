@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.profile.flamegraph.export;
 
-import cafe.jeffrey.microscope.common.BytesUtils;
-import cafe.jeffrey.microscope.common.DurationUtils;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.utils.BytesUtils;
+import cafe.jeffrey.microscope.core.utils.DurationUtils;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.function.LongFunction;
 

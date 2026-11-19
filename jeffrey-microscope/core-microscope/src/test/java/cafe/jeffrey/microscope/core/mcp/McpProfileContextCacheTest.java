@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.Exceptions;

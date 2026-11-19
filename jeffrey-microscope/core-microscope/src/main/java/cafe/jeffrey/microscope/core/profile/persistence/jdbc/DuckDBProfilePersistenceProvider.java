@@ -21,8 +21,8 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
 import cafe.jeffrey.microscope.core.profile.persistence.jdbc.*;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileRepositories;
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
-import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.core.profile.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.core.duckdb.CachingDatabaseManager;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
 

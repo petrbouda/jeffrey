@@ -20,8 +20,8 @@ package cafe.jeffrey.microscope.core.profile.feature.checker;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureCheckResult;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceRepository;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Map;
 

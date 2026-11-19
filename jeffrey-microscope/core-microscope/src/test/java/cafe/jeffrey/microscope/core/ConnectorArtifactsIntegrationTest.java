@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.test.recording.RecordedSession;
+import cafe.jeffrey.microscope.core.test.recording.RecordedSession;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 

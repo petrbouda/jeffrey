@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.persistence.api.ProfileRepository;
 
 import java.nio.file.Path;

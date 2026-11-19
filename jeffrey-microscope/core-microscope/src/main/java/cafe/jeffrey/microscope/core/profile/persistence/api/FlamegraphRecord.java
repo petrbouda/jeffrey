@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrClass;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;

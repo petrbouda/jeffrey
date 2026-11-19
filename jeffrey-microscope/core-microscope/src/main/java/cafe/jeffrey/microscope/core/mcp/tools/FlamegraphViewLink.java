@@ -18,7 +18,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Map;
 

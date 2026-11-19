@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.manager.custom.builder;
 
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
 

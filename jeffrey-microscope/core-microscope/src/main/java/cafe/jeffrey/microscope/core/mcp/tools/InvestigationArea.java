@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.JitSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.NativeMemorySection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SafepointsSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ThreadsSection;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 
 import java.util.List;

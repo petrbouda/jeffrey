@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.profile.manager.model.gc.g1;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.g1.G1AnalysisData.EvacuationEntry;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.g1.G1AnalysisData.EvacuationFailure;
 import cafe.jeffrey.microscope.core.profile.manager.model.gc.g1.G1AnalysisData.G1Header;

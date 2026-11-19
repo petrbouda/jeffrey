@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.ingest.tag;
 import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedStackTrace;
 import cafe.jeffrey.microscope.core.profile.model.FrameType;
-import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
 
 public class UnsafeAllocationStacktraceTagResolver implements StacktraceTagResolver {
 

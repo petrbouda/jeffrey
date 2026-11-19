@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.SpanScope;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.LinkedHashMap;
 import java.util.List;

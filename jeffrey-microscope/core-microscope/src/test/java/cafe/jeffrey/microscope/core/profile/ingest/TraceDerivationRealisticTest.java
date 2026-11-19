@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
@@ -28,8 +28,8 @@ import cafe.jeffrey.microscope.core.profile.persistence.jdbc.DuckDBEventWriters;
 import cafe.jeffrey.microscope.core.profile.persistence.jdbc.JdbcTraceAttributeRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.jdbc.JdbcTraceRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.jdbc.SQLEventWriter;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -46,8 +46,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.STARTUP_QUERY;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.STARTUP_QUERY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**

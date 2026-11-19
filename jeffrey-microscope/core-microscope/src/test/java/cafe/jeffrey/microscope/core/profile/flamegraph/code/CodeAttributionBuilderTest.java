@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.jfr.JfrClass;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrMethod;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTrace;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

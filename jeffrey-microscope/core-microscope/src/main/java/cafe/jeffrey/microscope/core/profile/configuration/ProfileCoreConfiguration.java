@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.profile.configuration;
 
-import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;

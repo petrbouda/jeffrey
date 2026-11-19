@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeCarrier;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeCondition;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeKeyId;
@@ -36,8 +36,8 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeValueR
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeValueSortField;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceEventTypeRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceSortField;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.TestUtils;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.TestUtils;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

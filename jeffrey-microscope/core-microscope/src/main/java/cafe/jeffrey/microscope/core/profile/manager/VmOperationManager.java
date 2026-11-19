@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager;
 import cafe.jeffrey.microscope.core.profile.manager.model.vmoperation.VmOperationStat;
 import cafe.jeffrey.microscope.core.profile.manager.model.vmoperation.SafepointLatencyData;
 import cafe.jeffrey.microscope.core.profile.manager.model.vmoperation.VmOverview;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest.data;
 
-import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult.Severity;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrParser;
-import cafe.jeffrey.microscope.test.recording.Lz4Archives;
-import cafe.jeffrey.microscope.test.recording.TestappRecording;
+import cafe.jeffrey.microscope.core.test.recording.Lz4Archives;
+import cafe.jeffrey.microscope.core.test.recording.TestappRecording;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
@@ -44,8 +44,8 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.DIRECT;
-import static cafe.jeffrey.microscope.test.recording.TestappRecording.DOM;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.DIRECT;
+import static cafe.jeffrey.microscope.core.test.recording.TestappRecording.DOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

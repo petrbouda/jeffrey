@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Set;
 import java.util.function.Predicate;

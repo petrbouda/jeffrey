@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;
-import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.model.SpanConventionKeys;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.SpanConventionKeys;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;

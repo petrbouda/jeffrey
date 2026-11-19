@@ -22,7 +22,7 @@ import jdk.jfr.consumer.RecordedFrame;
 import jdk.jfr.consumer.RecordedMethod;
 import jdk.jfr.consumer.RecordedStackTrace;
 import cafe.jeffrey.microscope.core.profile.model.FrameType;
-import cafe.jeffrey.microscope.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
 
 import java.util.List;
 

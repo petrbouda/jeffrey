@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 
 import java.util.List;
 import java.util.Optional;

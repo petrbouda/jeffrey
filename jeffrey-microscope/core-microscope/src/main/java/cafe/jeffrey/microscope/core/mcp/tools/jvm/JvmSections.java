@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

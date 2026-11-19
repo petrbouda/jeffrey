@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.SpanInterval;
-import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.List;

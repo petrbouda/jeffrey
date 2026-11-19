@@ -34,7 +34,7 @@ import cafe.jeffrey.microscope.core.profile.model.FlamegraphPanel;
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.PanelContext;
 import cafe.jeffrey.microscope.core.profile.resources.request.GenerateFlamegraphRequest;
-import cafe.jeffrey.microscope.model.GraphType;
+import cafe.jeffrey.microscope.core.profile.model.GraphType;
 
 import java.util.List;
 

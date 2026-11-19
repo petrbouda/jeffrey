@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager;
 
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 
 import java.util.List;

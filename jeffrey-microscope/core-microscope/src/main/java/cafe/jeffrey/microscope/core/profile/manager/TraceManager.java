@@ -35,8 +35,8 @@ import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceTimelineBuc
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationId;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceNotificationListQuery;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationListQuery;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 
 import java.util.List;
 import java.util.Optional;

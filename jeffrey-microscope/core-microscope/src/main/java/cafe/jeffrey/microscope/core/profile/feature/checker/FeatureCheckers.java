@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.feature.checker;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 
 import java.util.List;

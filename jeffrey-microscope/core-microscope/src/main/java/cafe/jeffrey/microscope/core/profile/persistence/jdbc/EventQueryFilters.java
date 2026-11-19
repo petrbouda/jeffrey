@@ -18,10 +18,10 @@
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
-import cafe.jeffrey.microscope.model.StacktraceTag;
-import cafe.jeffrey.microscope.model.StacktraceType;
-import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 import java.util.List;
 

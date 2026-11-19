@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrameImpl;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackTraceImpl;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrThreadImpl;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.sql.Array;
 import java.sql.ResultSet;

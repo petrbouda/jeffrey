@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.thread;
 
-import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
 
 import java.time.Duration;
 

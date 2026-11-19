@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.manager.memory;
 import cafe.jeffrey.microscope.core.profile.manager.model.nativememory.NativeLibraryActivityData;
 import cafe.jeffrey.microscope.core.profile.manager.model.nativememory.NativeLibraryInfo;
 import cafe.jeffrey.microscope.core.profile.manager.model.nativememory.NativeMemoryOverview;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;

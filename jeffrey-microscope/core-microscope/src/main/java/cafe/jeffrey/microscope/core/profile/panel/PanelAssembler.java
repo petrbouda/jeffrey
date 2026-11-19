@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.core.profile.model.FlamegraphPanel;
 import cafe.jeffrey.microscope.core.profile.model.ToggleOption;
 import cafe.jeffrey.microscope.core.profile.model.WeightKind;
 import cafe.jeffrey.microscope.core.profile.model.WeightOption;
-import cafe.jeffrey.microscope.model.WeightUnit;
+import cafe.jeffrey.microscope.core.profile.model.WeightUnit;
 
 /**
  * Builds {@link FlamegraphPanel}s: from a curated {@link PanelSection} template for JFR, or as a plain

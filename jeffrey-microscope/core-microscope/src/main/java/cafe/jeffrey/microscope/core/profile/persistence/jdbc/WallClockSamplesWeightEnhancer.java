@@ -21,9 +21,9 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.settings.ActiveSetting;
-import cafe.jeffrey.microscope.model.settings.ActiveSettings;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSetting;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSettings;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeBuilder;
 
 import java.time.Duration;

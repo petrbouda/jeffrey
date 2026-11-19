@@ -24,9 +24,9 @@ import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
-import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingStorageLayout;
 
 import java.io.IOException;
 import java.nio.file.Files;

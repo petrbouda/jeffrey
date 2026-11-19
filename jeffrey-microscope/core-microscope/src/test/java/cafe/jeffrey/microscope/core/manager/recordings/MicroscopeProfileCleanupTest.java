@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.persistence.api.ProfileRepository;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 
 import java.nio.file.Path;
 import java.time.Instant;

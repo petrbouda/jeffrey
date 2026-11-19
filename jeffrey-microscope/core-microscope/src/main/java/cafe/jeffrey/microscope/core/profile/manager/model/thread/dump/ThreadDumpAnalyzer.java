@@ -27,7 +27,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.thread.dump.ThreadDump
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.dump.ThreadDumpAnalysis.Heatmap;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.dump.ThreadDumpAnalysis.LockContention;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.dump.ThreadDumpAnalysis.StuckThread;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesUtils;

@@ -17,17 +17,17 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.common.IDGenerator;
+import cafe.jeffrey.microscope.core.utils.IDGenerator;
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser.RecordingMetadata;
 import cafe.jeffrey.microscope.model.ProfileKind;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.recording.Bundle;
-import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.core.manager.recordings.Bundle;
+import cafe.jeffrey.microscope.core.manager.recordings.BundleFile;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
-import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingStorageLayout;
 import cafe.jeffrey.microscope.core.notification.NotificationType;
 import cafe.jeffrey.microscope.core.notification.Notifications;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingGroup;

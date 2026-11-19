@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.profile.manager.custom.JdbcPoolManager;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 
 import java.util.List;

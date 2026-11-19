@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.heapdump.model.ClassHistogramEntry;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.common.Json;
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.HeapSummary;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;

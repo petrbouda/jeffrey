@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.List;

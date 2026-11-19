@@ -12,23 +12,38 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope; its generic
                                        components, services and design tokens in src/shared, imported as @shared)
   core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
-                                       (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download);
+                                       (…/core/mcp/), the recordings store (core.manager.recordings: Recording,
+                                       RecordingFile, Bundle, BundleFile, RecordingStorageLayout) and downloads
+                                       (core.manager.download); the profile model types that only core uses
+                                       (core.profile.model: Type, ProfileInfo, EventTypeName, EventSummary, GraphType,
+                                       WeightUnit, FrameResolutionMode, StacktraceType, StacktraceTag, SpanScope,
+                                       SpanInterval, SpanConventionKeys, ProfilingStartEnd, ThreadInfo, HiddenClassName,
+                                       EventSubtype, SearchPattern, FrameType; core.profile.model.time: TimeRange and
+                                       its subtypes; core.profile.settings: ActiveSetting, ActiveSettings),
+                                       general-purpose utilities (core.utils: Schedulers, IDGenerator, BytesUtils,
+                                       DurationUtils, CacheKey, TempDirFactory, SemanticVersion, StringUtils),
+                                       ErrorResponse in core.web, Lz4Decompressor in core.profile.ingest;
                                        the profile analysis, one package tree per feature under core.profile (flamegraph,
                                        frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
-                                       orchestration, …) and the profile model it reads (core.profile.jfr: the JFR model
-                                       types; core.profile.{event,exceptions,analysis,treetable,graph}; FrameType in
-                                       core.profile.model), the init pipelines (core.pipeline) and the long-running
+                                       orchestration, …) and the JFR model it reads (core.profile.jfr: the JFR model
+                                       types; core.profile.{event,exceptions,analysis,treetable,graph}),
+                                       the init pipelines (core.pipeline) and the long-running
                                        operations polled over MCP (core.operation), Jeffrey's own jeffrey.Notification
                                        events (core.notification), the recording parsers (core.profile.parser: JFR via the JDK and
                                        raw chunks, pprof, OTLP), heap dumps (core.profile.heapdump, OQL in .oql), the
                                        per-profile DuckDB (core.profile.persistence: repository API + impl), the core
                                        DuckDB of recordings and profiles (core.persistence) and the DuckDB plumbing every
                                        Microscope database uses (core.duckdb: data sources, pools, DatabaseManager,
-                                       appenders, metrics, the SQL builder in core.duckdb.sql)
+                                       appenders, metrics, the SQL builder in core.duckdb.sql);
+                                       test support in src/test: @DuckDBTest (core.test), RecordedSession,
+                                       TestappRecording and CheckoutRecording (core.test.recording)
   microscope-model/                    the domain records two or more Microscope modules share, no Jackson or JFR
-                                       (cafe.jeffrey.microscope.model; ConnectorAddress and ConnectorKind in
-                                       model.connector, naming no kind; the imported recordings' files, their kinds
-                                       (ManagedFile) and RecordingStorageLayout in model.recording)
+                                       (cafe.jeffrey.microscope.model: ProjectInfo, ProjectInstanceInfo,
+                                       RecordingEventSource, ProfileKind; ConnectorAddress and ConnectorKind in
+                                       model.connector; WorkspaceInfo/Status/Location in model.workspace;
+                                       the repository API surface in model.repository; the imported recordings'
+                                       file kinds (ManagedFile, FileCategory, FileExtensions) in model.recording;
+                                       file matchers in model.repository.matcher)
   connectors/
     connector-api/                     what Microscope asks of any connector, with no storage behind it: the client
                                        interfaces and DTOs (connector.api), the managers over them (api.manager) and
@@ -44,10 +59,10 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        SMB + NFS, SAS or Entra) over volume-connector's clients, a module of its own
                                        so the Azure SDK stays out of everything else; core-microscope takes it at
                                        run time only
-  microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers,
-                                       FileSystemUtils, Measuring, IDGenerator, the volume archives' Lz4Decompressor, …
-  microscope-test/                     Microscope's test support: @DuckDBTest, RecordedSession (real chunks),
-                                       TestappRecording and CheckoutRecording (real traced runs)
+  microscope-common/                   the utilities every Microscope module shares: Json, JeffreyVersion,
+                                       InstantUtils; the exception hierarchy (ErrorCode, ErrorType, Exceptions,
+                                       JeffreyException and subtypes); FileSystemUtils, TempDirectory; Measuring,
+                                       Elapsed
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
@@ -60,7 +75,8 @@ shared/                                only what Microscope, the volume schedule
                                        read through a storage port: folder names are the state:
                                        projects/instances/sessions/files; the volume scheduler's reader; plus
                                        VolumeWriter, the one writer of a test volume, never imported by production code).
-                                       No utilities: each product keeps its own (Microscope's in microscope-common)
+                                       No utilities: each product keeps its own (Microscope's in microscope-common
+                                       and core-microscope's core.utils)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
@@ -125,7 +141,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 ## Testing
 
-JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `microscope-test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
+JUnit 5 with `@Nested`, Mockito, `@DuckDBTest` from `core-microscope`'s `cafe.jeffrey.microscope.core.test`, `Clock.fixed`, Awaitility for anything async. Frontend: Vitest.
 
 ## Git
 

@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.profile.jfr.JfrThread;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.ThreadCpuLoads;
 import cafe.jeffrey.microscope.core.profile.manager.model.thread.ThreadWithCpuLoad;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.math.BigDecimal;
 import java.time.Duration;

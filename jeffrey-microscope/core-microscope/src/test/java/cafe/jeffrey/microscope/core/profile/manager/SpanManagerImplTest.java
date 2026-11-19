@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.span.SpanTagStat;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ThreadWindowEventRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SpanRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.SpanRepository;
-import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

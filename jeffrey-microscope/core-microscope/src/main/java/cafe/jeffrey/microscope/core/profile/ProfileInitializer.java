@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile;
 
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 public interface ProfileInitializer {
 

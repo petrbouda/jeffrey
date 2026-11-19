@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.connector.api.DiscoveryClient;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorConnection;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAddress;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;

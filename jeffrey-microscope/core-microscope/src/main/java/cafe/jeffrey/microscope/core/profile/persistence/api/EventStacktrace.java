@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.StacktraceTag;
-import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceTag;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
 
 import java.util.HashSet;
 import java.util.List;

@@ -25,9 +25,9 @@ import org.junit.jupiter.api.Test;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.http.HttpOverviewData;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.http.HttpUriInfo;
 import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.model.ProfilingStartEnd;
-import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
+import cafe.jeffrey.microscope.core.profile.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.manager.custom.model.http.HttpSlowRequest;
 
 import java.time.Duration;

@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.timeseries;
 import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;

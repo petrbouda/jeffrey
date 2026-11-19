@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.panel;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.model.Classification;
 import cafe.jeffrey.microscope.core.profile.model.ToggleOption;
 import cafe.jeffrey.microscope.core.profile.model.WeightKind;

@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
 import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.util.List;

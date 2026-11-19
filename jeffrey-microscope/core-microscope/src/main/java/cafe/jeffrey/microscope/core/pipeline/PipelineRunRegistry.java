@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.common.Json;
 import cafe.jeffrey.microscope.core.operation.OperationHandle;
 import cafe.jeffrey.microscope.core.operation.OperationSnapshot;
 import cafe.jeffrey.microscope.core.operation.OperationState;
-import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import cafe.jeffrey.microscope.core.notification.NotificationType;
 import cafe.jeffrey.microscope.core.notification.Notifications;

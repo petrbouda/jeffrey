@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.persistence.api.IdeTargetLink;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

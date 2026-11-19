@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;

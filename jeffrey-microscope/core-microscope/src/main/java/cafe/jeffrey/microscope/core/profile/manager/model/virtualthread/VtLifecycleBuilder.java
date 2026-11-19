@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.model.virtualthread;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesUtils;

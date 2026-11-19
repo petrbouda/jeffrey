@@ -32,7 +32,6 @@
 
     <modules>
         <module>microscope-common</module>
-        <module>microscope-test</module>
         <module>microscope-model</module>
         <module>connectors</module>
         <module>pages-microscope</module>
@@ -49,11 +48,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-test</artifactId>
-                <version>${project.version}</version>
-            </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
                 <artifactId>microscope-common</artifactId>

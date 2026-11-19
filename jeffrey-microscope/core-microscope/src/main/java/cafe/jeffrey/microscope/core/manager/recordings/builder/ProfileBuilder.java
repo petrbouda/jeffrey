@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.manager.recordings.builder;
 
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 
 import java.util.Optional;
 

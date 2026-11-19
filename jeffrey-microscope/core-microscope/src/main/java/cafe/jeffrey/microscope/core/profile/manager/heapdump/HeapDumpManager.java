@@ -42,7 +42,7 @@ import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.SortBy;
 import cafe.jeffrey.microscope.core.pipeline.SubPhaseTiming;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.ThreadStackFrame;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.CachedAnalysis;
 
 import java.util.List;

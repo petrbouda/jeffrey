@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.profile.thread;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.ThreadInfo;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ThreadInfo;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventRepository;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventStreamRepository;

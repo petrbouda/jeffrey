@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
-import cafe.jeffrey.microscope.model.StacktraceType;
+import cafe.jeffrey.microscope.core.profile.model.StacktraceType;
 
 public record EventStacktraceWithHash(
         long hash,

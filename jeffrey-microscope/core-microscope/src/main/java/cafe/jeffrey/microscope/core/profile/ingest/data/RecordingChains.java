@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest.data;
 
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrChunk;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrParser;
 

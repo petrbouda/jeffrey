@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.*;
 
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
 import cafe.jeffrey.microscope.core.duckdb.sql.SQLBuilder;
 

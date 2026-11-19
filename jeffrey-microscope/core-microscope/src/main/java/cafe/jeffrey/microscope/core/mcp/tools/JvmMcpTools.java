@@ -50,7 +50,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;
 import cafe.jeffrey.microscope.core.profile.manager.FlagsData;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;

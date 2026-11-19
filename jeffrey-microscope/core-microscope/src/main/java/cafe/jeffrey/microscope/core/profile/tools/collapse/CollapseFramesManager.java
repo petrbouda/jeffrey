@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsReposito
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileToolsRepository.StacktraceRecord;
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.jdbc.SingleThreadHasher;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 import java.util.ArrayList;
 import java.util.HashMap;

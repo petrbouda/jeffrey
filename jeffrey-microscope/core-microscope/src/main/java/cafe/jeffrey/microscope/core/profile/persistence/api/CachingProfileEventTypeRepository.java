@@ -18,10 +18,10 @@
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
 import tools.jackson.core.type.TypeReference;
-import cafe.jeffrey.microscope.common.CacheKey;
-import cafe.jeffrey.microscope.model.EventSummary;
-import cafe.jeffrey.microscope.model.SpanScope;
-import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.utils.CacheKey;
+import cafe.jeffrey.microscope.core.profile.model.EventSummary;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.Type;
 
 import java.util.List;
 import java.util.Map;

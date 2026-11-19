@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.ingest;
 
-import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
 import cafe.jeffrey.microscope.core.notification.NotificationType;
 import cafe.jeffrey.microscope.core.notification.Notifications;
 import cafe.jeffrey.microscope.core.profile.parser.jfr.raw.JfrParser;

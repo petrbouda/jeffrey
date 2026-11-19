@@ -18,14 +18,14 @@
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
 import cafe.jeffrey.microscope.core.profile.persistence.api.EventQueryConfigurer;
-import cafe.jeffrey.microscope.model.SpanInterval;
-import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
+import cafe.jeffrey.microscope.core.profile.model.SpanScope;
 import cafe.jeffrey.microscope.core.duckdb.GroupLabel;
 import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;
 import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
-import cafe.jeffrey.microscope.test.DuckDBTest;
-import cafe.jeffrey.microscope.test.TestUtils;
+import cafe.jeffrey.microscope.core.test.DuckDBTest;
+import cafe.jeffrey.microscope.core.test.TestUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 

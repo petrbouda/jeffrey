@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
 
-import cafe.jeffrey.microscope.model.FrameResolutionMode;
+import cafe.jeffrey.microscope.core.profile.model.FrameResolutionMode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

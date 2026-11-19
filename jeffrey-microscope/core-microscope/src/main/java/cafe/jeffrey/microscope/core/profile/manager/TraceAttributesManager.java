@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceEventTypeRo
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeLatencyQuery;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeSearchQuery;
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeValueQuery;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 import java.util.List;
 import java.util.function.Function;

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 
 /**
  * Called when a recording is deleted, so the profiles built from it go with it; the recordings

@@ -21,7 +21,7 @@ import tools.jackson.core.JsonParser;
 import tools.jackson.databind.DeserializationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.deser.std.StdDeserializer;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 
 public class RelativeTimeRangeDeserializer extends StdDeserializer<RelativeTimeRange> {
 

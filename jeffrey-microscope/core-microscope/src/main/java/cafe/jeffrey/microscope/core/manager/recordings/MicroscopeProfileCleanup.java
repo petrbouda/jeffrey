@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.notification.NotificationType;
 import cafe.jeffrey.microscope.core.notification.Notifications;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;

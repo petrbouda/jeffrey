@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.profile.settings;
 
-import cafe.jeffrey.microscope.model.settings.ActiveSettings;
-import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.profile.settings.ActiveSettings;
+import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 
 import java.util.function.Function;
 

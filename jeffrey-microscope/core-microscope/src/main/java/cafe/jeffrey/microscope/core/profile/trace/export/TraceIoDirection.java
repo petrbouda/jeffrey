@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.trace.export;
 
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import tools.jackson.databind.JsonNode;
 
 import java.util.Arrays;
