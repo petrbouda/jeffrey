@@ -32,13 +32,14 @@ if [[ ! -f "${FAT_JAR}" ]]; then
     echo "error: ${FAT_JAR} does not exist" >&2
     exit 1
 fi
+FAT_JAR="$(cd "$(dirname "${FAT_JAR}")" && echo "$(pwd)/$(basename "${FAT_JAR}")")"
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "${WORK_DIR}"' EXIT
 
 echo "Extracting ${FAT_JAR}..." >&2
 mkdir -p "${WORK_DIR}/exploded"
-(cd "${WORK_DIR}/exploded" && jar xf "$(cd / && realpath "${OLDPWD}/${FAT_JAR}")")
+(cd "${WORK_DIR}/exploded" && jar xf "${FAT_JAR}")
 
 CLASSES_DIR="${WORK_DIR}/exploded/BOOT-INF/classes"
 LIB_DIR="${WORK_DIR}/exploded/BOOT-INF/lib"
