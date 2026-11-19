@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

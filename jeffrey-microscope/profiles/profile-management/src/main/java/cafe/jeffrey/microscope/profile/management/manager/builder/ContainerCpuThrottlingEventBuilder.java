@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.builder;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.common.event.ContainerCpuThrottling;
 import cafe.jeffrey.microscope.profile.management.manager.model.container.ThrottlingSample;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.List;

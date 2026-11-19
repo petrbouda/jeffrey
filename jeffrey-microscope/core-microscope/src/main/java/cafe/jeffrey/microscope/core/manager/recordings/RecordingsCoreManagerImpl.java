@@ -17,25 +17,25 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.common.IDGenerator;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser.RecordingMetadata;
+import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
 import cafe.jeffrey.microscope.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.persistence.api.RecordingTagsRepository;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser.RecordingMetadata;
-import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.microscope.model.recording.Bundle;
-import cafe.jeffrey.microscope.model.recording.BundleFile;
-import cafe.jeffrey.microscope.model.recording.Recording;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.microscope.model.recording.RecordingStorageLayout;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
-import cafe.jeffrey.microscope.notification.NotificationType;
-import cafe.jeffrey.microscope.notification.Notifications;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;

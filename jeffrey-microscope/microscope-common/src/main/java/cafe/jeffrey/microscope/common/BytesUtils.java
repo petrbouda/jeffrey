@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common;
+package cafe.jeffrey.microscope.common;
 
 import java.text.CharacterIterator;
 import java.text.StringCharacterIterator;

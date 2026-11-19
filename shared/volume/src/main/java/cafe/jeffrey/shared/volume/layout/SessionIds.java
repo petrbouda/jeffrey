@@ -1,6 +1,6 @@
 /*
  * Jeffrey
- * Copyright (C) 2025 Petr Bouda
+ * Copyright (C) 2026 Petr Bouda
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,8 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common;
+package cafe.jeffrey.shared.volume.layout;
 
-import com.github.f4b6a3.uuid.UuidCreator;
 import com.github.f4b6a3.uuid.factory.standard.TimeOrderedEpochFactory;
 
 import java.time.Clock;
@@ -25,30 +24,28 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class IDGenerator {
+/**
+ * A session directory's name: a time-ordered UUID (version 7) the provisioner generates when the
+ * session starts, so the start is in the name and nothing on the volume has to be read to know it.
+ * The provisioner writes it ({@link #generate}), every reader reads the start back
+ * ({@link #timestampOf}) — {@link ProjectTree} takes a directory for a session exactly when its
+ * name carries one.
+ */
+public abstract class SessionIds {
 
-    /** The UUID version {@link #generate()} produces: time-ordered, epoch millis in the top 48 bits. */
+    /** The UUID version a session id is: time-ordered, epoch millis in the top 48 bits. */
     private static final int TIME_ORDERED_VERSION = 7;
 
-    /** The RFC 9562 variant every generated id carries. */
+    /** The RFC 9562 variant every session id carries. */
     private static final int STANDARD_VARIANT = 2;
 
     /** How far the epoch millis lie above the version and counter bits of the most significant half. */
     private static final int TIMESTAMP_SHIFT = 16;
 
     /**
-     * UUID generator described here:
-     * <a href="https://github.com/f4b6a3/uuid-creator/wiki/1.7.-UUIDv7#type-2-plus-1">...</a>
-     *
-     * @return UUID represented as a string
-     */
-    public static String generate() {
-        return UuidCreator.getTimeOrderedEpochPlus1().toString();
-    }
-
-    /**
-     * The same kind of id, carrying the time {@code clock} reads instead of the system's: what a
-     * session directory is named, so the start it carries is the provisioner's clock.
+     * A new session id carrying the time {@code clock} reads, so the start a session's name says is
+     * the provisioner's clock. See
+     * <a href="https://github.com/f4b6a3/uuid-creator/wiki/1.7.-UUIDv7#type-2-plus-1">UUIDv7, type 2 plus 1</a>.
      */
     public static String generate(Clock clock) {
         return TimeOrderedEpochFactory.builder()
@@ -60,9 +57,8 @@ public abstract class IDGenerator {
     }
 
     /**
-     * When an id {@link #generate()} produced was generated, to the millisecond — what a session
-     * directory's name says about when the provisioner started it. Ids of one process order as
-     * their strings do, and within a millisecond the counter keeps that order.
+     * When a session id was generated, to the millisecond — what a session directory's name says
+     * about when the provisioner started it.
      *
      * @return the id's time, or empty for anything that is not a canonical time-ordered UUID
      */

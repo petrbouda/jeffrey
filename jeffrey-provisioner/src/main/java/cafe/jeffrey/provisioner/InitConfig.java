@@ -17,6 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
+import com.github.f4b6a3.uuid.UuidCreator;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import cafe.jeffrey.provisioner.config.ConfigLayers;
@@ -27,7 +28,6 @@ import cafe.jeffrey.provisioner.model.HeapDumpType;
 import cafe.jeffrey.provisioner.placeholder.EnvPlaceholderSource;
 import cafe.jeffrey.provisioner.placeholder.Placeholders;
 import cafe.jeffrey.provisioner.CliConstants;
-import cafe.jeffrey.shared.common.IDGenerator;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -245,7 +245,7 @@ public class InitConfig {
             return value;
         }
         String hostname = nullIfBlank(envLookup.apply(ENV_HOSTNAME));
-        return hostname != null ? hostname : IDGenerator.generate();
+        return hostname != null ? hostname : UuidCreator.getTimeOrderedEpochPlus1().toString();
     }
 
     /** Resolves placeholders in the keys and values of the {@code attributes} object. */

@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.thread;
 
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceContextCategory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceContextCategory;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.util.Set;
 import java.util.TreeSet;

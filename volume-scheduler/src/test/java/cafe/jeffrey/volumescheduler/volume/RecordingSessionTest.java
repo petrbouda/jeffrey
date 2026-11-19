@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.volumescheduler.volume;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

@@ -17,19 +17,19 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.common.Schedulers;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
+import cafe.jeffrey.microscope.notification.NotificationType;
+import cafe.jeffrey.microscope.notification.Notifications;
 import cafe.jeffrey.microscope.profile.parser.jfr.EventProcessor;
 import cafe.jeffrey.microscope.profile.parser.jfr.JdkRecordingIterators;
 import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.common.Schedulers;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.microscope.notification.NotificationType;
-import cafe.jeffrey.microscope.notification.Notifications;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -56,16 +56,16 @@ public class JfrRecordingEventParser implements RecordingEventParser {
     static final int DEFAULT_CHUNK_SPLIT_THRESHOLD = Runtime.getRuntime().availableProcessors() * 2;
 
     private final TempDirFactory tempDirFactory;
-    private final Lz4Compressor lz4Compressor;
+    private final Lz4Decompressor lz4Decompressor;
     private final int chunkSplitThreshold;
 
-    public JfrRecordingEventParser(TempDirFactory tempDirFactory, Lz4Compressor lz4Compressor) {
-        this(tempDirFactory, lz4Compressor, DEFAULT_CHUNK_SPLIT_THRESHOLD);
+    public JfrRecordingEventParser(TempDirFactory tempDirFactory, Lz4Decompressor lz4Decompressor) {
+        this(tempDirFactory, lz4Decompressor, DEFAULT_CHUNK_SPLIT_THRESHOLD);
     }
 
-    JfrRecordingEventParser(TempDirFactory tempDirFactory, Lz4Compressor lz4Compressor, int chunkSplitThreshold) {
+    JfrRecordingEventParser(TempDirFactory tempDirFactory, Lz4Decompressor lz4Decompressor, int chunkSplitThreshold) {
         this.tempDirFactory = tempDirFactory;
-        this.lz4Compressor = lz4Compressor;
+        this.lz4Decompressor = lz4Decompressor;
         this.chunkSplitThreshold = chunkSplitThreshold;
     }
 
@@ -89,7 +89,7 @@ public class JfrRecordingEventParser implements RecordingEventParser {
             Supplier<EventProcessor<Void>> eventProcessor =
                     () -> new JfrEventReader(eventWriter.newSingleThreadedWriter());
 
-            SourceParseMode mode = SourceParseMode.of(sources, chunkSplitThreshold, lz4Compressor);
+            SourceParseMode mode = SourceParseMode.of(sources, chunkSplitThreshold, lz4Decompressor);
             List<Path> files = sources.files();
 
             LOG.info("Parsing recording: source_count={} mode={} chunk_split_threshold={}",

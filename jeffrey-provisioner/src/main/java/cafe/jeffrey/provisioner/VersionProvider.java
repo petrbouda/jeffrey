@@ -17,17 +17,23 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import picocli.CommandLine;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 
 public class VersionProvider implements CommandLine.IVersionProvider {
 
     public static final String[] NOT_AVAILABLE = {"not-available"};
 
+    /** Written into the jar by the build: the release tag, or nothing in a development build. */
+    private static final String VERSION_RESOURCE = "jeffrey-tag.txt";
+
     @Override
     public String[] getVersion() {
         try {
-            String version = FileSystemUtils.readFromClasspath("classpath:jeffrey-tag.txt");
+            String version = readVersion();
             if (version.isBlank()) {
                 return NOT_AVAILABLE;
             } else {
@@ -35,6 +41,15 @@ public class VersionProvider implements CommandLine.IVersionProvider {
             }
         } catch (Exception ex) {
             return NOT_AVAILABLE;
+        }
+    }
+
+    private static String readVersion() throws IOException {
+        try (InputStream stream = VersionProvider.class.getClassLoader().getResourceAsStream(VERSION_RESOURCE)) {
+            if (stream == null) {
+                throw new IOException("Not on the classpath: " + VERSION_RESOURCE);
+            }
+            return new String(stream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 }

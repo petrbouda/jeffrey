@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest.data;
 
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrChunk;
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

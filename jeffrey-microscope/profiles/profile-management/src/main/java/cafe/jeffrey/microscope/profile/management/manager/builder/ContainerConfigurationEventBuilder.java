@@ -17,13 +17,13 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.builder;
 
-import tools.jackson.databind.node.ObjectNode;
 import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.profile.management.manager.model.container.ContainerConfigurationData;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.common.event.ContainerConfiguration;
+import cafe.jeffrey.microscope.profile.management.manager.model.container.ContainerConfigurationData;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import tools.jackson.databind.node.ObjectNode;
 
 public class ContainerConfigurationEventBuilder implements RecordBuilder<GenericRecord, ContainerConfigurationData> {
 

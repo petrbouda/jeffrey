@@ -17,11 +17,12 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.microscope.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.test.recording.Lz4Archives;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import cafe.jeffrey.microscope.test.recording.TestappRecording.Counts;
 import cafe.jeffrey.microscope.test.recording.TestappRecording.Traces;
@@ -241,7 +242,7 @@ class JfrRecordingEventParserRealisticTest {
         return READINGS.computeIfAbsent(key, _ -> {
             TempDirFactory scratch = TempDirFactory.of(work.resolve("scratch"));
             EventTally tally = new EventTally();
-            new JfrRecordingEventParser(scratch, new Lz4Compressor(scratch), chunkSplitThreshold)
+            new JfrRecordingEventParser(scratch, new Lz4Decompressor(scratch), chunkSplitThreshold)
                     .start(tally, sources.get());
             return tally;
         });
@@ -258,7 +259,7 @@ class JfrRecordingEventParserRealisticTest {
     private static Path archiveFile(TestappRecording recording) {
         Path archive = work.resolve(recording + ".jfr.lz4");
         if (Files.notExists(archive)) {
-            Lz4Compressor.compress(plainFile(recording), archive);
+            Lz4Archives.compress(plainFile(recording), archive);
         }
         return archive;
     }

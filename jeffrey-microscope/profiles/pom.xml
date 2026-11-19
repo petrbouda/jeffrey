@@ -50,11 +50,6 @@
     <dependencyManagement>
         <dependencies>
             <!-- Shared modules from root and service -->
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>common</artifactId>
-                <version>${project.version}</version>
-            </dependency>
 
             <!-- Profile common modules -->
             <dependency>

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 
 import java.nio.file.Path;
 import java.time.ZoneOffset;

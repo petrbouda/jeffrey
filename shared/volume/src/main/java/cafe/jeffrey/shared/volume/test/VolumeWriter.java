@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.shared.volume.test;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

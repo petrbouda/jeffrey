@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.profile.management.flamegraph.export;
 
-import cafe.jeffrey.shared.common.BytesUtils;
+import cafe.jeffrey.microscope.common.BytesUtils;
 import cafe.jeffrey.microscope.common.DurationUtils;
 import cafe.jeffrey.microscope.model.Type;
 

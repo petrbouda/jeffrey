@@ -15,27 +15,9 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common.filesystem;
+package cafe.jeffrey.volumescheduler.scheduler;
 
-import java.nio.file.Path;
+import java.time.Duration;
 
-public interface TempDirFactory {
-
-    TempDirectory newTempDir();
-
-    TempDirectory newTempDir(String directory);
-
-    static TempDirFactory of(Path tempDir) {
-        return new TempDirFactory() {
-            @Override
-            public TempDirectory newTempDir() {
-                return newTempDir(System.nanoTime() + "");
-            }
-
-            @Override
-            public TempDirectory newTempDir(String directory) {
-                return new TempDirectory(tempDir.resolve(directory));
-            }
-        };
-    }
+public record Elapsed<T>(Duration duration, T entity) {
 }

@@ -14,14 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-module cafe.jeffrey.shared.common {
-    requires transitive org.slf4j;
-    requires org.lz4.java;
-    requires com.github.f4b6a3.uuid;
 
-    exports cafe.jeffrey.shared.common;
-    exports cafe.jeffrey.shared.common.compression;
-    exports cafe.jeffrey.shared.common.filesystem;
-    exports cafe.jeffrey.shared.common.measure;
-    exports cafe.jeffrey.shared.common.model;
+package cafe.jeffrey.microscope.common.filesystem;
+
+import java.nio.file.Path;
+
+public interface TempDirFactory {
+
+    TempDirectory newTempDir();
+
+    TempDirectory newTempDir(String directory);
+
+    static TempDirFactory of(Path tempDir) {
+        return new TempDirFactory() {
+            @Override
+            public TempDirectory newTempDir() {
+                return newTempDir(System.nanoTime() + "");
+            }
+
+            @Override
+            public TempDirectory newTempDir(String directory) {
+                return new TempDirectory(tempDir.resolve(directory));
+            }
+        };
+    }
 }

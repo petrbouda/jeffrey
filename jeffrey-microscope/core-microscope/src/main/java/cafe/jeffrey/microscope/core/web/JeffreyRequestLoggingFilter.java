@@ -17,6 +17,8 @@
 
 package cafe.jeffrey.microscope.core.web;
 
+import cafe.jeffrey.microscope.common.IDGenerator;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,8 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.web.filter.OncePerRequestFilter;
-import cafe.jeffrey.shared.common.IDGenerator;
-import cafe.jeffrey.shared.common.measure.Measuring;
 
 import java.io.IOException;
 import java.time.Duration;

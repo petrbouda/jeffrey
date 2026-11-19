@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.profile.management.panel;
 
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.management.model.Classification;
 import cafe.jeffrey.microscope.profile.management.model.ToggleOption;
 import cafe.jeffrey.microscope.profile.management.model.WeightKind;
-import cafe.jeffrey.shared.common.model.EventTypeName;
 
 /**
  * The fixed presentation template for each flamegraph card section — the single source of truth for the

@@ -19,17 +19,17 @@ package cafe.jeffrey.microscope.persistence.jdbc;
 
 import cafe.jeffrey.microscope.persistence.api.*;
 
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.microscope.common.IDGenerator;
+import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import cafe.jeffrey.microscope.model.recording.Bundle;
 import cafe.jeffrey.microscope.model.recording.BundleFile;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.recording.RecordingFile;
 import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
-import cafe.jeffrey.microscope.duckdb.GroupLabel;
-import cafe.jeffrey.microscope.duckdb.StatementLabel;
-import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
-import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.time.Clock;
 import java.time.ZoneOffset;

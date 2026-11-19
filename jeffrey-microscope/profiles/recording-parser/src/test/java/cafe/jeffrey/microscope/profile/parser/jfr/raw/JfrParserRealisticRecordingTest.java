@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.profile.parser.jfr.raw;
 
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
 import cafe.jeffrey.microscope.test.recording.CheckoutRecording;
+import cafe.jeffrey.microscope.test.recording.Lz4Archives;
 import cafe.jeffrey.microscope.test.recording.TestappRecording;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.io.TempDir;
@@ -58,7 +58,7 @@ class JfrParserRealisticRecordingTest {
 
     /** The same file, compressed as the volume scheduler's compression job leaves it. */
     private Path archive(TestappRecording recording) throws IOException {
-        return Lz4Compressor.compress(plain(recording), dir.resolve(recording.mode() + ".jfr.lz4"));
+        return Lz4Archives.compress(plain(recording), dir.resolve(recording.mode() + ".jfr.lz4"));
     }
 
     /** Both chains, in the order the file holds them, each chunk where its header says it began. */

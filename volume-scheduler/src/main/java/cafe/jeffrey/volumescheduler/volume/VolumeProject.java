@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.volumescheduler.volume;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.FilesystemVolume;
 import cafe.jeffrey.shared.volume.layout.InstanceDirectory;
 import cafe.jeffrey.shared.volume.layout.InstanceSummary;
@@ -154,7 +153,7 @@ public final class VolumeProject {
         }
 
         for (Path file : matched) {
-            FileSystemUtils.removeFile(file);
+            removeFile(file);
         }
         LOG.info("Deleted files of a session: {} session_id={} file_ids={}", ref.logScope(), sessionId, found);
     }
@@ -200,5 +199,14 @@ public final class VolumeProject {
 
     private static String fileId(Path file) {
         return SessionFile.idOf(file.getFileName().toString());
+    }
+
+    /** One file of a session; a failure is logged, and the file is still there for the next delete. */
+    private static void removeFile(Path file) {
+        try {
+            Files.deleteIfExists(file);
+        } catch (IOException e) {
+            LOG.error("Failed to delete a session file: path={}", file, e);
+        }
     }
 }

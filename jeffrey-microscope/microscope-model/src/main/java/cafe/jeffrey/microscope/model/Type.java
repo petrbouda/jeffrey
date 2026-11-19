@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.model;
 
-import cafe.jeffrey.shared.common.model.EventTypeName;
 
 import java.util.Map;
 import java.util.Objects;

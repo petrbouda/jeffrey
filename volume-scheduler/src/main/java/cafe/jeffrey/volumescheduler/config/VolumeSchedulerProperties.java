@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.volumescheduler.config;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 import cafe.jeffrey.volumescheduler.retention.RetentionPolicy;
 import cafe.jeffrey.volumescheduler.scheduler.JobSchedule;
 import org.springframework.boot.context.properties.ConfigurationProperties;

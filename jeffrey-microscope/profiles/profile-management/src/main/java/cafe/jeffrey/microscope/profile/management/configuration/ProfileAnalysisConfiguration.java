@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.profile.management.configuration;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.microscope.profile.management.ingest.data.AutoAnalysisDataProvider;
 import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.profile.management.manager.AutoAnalysisManagerImpl;
-import cafe.jeffrey.microscope.profile.management.ingest.data.AutoAnalysisDataProvider;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
 import cafe.jeffrey.microscope.profile.management.manager.EventViewerManager;
 import cafe.jeffrey.microscope.profile.management.manager.EventViewerManagerImpl;
 import cafe.jeffrey.microscope.profile.management.manager.FlagsManager;
@@ -33,14 +33,14 @@ import cafe.jeffrey.microscope.profile.management.manager.ProfileConfigurationMa
 import cafe.jeffrey.microscope.profile.management.manager.SamplerHealthManager;
 import cafe.jeffrey.microscope.profile.management.manager.SamplerHealthManagerImpl;
 import cafe.jeffrey.microscope.profile.management.manager.registry.AnalysisFactories;
+import cafe.jeffrey.microscope.profile.management.recording.RecordingFileLookup;
 import cafe.jeffrey.microscope.profile.management.settings.ActiveSettingsProvider;
 import cafe.jeffrey.microscope.profile.management.settings.CachedActiveSettingsProvider;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfileCacheRepository;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabase;
 import cafe.jeffrey.microscope.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.microscope.profile.persistence.api.ProfileCacheRepository;
-import cafe.jeffrey.microscope.model.ProfileInfo;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.profile.management.recording.RecordingFileLookup;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
 
 import java.nio.file.Path;
 

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.provisioner;
 
-import cafe.jeffrey.shared.common.IDGenerator;
+import cafe.jeffrey.shared.volume.layout.SessionIds;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -52,7 +52,7 @@ public class SessionRegistrar {
         String instanceId = config.getInstanceName();
         Path instancePath = LayoutProvisioner.createDirectories(layout.project().resolve(instanceId));
 
-        String sessionId = IDGenerator.generate(clock);
+        String sessionId = SessionIds.generate(clock);
         ZoneOffset offset = clock.getZone().getRules().getOffset(clock.instant());
         SessionLayout sessionLayout =
                 layoutProvisioner.provisionSession(layout, instancePath.resolve(sessionId), offset);

@@ -17,8 +17,9 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.model.gc.g1;
 
-import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.profile.management.timeseries.MaxPerSecondSeries;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1AnalysisData.EvacuationEntry;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1AnalysisData.EvacuationFailure;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1AnalysisData.G1Header;
@@ -27,12 +28,11 @@ import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1Analysis
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1AnalysisData.RegionCell;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1AnalysisData.RegionSnapshot;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.g1.G1AnalysisData.SystemGcEntry;
+import cafe.jeffrey.microscope.profile.management.timeseries.MaxPerSecondSeries;
+import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.microscope.common.Json;
-import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import tools.jackson.databind.node.ObjectNode;
 
 import java.util.ArrayList;
 import java.util.Comparator;

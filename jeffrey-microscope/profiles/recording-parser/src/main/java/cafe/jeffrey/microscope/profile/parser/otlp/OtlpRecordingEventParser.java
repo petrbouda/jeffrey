@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.profile.parser.otlp;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.profile.persistence.api.EventWriter;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.time.Duration;

@@ -17,14 +17,14 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.model.virtualthread;
 
-import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
-import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
-import cafe.jeffrey.shared.common.model.EventTypeName;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
 import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesUtils;
+import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -17,26 +17,22 @@
 
 package cafe.jeffrey.microscope.core.manager.download;
 
+import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.connector.api.FileStreamClient;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.connector.api.RepositoryClient;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.connector.api.dto.RepositoryFileResponse;
 import cafe.jeffrey.microscope.connector.api.manager.TempDirProvider;
-import cafe.jeffrey.microscope.core.manager.download.FileProgress;
-import cafe.jeffrey.microscope.core.manager.download.JfrChunks;
-import cafe.jeffrey.microscope.core.manager.download.ProgressCallback;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.model.recording.Bundle;
 import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.persistence.api.RecordingTag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

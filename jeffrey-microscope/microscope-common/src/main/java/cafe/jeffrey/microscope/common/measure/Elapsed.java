@@ -15,22 +15,9 @@
  * limitations under the License.
  */
 
-package cafe.jeffrey.shared.common.filesystem;
+package cafe.jeffrey.microscope.common.measure;
 
-import java.nio.file.Path;
+import java.time.Duration;
 
-public record TempDirectory(Path path) implements AutoCloseable {
-
-    public TempDirectory {
-        FileSystemUtils.createDirectories(path);
-    }
-
-    public Path resolve(String other) {
-        return path.resolve(other);
-    }
-
-    @Override
-    public void close() {
-        FileSystemUtils.removeDirectory(path);
-    }
+public record Elapsed<T>(Duration duration, T entity) {
 }

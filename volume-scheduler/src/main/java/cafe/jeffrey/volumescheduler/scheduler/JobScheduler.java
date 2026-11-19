@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.volumescheduler.scheduler;
 
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

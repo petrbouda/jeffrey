@@ -16,11 +16,11 @@
  */
 package cafe.jeffrey.microscope.profile.heapdump.persistence;
 
-import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
-import cafe.jeffrey.shared.common.measure.Elapsed;
-import cafe.jeffrey.shared.common.measure.Measuring;
+import cafe.jeffrey.microscope.common.measure.Elapsed;
+import cafe.jeffrey.microscope.common.measure.Measuring;
 import cafe.jeffrey.microscope.duckdb.DuckDBMemoryMonitor;
 import cafe.jeffrey.microscope.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -36,12 +36,12 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import cafe.jeffrey.microscope.profile.heapdump.parser.FutureJoin;
+import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
 import org.duckdb.DuckDBAppender;
 import org.duckdb.DuckDBConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.heapdump.view.HeapView;
-import cafe.jeffrey.microscope.profile.heapdump.parser.FutureJoin;
 
 /**
  * Computes the dominator tree of the heap reference graph and the retained

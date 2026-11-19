@@ -16,7 +16,6 @@
  */
 module cafe.jeffrey.microscope.profile.common {
     requires transitive cafe.jeffrey.microscope.common;
-    requires transitive cafe.jeffrey.shared.common;
     requires transitive cafe.jeffrey.microscope.model;
     requires cafe.jeffrey.microscope.notification;
     requires transitive tools.jackson.databind;

@@ -17,9 +17,6 @@
 
 package cafe.jeffrey.microscope.profile.management.manager;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.management.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.microscope.profile.management.manager.gc.GarbageCollectionManager;
 import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.microscope.profile.management.manager.memory.AllocationManager;
@@ -27,17 +24,20 @@ import cafe.jeffrey.microscope.profile.management.manager.memory.HeapMemoryManag
 import cafe.jeffrey.microscope.profile.management.manager.memory.LeakCandidatesManager;
 import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryManager;
 import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryTrackingManager;
+import cafe.jeffrey.microscope.profile.management.manager.registry.ProfileManagerFactoryRegistry;
 import cafe.jeffrey.microscope.profile.management.manager.thread.ThreadManager;
 import cafe.jeffrey.microscope.profile.management.manager.thread.VirtualThreadManager;
 import cafe.jeffrey.microscope.profile.management.perfcounters.PerfCountersManager;
 import cafe.jeffrey.microscope.profile.management.tools.collapse.CollapseFramesManager;
 import cafe.jeffrey.microscope.profile.management.tools.otlp.OtlpExportManager;
 import cafe.jeffrey.microscope.profile.management.tools.pprof.PprofExportManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
-import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.persistence.api.ProfileRepository;
 
 import java.nio.file.Path;
 

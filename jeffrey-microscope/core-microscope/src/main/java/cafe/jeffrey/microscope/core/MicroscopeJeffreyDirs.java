@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 
 import java.nio.file.Path;
 

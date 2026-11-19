@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.common;
 
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 
 import java.util.Optional;
 

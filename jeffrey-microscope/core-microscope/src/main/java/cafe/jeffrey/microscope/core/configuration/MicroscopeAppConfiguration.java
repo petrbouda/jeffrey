@@ -17,52 +17,52 @@
 
 package cafe.jeffrey.microscope.core.configuration;
 
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
+import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
+import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.JfrRecordingMetadataParserAdapter;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
-import cafe.jeffrey.microscope.core.manager.recordings.IdeRecordingLookup;
 import cafe.jeffrey.microscope.core.manager.recordings.ProfileRecordingsManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManagerImpl;
+import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.HeapDumpProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.PerfCountersProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.PipelineProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilder;
 import cafe.jeffrey.microscope.core.manager.recordings.builder.ProfileBuilders;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
-import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManagerImpl;
 import cafe.jeffrey.microscope.core.web.MicroscopeRecordingProfileInfoProvider;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
 import cafe.jeffrey.microscope.core.web.RecordingProfileInfoProvider;
+import cafe.jeffrey.microscope.core.web.WebInfrastructureConfig;
+import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.profile.management.ProfileInitializer;
 import cafe.jeffrey.microscope.profile.management.ProfileInitializerImpl;
 import cafe.jeffrey.microscope.profile.management.configuration.ProfilesConfiguration;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.microscope.profile.management.manager.action.ProfileDataInitializer;
 import cafe.jeffrey.microscope.profile.management.ingest.FileTypeDispatchingRecordingInformationParser;
 import cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingEventParser;
 import cafe.jeffrey.microscope.profile.management.ingest.JfrRecordingInformationParser;
+import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.profile.management.manager.action.ProfileDataInitializer;
+import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.profile.parser.otlp.OtlpRecordingEventParser;
 import cafe.jeffrey.microscope.profile.parser.pprof.PprofRecordingEventParser;
+import cafe.jeffrey.microscope.profile.persistence.api.ProfilePersistenceProvider;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParser;
 import cafe.jeffrey.microscope.profile.persistence.api.RecordingEventParserResolver;
-import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.profile.persistence.api.ProfilePersistenceProvider;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 import java.util.Map;
 
@@ -94,7 +94,7 @@ public class MicroscopeAppConfiguration {
             ProfilePersistenceProvider profilePersistenceProvider) {
 
         RecordingEventParser jfrParser =
-                new JfrRecordingEventParser(jeffreyDirs, new Lz4Compressor(jeffreyDirs));
+                new JfrRecordingEventParser(jeffreyDirs, new Lz4Decompressor(jeffreyDirs));
         RecordingEventParserResolver parserResolver = RecordingEventParserResolver.of(
                 Map.of(
                         RecordingEventSource.PPROF, new PprofRecordingEventParser(),

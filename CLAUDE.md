@@ -28,7 +28,8 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
     azure-files-connector/             the Azure file share kind (AzureFilesAddress, its provider and settings;
                                        SMB + NFS, SAS or Entra), a module of its own so the Azure SDK stays out of
                                        everything else; core-microscope takes it at run time only
-  microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers, …
+  microscope-common/                   the utilities every Microscope module shares: exceptions, Json, Schedulers,
+                                       FileSystemUtils, Measuring, IDGenerator, the volume archives' Lz4Decompressor, …
   microscope-test/                     Microscope's test support: @DuckDBTest, RecordedSession (real chunks),
                                        TestappRecording and CheckoutRecording (real traced runs)
   duckdb/                              the DuckDB plumbing every Microscope database uses: data sources, pools,
@@ -47,12 +48,12 @@ volume-scheduler/                      one module: VolumeSchedulerApplication (c
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:
                                        the volume (jeffrey.volume-scheduler.volume.path, required) is its only state
-shared/                                only what Microscope, the volume scheduler and the provisioner all read on the
-                                       volume: common (JeffreyLayout, IDGenerator, EventTypeName, Lz4Compressor,
-                                       FileSystemUtils, Measuring) and volume (the recording volume's layout read
-                                       through a storage port: folder names are the state:
+shared/                                only what Microscope, the volume scheduler and the provisioner must agree on to
+                                       read one volume: volume (its names — JeffreyLayout, SessionIds — and its layout
+                                       read through a storage port: folder names are the state:
                                        projects/instances/sessions/files; the volume scheduler's reader; plus
-                                       VolumeWriter, the one writer of a test volume, never imported by production code)
+                                       VolumeWriter, the one writer of a test volume, never imported by production code).
+                                       No utilities: each product keeps its own (Microscope's in microscope-common)
 jeffrey-provisioner/                   GraalVM native CLI that provisions a profiled JVM: session directories and
                                        the argfile that starts it under async-profiler (profiler-path)
 jeffrey-agent-plugin/                  the "microscope" coding-agent plugin: skills, agents, manifests for Claude Code /
@@ -107,7 +108,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 - **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
 - **The volume scheduler has no API to Microscope.** It runs its two jobs on the volume (retention, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
-- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/common` gets no domain record.
+- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/` gets no domain record and no utility one product could keep itself: the volume scheduler writes the LZ4 archives and Microscope reads them, each with its own code over the standard frame format.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the volume scheduler — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.

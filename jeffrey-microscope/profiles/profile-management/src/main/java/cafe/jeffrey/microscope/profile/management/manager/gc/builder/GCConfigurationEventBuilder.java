@@ -17,14 +17,14 @@
 
 package cafe.jeffrey.microscope.profile.management.manager.gc.builder;
 
-import tools.jackson.databind.node.ObjectNode;
-import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.model.EventTypeName;
 import cafe.jeffrey.microscope.profile.common.event.*;
-import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
 import cafe.jeffrey.microscope.profile.management.manager.model.gc.configuration.*;
 import cafe.jeffrey.microscope.profile.persistence.api.GenericRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordBuilder;
+import tools.jackson.databind.node.ObjectNode;
 
 public class GCConfigurationEventBuilder implements RecordBuilder<GenericRecord, GCConfigurationData> {
 

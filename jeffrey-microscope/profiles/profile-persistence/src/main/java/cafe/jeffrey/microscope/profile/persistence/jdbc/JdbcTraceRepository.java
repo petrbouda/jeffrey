@@ -17,6 +17,11 @@
 
 package cafe.jeffrey.microscope.profile.persistence.jdbc;
 
+import cafe.jeffrey.microscope.duckdb.StatementLabel;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.model.SpanInterval;
 import cafe.jeffrey.microscope.profile.common.exceptions.JvmInternalThrows;
 import cafe.jeffrey.microscope.profile.persistence.api.EventFieldRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.EventFrame;
@@ -24,6 +29,9 @@ import cafe.jeffrey.microscope.profile.persistence.api.ThreadWindowEventRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.ThreadWindowEventsPage;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceContextCategory;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceExceptionRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationGroupRecord;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationListQuery;
+import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationId;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationListQuery;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationPage;
@@ -31,9 +39,6 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationSortField;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationSpanRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOperationThreadsRecord;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationGroupRecord;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationListQuery;
-import cafe.jeffrey.microscope.profile.persistence.api.TraceNotificationRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceOverviewRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TracePauseRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TracePromotedGroupRecord;
@@ -46,11 +51,6 @@ import cafe.jeffrey.microscope.profile.persistence.api.TraceSummaryRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceThrottleWindowRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceTimelineBucketRecord;
 import cafe.jeffrey.microscope.profile.persistence.api.TraceWindowRecord;
-import cafe.jeffrey.shared.common.model.EventTypeName;
-import cafe.jeffrey.microscope.model.SpanInterval;
-import cafe.jeffrey.microscope.duckdb.StatementLabel;
-import cafe.jeffrey.microscope.duckdb.client.DatabaseClient;
-import cafe.jeffrey.microscope.duckdb.client.DatabaseClientProvider;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 

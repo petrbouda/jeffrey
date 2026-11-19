@@ -17,16 +17,17 @@
 
 package cafe.jeffrey.volumescheduler.compression;
 
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
-import cafe.jeffrey.shared.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.recording.RecordingFormat;
 import cafe.jeffrey.volumescheduler.volume.RecordingSession;
 import cafe.jeffrey.volumescheduler.volume.RecordingSessionFile;
+import net.jpountz.lz4.LZ4FrameOutputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -35,7 +36,9 @@ import java.nio.file.StandardCopyOption;
 
 /**
  * Compresses a session's closed JFR recordings to LZ4 in place, {@code profile-1.jfr} →
- * {@code profile-1.jfr.lz4}, and deletes each original once its archive is whole. Only a JFR is
+ * {@code profile-1.jfr.lz4}, and deletes each original once its archive is whole. An archive is one
+ * standard LZ4 frame, the only form Microscope's reader takes: the frame header carries its own
+ * options, so a frame decoder needs nothing else agreed. Only a JFR is
  * compressed: its compressed name keeps its type, id and timestamp, where {@code app.pprof.lz4}
  * would not, and an archive is already one. The newest recording of an instance's newest session
  * is left alone ({@link RecordingSession#trimmableRecordings()}): the profiler may still be writing
@@ -88,20 +91,37 @@ public final class RecordingCompressor {
                         + "session_id={} file={} archive={}", sessionId, source, archive);
                 return false;
             }
-            FileSystemUtils.removeFile(source);
+            removeRecording(source);
             return true;
         }
 
         // An empty recording is left when the profiler stops before writing events, e.g. after a
         // non-graceful shutdown
-        if (FileSystemUtils.size(source) == 0) {
+        if (size(source) == 0) {
             LOG.debug("Skipping an empty recording: session_id={} file={}", sessionId, source);
             return false;
         }
 
         writeArchive(source, archive);
-        FileSystemUtils.removeFile(source);
+        removeRecording(source);
         return true;
+    }
+
+    private static long size(Path recording) {
+        try {
+            return Files.size(recording);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read the size of a recording: path=" + recording, e);
+        }
+    }
+
+    /** Deletes a recording its archive replaced; one left behind is found and deleted by the next run. */
+    private static void removeRecording(Path recording) {
+        try {
+            Files.deleteIfExists(recording);
+        } catch (IOException e) {
+            LOG.error("Failed to delete the recording: path={}", recording, e);
+        }
     }
 
     /**
@@ -115,7 +135,10 @@ public final class RecordingCompressor {
     private static void writeArchive(Path source, Path archive) {
         Path scratch = archive.resolveSibling(VolumePath.scratchName(archive.getFileName().toString()));
         try {
-            Lz4Compressor.compress(source, scratch);
+            try (InputStream in = Files.newInputStream(source);
+                 OutputStream out = new LZ4FrameOutputStream(Files.newOutputStream(scratch))) {
+                in.transferTo(out);
+            }
 
             // An empty archive is a silent failure; publishing it would let the recording be deleted
             if (Files.size(scratch) == 0) {

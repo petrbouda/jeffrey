@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.provisioner.feature;
 
-import cafe.jeffrey.shared.common.model.EventTypeName;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,8 +26,9 @@ import java.util.stream.Collectors;
  * <p>The stock {@code default.jfc} the profiler records with keeps these events well above the
  * durations a trace is read at — 20 ms for lock waits and parks, 1 ms for socket and file I/O on
  * Java 25 — so a trace shows the method that blocked but not what it blocked on. These are the same
- * event types the Tracing view promotes into leaf spans, named from {@link EventTypeName} so the two
- * lists cannot drift into disagreeing about an event's spelling.
+ * event types Microscope's Tracing view promotes into leaf spans (its {@code EventTypeName}). The
+ * provisioner spells the names itself rather than depend on a Microscope module: they are the JDK's
+ * own event names, which do not change.
  *
  * <p>I/O is recorded in full ({@code 0ms}): every socket and file operation is a call the
  * application made on purpose, and its duration is the answer the waterfall exists to show.
@@ -37,6 +36,18 @@ import java.util.stream.Collectors;
  * thread pool spends its life — at {@code 0ms} that churn would outweigh the waits worth reading.
  */
 public abstract class TracingJfrEvents {
+
+    private static final String SOCKET_READ = "jdk.SocketRead";
+    private static final String SOCKET_WRITE = "jdk.SocketWrite";
+    private static final String FILE_READ = "jdk.FileRead";
+    private static final String FILE_WRITE = "jdk.FileWrite";
+    private static final String FILE_FORCE = "jdk.FileForce";
+    private static final String JAVA_MONITOR_ENTER = "jdk.JavaMonitorEnter";
+    private static final String JAVA_MONITOR_WAIT = "jdk.JavaMonitorWait";
+    private static final String THREAD_PARK = "jdk.ThreadPark";
+    private static final String THREAD_SLEEP = "jdk.ThreadSleep";
+    private static final String VIRTUAL_THREAD_PINNED = "jdk.VirtualThreadPinned";
+    private static final String Z_ALLOCATION_STALL = "jdk.ZAllocationStall";
 
     private static final String IO_THRESHOLD = "0ms";
     private static final String BLOCKING_THRESHOLD = "1ms";
@@ -106,17 +117,17 @@ public abstract class TracingJfrEvents {
      * unthresholded in {@code default.jfc} and is listed so the settings stand on their own.
      */
     static final List<EventThreshold> DEFAULT_EVENTS = List.of(
-            EventThreshold.io(EventTypeName.SOCKET_READ),
-            EventThreshold.io(EventTypeName.SOCKET_WRITE),
-            EventThreshold.io(EventTypeName.FILE_READ),
-            EventThreshold.io(EventTypeName.FILE_WRITE),
-            new EventThreshold(EventTypeName.FILE_FORCE, IO_THRESHOLD, false),
-            EventThreshold.blocking(EventTypeName.JAVA_MONITOR_ENTER),
-            EventThreshold.blocking(EventTypeName.JAVA_MONITOR_WAIT),
-            EventThreshold.blocking(EventTypeName.THREAD_PARK),
-            EventThreshold.blocking(EventTypeName.THREAD_SLEEP),
-            EventThreshold.blocking(EventTypeName.VIRTUAL_THREAD_PINNED),
-            new EventThreshold(EventTypeName.Z_ALLOCATION_STALL, IO_THRESHOLD, false));
+            EventThreshold.io(SOCKET_READ),
+            EventThreshold.io(SOCKET_WRITE),
+            EventThreshold.io(FILE_READ),
+            EventThreshold.io(FILE_WRITE),
+            new EventThreshold(FILE_FORCE, IO_THRESHOLD, false),
+            EventThreshold.blocking(JAVA_MONITOR_ENTER),
+            EventThreshold.blocking(JAVA_MONITOR_WAIT),
+            EventThreshold.blocking(THREAD_PARK),
+            EventThreshold.blocking(THREAD_SLEEP),
+            EventThreshold.blocking(VIRTUAL_THREAD_PINNED),
+            new EventThreshold(Z_ALLOCATION_STALL, IO_THRESHOLD, false));
 
     /** The built-in event settings, as the {@code -XX:StartFlightRecording} option spells them. */
     public static final String DEFAULT_SETTINGS = DEFAULT_EVENTS.stream()

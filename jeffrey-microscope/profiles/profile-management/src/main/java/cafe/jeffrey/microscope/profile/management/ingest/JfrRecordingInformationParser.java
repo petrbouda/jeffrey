@@ -17,17 +17,17 @@
 
 package cafe.jeffrey.microscope.profile.management.ingest;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import cafe.jeffrey.shared.common.compression.Lz4Compressor;
+import cafe.jeffrey.microscope.common.compression.Lz4Decompressor;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.shared.common.filesystem.TempDirFactory;
-import cafe.jeffrey.shared.common.filesystem.TempDirectory;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
+import cafe.jeffrey.microscope.common.filesystem.TempDirFactory;
+import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrChunk;
 import cafe.jeffrey.microscope.profile.parser.jfr.raw.JfrParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -59,9 +59,9 @@ public class JfrRecordingInformationParser implements RecordingInformationParser
     }
 
     private List<JfrChunk> chunksOf(Path recordingPath) {
-        if (Lz4Compressor.isLz4Compressed(recordingPath)) {
+        if (Lz4Decompressor.isLz4Compressed(recordingPath)) {
             // Try streaming first - works for single-frame LZ4 files
-            try (InputStream lz4Stream = Lz4Compressor.decompressStream(recordingPath)) {
+            try (InputStream lz4Stream = Lz4Decompressor.decompressStream(recordingPath)) {
                 return JfrParser.collectChunks(lz4Stream);
             } catch (Exception e) {
                 // Fallback: decompress to temp file and parse
@@ -77,9 +77,9 @@ public class JfrRecordingInformationParser implements RecordingInformationParser
     }
 
     private List<JfrChunk> parseViaTemporaryFile(Path recordingPath) {
-        Lz4Compressor lz4Compressor = new Lz4Compressor(tempDirFactory);
+        Lz4Decompressor lz4Decompressor = new Lz4Decompressor(tempDirFactory);
         try (TempDirectory tempDir = tempDirFactory.newTempDir()) {
-            Path decompressed = lz4Compressor.decompressToDir(recordingPath, tempDir.path());
+            Path decompressed = lz4Decompressor.decompressToDir(recordingPath, tempDir.path());
             return JfrParser.collectChunks(decompressed);
         } catch (Exception e) {
             throw Exceptions.internal("Cannot read LZ4 recording info: " + recordingPath, e);

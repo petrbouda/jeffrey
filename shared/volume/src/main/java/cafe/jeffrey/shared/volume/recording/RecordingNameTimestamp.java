@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.shared.volume.recording;
 
-import cafe.jeffrey.shared.common.JeffreyLayout;
 import cafe.jeffrey.shared.volume.VolumeEntry;
+import cafe.jeffrey.shared.volume.layout.JeffreyLayout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
