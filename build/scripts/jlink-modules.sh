@@ -76,7 +76,8 @@ DISCOVERED_MODULES=$(jdeps \
 #   jdk.management       — Spring Boot Actuator, JMX
 #   java.compiler        — annotation processing at runtime
 #   java.instrument      — Spring's load-time weaving / agent support
-EXTRA_MODULES="jdk.incubator.vector,jdk.unsupported,jdk.jfr,jdk.management,java.compiler,java.instrument"
+#   java.desktop         — java.beans.PropertyEditorSupport, used by Spring Boot property binding
+EXTRA_MODULES="jdk.incubator.vector,jdk.unsupported,jdk.jfr,jdk.management,java.compiler,java.instrument,java.desktop"
 
 ALL_MODULES=$(echo "${DISCOVERED_MODULES},${EXTRA_MODULES}" \
     | tr ',' '\n' \
