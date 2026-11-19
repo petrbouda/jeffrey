@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.profile.recording;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingRepository;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingStorageLayout;

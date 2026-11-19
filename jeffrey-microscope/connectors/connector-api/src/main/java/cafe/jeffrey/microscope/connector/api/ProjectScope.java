@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.connector.api;
 
-import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.common.model.ProjectInfo;
 
 import java.util.Objects;
 

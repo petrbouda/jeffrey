@@ -30,7 +30,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;
 import org.junit.jupiter.api.BeforeEach;

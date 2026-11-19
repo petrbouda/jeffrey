@@ -30,9 +30,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.connector.api.manager.RepositoryManager;
-import cafe.jeffrey.microscope.model.repository.StreamedFile;
+import cafe.jeffrey.microscope.common.model.repository.StreamedFile;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 import java.io.IOException;

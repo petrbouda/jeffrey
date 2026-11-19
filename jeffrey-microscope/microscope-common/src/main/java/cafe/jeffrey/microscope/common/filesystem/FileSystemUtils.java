@@ -17,9 +17,6 @@
 
 package cafe.jeffrey.microscope.common.filesystem;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -37,9 +34,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public abstract class FileSystemUtils {
-
-    private static final Logger LOG = LoggerFactory.getLogger(FileSystemUtils.class);
-
 
     public static boolean isNotHidden(Path path) {
         try {
@@ -138,35 +132,6 @@ public abstract class FileSystemUtils {
         }
     }
 
-    /**
-     * Calculates the total size of all files in a directory recursively.
-     *
-     * @param directory the directory to calculate size for
-     * @return total size in bytes, or 0 if directory doesn't exist or is empty
-     */
-    public static long directorySize(Path directory) {
-        if (!isDirectory(directory)) {
-            return 0L;
-        }
-
-        try (Stream<Path> files = Files.walk(directory)) {
-            return files
-                    .filter(Files::isRegularFile)
-                    .mapToLong(path -> {
-                        try {
-                            return Files.size(path);
-                        } catch (IOException e) {
-                            LOG.warn("Cannot read file size: path={}", path);
-                            return 0L;
-                        }
-                    })
-                    .sum();
-        } catch (IOException e) {
-            LOG.warn("Cannot calculate directory size: directory={}", directory);
-            return 0L;
-        }
-    }
-
     public static void removeDirectory(Path directory) {
         if (!FileSystemUtils.isDirectory(directory)) {
             return;
@@ -177,14 +142,6 @@ public abstract class FileSystemUtils {
                     .forEach(FileSystemUtils::delete);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot complete removing of a directory: " + directory, e);
-        }
-    }
-
-    public static void removeFile(Path targetPath) {
-        try {
-            Files.deleteIfExists(targetPath);
-        } catch (IOException e) {
-            LOG.error("Failed to delete the recording: {}", targetPath, e);
         }
     }
 

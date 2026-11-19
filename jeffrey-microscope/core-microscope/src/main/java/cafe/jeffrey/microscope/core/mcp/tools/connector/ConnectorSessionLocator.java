@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

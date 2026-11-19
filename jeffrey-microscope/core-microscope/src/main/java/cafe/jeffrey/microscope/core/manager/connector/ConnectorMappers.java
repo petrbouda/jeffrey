@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.manager.connector;
 
-import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.common.model.ProjectInfo;
 import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
 
 public abstract class ConnectorMappers {

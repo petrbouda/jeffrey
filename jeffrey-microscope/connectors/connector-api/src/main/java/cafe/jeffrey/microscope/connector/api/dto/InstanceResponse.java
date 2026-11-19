@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.connector.api.dto;
 
 import cafe.jeffrey.microscope.common.InstantUtils;
-import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
+import cafe.jeffrey.microscope.common.model.ProjectInstanceInfo;
 
 /**
  * An instance as this application's API reports it: its directory, whose name is its id.

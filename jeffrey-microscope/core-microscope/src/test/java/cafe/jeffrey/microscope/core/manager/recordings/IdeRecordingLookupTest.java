@@ -32,9 +32,9 @@ import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult.SingleResul
 import cafe.jeffrey.microscope.core.profile.persistence.api.CpuTimeSampleLoss;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

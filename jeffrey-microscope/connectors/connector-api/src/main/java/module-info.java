@@ -24,7 +24,6 @@
  */
 module cafe.jeffrey.microscope.connector.api {
     requires transitive cafe.jeffrey.microscope.common;
-    requires transitive cafe.jeffrey.microscope.model;
 
     exports cafe.jeffrey.microscope.connector.api;
     exports cafe.jeffrey.microscope.connector.api.dto;

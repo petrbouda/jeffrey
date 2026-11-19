@@ -3,7 +3,7 @@ paths:
   - "jeffrey-microscope/core-microscope/**/core/profile/**"
   - "jeffrey-microscope/core-microscope/**/core/manager/download/**"
   - "jeffrey-microscope/core-microscope/**/core/manager/recordings/**"
-  - "jeffrey-microscope/microscope-model/**/storage/**"
+  - "jeffrey-microscope/microscope-common/**/common/model/recording/**"
 ---
 
 ## Recording parsing and storage rules
@@ -29,4 +29,4 @@ paths:
 - `RecordingFileLookup` (auto-analysis on demand, a `@Bean` in `ProfileAnalysisConfiguration`) returns **every** JFR file of the recording, the same set the import ran the rules over, and nothing else: no heap dump, pprof, OTLP or log. If any of them is gone from disk it returns none, as the import does. Anything it returns makes `canGenerate()` answer true, so a non-JFR answer advertises an analysis that can only fail.
 
 ### Microscope's `ManagedFile` is the only type that knows a heap dump from a log
-- `microscope-model`'s `cafe.jeffrey.microscope.model.recording` (`ManagedFile`, `FileCategory`, `FileExtensions`) carries description, extension, matcher and category; `Recording` and `RecordingFile` are in `core-microscope`'s `cafe.jeffrey.microscope.core.manager.recordings`. The volume scheduler cannot see any of them and must not depend on them.
+- `microscope-common`'s `cafe.jeffrey.microscope.common.model.recording` (`ManagedFile`, `FileCategory`, `FileExtensions`) carries description, extension, matcher and category; `Recording` and `RecordingFile` are in `core-microscope`'s `cafe.jeffrey.microscope.core.manager.recordings`. The volume scheduler cannot see any of them and must not depend on them.

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

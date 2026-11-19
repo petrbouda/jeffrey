@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.connector.volume;
 
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.connector.api.InstancePage;
 import cafe.jeffrey.microscope.connector.api.dto.InstanceWithSessionsResponse;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;

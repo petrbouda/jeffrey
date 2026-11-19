@@ -17,9 +17,9 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
-import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceInfo;
 
 import java.util.Locale;
 

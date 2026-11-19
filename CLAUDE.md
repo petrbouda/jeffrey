@@ -20,8 +20,9 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        SpanInterval, SpanConventionKeys, ProfilingStartEnd, ThreadInfo, HiddenClassName,
                                        EventSubtype, SearchPattern, FrameType; core.profile.model.time: TimeRange and
                                        its subtypes; core.profile.settings: ActiveSetting, ActiveSettings),
-                                       general-purpose utilities (core.utils: Json, Schedulers, IDGenerator, BytesUtils,
-                                       DurationUtils, CacheKey, TempDirFactory, SemanticVersion, StringUtils),
+                                       general-purpose utilities (core.utils: Json, BestEffortFiles, Schedulers,
+                                       IDGenerator, BytesUtils, DurationUtils, CacheKey, TempDirFactory,
+                                       SemanticVersion, StringUtils),
                                        ErrorResponse in core.web, Lz4Decompressor in core.profile.ingest;
                                        the profile analysis, one package tree per feature under core.profile (flamegraph,
                                        frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
@@ -37,13 +38,6 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        appenders, metrics, the SQL builder in core.duckdb.sql);
                                        test support in src/test: @DuckDBTest (core.test), RecordedSession,
                                        TestappRecording and CheckoutRecording (core.test.recording)
-  microscope-model/                    the domain records two or more Microscope modules share, no Jackson or JFR
-                                       (cafe.jeffrey.microscope.model: ProjectInfo, ProjectInstanceInfo,
-                                       RecordingEventSource, ProfileKind; ConnectorAddress and ConnectorKind in
-                                       model.connector; WorkspaceInfo/Status/Location in model.workspace;
-                                       the repository API surface in model.repository; the imported recordings'
-                                       file kinds (ManagedFile, FileCategory, FileExtensions) in model.recording;
-                                       file matchers in model.repository.matcher)
   connectors/
     connector-api/                     what Microscope asks of any connector, with no storage behind it: the client
                                        interfaces and DTOs (connector.api), the managers over them (api.manager) and
@@ -59,10 +53,17 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        SMB + NFS, SAS or Entra) over volume-connector's clients, a module of its own
                                        so the Azure SDK stays out of everything else; core-microscope takes it at
                                        run time only
-  microscope-common/                   the utilities every Microscope module shares: JeffreyVersion,
+  microscope-common/                   what every Microscope module shares, no third-party dependency of its own
+                                       (only shared/volume, for JeffreyLayout): the utilities — JeffreyVersion,
                                        InstantUtils; the exception hierarchy (ErrorCode, ErrorType, Exceptions,
                                        JeffreyException and subtypes); FileSystemUtils, TempDirectory; Measuring,
-                                       Elapsed
+                                       Elapsed — and the domain records two or more modules share, no Jackson or JFR
+                                       (common.model: ProjectInfo, ProjectInstanceInfo, RecordingEventSource,
+                                       ProfileKind; ConnectorAddress and ConnectorKind in model.connector;
+                                       WorkspaceInfo/Status/Location in model.workspace; the repository API surface
+                                       in model.repository; the imported recordings' file kinds (ManagedFile,
+                                       FileCategory, FileExtensions) in model.recording; file matchers in
+                                       model.repository.matcher)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
@@ -131,7 +132,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 
 - **Microscope reaches exactly one connector** — the recording volume on an Azure file share (`azure-files.*`) or in a local directory (`local.*`), one block of the two — declared in configuration only (`jeffrey.microscope.connector.*`), read at startup and never stored. The UI and the MCP tools show it; nothing connects, changes or disconnects one.
 - **The volume scheduler has no API to Microscope.** It runs its two jobs on the volume (retention, compression) and serves only its own JSON API (`/api/v1`: storage and jobs) to operators — no UI; Microscope never talks to it. Never add a gRPC or REST channel between them — both read the volume through `shared/volume`.
-- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/` gets no domain record and no utility one product could keep itself: the volume scheduler writes the LZ4 archives and Microscope reads them, each with its own code over the standard frame format.
+- **The volume scheduler and Microscope share no domain type.** Each maps `shared/volume`'s layout types onto its own model (`microscope-common`'s `common.model`; the volume scheduler's `cafe.jeffrey.volumescheduler.volume` package); `ModuleBoundaryTest` on both sides fails on a cross-import. `shared/` gets no domain record and no utility one product could keep itself: the volume scheduler writes the LZ4 archives and Microscope reads them, each with its own code over the standard frame format.
 - **MCP belongs to Microscope only** (`POST /api/mcp`, its only path). Never add an MCP endpoint or a JFR reader/log parser to the volume scheduler — Microscope pulls chunks off the volume and reads them itself.
 - **Jeffrey never calls a model provider.** The only AI integration is the MCP server an outside agent calls into; a feature that would put a model inside Jeffrey is a skill or a tool instead.
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.

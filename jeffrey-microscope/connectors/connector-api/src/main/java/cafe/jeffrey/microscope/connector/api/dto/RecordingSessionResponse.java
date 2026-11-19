@@ -18,9 +18,9 @@
 package cafe.jeffrey.microscope.connector.api.dto;
 
 import cafe.jeffrey.microscope.common.InstantUtils;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.microscope.model.repository.SessionSize;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.common.model.repository.SessionSize;
 
 import java.util.List;
 import java.util.Optional;

@@ -21,7 +21,7 @@ import com.google.perftools.profiles.ProfileProto.Profile;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformation;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformationParser;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

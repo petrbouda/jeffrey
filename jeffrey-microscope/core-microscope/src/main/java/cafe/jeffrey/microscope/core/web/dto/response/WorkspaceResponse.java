@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.dto.response;
 
-import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceStatus;
 
 public record WorkspaceResponse(
         String id,

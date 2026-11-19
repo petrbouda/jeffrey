@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.connector.api.spi;
 
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
-import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorAddress;
 
 /**
  * A connector as its configuration declares it: where its source lies, and how to open it. A kind

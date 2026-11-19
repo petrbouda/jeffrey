@@ -18,13 +18,13 @@
 package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.core.utils.IDGenerator;
-import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.core.utils.BestEffortFiles;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser.RecordingMetadata;
-import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.ProfileKind;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.manager.recordings.Bundle;
 import cafe.jeffrey.microscope.core.manager.recordings.BundleFile;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingStorageLayout;
@@ -494,7 +494,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
             recordingTagsRepository.deleteForRecording(member.id());
         }
         for (BundleFile file : bundle.files()) {
-            FileSystemUtils.removeFile(storagePath(bundle.id(), file.filename()));
+            BestEffortFiles.removeFile(storagePath(bundle.id(), file.filename()));
         }
         recordingRepository.deleteBundle(bundle.id());
         return members.size();
@@ -520,7 +520,7 @@ public class RecordingsCoreManagerImpl implements RecordingsCoreManager {
         profileCleanup.onRecordingDeleted(recording);
 
         for (RecordingFile file : recording.files()) {
-            FileSystemUtils.removeFile(resolveRecordingFilePath(file));
+            BestEffortFiles.removeFile(resolveRecordingFilePath(file));
         }
     }
 

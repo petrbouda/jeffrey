@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.manager.workspace;
 
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceInfo;
 
 @FunctionalInterface
 public interface WorkspaceManagerFactory {

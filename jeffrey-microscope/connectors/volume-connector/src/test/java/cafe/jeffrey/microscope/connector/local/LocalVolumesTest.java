@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
 import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.JeffreyClientException;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;

@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.core.profile.ingest.Lz4Decompressor;
 import cafe.jeffrey.microscope.core.utils.TempDirFactory;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;

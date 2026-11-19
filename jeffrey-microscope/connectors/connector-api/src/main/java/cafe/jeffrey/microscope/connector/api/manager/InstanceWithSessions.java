@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.connector.api.manager;
 
-import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
+import cafe.jeffrey.microscope.common.model.ProjectInstanceInfo;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionHeader;
 
 import java.util.List;
 

@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.profile.parser.jfr.raw;
 
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformation;
 import cafe.jeffrey.microscope.core.test.recording.CheckoutRecording;
 import cafe.jeffrey.microscope.core.test.recording.Lz4Archives;

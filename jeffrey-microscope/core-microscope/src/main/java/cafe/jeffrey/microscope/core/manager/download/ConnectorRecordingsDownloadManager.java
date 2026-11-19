@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.manager.download;
 
 import cafe.jeffrey.microscope.common.exception.Exceptions;
-import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.core.utils.BestEffortFiles;
 import cafe.jeffrey.microscope.common.filesystem.TempDirectory;
 import cafe.jeffrey.microscope.connector.api.FileStreamClient;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
@@ -27,8 +27,8 @@ import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.microscope.connector.api.manager.TempDirProvider;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -560,7 +560,7 @@ public class ConnectorRecordingsDownloadManager implements RecordingsDownloadMan
                 out.write(buffer, 0, bytesRead);
             }
         } catch (RuntimeException | IOException e) {
-            FileSystemUtils.removeFile(partial);
+            BestEffortFiles.removeFile(partial);
             throw e;
         }
 

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.persistence.api;
 
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 
 import java.time.Instant;
 import java.util.Optional;

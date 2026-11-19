@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.connector.api.spi;
 
-import cafe.jeffrey.microscope.model.connector.ConnectorKind;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorKind;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

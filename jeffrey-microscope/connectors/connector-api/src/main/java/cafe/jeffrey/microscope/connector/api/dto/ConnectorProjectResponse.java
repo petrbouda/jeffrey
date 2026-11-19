@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.connector.api.dto;
 
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryStatistics;
 
 import java.time.Instant;
 

@@ -21,7 +21,7 @@ Analyze changed files to determine affected modules and run only the relevant te
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/microscope-model`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector` (and `jeffrey-microscope/core-microscope` when `VolumeWriter` changes)
+   - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/microscope-common`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector` (and `jeffrey-microscope/core-microscope` when `VolumeWriter` changes)
 
 4. **Run targeted tests**:
    ```bash
