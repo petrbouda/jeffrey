@@ -18,7 +18,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections.SectionAvailability;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;
 import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;

@@ -17,7 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.mcp.tools.ByteSizes;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 
 import java.time.Duration;
 import java.time.Instant;

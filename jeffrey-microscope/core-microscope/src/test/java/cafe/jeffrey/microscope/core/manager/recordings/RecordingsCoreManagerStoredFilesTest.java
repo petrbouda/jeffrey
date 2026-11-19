@@ -19,11 +19,11 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import cafe.jeffrey.microscope.core.persistence.api.RecordingRepository;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingTagsRepository;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.manager.recordings.Bundle;
 import cafe.jeffrey.microscope.core.manager.recordings.BundleFile;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

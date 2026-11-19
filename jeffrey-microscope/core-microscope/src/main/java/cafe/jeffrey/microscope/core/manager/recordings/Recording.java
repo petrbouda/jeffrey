@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 
 import java.time.Duration;
 import java.time.Instant;

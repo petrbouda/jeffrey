@@ -33,7 +33,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManagerImpl
 import cafe.jeffrey.microscope.core.manager.recordings.Bundle;
 import cafe.jeffrey.microscope.core.manager.recordings.BundleFile;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 
 import java.io.ByteArrayInputStream;

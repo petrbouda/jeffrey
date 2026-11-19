@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.connector.api.manager;
 
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
-import cafe.jeffrey.microscope.model.repository.StreamedFile;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.common.model.repository.StreamedFile;
 
 import java.util.List;
 

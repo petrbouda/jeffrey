@@ -37,7 +37,7 @@ import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.common.InstantUtils;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.microscope.common.model.ProfileKind;
 
 import java.nio.file.Path;
 import java.util.Comparator;

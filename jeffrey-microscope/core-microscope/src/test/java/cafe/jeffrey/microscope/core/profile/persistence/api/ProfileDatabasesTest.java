@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.persistence.api;
 
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseLease;
 import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
 import org.junit.jupiter.api.Nested;

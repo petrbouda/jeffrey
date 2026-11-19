@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 
 import java.nio.file.Path;
 import java.util.ArrayList;

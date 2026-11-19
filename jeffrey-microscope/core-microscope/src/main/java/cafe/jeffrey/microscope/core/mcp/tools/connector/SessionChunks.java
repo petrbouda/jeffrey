@@ -18,11 +18,11 @@ package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
-import cafe.jeffrey.microscope.model.repository.RecordedSpan;
+import cafe.jeffrey.microscope.common.model.repository.RecordedSpan;
 import cafe.jeffrey.microscope.core.manager.download.ChunkWindow.Selection.Chunk;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 
 import java.time.Duration;
 import java.util.Comparator;

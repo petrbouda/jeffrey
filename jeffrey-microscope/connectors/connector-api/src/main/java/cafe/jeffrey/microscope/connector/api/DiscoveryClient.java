@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.connector.api;
 
 import cafe.jeffrey.microscope.connector.api.dto.ConnectorProjectResponse;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceStatus;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceStatus;
 
 import java.util.List;
 import java.util.Optional;

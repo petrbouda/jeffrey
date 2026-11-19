@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.microscope.common.model.ProfileKind;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpManager;
 

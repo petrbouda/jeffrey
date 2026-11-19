@@ -48,7 +48,7 @@
         <!-- ConnectorAddress and ConnectorKind, which the share's address and kind implement -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-model</artifactId>
+            <artifactId>microscope-common</artifactId>
         </dependency>
         <!-- Its default Netty transport is left out: Microscope's gRPC carries its own Netty, and
              the JDK's HttpClient needs nothing that could clash with it -->

@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.connector.volume;
 
-import cafe.jeffrey.microscope.model.ProjectInstanceInfo;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionHeader;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.common.model.ProjectInstanceInfo;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionHeader;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.manager.InstanceWithSessions;

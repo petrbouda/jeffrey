@@ -16,9 +16,9 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
-import cafe.jeffrey.microscope.model.repository.RecordedSpan;
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.common.model.repository.RecordedSpan;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 
 import java.time.Duration;
 import java.time.Instant;

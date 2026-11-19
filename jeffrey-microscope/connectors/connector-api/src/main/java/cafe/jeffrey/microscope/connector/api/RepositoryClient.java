@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.connector.api;
 
 import cafe.jeffrey.microscope.connector.api.dto.RecordingSessionResponse;
-import cafe.jeffrey.microscope.model.repository.RecordingSessionFilter;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
 
 import java.util.List;
 

@@ -16,8 +16,8 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
-import cafe.jeffrey.microscope.model.repository.RecordingSession;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

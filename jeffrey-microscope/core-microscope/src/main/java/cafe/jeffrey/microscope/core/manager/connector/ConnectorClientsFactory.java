@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.manager.connector;
 
 import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
-import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorAddress;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;

@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
 import cafe.jeffrey.microscope.common.measure.Elapsed;
 import cafe.jeffrey.microscope.common.measure.Measuring;
-import cafe.jeffrey.microscope.model.repository.FileExtensions;
+import cafe.jeffrey.microscope.common.model.repository.FileExtensions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

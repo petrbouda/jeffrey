@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.core.MicroscopeJeffreyDirs;
 import cafe.jeffrey.microscope.core.manager.recordings.MicroscopeProfileCleanup;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingStorageLayout;

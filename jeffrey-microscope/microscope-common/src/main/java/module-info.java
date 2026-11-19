@@ -21,9 +21,17 @@
  * {@code cafe.jeffrey.shared.volume}.
  */
 module cafe.jeffrey.microscope.common {
-    requires transitive org.slf4j;
+    requires cafe.jeffrey.shared.volume;
+
     exports cafe.jeffrey.microscope.common;
     exports cafe.jeffrey.microscope.common.exception;
     exports cafe.jeffrey.microscope.common.filesystem;
     exports cafe.jeffrey.microscope.common.measure;
+    exports cafe.jeffrey.microscope.common.model;
+    exports cafe.jeffrey.microscope.common.model.connector;
+    exports cafe.jeffrey.microscope.common.model.repository;
+    exports cafe.jeffrey.microscope.common.model.repository.matcher;
+    exports cafe.jeffrey.microscope.common.model.workspace;
+    // Microscope's store of imported recordings: the catalogue of file kinds (ManagedFile) and categories
+    exports cafe.jeffrey.microscope.common.model.recording;
 }

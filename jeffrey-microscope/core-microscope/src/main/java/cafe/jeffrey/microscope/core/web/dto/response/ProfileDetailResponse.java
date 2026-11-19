@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.web.dto.response;
 
 import cafe.jeffrey.microscope.common.InstantUtils;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 
 /**
  * Wire shape of a single profile. Mirrors {@link ProfileInfo} but carries every timestamp as epoch

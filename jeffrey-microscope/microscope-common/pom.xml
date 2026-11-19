@@ -29,17 +29,19 @@
 
     <artifactId>microscope-common</artifactId>
     <description>
-        The utilities every Microscope module shares: the exception hierarchy the REST layer maps to
-        statuses, JeffreyVersion, InstantUtils, FileSystemUtils, TempDirectory, and Measuring.
+        What every Microscope module shares, with no third-party dependency: the utilities (the exception
+        hierarchy the REST layer maps to statuses, JeffreyVersion, InstantUtils, FileSystemUtils,
+        TempDirectory, and Measuring) and the domain records (model: projects, workspaces, connectors,
+        the recording repository and the imported recordings' file kinds).
         What Microscope must agree on with the volume scheduler and the provisioner -- the volume's
-        names and session ids -- is shared/volume.
+        names, session ids and chunk order -- is shared/volume.
     </description>
 
     <dependencies>
+        <!-- JeffreyLayout: the chunk order RecordingSession and RepositoryFile keep with the volume scheduler -->
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.20</version>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>volume</artifactId>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

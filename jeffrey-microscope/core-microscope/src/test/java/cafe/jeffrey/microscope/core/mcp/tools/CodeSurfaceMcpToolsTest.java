@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CallSites;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodKey;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.manager.FlamegraphManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.TraceAttributesManager;

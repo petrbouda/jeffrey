@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.web.dto.workspace;
 
-import cafe.jeffrey.microscope.model.ProjectInfo;
-import cafe.jeffrey.microscope.model.workspace.WorkspaceInfo;
+import cafe.jeffrey.microscope.common.model.ProjectInfo;
+import cafe.jeffrey.microscope.common.model.workspace.WorkspaceInfo;
 import cafe.jeffrey.microscope.core.web.dto.response.ProjectResponse;
 import cafe.jeffrey.microscope.core.web.dto.response.WorkspaceResponse;
 

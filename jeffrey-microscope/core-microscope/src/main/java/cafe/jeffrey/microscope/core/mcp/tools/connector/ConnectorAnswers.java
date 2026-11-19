@@ -22,10 +22,10 @@ import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
-import cafe.jeffrey.microscope.model.recording.FileCategory;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.FileCategory;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 
 import java.util.List;
 

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.profile.parser.otlp;
 
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformation;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformationParser;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;

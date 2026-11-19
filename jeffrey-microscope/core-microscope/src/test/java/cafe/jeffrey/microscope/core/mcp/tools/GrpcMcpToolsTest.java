@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileCustomManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileFeaturesManager;

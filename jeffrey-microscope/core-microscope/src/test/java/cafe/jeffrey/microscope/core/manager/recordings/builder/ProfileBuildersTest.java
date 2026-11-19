@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings.builder;
 
-import cafe.jeffrey.microscope.model.ProfileKind;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.ProfileKind;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

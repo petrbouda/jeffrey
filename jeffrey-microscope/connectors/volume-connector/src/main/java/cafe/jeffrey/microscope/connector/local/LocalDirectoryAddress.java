@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.connector.local;
 
-import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
-import cafe.jeffrey.microscope.model.connector.ConnectorKind;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorAddress;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorKind;
 
 import java.nio.file.Path;
 

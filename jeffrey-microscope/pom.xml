@@ -32,7 +32,6 @@
 
     <modules>
         <module>microscope-common</module>
-        <module>microscope-model</module>
         <module>connectors</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>

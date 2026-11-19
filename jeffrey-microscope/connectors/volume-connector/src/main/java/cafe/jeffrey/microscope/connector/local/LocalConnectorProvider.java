@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.connector.api.spi.ConnectorProvider;
 import cafe.jeffrey.microscope.connector.api.spi.DeclaredConnector;
 import cafe.jeffrey.microscope.connector.volume.VolumeConnectorClients;
 import cafe.jeffrey.microscope.connector.volume.VolumeSource;
-import cafe.jeffrey.microscope.model.connector.ConnectorKind;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

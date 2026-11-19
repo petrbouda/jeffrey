@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 
 import java.io.IOException;
 import java.nio.file.Files;

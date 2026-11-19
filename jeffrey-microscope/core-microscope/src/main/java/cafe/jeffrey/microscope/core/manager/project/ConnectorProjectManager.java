@@ -26,11 +26,11 @@ import cafe.jeffrey.microscope.connector.api.ConnectorClients;
 import cafe.jeffrey.microscope.connector.api.ProjectScope;
 import cafe.jeffrey.microscope.core.manager.*;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
-import cafe.jeffrey.microscope.model.repository.RepositoryStatistics;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryStatistics;
 import cafe.jeffrey.microscope.core.manager.download.OriginContext;
 import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.core.manager.download.ConnectorRecordingsDownloadManager;
-import cafe.jeffrey.microscope.model.ProjectInfo;
+import cafe.jeffrey.microscope.common.model.ProjectInfo;
 
 public class ConnectorProjectManager implements ProjectManager {
 

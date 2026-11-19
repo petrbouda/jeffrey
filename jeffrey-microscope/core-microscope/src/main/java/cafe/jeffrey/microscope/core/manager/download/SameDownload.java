@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.manager.download;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsCoreManager;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
-import cafe.jeffrey.microscope.model.recording.ManagedFile;
-import cafe.jeffrey.microscope.model.repository.RepositoryFile;
+import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
 

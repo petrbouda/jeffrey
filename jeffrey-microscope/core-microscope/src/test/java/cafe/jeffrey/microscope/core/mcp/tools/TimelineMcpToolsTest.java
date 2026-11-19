@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileFeaturesManager;

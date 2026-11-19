@@ -25,7 +25,7 @@ import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
 import cafe.jeffrey.microscope.core.profile.model.EventTypeName;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.analysis.AnalysisResult;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;

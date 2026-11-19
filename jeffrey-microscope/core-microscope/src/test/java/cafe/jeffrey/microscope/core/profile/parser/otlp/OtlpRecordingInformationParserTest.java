@@ -22,7 +22,7 @@ import io.opentelemetry.proto.profiles.v1development.ProfilesData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformation;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 
 import java.nio.file.Path;
 import java.time.Instant;

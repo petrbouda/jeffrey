@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
+import cafe.jeffrey.microscope.core.utils.BestEffortFiles;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.persistence.api.ProfileRepository;
 
@@ -281,7 +282,7 @@ public class ProfileManagerImpl implements ProfileManager {
     public long sizeInBytes() {
         LOG.debug("Calculating profile size: profileId={}", profileInfo.id());
         Path profileDirectory = profilesBaseDir.resolve(profileInfo.id());
-        return FileSystemUtils.directorySize(profileDirectory);
+        return BestEffortFiles.directorySize(profileDirectory);
     }
 
     @Override

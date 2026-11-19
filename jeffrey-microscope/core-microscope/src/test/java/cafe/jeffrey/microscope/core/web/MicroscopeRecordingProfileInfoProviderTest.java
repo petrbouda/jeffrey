@@ -19,7 +19,7 @@ package cafe.jeffrey.microscope.core.web;
 
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.pipeline.PipelineDefinition;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;

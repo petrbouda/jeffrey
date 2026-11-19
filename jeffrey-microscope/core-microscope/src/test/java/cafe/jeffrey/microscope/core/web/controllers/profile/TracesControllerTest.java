@@ -29,7 +29,7 @@ import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationListQu
 import cafe.jeffrey.microscope.core.profile.persistence.api.TraceOperationSortField;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 import cafe.jeffrey.microscope.core.profile.model.SpanScope;
 import cafe.jeffrey.microscope.core.profile.model.Type;

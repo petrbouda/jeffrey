@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.core.profile.manager.ProfileFeaturesManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.common.exception.Exceptions;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 
 import java.time.Instant;
 import java.util.List;

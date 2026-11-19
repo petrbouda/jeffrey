@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.model.ProfileKind;
+import cafe.jeffrey.microscope.common.model.ProfileKind;
 
 import java.util.Map;
 import java.util.Optional;

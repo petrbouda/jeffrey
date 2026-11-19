@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.web.controllers.connector;
 
-import cafe.jeffrey.microscope.model.connector.ConnectorAddress;
+import cafe.jeffrey.microscope.common.model.connector.ConnectorAddress;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.web.dto.response.CurrentConnectorResponse;
