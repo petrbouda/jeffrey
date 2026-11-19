@@ -73,9 +73,9 @@ export function useProfilerConfig() {
     wall: false,
     methodTracing: false,
     nativeMem: false,
-    chunksize: false,
+    chunksize: true,
     chunktime: false,
-    jfrsync: false
+    jfrsync: true
   });
 
   const ensureSupportedEventValue = () => {
