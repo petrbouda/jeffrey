@@ -34,16 +34,44 @@ export interface ProductVersions {
 
 type ProductId = keyof ProductVersions;
 
-const GITHUB_RELEASES_URL = 'https://api.github.com/repos/petrbouda/jeffrey/releases';
-const DOCKERHUB_TAGS_URL = 'https://hub.docker.com/v2/repositories/petrbouda/volume-scheduler/tags/';
-const MAVEN_SEARCH_URL = 'https://search.maven.org/solrsearch/select';
+const GITHUB_API_URL = 'https://api.github.com/repos/petrbouda/jeffrey';
+const GITHUB_TAGS_URL = `${GITHUB_API_URL}/tags`;
+const GITHUB_RELEASES_URL = `${GITHUB_API_URL}/releases`;
+const MAVEN_METADATA_URL = 'https://repo1.maven.org/maven2/cafe/jeffrey-analyst/jeffrey-jib-gradle/maven-metadata.xml';
 const JETBRAINS_PLUGIN_ID = '31963';
 const JETBRAINS_API_URL = `https://plugins.jetbrains.com/api/plugins/${JETBRAINS_PLUGIN_ID}/updates`;
 
 interface GitHubRelease {
   tag_name: string;
   html_url: string;
-  published_at: string;
+}
+
+interface GitHubTag {
+  name: string;
+}
+
+function latestTagByVersion(tags: GitHubTag[], prefix: string): string | null {
+  const matching = tags
+    .map(t => t.name)
+    .filter(name => name.startsWith(prefix));
+
+  if (matching.length === 0) {
+    return null;
+  }
+
+  matching.sort((a, b) => {
+    const va = a.slice(prefix.length).split('.').map(Number);
+    const vb = b.slice(prefix.length).split('.').map(Number);
+    for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+      const diff = (vb[i] || 0) - (va[i] || 0);
+      if (diff !== 0) {
+        return diff;
+      }
+    }
+    return 0;
+  });
+
+  return matching[0];
 }
 
 async function fetchMicroscope(): Promise<ProductVersion | null> {
@@ -84,27 +112,19 @@ async function fetchProvisioner(): Promise<ProductVersion | null> {
   }
 }
 
-interface DockerHubTag {
-  name: string;
-}
-
-interface DockerHubResponse {
-  results: DockerHubTag[];
-}
-
 async function fetchVolumeScheduler(): Promise<ProductVersion | null> {
   try {
-    const response = await fetch(`${DOCKERHUB_TAGS_URL}?page_size=10&ordering=last_updated`);
+    const response = await fetch(`${GITHUB_TAGS_URL}?per_page=100`);
     if (!response.ok) {
       return null;
     }
-    const data: DockerHubResponse = await response.json();
-    const versionTag = data.results.find(t => t.name !== 'latest' && /^\d+\.\d+/.test(t.name));
-    if (!versionTag) {
+    const tags: GitHubTag[] = await response.json();
+    const latest = latestTagByVersion(tags, 'volume-scheduler-v');
+    if (!latest) {
       return null;
     }
     return {
-      version: `v${versionTag.name}`,
+      version: latest.replace('volume-scheduler-', ''),
       url: 'https://hub.docker.com/repository/docker/petrbouda/volume-scheduler',
       source: 'DockerHub'
     };
@@ -113,33 +133,22 @@ async function fetchVolumeScheduler(): Promise<ProductVersion | null> {
   }
 }
 
-interface MavenDoc {
-  latestVersion: string;
-}
-
-interface MavenResponse {
-  response: { docs: MavenDoc[] };
-}
-
 async function fetchJib(): Promise<ProductVersion | null> {
   try {
-    const params = new URLSearchParams({
-      q: 'g:cafe.jeffrey-analyst AND a:jeffrey-jib-gradle',
-      rows: '1',
-      wt: 'json'
-    });
-    const response = await fetch(`${MAVEN_SEARCH_URL}?${params}`);
+    const response = await fetch(MAVEN_METADATA_URL);
     if (!response.ok) {
       return null;
     }
-    const data: MavenResponse = await response.json();
-    const doc = data.response.docs[0];
-    if (!doc) {
+    const xml = await response.text();
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const latest = doc.querySelector('versioning > latest')?.textContent
+      ?? doc.querySelector('versioning > release')?.textContent;
+    if (!latest) {
       return null;
     }
     return {
-      version: `v${doc.latestVersion}`,
-      url: `https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle/${doc.latestVersion}`,
+      version: `v${latest}`,
+      url: `https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle/${latest}`,
       source: 'Maven'
     };
   } catch {
