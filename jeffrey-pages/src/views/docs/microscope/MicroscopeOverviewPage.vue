@@ -49,8 +49,9 @@ onMounted(() => {
         <p class="hero-lede">
           Microscope turns JFR recordings and heap dumps into rich, interactive analysis —
           flame graphs, timeseries, sub-second timelines, automated checks,
-          and an MCP server so your coding agent can read the same data. Everything renders
-          locally; no backend required.
+          and an MCP server so your coding agent can read the same data. Ships as a
+          self-contained runtime (bundled JDK, no install needed) or a standalone JAR.
+          Everything renders locally; no backend required.
         </p>
         <div class="hero-actions">
           <router-link class="hero-cta hero-cta-primary" to="/docs/microscope/quick-start">
