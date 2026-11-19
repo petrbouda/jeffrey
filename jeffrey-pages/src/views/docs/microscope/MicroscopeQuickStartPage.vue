@@ -32,6 +32,10 @@ const headings = [
   { id: 'analyze-profile', text: 'Analyze Your Profile', level: 2 }
 ];
 
+const runtimeExample = `tar xzf microscope-*-linux-amd64.tar.gz
+cd microscope-*-linux-amd64
+bin/microscope`;
+
 const examplesExample = `git clone --depth 1 https://github.com/petrbouda/jeffrey-recordings`;
 
 onMounted(() => {
@@ -52,7 +56,8 @@ onMounted(() => {
         <p class="hero-eyebrow"><i class="bi bi-stopwatch"></i> Up and running in minutes</p>
         <h2 class="hero-title">Install, open, analyze.</h2>
         <p class="hero-lede">
-          Start <code>microscope.jar</code>, point a browser at <code>localhost:8585</code>, drop a JFR
+          Download a <strong>self-contained runtime</strong> (no Java needed) or start
+          <code>microscope.jar</code> with your own JDK, point a browser at <code>localhost:8585</code>, drop a JFR
           recording or heap dump, and you're inside the Microscope. The whole loop is four steps.
         </p>
 
@@ -71,15 +76,38 @@ onMounted(() => {
 
       <h2 id="install">Install</h2>
       <p>
-        Microscope ships as a single <code>microscope.jar</code> and needs <strong>Java 25 or newer</strong>.
+        Microscope ships as a self-contained runtime (bundled JDK, no install needed) or a standalone
+        <code>microscope.jar</code> (bring your own Java 25+).
         Bring your own recordings, or start with the example ones.
       </p>
 
       <section class="install-tiles">
+        <div class="install-tile tile-runtime">
+          <div class="install-icon"><i class="bi bi-box-seam"></i></div>
+          <h3>Self-Contained Runtime</h3>
+          <p>Run Microscope without installing Java — a bundled JDK runtime is included for your platform.</p>
+          <ol class="install-steps">
+            <li>
+              Download the archive for your platform from
+              <a href="https://github.com/petrbouda/jeffrey/releases" target="_blank" rel="noopener">GitHub Releases</a>.
+            </li>
+            <li>Extract and run the launcher:</li>
+          </ol>
+          <DocsCodeBlock
+            language="bash"
+            :code="runtimeExample"
+          />
+          <div class="platform-tags">
+            <span class="platform-tag">Linux amd64</span>
+            <span class="platform-tag">macOS arm64</span>
+            <span class="platform-tag">Windows amd64</span>
+          </div>
+        </div>
+
         <div class="install-tile tile-java">
           <div class="install-icon"><i class="bi bi-cup-hot"></i></div>
           <h3>Standalone JAR</h3>
-          <p>Run Microscope directly on your machine — best for day-to-day desktop use.</p>
+          <p>Run Microscope directly on your machine — best when you already have Java 25 or newer.</p>
           <ol class="install-steps">
             <li>
               Download <code>microscope.jar</code> from
@@ -109,6 +137,12 @@ onMounted(() => {
           />
         </div>
       </section>
+
+      <DocsCallout type="tip">
+        The self-contained runtime bundles a minimal JDK. Override with <code>JAVA_HOME</code> to use your own JDK
+        instead, or pass extra JVM flags through <code>JAVA_OPTS</code>
+        (e.g. <code>JAVA_OPTS="-Xmx4g" bin/microscope</code>).
+      </DocsCallout>
 
       <h2 id="open-ui">Open the UI</h2>
       <p>Microscope listens on port <strong>8585</strong> by default. Open the URL in any modern browser:</p>
@@ -294,6 +328,9 @@ onMounted(() => {
   font-size: 1.15rem;
 }
 
+.tile-runtime .install-icon { background: #ecfdf5; color: #047857; }
+.tile-runtime:hover         { border-color: #6ee7b7; }
+
 .tile-examples .install-icon { background: #dbeafe; color: #1d4ed8; }
 .tile-examples:hover         { border-color: #93c5fd; }
 
@@ -313,6 +350,26 @@ onMounted(() => {
 .install-note {
   margin: 0.6rem 0 0.4rem;
   font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* ============ PLATFORM TAGS ============ */
+.platform-tags {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.platform-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
   color: #64748b;
 }
 
