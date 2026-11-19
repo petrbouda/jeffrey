@@ -1,0 +1,106 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.manager;
+
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeKeyRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeLatency;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeSearchResult;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeTimelineBucket;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeValues;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceEventTypeRow;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeLatencyQuery;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeSearchQuery;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeValueQuery;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+
+import java.util.List;
+import java.util.function.Function;
+
+/**
+ * Reads the key/value payload of a profile's spans as dimensions the trace views can query and
+ * break down.
+ * <p>
+ * A span carries two of them — the open map a developer attached at the call site, and the fields
+ * the event type declares about itself — and both were, until this existed, readable only one span
+ * at a time inside a waterfall. Nothing here knows about any particular event type: a type
+ * instrumented tomorrow is in the catalog the first time its recording is opened.
+ */
+public interface TraceAttributesManager {
+
+    /**
+     * How many values a key may have before it is treated as search-only.
+     * <p>
+     * The guard the whole feature leans on. A {@code user.id} attribute on sixty thousand spans is
+     * legitimate instrumentation, and every breakdown of it — a facet list, a heatmap axis — is
+     * eighteen thousand rows of one trace each, which is noise wearing the shape of an answer.
+     */
+    long SEARCH_ONLY_ABOVE = 200;
+
+    /** The most values any single breakdown returns, however wide the key is. */
+    int MAX_VALUES = 100;
+
+    @FunctionalInterface
+    interface Factory extends Function<ProfileInfo, TraceAttributesManager> {
+    }
+
+    /**
+     * Every key the profile recorded, grouped by where it came from and marked with whether it has
+     * too many values to break down.
+     */
+    List<TraceAttributeKeyRow> keys();
+
+    /**
+     * The event types whose carriers can be searched — the first step of the attribute picker.
+     */
+    List<TraceEventTypeRow> attributeEventTypes();
+
+    /**
+     * The keys spans of one event type carried, with that type's own counts — the second step.
+     * <p>
+     * Scoped rather than filtered: {@code tenant} is one key, but how many values it took and how
+     * much of the profile carries it are both properties of the event type it is being read under.
+     */
+    List<TraceAttributeKeyRow> keysOf(String eventType);
+
+    /**
+     * The traces whose spans satisfy every condition, with the spans that satisfied them.
+     */
+    TraceAttributeSearchResult search(TraceAttributeSearchQuery query);
+
+    /**
+     * How the matched traces are spread over the recording, against every trace as a backdrop.
+     *
+     * @param buckets how many slices to divide the recording into
+     */
+    List<TraceAttributeTimelineBucket> timeline(TraceAttributeSearchQuery query, int buckets);
+
+    /**
+     * One key's values, ranked, with what each cost.
+     * <p>
+     * Ranked by total time by default rather than by how often a value appears, because a busy value
+     * and an expensive value are rarely the same value and it is the expensive one being looked for.
+     * The result says whether it is the whole set or only the top of it — a truncated list passed off
+     * as complete is how a reader concludes a value does not exist.
+     */
+    TraceAttributeValues values(TraceAttributeValueQuery query);
+
+    /**
+     * The duration distribution of each of a key's values.
+     */
+    TraceAttributeLatency latency(TraceAttributeLatencyQuery query);
+}

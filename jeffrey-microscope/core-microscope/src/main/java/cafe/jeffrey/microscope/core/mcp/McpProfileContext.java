@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.duckdb.DatabaseLease;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.duckdb.DatabaseLease;
 
 import javax.sql.DataSource;
 import java.time.Instant;

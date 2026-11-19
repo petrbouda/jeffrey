@@ -32,7 +32,7 @@ import cafe.jeffrey.microscope.model.recording.BundleFile;
 import cafe.jeffrey.microscope.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.model.recording.RecordingFile;
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

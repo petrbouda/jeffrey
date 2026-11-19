@@ -24,10 +24,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryTrackingManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtCategory;
-import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtOverview;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.core.profile.manager.memory.NativeMemoryTrackingManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.nmt.NmtCategory;
+import cafe.jeffrey.microscope.core.profile.manager.model.nmt.NmtOverview;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;
 

@@ -1,8 +1,6 @@
 ---
 paths:
-  - "jeffrey-microscope/profiles/recording-parser/**"
-  - "jeffrey-microscope/profiles/profile-management/**"
-  - "jeffrey-microscope/profiles/profile-persistence/**"
+  - "jeffrey-microscope/core-microscope/**/core/profile/**"
   - "jeffrey-microscope/core-microscope/**/core/manager/download/**"
   - "jeffrey-microscope/core-microscope/**/core/manager/recordings/**"
   - "jeffrey-microscope/microscope-model/**/storage/**"

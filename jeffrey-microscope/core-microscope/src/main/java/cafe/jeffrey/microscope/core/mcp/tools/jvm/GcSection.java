@@ -23,12 +23,12 @@ import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.common.event.GarbageCollectorType;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.gc.GCEvent;
-import cafe.jeffrey.microscope.profile.management.manager.model.gc.GCGenerationStats;
-import cafe.jeffrey.microscope.profile.management.manager.model.gc.GCHeader;
-import cafe.jeffrey.microscope.profile.management.manager.model.gc.GCOverviewData;
-import cafe.jeffrey.microscope.profile.management.manager.model.gc.GCPauseBucket;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCEvent;
+import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCGenerationStats;
+import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCHeader;
+import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCOverviewData;
+import cafe.jeffrey.microscope.core.profile.manager.model.gc.GCPauseBucket;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.math.BigDecimal;

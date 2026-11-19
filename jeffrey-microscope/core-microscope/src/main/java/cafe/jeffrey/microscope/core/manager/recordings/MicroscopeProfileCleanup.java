@@ -23,7 +23,7 @@ import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.notification.NotificationType;
 import cafe.jeffrey.microscope.notification.Notifications;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

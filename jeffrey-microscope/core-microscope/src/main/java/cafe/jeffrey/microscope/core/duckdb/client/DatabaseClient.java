@@ -1,0 +1,324 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.duckdb.client;
+
+import cafe.jeffrey.jfr.events.jdbc.statement.*;
+import cafe.jeffrey.jfr.events.trace.TracedEvents;
+import tools.jackson.databind.node.ObjectNode;
+import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.EmptySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.support.SqlBinaryValue;
+import org.springframework.jdbc.datasource.DataSourceTransactionManager;
+import org.springframework.transaction.support.TransactionOperations;
+import org.springframework.transaction.support.TransactionTemplate;
+import cafe.jeffrey.microscope.common.Json;
+import cafe.jeffrey.microscope.core.duckdb.GroupLabel;
+import cafe.jeffrey.microscope.core.duckdb.StatementLabel;
+
+import javax.sql.DataSource;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+public class DatabaseClient {
+
+    private static final String CLUSTERED_TABLE_SUFFIX = "_sorted";
+    //language=SQL
+    private static final String CREATE_SORTED_TABLE_TEMPLATE = "CREATE TABLE %s AS SELECT * FROM %s ORDER BY %s";
+    //language=SQL
+    private static final String DROP_TABLE_TEMPLATE = "DROP TABLE %s";
+    //language=SQL
+    private static final String RENAME_TABLE_TEMPLATE = "ALTER TABLE %s RENAME TO %s";
+
+    private final NamedParameterJdbcOperations delegate;
+    private final TransactionOperations transactionOperations;
+
+    private final String groupLabel;
+
+    public DatabaseClient(DataSource dataSource, GroupLabel groupLabel) {
+        this.delegate = new NamedParameterJdbcTemplate(dataSource);
+        this.transactionOperations = new TransactionTemplate(new DataSourceTransactionManager(dataSource));
+        this.groupLabel = groupLabel.name().toLowerCase();
+    }
+
+    public int insert(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    public int insertWithLob(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.isLob = true;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    public long batchInsert(StatementLabel statement, String sql, SqlParameterSource[] paramSources) {
+        JdbcInsertEvent event = new JdbcInsertEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> sumRows(delegate.batchUpdate(sql, paramSources)),
+                (e, rows) -> {
+                    e.rows = rows != null ? rows : 0;
+                    e.isBatch = true;
+                    // Don't populate `params` and `sql` in batch processing
+                });
+    }
+
+    public int update(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcUpdateEvent event = new JdbcUpdateEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    public int delete(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.update(sql, paramSource),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    /**
+     * Runs the given work atomically: either every statement inside commits, or a failure
+     * rolls all of them back. Joins an already active transaction on the same
+     * {@code DataSource} if one is bound to the calling thread, so nested calls compose
+     * into a single transaction.
+     */
+    public void inTransaction(Runnable work) {
+        transactionOperations.executeWithoutResult(_ -> work.run());
+    }
+
+    /**
+     * Executes a multi-statement delete cascade atomically: either every statement commits,
+     * or a failure rolls all of them back — a half-executed cascade would strand orphaned
+     * child rows. Joins an already active transaction on the same {@code DataSource} if one
+     * is bound to the calling thread.
+     *
+     * @return affected rows of the LAST statement (by convention the root-entity delete)
+     */
+    public int deleteCascade(StatementLabel statement, List<String> sqls, SqlParameterSource paramSource) {
+        Integer rows = transactionOperations.execute(_ -> {
+            int lastStatementRows = 0;
+            for (String sql : sqls) {
+                lastStatementRows = delete(statement, sql, paramSource);
+            }
+            return lastStatementRows;
+        });
+        return rows != null ? rows : 0;
+    }
+
+    public int delete(StatementLabel statement, String sql) {
+        JdbcDeleteEvent event = new JdbcDeleteEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.getJdbcOperations().update(sql),
+                (e, rows) -> {
+                    e.sql = sql;
+                    e.rows = rows != null ? rows : 0;
+                });
+    }
+
+    public void execute(StatementLabel statement, String sql) {
+        JdbcExecuteEvent event = new JdbcExecuteEvent(statement.name().toLowerCase(), groupLabel);
+        TracedEvents.emit(event,
+                () -> delegate.getJdbcOperations().execute(sql),
+                e -> e.sql = sql);
+    }
+
+    public <T> List<T> query(StatementLabel statement, String sql, RowMapper<T> rowMapper) {
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.query(sql, rowMapper),
+                (e, list) -> {
+                    e.sql = sql;
+                    e.rows = list != null ? list.size() : 0;
+                });
+    }
+
+    public void query(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowCallbackHandler callbackHandler) {
+
+        CountingRowCallbackHandler handler = new CountingRowCallbackHandler(callbackHandler);
+
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        TracedEvents.emit(event,
+                () -> delegate.query(sql, paramSource, handler),
+                e -> {
+                    e.sql = sql;
+                    e.rows = handler.getRowCount();
+                });
+    }
+
+    public <T> List<T> query(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.query(sql, paramSource, rowMapper),
+                (e, list) -> {
+                    e.sql = sql;
+                    e.rows = list != null ? list.size() : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    public long queryLong(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> delegate.queryForObject(sql, paramSource, long.class),
+                (e, value) -> {
+                    e.sql = sql;
+                    e.rows = value != null ? 1 : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    public <T> Optional<T> querySingle(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> rowMapper) {
+
+        List<T> list = query(statement, sql, paramSource, rowMapper);
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.getFirst());
+    }
+
+    public boolean queryExists(StatementLabel statement, String sql, SqlParameterSource paramSource) {
+        JdbcQueryEvent event = new JdbcQueryEvent(statement.name().toLowerCase(), groupLabel);
+        return TracedEvents.emit(event,
+                () -> {
+                    Long count = delegate.queryForObject(sql, paramSource, Long.class);
+                    return count != null && count > 0;
+                },
+                (e, exists) -> {
+                    e.sql = sql;
+                    e.rows = Boolean.TRUE.equals(exists) ? 1 : 0;
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    /**
+     * Streams the statement's rows into {@code consumer} without materializing them, and records
+     * the rows that actually flowed through as the event's row count. A streamed statement has no
+     * result to measure once it returns — the count comes from the {@link CountingConsumer}
+     * wrapping the caller's consumer, so it is right whether the stream ran to the end or a failure
+     * cut it short.
+     */
+    public <T> void queryStream(
+            StatementLabel statement, String sql, SqlParameterSource paramSource, RowMapper<T> mapper, Consumer<T> consumer) {
+
+        CountingConsumer<T> countingConsumer = new CountingConsumer<>(consumer);
+
+        JdbcStreamEvent event = new JdbcStreamEvent(statement.name().toLowerCase(), groupLabel);
+        TracedEvents.emit(event,
+                () -> {
+                    try (Stream<T> stream = delegate.queryForStream(sql, paramSource, mapper)) {
+                        stream.forEach(countingConsumer);
+                    }
+                },
+                e -> {
+                    e.sql = sql;
+                    e.rows = countingConsumer.getRowCount();
+                    e.params = paramSourceToJson(paramSource);
+                });
+    }
+
+    public <T> void queryStream(StatementLabel statement, String sql, RowMapper<T> mapper, Consumer<T> consumer) {
+        queryStream(statement, sql, new EmptySqlParameterSource(), mapper, consumer);
+    }
+
+    private static String paramSourceToJson(SqlParameterSource paramSource) {
+        if (paramSource != null
+                && paramSource.getParameterNames() != null
+                && paramSource.getParameterNames().length > 0) {
+
+            ObjectNode json = Json.createObject();
+            for (String paramName : paramSource.getParameterNames()) {
+                json.put(paramName, resolveParamValue(paramSource.getValue(paramName)));
+            }
+            return json.toString();
+        } else {
+            return null;
+        }
+    }
+
+    private static String resolveParamValue(Object value) {
+        if (value instanceof SqlBinaryValue) {
+            return "<lob-value>";
+        } else {
+            return value == null ? null : value.toString();
+        }
+    }
+
+    public void walCheckpoint() {
+        execute(StatementLabel.WAL_CHECK_POINT, "FORCE CHECKPOINT;");
+    }
+
+    /**
+     * Rewrites the given table physically ordered by the provided columns (CTAS + swap). Row groups
+     * then carry tight zone maps for the clustering columns, so range predicates prune whole row
+     * groups during scans — without maintaining any index. Intended as a one-time post-ingest
+     * finalization; the swap is not atomic for concurrent readers of the same table.
+     *
+     * <p>Note: a CTAS copy keeps column types but drops constraints (PK/NOT NULL), so this must only
+     * be used for tables without constraints relied upon afterwards.
+     */
+    public void recreateTableClustered(String tableName, List<String> orderByColumns) {
+        if (orderByColumns == null || orderByColumns.isEmpty()) {
+            throw new IllegalArgumentException("At least one clustering column is required");
+        }
+
+        String sortedTableName = tableName + CLUSTERED_TABLE_SUFFIX;
+        execute(StatementLabel.RECREATE_TABLE_CLUSTERED, CREATE_SORTED_TABLE_TEMPLATE.formatted(
+                sortedTableName, tableName, String.join(", ", orderByColumns)));
+        execute(StatementLabel.RECREATE_TABLE_CLUSTERED, DROP_TABLE_TEMPLATE.formatted(tableName));
+        execute(StatementLabel.RECREATE_TABLE_CLUSTERED, RENAME_TABLE_TEMPLATE.formatted(sortedTableName, tableName));
+    }
+
+    private static long sumRows(int[] updateCount) {
+        long count = 0L;
+        for (int i : updateCount) {
+            if (i == Statement.SUCCESS_NO_INFO) {
+                return Statement.SUCCESS_NO_INFO;
+            }
+            count += i;
+        }
+        return count;
+    }
+}

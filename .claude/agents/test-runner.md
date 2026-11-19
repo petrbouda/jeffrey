@@ -15,20 +15,14 @@ Analyze changed files to determine affected modules and run only the relevant te
 
 2. **Map changed files to Maven modules**:
    - `jeffrey-microscope/core-microscope/` -> `-pl jeffrey-microscope/core-microscope`
-   - `jeffrey-microscope/profiles/profile-management/` -> `-pl jeffrey-microscope/profiles/profile-management`
-   - `jeffrey-microscope/profiles/profile-persistence/` -> `-pl jeffrey-microscope/profiles/profile-persistence`
-   - `jeffrey-microscope/profiles/heap-dump/` -> `-pl jeffrey-microscope/profiles/heap-dump`
-   - `jeffrey-microscope/profiles/recording-parser/` -> `-pl jeffrey-microscope/profiles/recording-parser`
-   - `jeffrey-microscope/microscope-persistence/` -> `-pl jeffrey-microscope/microscope-persistence`
+   - `jeffrey-microscope/common-profile/` -> `-pl jeffrey-microscope/common-profile` (and `jeffrey-microscope/core-microscope`, which builds on it)
    - `volume-scheduler/` -> `-pl volume-scheduler`
    - `jeffrey-microscope/microscope-common/` -> `-pl jeffrey-microscope/microscope-common`
-   - `jeffrey-microscope/duckdb/` -> `-pl jeffrey-microscope/duckdb`
    - `jeffrey-microscope/microscope-test/` -> `-pl jeffrey-microscope/microscope-test`
    - `shared/volume/` -> `-pl shared/volume`
    - For other modules, derive the Maven module path from the file path
 
 3. **Handle shared module changes**: If files in `shared/` are changed, also include dependent modules that likely need testing:
-   - `jeffrey-microscope/duckdb/` -> also test `jeffrey-microscope/microscope-persistence`, `jeffrey-microscope/profiles/profile-persistence`, `jeffrey-microscope/profiles/heap-dump`
    - `shared/volume/` -> also test `volume-scheduler`, `jeffrey-provisioner`, `jeffrey-microscope/microscope-model`, `jeffrey-microscope/connectors/volume-connector`, `jeffrey-microscope/connectors/azure-files-connector` (and `jeffrey-microscope/core-microscope` when `VolumeWriter` changes)
 
 4. **Run targeted tests**:

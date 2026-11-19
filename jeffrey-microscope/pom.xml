@@ -33,17 +33,21 @@
     <modules>
         <module>microscope-common</module>
         <module>microscope-test</module>
-        <module>duckdb</module>
         <module>microscope-model</module>
+        <module>common-profile</module>
         <module>notifications</module>
         <module>connectors</module>
-        <module>microscope-persistence</module>
         <module>pages-microscope</module>
         <module>core-microscope</module>
         <module>mcp-protocol</module>
         <module>mcp-server</module>
-        <module>profiles</module>
     </modules>
+
+    <properties>
+        <eclipse-collections.version>13.0.0</eclipse-collections.version>
+        <flightrecorder.version>9.1.2</flightrecorder.version>
+        <hdrhistogram.version>2.2.2</hdrhistogram.version>
+    </properties>
 
     <dependencyManagement>
         <dependencies>
@@ -58,14 +62,19 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>duckdb</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.openjdk.jmc</groupId>
+                <artifactId>flightrecorder.rules.jdk</artifactId>
+                <version>${flightrecorder.version}</version>
             </dependency>
             <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-persistence</artifactId>
-                <version>${project.version}</version>
+                <groupId>org.eclipse.collections</groupId>
+                <artifactId>eclipse-collections</artifactId>
+                <version>${eclipse-collections.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.hdrhistogram</groupId>
+                <artifactId>HdrHistogram</artifactId>
+                <version>${hdrhistogram.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.manager.recordings;
 
-import cafe.jeffrey.microscope.persistence.api.RecordingGroup;
-import cafe.jeffrey.microscope.persistence.api.RecordingTag;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.model.recording.Bundle;
 import cafe.jeffrey.microscope.model.recording.Recording;
 

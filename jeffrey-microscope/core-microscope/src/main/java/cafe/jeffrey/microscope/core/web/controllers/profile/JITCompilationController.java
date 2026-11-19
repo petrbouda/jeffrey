@@ -26,10 +26,10 @@ import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.profile.common.event.JITCompilationStats;
 import cafe.jeffrey.microscope.profile.common.event.JITLongCompilation;
-import cafe.jeffrey.microscope.profile.management.manager.JITCompilationManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.jit.CodeCacheData;
-import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.core.profile.manager.JITCompilationManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.jit.CodeCacheData;
+import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;
 

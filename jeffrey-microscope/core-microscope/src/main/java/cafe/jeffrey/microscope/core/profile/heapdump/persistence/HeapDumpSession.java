@@ -1,0 +1,212 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.core.profile.heapdump.persistence;
+
+import cafe.jeffrey.microscope.core.profile.heapdump.model.IndexBuildProgressListener;
+import cafe.jeffrey.microscope.profile.common.pipeline.SubPhaseTiming;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.SQLException;
+import java.time.Clock;
+import java.util.List;
+import java.util.Optional;
+import cafe.jeffrey.microscope.core.profile.heapdump.parser.HprofIndex;
+import cafe.jeffrey.microscope.core.profile.heapdump.parser.HprofMappedFile;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.HeapView;
+
+/**
+ * Bundle holding the open {@link HprofMappedFile} and {@link HeapView} for a
+ * single heap dump, with paired lifecycle. Closing the session closes both.
+ * <p>
+ * Replaces the load-Heap pattern callers used with NetBeans: instead of
+ * {@code Heap heap = HeapFactory.createHeap(file)}, callers do
+ *
+ * <pre>{@code
+ * try (HeapDumpSession session = HeapDumpSession.openOrBuild(path, clock)) {
+ *     HeapView view = session.view();
+ *     // run any heapview analyzer against view ...
+ * }
+ * }</pre>
+ * <p>
+ * On first call for a given dump, builds the {@code .idx.duckdb} sibling.
+ * Subsequent calls just open the existing index. Dominator-tree construction
+ * is opt-in via {@link #buildDominatorTreeIfNeeded()} so cheap analyzers
+ * don't pay the cost.
+ */
+public final class HeapDumpSession implements AutoCloseable {
+
+    private static final Logger LOG = LoggerFactory.getLogger(HeapDumpSession.class);
+
+    private final HprofMappedFile hprof;
+    private HeapView view;
+    private final Path indexDbPath;
+    /**
+     * Per-phase timings captured the last time {@link HprofIndex#build} ran for
+     * this session — empty when an existing index was reused. Surfaced to the
+     * UI's "Building indexes" accordion via {@code HeapDumpManager.initialize}.
+     */
+    private final List<SubPhaseTiming> lastBuildSubPhases;
+
+    private HeapDumpSession(
+            HprofMappedFile hprof,
+            HeapView view,
+            Path indexDbPath,
+            List<SubPhaseTiming> lastBuildSubPhases) {
+        this.hprof = hprof;
+        this.view = view;
+        this.indexDbPath = indexDbPath;
+        this.lastBuildSubPhases = lastBuildSubPhases;
+    }
+
+    /**
+     * Opens the dump and returns a session. Builds the {@code .idx.duckdb}
+     * index sibling on first access; reuses an existing one only when
+     * {@link #isIndexUsable(Path)} holds, rebuilding otherwise.
+     */
+    public static HeapDumpSession openOrBuild(Path hprofPath, Clock clock) throws IOException, SQLException {
+        return openOrBuild(hprofPath, clock, IndexBuildProgressListener.NOOP);
+    }
+
+    /**
+     * Same as {@link #openOrBuild(Path, Clock)} but notifies {@code listener} as
+     * each index-build sub-phase completes (only fires when a build actually runs).
+     */
+    public static HeapDumpSession openOrBuild(Path hprofPath, Clock clock, IndexBuildProgressListener listener)
+            throws IOException, SQLException {
+        if (hprofPath == null) {
+            throw new IllegalArgumentException("hprofPath must not be null");
+        }
+        if (clock == null) {
+            throw new IllegalArgumentException("clock must not be null");
+        }
+        if (listener == null) {
+            throw new IllegalArgumentException("listener must not be null");
+        }
+        if (!Files.exists(hprofPath)) {
+            throw new IOException("Heap dump file does not exist: path=" + hprofPath);
+        }
+
+        HprofMappedFile hprof = HprofMappedFile.open(hprofPath);
+        Path indexDbPath = HeapDumpIndexPaths.indexFor(hprofPath);
+
+        try {
+            List<SubPhaseTiming> subPhases = List.of();
+            if (!isIndexUsable(hprofPath)) {
+                LOG.debug("Building heap dump index: hprof={} index={}", hprofPath, indexDbPath);
+                HprofIndex.IndexResult result = HprofIndex.build(hprof, indexDbPath, clock, listener);
+                subPhases = result.subPhases();
+            } else {
+                LOG.debug("Reusing heap dump index: index={}", indexDbPath);
+            }
+            HeapView view = HeapView.open(indexDbPath, hprof);
+            return new HeapDumpSession(hprof, view, indexDbPath, subPhases);
+        } catch (Throwable t) {
+            try {
+                hprof.close();
+            } catch (RuntimeException ignored) {
+            }
+            throw t;
+        }
+    }
+
+    /**
+     * Builds the dominator tree + retained sizes if not already populated.
+     * Idempotent — checks {@link HeapView#hasDominatorTree()} first. Returns
+     * the {@link DominatorTreeBuilder.BuildResult} (with its sub-phase
+     * timings) when a build actually ran; {@link Optional#empty()} when the
+     * tree was already present and nothing was rebuilt.
+     * <p>
+     * Implementation note: DuckDB doesn't permit a read-write builder
+     * connection while a read-only view is open against the same file.
+     * The current view is closed before the build and re-opened afterwards
+     * so the same {@link HeapDumpSession} stays usable.
+     */
+    public Optional<DominatorTreeBuilder.BuildResult> buildDominatorTreeIfNeeded()
+            throws SQLException, IOException {
+        if (view.hasDominatorTree()) {
+            return Optional.empty();
+        }
+        LOG.debug("Building dominator tree: index={}", indexDbPath);
+        view.close();
+        try {
+            return Optional.of(DominatorTreeBuilder.build(indexDbPath));
+        } finally {
+            view = HeapView.open(indexDbPath, hprof);
+        }
+    }
+
+    /**
+     * Per-phase index-build timings captured the last time this session ran
+     * {@link HprofIndex#build}. Empty list when the existing index was reused.
+     */
+    public List<SubPhaseTiming> lastBuildSubPhases() {
+        return lastBuildSubPhases;
+    }
+
+    public HeapView view() {
+        return view;
+    }
+
+    public HprofMappedFile hprof() {
+        return hprof;
+    }
+
+    public Path indexDbPath() {
+        return indexDbPath;
+    }
+
+    @Override
+    public void close() {
+        try {
+            view.close();
+        } catch (RuntimeException ignored) {
+        }
+        try {
+            hprof.close();
+        } catch (RuntimeException ignored) {
+        }
+    }
+
+    /**
+     * Returns true when the {@code .idx.duckdb} sibling of {@code hprofPath} is
+     * complete and safe to open: it exists, it is not older than the source
+     * dump (mtime check), and no {@code .wal} sibling is left over. A leftover
+     * WAL means the building connection never ran its close-time checkpoint
+     * (the build was interrupted), so the index content is incomplete and a
+     * read-only open would fail replaying the WAL. Cheap to call.
+     */
+    public static boolean isIndexUsable(Path hprofPath) {
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprofPath);
+        if (!Files.exists(indexDb)) {
+            return false;
+        }
+        if (Files.exists(HeapDumpIndexPaths.indexWalFor(hprofPath))) {
+            return false;
+        }
+        try {
+            long hprofMtime = Files.getLastModifiedTime(hprofPath).toMillis();
+            long indexMtime = Files.getLastModifiedTime(indexDb).toMillis();
+            return indexMtime >= hprofMtime;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+}

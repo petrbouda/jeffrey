@@ -1,0 +1,153 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.frameir;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.profile.common.model.FrameType;
+import cafe.jeffrey.microscope.core.profile.frameir.frame.*;
+import cafe.jeffrey.microscope.core.profile.frameir.frame.FrameProcessor.NewFrame;
+import cafe.jeffrey.microscope.core.profile.frameir.frame.FrameProcessor.ProcessedFrames;
+import cafe.jeffrey.microscope.profile.common.jfr.JfrStackFrame;
+import cafe.jeffrey.microscope.profile.common.jfr.JfrStackTrace;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
+import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class FrameBuilder implements RecordBuilder<FlamegraphRecord, Frame> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FrameBuilder.class);
+
+    private final Frame root = Frame.emptyFrame();
+
+    private final List<FrameProcessor> processors;
+    private final boolean excludeHiddenFrames;
+
+    public FrameBuilder(
+            boolean excludeHiddenFrames,
+            boolean threadModeEnabled,
+            boolean parseLocations,
+            FrameProcessor topFrameProcessor) {
+
+        this.excludeHiddenFrames = excludeHiddenFrames;
+
+        this.processors = new ArrayList<>();
+        if (threadModeEnabled) {
+            processors.add(new ThreadFrameProcessor());
+        }
+
+        processors.add(new NormalFrameProcessor(parseLocations));
+
+        if (topFrameProcessor != null) {
+            processors.add(topFrameProcessor);
+        }
+    }
+
+    @Override
+    public void onRecord(FlamegraphRecord record) {
+        JfrStackTrace stacktrace = record.stackTrace();
+        if (stacktrace == null) {
+            if (record.thread() != null) {
+                LOG.warn("Missing stacktrace: thread={}", record.thread().name());
+            } else {
+                LOG.warn("Missing stacktrace and thread");
+            }
+            return;
+        }
+
+        List<? extends JfrStackFrame> frames = stacktrace.frames();
+        if (frames.isEmpty()) {
+            return;
+        }
+
+        List<NewFrame> newFrames = collectNewFrames(record, frames);
+
+        Frame parent = root;
+        for (int i = 0; i < newFrames.size(); i++) {
+            // Only the deepest emitted frame of the record carries the self-time, it keeps the invariant:
+            // selfSamples + sum(children.totalSamples) == totalSamples for every node in the tree.
+            boolean isTopFrame = i == (newFrames.size() - 1);
+            parent = addFrameToLayer(newFrames.get(i), parent, isTopFrame);
+        }
+    }
+
+    private List<NewFrame> collectNewFrames(FlamegraphRecord record, List<? extends JfrStackFrame> frames) {
+        List<NewFrame> newFrames = new ArrayList<>();
+        for (int i = 0; i < frames.size(); ) {
+            // Hidden classes (lambda proxies, method-handle forms, indified string concatenation)
+            // exist only for the run that created them. Dropping them here joins the caller directly
+            // to the callee, which is what makes two recordings of the same application comparable.
+            if (excludeHiddenFrames && frames.get(i).method().clazz().isHidden()) {
+                i++;
+                continue;
+            }
+
+            int consumedStackFrames = 0;
+            for (FrameProcessor processor : processors) {
+                ProcessedFrames processed = processor.checkAndProcess(record, frames, i);
+                newFrames.addAll(processed.frames());
+                consumedStackFrames += processed.consumedStackFrames();
+            }
+
+            if (consumedStackFrames == 0) {
+                LOG.warn("No stacktrace element consumed, skipping the rest of the stacktrace: index={} frames={}",
+                        i, frames.size());
+                break;
+            }
+
+            i += consumedStackFrames;
+        }
+        return newFrames;
+    }
+
+    private static Frame addFrameToLayer(NewFrame newFrame, Frame parent, boolean isTopFrame) {
+        Frame resolvedFrame = parent.get(newFrame.methodName());
+        if (resolvedFrame == null) {
+            resolvedFrame = new Frame(
+                    parent,
+                    newFrame.methodName(),
+                    newFrame.lineNumber(),
+                    newFrame.bytecodeIndex(),
+                    newFrame.hidden());
+            parent.put(newFrame.methodName(), resolvedFrame);
+        } else {
+            // Nodes merge by method name, so this record's line may differ from the one the node
+            // already holds — a second call site, or another line of the same hot method. The node
+            // keeps the first line either way; what this records is whether it is the only one, which
+            // is what decides if an export may present it as a source location.
+            resolvedFrame.observeLineNumber(newFrame.lineNumber());
+        }
+
+        resolvedFrame.increment(newFrame.frameType(), newFrame.sampleWeight(), newFrame.samples(), isTopFrame);
+        return resolvedFrame;
+    }
+
+    public Frame build() {
+        long allWeight = 0;
+        long allSamples = 0;
+        for (Frame frame : root.values()) {
+            allSamples += frame.totalSamples();
+            allWeight += frame.totalWeight();
+        }
+
+        root.increment(FrameType.NATIVE, allWeight, allSamples, false);
+        return root;
+    }
+}

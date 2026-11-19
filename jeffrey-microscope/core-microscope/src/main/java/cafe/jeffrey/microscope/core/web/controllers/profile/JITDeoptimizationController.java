@@ -28,8 +28,8 @@ import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationEvent;
 import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationMethodAggregate;
 import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationReasonCount;
 import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationStats;
-import cafe.jeffrey.microscope.profile.management.manager.JITDeoptimizationManager;
-import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.core.profile.manager.JITDeoptimizationManager;
+import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 
 import java.util.List;
 

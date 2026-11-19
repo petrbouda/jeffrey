@@ -17,18 +17,18 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.management.flamegraph.api.DbBasedFlamegraphGenerator;
+import cafe.jeffrey.microscope.core.profile.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.model.EventSummary;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.RecordingEventSource;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
-import cafe.jeffrey.microscope.profile.management.manager.PrimaryFlamegraphManager;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.profile.persistence.api.ProfileEventTypeRepository;
+import cafe.jeffrey.microscope.core.profile.manager.PrimaryFlamegraphManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;

@@ -27,10 +27,10 @@ import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationMethodAggre
 import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationReasonCount;
 import cafe.jeffrey.microscope.profile.common.event.JITDeoptimizationStats;
 import cafe.jeffrey.microscope.profile.common.event.JITLongCompilation;
-import cafe.jeffrey.microscope.profile.management.manager.JITCompilationManager;
-import cafe.jeffrey.microscope.profile.management.manager.JITDeoptimizationManager;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.jit.CodeCacheData;
+import cafe.jeffrey.microscope.core.profile.manager.JITCompilationManager;
+import cafe.jeffrey.microscope.core.profile.manager.JITDeoptimizationManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.jit.CodeCacheData;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.List;

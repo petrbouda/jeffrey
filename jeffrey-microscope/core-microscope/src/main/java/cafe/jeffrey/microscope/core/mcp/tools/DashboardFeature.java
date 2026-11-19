@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 
 /**
  * Whether a profile carries the data one of the technology dashboards is built from.

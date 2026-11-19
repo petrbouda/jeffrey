@@ -1,0 +1,1045 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.trace.export;
+
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceContext;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceExceptionRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceNotificationRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceContextSlice;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceDetail;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceExportSource;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TracePromotedGroup;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceSpanRunRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceWindow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TracePause;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceRunDurations;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceSpanRow;
+import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceThrottleWindow;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class TraceAiMarkdownBuilderTest {
+
+    private static final long MS = 1_000_000L;
+    private static final TraceOnCpu NOT_COUNTED = new TraceOnCpu.NotMeasured("not counted in this test");
+    private static final String EXECUTION_SAMPLE = "jdk.ExecutionSample";
+
+    /**
+     * The worked example the whole feature exists for: a span that looks slow because of its own
+     * code, and is not. reserveInventory runs 230ms, of which 105ms is its two queries and 100ms is
+     * a collection pause.
+     */
+    private static TraceDetail detail() {
+        TraceRow trace = new TraceRow(
+                "7f3a91", "POST /api/orders", "SERVER", "jeffrey.HttpServerExchange",
+                60_000, 1_700_000_000_000L, 420 * MS, 4, 0, true);
+
+        List<TraceSpanRow> spans = List.of(
+                span("01", null, "POST /api/orders", "SERVER", 0, 420, 27, 420, 0),
+                span("02", "01", "reserveInventory", "INTERNAL", 100, 230, 125, 230, 1),
+                span("03", "02", "select inventory", "CLIENT", 105, 35, 35, 0, 2),
+                span("04", "02", "update inventory", "CLIENT", 250, 70, 70, 0, 2));
+
+        return detailOf(trace, spans, List.of(), List.of());
+    }
+
+    /** A trace as the manager sends it, with nothing folded into runs. */
+    private static TraceDetail detailOf(
+            TraceRow trace, List<TraceSpanRow> spans,
+            List<TraceNotificationRow> notifications, List<TraceExceptionRow> exceptions) {
+        return detailOf(trace, spans, List.of(), notifications, exceptions);
+    }
+
+    private static TraceDetail detailOf(
+            TraceRow trace, List<TraceSpanRow> spans, List<TraceSpanRunRow> runs,
+            List<TraceNotificationRow> notifications, List<TraceExceptionRow> exceptions) {
+        return new TraceDetail(
+                trace, new TraceWindow(0, trace.durationNanos() / 1_000L), spans, runs, 1,
+                notifications, exceptions, Map.of());
+    }
+
+    /**
+     * A builder over {@code detail}, with the promoted groups the repository would total from its
+     * synthesized spans — one group per span, since no two fixture spans share a payload.
+     */
+    private static TraceAiMarkdownBuilder builderOf(TraceDetail detail, TraceContext context) {
+        return builderOf(detail, context, NOT_COUNTED);
+    }
+
+    private static TraceAiMarkdownBuilder builderOf(TraceDetail detail, TraceContext context, TraceOnCpu onCpu) {
+        List<TracePromotedGroup> promoted = detail.spans().stream()
+                .filter(TraceSpanRow::synthesized)
+                .map(span -> new TracePromotedGroup(
+                        span.eventType(), span.eventFields(), 1, span.durationNanos(), span.durationNanos()))
+                .toList();
+        return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context, promoted), onCpu);
+    }
+
+    private static TraceSpanRow span(
+            String spanId, String parentSpanId, String name, String kind,
+            long startMillis, long durationMs, long selfMs, long criticalMs, int depth) {
+
+        return new TraceSpanRow(
+                spanId, parentSpanId, name, kind, "UNSET", null,
+                startMillis, startMillis * 1_000L, durationMs * MS, selfMs * MS, criticalMs * MS,
+                depth, "3001", "http-1", false, "jeffrey.TraceSpan", null, null, false, null);
+    }
+
+    private static TraceContext context() {
+        return new TraceContext(
+                List.of(new TracePause("GC_PAUSE", "G1 Young", 145_000L, 100 * MS, false)),
+                // No throttle windows here: they explain a trace rather than accounting for it, and the
+                // ranking below never holds them (the Throttling tests add some).
+                List.of(),
+                Map.of("02", List.of(new TraceContextSlice("MONITOR_BLOCKED", 4 * MS, 1))),
+                List.of(
+                        new TraceContextSlice("GC_PAUSE", 100 * MS, 1),
+                        new TraceContextSlice("MONITOR_BLOCKED", 4 * MS, 1),
+                        new TraceContextSlice("OWN_WORK", 316 * MS, 0)));
+    }
+
+    private static String build() {
+        return builderOf(detail(), context()).build();
+    }
+
+    @Nested
+    @DisplayName("Preamble")
+    class Preamble {
+
+        /*
+         * These read as tautologies and are not. The preamble is the feature: a model handed
+         * "self 125ms" without being told how self time is computed will reason about it as a
+         * subtraction and reach a confident wrong conclusion. Losing a caveat during an unrelated
+         * edit is exactly how this export starts misleading people, and nothing else would catch it.
+         */
+
+        @Test
+        @DisplayName("explains that self time is a merged interval, not a subtraction")
+        void explainsSelfTimeSemantics() {
+            String out = build();
+
+            assertTrue(out.contains("concurrently"), "must say concurrent children are counted once");
+            assertTrue(out.contains("same thread"), "must say only same-thread children are subtracted");
+        }
+
+        @Test
+        @DisplayName("carries the critical-path caveat with the marker it explains")
+        void explainsCriticalPathCaveat() {
+            String out = build();
+
+            assertTrue(out.contains("!critical"));
+            assertTrue(out.contains("Caveat:"), "the cross-thread assumption must travel with it");
+            assertTrue(out.contains("forked"), "must name the case where attribution is a hint only");
+        }
+
+        @Test
+        @DisplayName("separates global pauses from thread-scoped waits")
+        void explainsContextScopes() {
+            String out = build();
+
+            assertTrue(out.contains("Global"));
+            assertTrue(out.contains("Thread-scoped"));
+            assertTrue(out.contains("summing across the groups is not"),
+                    "a model must be told these are different kinds of measurement");
+        }
+
+        @Test
+        @DisplayName("says what the residual is, so waiting is not mistaken for the whole story")
+        void explainsResidual() {
+            assertTrue(build().contains("OWN_WORK"));
+        }
+
+        @Test
+        @DisplayName("states the accounting invariant against the trace window, not the span sum")
+        void statesInvariant() {
+            String out = build();
+
+            assertTrue(out.contains("nest"), "must warn that spans nest rather than sum");
+            assertTrue(out.contains("trace's own window"));
+        }
+
+        @Test
+        @DisplayName("explains what a folded line is")
+        void explainsFolding() {
+            String out = build();
+
+            assertTrue(out.contains("!folded"));
+            assertTrue(out.contains("folded into one line per parent and name"));
+            assertTrue(out.contains("!class-loading"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Span tree")
+    class Tree {
+
+        @Test
+        @DisplayName("reports self and total as different numbers")
+        void reportsSelfAndTotal() {
+            // The whole finding rests on these being different: 230ms total, 125ms self.
+            assertTrue(build().contains("230ms (55%, self 125ms)"));
+        }
+
+        @Test
+        @DisplayName("encodes depth as indentation, so span ids never have to be resolved")
+        void indentsByDepth() {
+            String out = build();
+
+            assertTrue(out.contains("\n- POST /api/orders"), "the root is unindented");
+            assertTrue(out.contains("\n  - reserveInventory"), "its child is one level in");
+            assertTrue(out.contains("\n    - select inventory"), "a grandchild is two");
+        }
+
+        @Test
+        @DisplayName("marks the critical path and leaves the rest unmarked")
+        void marksCriticalPath() {
+            String out = build();
+
+            assertTrue(out.contains("reserveInventory [INTERNAL] — 230ms (55%, self 125ms) !critical"));
+            assertFalse(out.contains("update inventory [CLIENT] — 70ms (17%, self 70ms) !critical"),
+                    "a span off the critical path must not be marked");
+        }
+
+        @Test
+        @DisplayName("names an error and its type")
+        void marksErrors() {
+            TraceSpanRow failing = new TraceSpanRow(
+                    "05", "01", "chargePayment", "CLIENT", "ERROR", "TimeoutException",
+                    335, 335_000L, 65 * MS, 65 * MS, 0, 1, "3001", "http-1", false,
+                    "jeffrey.TraceSpan", null, null, false, null);
+            TraceDetail withError = detailOf(detail().trace(), List.of(failing), List.of(), List.of());
+
+            String out = builderOf(withError, context()).build();
+
+            assertTrue(out.contains("!error (TimeoutException)"));
+        }
+
+        @Test
+        @DisplayName("states what it dropped rather than stopping silently")
+        void annotatesTruncation() {
+            List<TraceSpanRow> many = new ArrayList<>();
+            for (int i = 0; i < 500; i++) {
+                many.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
+            }
+            TraceRow fixture = detail().trace();
+            TraceRow fiveHundred = new TraceRow(
+                    fixture.traceId(), fixture.rootName(), fixture.rootKind(), fixture.rootEventType(),
+                    fixture.startMillisFromBeginning(), fixture.startEpochMillis(), fixture.durationNanos(),
+                    500, 0, true);
+            TraceDetail huge = detailOf(fiveHundred, many, List.of(), List.of());
+
+            String out = builderOf(huge, context()).build();
+
+            // A bundle that quietly stops reads as a complete trace, and a model will conclude the
+            // missing spans do not exist.
+            assertTrue(out.contains("truncated: 100 further spans"));
+            assertTrue(out.contains("out of 500"));
+        }
+    }
+
+    @Nested
+    @DisplayName("The residual: running or not running")
+    class Residual {
+
+        /*
+         * The residual of the worked example is 316ms. Code running and a thread held off the CPU leave
+         * the same residual; the on-CPU samples on the trace's threads are what tell them apart.
+         */
+
+        @Test
+        @DisplayName("a trace on one thread splits its residual into on CPU and not seen running")
+        void splitsTheResidualOfOneThread() {
+            String out = builderOf(detail(), context(), new TraceOnCpu.Measured(EXECUTION_SAMPLE, 4, 1, 40 * MS, 10 * MS)).build();
+
+            assertTrue(out.contains("OWN_WORK — 316ms (75%) — the residual: time no category accounts for, "
+                    + "the code running or the thread not running"), out);
+            String line = lineWith(out, "on CPU: ");
+            assertTrue(line.startsWith("  - on CPU: ~40ms (4 jdk.ExecutionSample samples on the trace's thread inside its "
+                    + "window, one per 10ms of running)"), line);
+            assertTrue(line.contains("not seen running: ~276ms (87% of the residual)"), line);
+            assertTrue(line.endsWith("sampled, so an estimate"), line);
+        }
+
+        @Test
+        @DisplayName("samples summed over several threads are never subtracted from one window")
+        void doesNotSubtractAcrossThreads() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.Measured(EXECUTION_SAMPLE, 50, 3, 500 * MS, 10 * MS)).build(), "on CPU: ");
+
+            assertTrue(line.contains("summed over the trace's 3 threads"), line);
+            assertFalse(line.contains("not seen running"), line);
+        }
+
+        @Test
+        @DisplayName("no sample is under one interval on CPU, so the rest is a lower bound")
+        void noSampleIsUnderOneInterval() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.Measured(EXECUTION_SAMPLE, 0, 1, 0L, 10 * MS)).build(), "on CPU: ");
+
+            assertTrue(line.startsWith("  - on CPU: under 10ms (0 jdk.ExecutionSample samples on the trace's thread "
+                    + "inside its window, one per 10ms of running)"), line);
+            assertTrue(line.contains("not seen running: at least ~306ms (97% of the residual)"), line);
+        }
+
+        @Test
+        @DisplayName("samples without a known period are counted, not timed")
+        void countsSamplesOfAnUnknownPeriod() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.Measured(EXECUTION_SAMPLE, 7, 1, null, null)).build(), "on CPU: ");
+
+            assertTrue(line.contains("7 jdk.ExecutionSample samples"), line);
+            assertTrue(line.contains("no time is put on them"), line);
+        }
+
+        @Test
+        @DisplayName("a residual nothing could count says why, and that it cannot be split")
+        void saysWhyNothingWasCounted() {
+            String line = lineWith(builderOf(detail(), context(),
+                    new TraceOnCpu.NotMeasured("the profile recorded no on-CPU samples")).build(), "on CPU: ");
+
+            assertTrue(line.contains("not measured — the profile recorded no on-CPU samples"), line);
+            assertTrue(line.contains("cannot be told apart from the thread not running"), line);
+        }
+
+        @Test
+        @DisplayName("an execution sample stands for the interval the profile sampled at")
+        void timesExecutionSamplesByTheirInterval() {
+            TraceOnCpu.Measured measured = TraceOnCpu.Measured.of(
+                    EXECUTION_SAMPLE, 3, 0, Map.of("sample_interval", String.valueOf(10 * MS)), 1);
+
+            assertEquals(30 * MS, measured.onCpuNanos());
+            assertEquals(10 * MS, measured.intervalNanos());
+        }
+
+        @Test
+        @DisplayName("a CPU-time sample carries its own period as its weight")
+        void timesCpuTimeSamplesByTheirWeight() {
+            TraceOnCpu.Measured measured = TraceOnCpu.Measured.of("jdk.CPUTimeSample", 2, 21 * MS, Map.of(), 1);
+
+            assertEquals(21 * MS, measured.onCpuNanos());
+            assertEquals(10_500_000L, measured.intervalNanos());
+        }
+
+        @Test
+        @DisplayName("no sample is no time, and samples of an unknown period are no figure")
+        void zeroAndUnknown() {
+            assertEquals(0L, TraceOnCpu.Measured.of(EXECUTION_SAMPLE, 0, 0, Map.of(), 1).onCpuNanos());
+            assertEquals(10 * MS, TraceOnCpu.Measured.of(EXECUTION_SAMPLE, 0, 0,
+                    Map.of("sample_interval", String.valueOf(10 * MS)), 1).intervalNanos());
+            assertNull(TraceOnCpu.Measured.of(EXECUTION_SAMPLE, 5, 0, Map.of(), 1).onCpuNanos());
+        }
+    }
+
+    @Nested
+    @DisplayName("Container CPU throttling")
+    class Throttling {
+
+        private TraceContext throttled() {
+            TraceContext base = context();
+            return new TraceContext(base.pauses(),
+                    List.of(new TraceThrottleWindow(0, 20_000_000L, 2_700 * MS, 118, 301, 39.2)),
+                    base.spanWaits(), base.summary());
+        }
+
+        @Test
+        @DisplayName("names the throttled windows beside the pauses, as windows rather than instants")
+        void rendersThrottledWindows() {
+            String out = builderOf(detail(), throttled()).build();
+
+            assertTrue(out.contains("the container's CPU quota ran out, stalling every thread"), out);
+            assertTrue(out.contains("- CPU_THROTTLED — 118 of 301 CFS periods throttled (39%), 2700ms throttled "
+                    + "in a 20.0s window overlapping this trace"), out);
+        }
+
+        @Test
+        @DisplayName("keeps them out of the ranking, whose shares are of the trace's own window")
+        void keepsThemOutOfTheRanking() {
+            String out = builderOf(detail(), throttled()).build();
+            int ranked = out.indexOf("\n## Where the time went\n");
+            String ranking = out.substring(ranked, out.indexOf("\n## I/O operations\n", ranked));
+
+            assertFalse(ranking.contains("CPU_THROTTLED"), ranking);
+        }
+
+        @Test
+        @DisplayName("throttling alone is context, not an empty section")
+        void throttlingAloneIsContext() {
+            TraceContext onlyThrottled = new TraceContext(List.of(),
+                    List.of(new TraceThrottleWindow(0, 1_000_000L, 5 * MS, 2, 10, 20.0)), Map.of(), List.of());
+            String out = builderOf(detail(), onlyThrottled).build();
+            int context0 = out.indexOf("\n## JVM context\n");
+            String context = out.substring(context0, out.indexOf("\n## Where the time went\n", context0));
+
+            assertTrue(context.contains("- CPU_THROTTLED — 2 of 10 CFS periods throttled (20%)"), context);
+            assertFalse(context.contains("were recorded during this trace"), context);
+        }
+    }
+
+    @Nested
+    @DisplayName("JVM context")
+    class Context {
+
+        @Test
+        @DisplayName("names the pause and what it was")
+        void rendersPauses() {
+            String out = build();
+
+            assertTrue(out.contains("GC_PAUSE (G1 Young) — 100ms"));
+        }
+
+        @Test
+        @DisplayName("attributes thread-scoped waiting to the span it happened in")
+        void rendersSpanWaits() {
+            assertTrue(build().contains("reserveInventory — MONITOR_BLOCKED 4ms"));
+        }
+
+        /*
+         * The waits section walked every span of the trace, capped by nothing: a wait-heavy trace
+         * of a few thousand spans put a line per span here after the tree had stopped at its budget.
+         */
+        @Test
+        @DisplayName("stops listing waits at the span budget, and says how many it left out")
+        void capsWaitLinesAtTheSpanBudget() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            Map<String, List<TraceContextSlice>> waits = new HashMap<>();
+            for (int i = 0; i < 450; i++) {
+                spans.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
+                waits.put("s" + i, List.of(new TraceContextSlice("DEOPTIMIZATION", 2 * MS, 2)));
+            }
+            TraceDetail detail = detailOf(detail().trace(), spans, List.of(), List.of());
+            TraceContext waiting = new TraceContext(List.of(), List.of(), waits, List.of());
+
+            String out = builderOf(detail, waiting).build();
+
+            assertEquals(400, out.lines().filter(line -> line.contains(" — DEOPTIMIZATION ")).count());
+            assertTrue(lineWith(out, " — DEOPTIMIZATION ").startsWith("- span-0 — "),
+                    "the waits keep the trace's order, so the first spans are the ones listed");
+            assertTrue(out.contains("- span-399 — DEOPTIMIZATION"), out);
+            assertFalse(out.contains("- span-400 — DEOPTIMIZATION"), out);
+            assertTrue(out.contains(
+                    "- (truncated: 50 further spans with waits omitted from this section, out of 450 in the trace)"),
+                    out);
+        }
+
+        @Test
+        @DisplayName("ranks where the time went, labelling the residual")
+        void rendersRanking() {
+            String out = build();
+
+            assertTrue(out.contains("GC_PAUSE — 100ms (24%)"));
+            assertTrue(out.contains("OWN_WORK — 316ms (75%) — the residual"));
+        }
+
+        @Test
+        @DisplayName("a trace the JVM never interrupted still renders")
+        void survivesEmptyContext() {
+            String out = builderOf(detail(), TraceContext.EMPTY).build();
+
+            assertTrue(out.contains("no GC pauses, safepoints, CPU throttling or blocking events"));
+            assertTrue(out.contains("reserveInventory"), "the tree is still the point");
+        }
+
+        @Test
+        @DisplayName("a trace with no spans does not produce a broken document")
+        void survivesEmptyTrace() {
+            TraceDetail empty = detailOf(detail().trace(), List.of(), List.of(), List.of());
+
+            assertTrue(builderOf(empty, TraceContext.EMPTY).build()
+                    .contains("this trace has no spans"));
+        }
+    }
+
+    /**
+     * A promoted I/O span: the shape the derivation gives a {@code jdk.FileRead} and friends, with
+     * the event's own payload still in {@code eventFields} — which is where the bytes and the target
+     * come from.
+     */
+    private static TraceSpanRow ioSpan(
+            String spanId, String name, String eventType, String eventFields, long durationNanos) {
+        return ioSpan(spanId, name, eventType, eventFields, durationNanos, null);
+    }
+
+    private static TraceSpanRow ioSpan(
+            String spanId, String name, String eventType, String eventFields, long durationNanos,
+            String ioOrigin) {
+
+        return new TraceSpanRow(
+                spanId, "01", name, "INTERNAL", "UNSET", null,
+                0, 0L, durationNanos, durationNanos, 0,
+                1, "3001", "http-1", false, eventType, null, eventFields, true, ioOrigin);
+    }
+
+    private static TraceExceptionRow thrown(
+            String spanId, String exceptionId, String thrownClass, String message, boolean escaped) {
+
+        return new TraceExceptionRow(
+                spanId, exceptionId, 0, 0L, "jdk.JavaExceptionThrow",
+                thrownClass, message, escaped, "st1", "3001");
+    }
+
+    private static String buildWith(List<TraceSpanRow> spans, List<TraceExceptionRow> exceptions) {
+        TraceDetail detail = detailOf(detail().trace(), spans, List.of(), exceptions);
+        return builderOf(detail, context()).build();
+    }
+
+    /**
+     * A notification raised {@code offsetMs} into the fixture trace, which starts 60 s into the
+     * recording — so the row carries the recording-relative time and the export has to subtract.
+     */
+    private static TraceNotificationRow notification(
+            String spanId, String notificationId, long offsetMs, String type, String severity,
+            String category, String source, String message, String attributes) {
+
+        return new TraceNotificationRow(
+                spanId, notificationId, 60_000 + offsetMs, (60_000 + offsetMs) * 1_000L,
+                type, message, severity, category, source, attributes, "3001");
+    }
+
+    private static String buildWithNotifications(List<TraceNotificationRow> notifications) {
+        TraceDetail detail = detailOf(detail().trace(), detail().spans(), notifications, List.of());
+        return builderOf(detail, context()).build();
+    }
+
+    @Nested
+    @DisplayName("Notifications")
+    class Notifications {
+
+        private List<TraceNotificationRow> poolPressureAndCacheWarmed() {
+            return List.of(
+                    notification("03", "n1", 12, "POOL_PRESSURE", "HIGH", "RESOURCE", "hikari",
+                            "Connection pool has no idle connections", "{\"pool\":\"orders\",\"inUse\":46}"),
+                    notification(null, "n2", 20, "CACHE_WARMED", "LOW", "PERFORMANCE", "cache",
+                            "The cache was warmed", null),
+                    notification("03", "n3", 30, "POOL_PRESSURE", "HIGH", "RESOURCE", "hikari",
+                            "Connection pool has no idle connections", "{\"pool\":\"orders\",\"inUse\":50}"));
+        }
+
+        @Test
+        @DisplayName("groups occurrences by kind and puts the most severe first")
+        void groupsByKindAndLeadsWithSeverity() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("3 notifications recorded, 2 of them CRITICAL or HIGH."), out);
+            String line = lineWith(out, "POOL_PRESSURE ×2");
+            assertTrue(line.contains("[HIGH] — RESOURCE from hikari"), line);
+            assertTrue(out.indexOf("POOL_PRESSURE ×2") < out.indexOf("CACHE_WARMED ×1"),
+                    "HIGH sorts ahead of LOW whatever the order they fired in");
+        }
+
+        @Test
+        @DisplayName("names the span each kind was raised in, and says when none was open")
+        void namesTheSpan() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("raised in: select inventory ×2"), out);
+            assertTrue(out.contains("raised in: outside any span ×1"), out);
+        }
+
+        @Test
+        @DisplayName("places occurrences relative to the trace, not to the recording")
+        void placesOccurrencesRelativeToTheTrace() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("raised at: +12ms to +30ms into the trace"), out);
+            assertTrue(out.contains("raised at: +20ms into the trace"), out);
+            assertFalse(out.contains("+60012ms"), "the row's recording-relative time must be subtracted");
+        }
+
+        @Test
+        @DisplayName("carries the message once per kind and the first occurrence's attributes")
+        void carriesMessageAndAttributes() {
+            String out = buildWithNotifications(poolPressureAndCacheWarmed());
+
+            assertTrue(out.contains("message: Connection pool has no idle connections"), out);
+            assertTrue(out.contains("attributes: {\"pool\":\"orders\",\"inUse\":46}"), out);
+            assertFalse(out.contains("\"inUse\":50"), "one occurrence's specifics stand for the kind");
+        }
+
+        @Test
+        @DisplayName("says so when the application raised none")
+        void notesTheirAbsence() {
+            assertTrue(build().contains("(the application raised no notifications during this trace)"));
+        }
+
+        @Test
+        @DisplayName("keeps the most severe kinds when the list is cut")
+        void truncatesPastTheCap() {
+            List<TraceNotificationRow> many = new ArrayList<>();
+            for (int i = 0; i < 30; i++) {
+                many.add(notification("02", "n" + i, i, "KIND_" + i, i == 29 ? "CRITICAL" : "LOW",
+                        "PERFORMANCE", "test", "kind " + i, null));
+            }
+
+            String out = buildWithNotifications(many);
+
+            assertTrue(out.contains("KIND_29 ×1 [CRITICAL]"), "the one CRITICAL kind survives the cut");
+            assertTrue(out.contains("(truncated: 5 further notification kinds were omitted, out of 30"), out);
+        }
+
+        @Test
+        @DisplayName("the preamble explains the section and the analysis says to read it first")
+        void explainsTheSection() {
+            String out = build();
+
+            assertTrue(out.contains("## Notifications — the application's own account"));
+            assertTrue(out.contains("`outside any span`"), "the span-less case is defined before it appears");
+            assertTrue(out.contains("Read the notifications before the timing"));
+        }
+    }
+
+    /**
+     * The one line of the document that mentions {@code needle}.
+     * <p>
+     * Markers have to be asserted against the row that carries them, never against the whole
+     * document: the preamble defines every marker it explains, so {@code out.contains("!small-ops")}
+     * passes on a document where nothing was ever marked.
+     */
+    private static String lineWith(String out, String needle) {
+        return out.lines()
+                .filter(line -> line.contains(needle))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("no line contains: " + needle));
+    }
+
+    @Nested
+    @DisplayName("Span budget")
+    class SpanBudget {
+
+        private static final long MICRO = 1_000L;
+
+        /*
+         * The case that motivated the plan: a recording that captured every file read puts hundreds
+         * of microsecond leaves ahead of the phase that explains the trace. Spent in order, the
+         * budget listed the leaves and dropped the phase.
+         */
+        @Test
+        @DisplayName("lists a recorded span behind hundreds of tiny promoted leaves")
+        void keepsRecordedSpansAheadOfPromotedLeaves() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "heap-dump-init", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 450; i++) {
+                spans.add(ioSpan("f" + i, "File read", "jdk.FileRead",
+                        "{\"path\":\"/app/app.jar\",\"bytesRead\":512}", 2 * MICRO));
+            }
+            spans.add(span("02", "01", "create_indexes", "INTERNAL", 100, 300, 300, 300, 1));
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(lineWith(out, "create_indexes").startsWith("  - create_indexes [INTERNAL]"),
+                    "the recorded span must not lose its line to the leaves before it");
+            assertTrue(out.contains("  - File read ×450 [INTERNAL]"),
+                    "the leaves fold into one line under their parent, at their depth");
+            assertFalse(out.contains("truncated:"), "nothing was dropped, so nothing is truncated");
+            assertTrue(out.contains("folded: 450 leaf spans into 1 line"));
+        }
+
+        @Test
+        @DisplayName("gives a promoted leaf above the floor a line of its own")
+        void rendersLongPromotedLeafIndividually() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("s1", "Socket read", "jdk.SocketRead",
+                    "{\"host\":\"db\",\"port\":5432,\"bytesRead\":64}", 5 * MS));
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(out.contains("  - Socket read [INTERNAL] — 5ms"), out);
+            assertFalse(out.contains("Socket read ×"), "a leaf worth a line is not folded");
+        }
+
+        @Test
+        @DisplayName("sums a fold and names its longest member")
+        void reportsFoldShape() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("f1", "File read", "jdk.FileRead", "{\"path\":\"/a\",\"bytesRead\":1}", 10 * MICRO));
+            spans.add(ioSpan("f2", "File read", "jdk.FileRead", "{\"path\":\"/a\",\"bytesRead\":1}", 30 * MICRO));
+            spans.add(ioSpan("f3", "File read", "jdk.FileRead", "{\"path\":\"/a\",\"bytesRead\":1}", 20 * MICRO));
+
+            String line = lineWith(buildWith(spans, List.of()), "File read ×3");
+
+            assertTrue(line.contains("60us summed"), line);
+            assertTrue(line.contains("longest 30us"), line);
+            assertTrue(line.endsWith("!folded"), line);
+        }
+
+        @Test
+        @DisplayName("marks a fold whose every read was the class loader's")
+        void marksClassLoadingFolds() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("f1", "File read", "jdk.FileRead",
+                    "{\"path\":\"/app/app.jar\",\"bytesRead\":10240}", 2 * MICRO, "CLASS_LOADING"));
+            spans.add(ioSpan("f2", "File read", "jdk.FileRead",
+                    "{\"path\":\"/app/app.jar\",\"bytesRead\":10240}", 2 * MICRO, "CLASS_LOADING"));
+
+            String line = lineWith(buildWith(spans, List.of()), "File read ×2");
+
+            assertTrue(line.endsWith("!folded !class-loading"), line);
+        }
+
+        @Test
+        @DisplayName("keeps a fold unmarked when one read's origin is unknown")
+        void leavesMixedOriginFoldUnmarked() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            spans.add(ioSpan("f1", "File read", "jdk.FileRead",
+                    "{\"path\":\"/app/app.jar\",\"bytesRead\":10240}", 2 * MICRO, "CLASS_LOADING"));
+            spans.add(ioSpan("f2", "File read", "jdk.FileRead",
+                    "{\"path\":\"/data/dump.hprof\",\"bytesRead\":10240}", 2 * MICRO));
+
+            String line = lineWith(buildWith(spans, List.of()), "File read ×2");
+
+            assertFalse(line.contains("!class-loading"), line);
+        }
+
+        /*
+         * Tier three folded every small promoted leaf into one line per parent and name, and the
+         * number of those lines was capped by nothing: a trace with a thousand differently named
+         * leaves rendered a thousand fold lines after the recorded spans had stopped at the budget.
+         */
+        @Test
+        @DisplayName("collapses fold groups past the span budget into one line")
+        void collapsesFoldGroupsPastTheBudget() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 450; i++) {
+                spans.add(ioSpan("f" + i, "File read " + i, "jdk.FileRead",
+                        "{\"path\":\"/a\",\"bytesRead\":1}", 2 * MICRO));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertEquals(400, out.lines().filter(line -> line.endsWith("!folded")).count());
+            assertTrue(out.contains("  - File read 399 ×1 [INTERNAL]"), out);
+            assertFalse(out.contains("File read 400 ×1"), out);
+            assertTrue(out.contains("- (+50 more folded groups: 50 leaf spans past the export's "
+                    + "span budget; the I/O operations section counts each of them)"), out);
+            assertTrue(out.contains("folded: 400 leaf spans into 400 lines"), out);
+        }
+
+        /*
+         * The two caps above bind only past the budget. A trace inside it renders exactly as it did
+         * before either existed: every wait line, every fold line, and no note about either.
+         */
+        @Test
+        @DisplayName("renders an ordinary trace's waits and folds in full, with no cap notes")
+        void leavesAnOrdinaryTraceUntouched() {
+            List<TraceSpanRow> spans = new ArrayList<>(detail().spans());
+            for (int i = 0; i < 30; i++) {
+                spans.add(ioSpan("g" + i, "Socket read " + i, "jdk.SocketRead",
+                        "{\"host\":\"db\",\"port\":5432,\"bytesRead\":64}", 3 * MICRO));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertEquals(30, out.lines().filter(line -> line.endsWith("!folded")).count());
+            assertTrue(out.contains("\n  - Socket read 29 ×1 [INTERNAL] — 3us summed (<0.1%), longest 3us !folded\n"),
+                    out);
+            assertTrue(out.contains("\n- reserveInventory — MONITOR_BLOCKED 4ms\n"), out);
+            assertFalse(out.contains("more folded groups"), out);
+            assertFalse(out.contains("spans with waits omitted"), out);
+            assertFalse(out.contains("truncated:"), out);
+        }
+
+        @Test
+        @DisplayName("still truncates recorded spans past the budget, and says so")
+        void truncatesRecordedSpansPastTheBudget() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            for (int i = 0; i < 450; i++) {
+                spans.add(span("s" + i, null, "span-" + i, "INTERNAL", i, 1, 1, 0, 0));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(out.contains("truncated: 50 further spans"));
+            assertFalse(out.contains("folded:"), "recorded spans are never folded");
+        }
+    }
+
+    @Nested
+    @DisplayName("I/O operations")
+    class Io {
+
+        /** Twenty 512-byte reads of one file: what a missing BufferedInputStream looks like. */
+        private List<TraceSpanRow> unbufferedReads() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "loadClasses", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 20; i++) {
+                spans.add(ioSpan("f" + i, "File read", "jdk.FileRead",
+                        "{\"path\":\"/data/dump.hprof\",\"bytesRead\":512}", 3 * MS));
+            }
+            return spans;
+        }
+
+        @Test
+        @DisplayName("groups operations by target and reports the mean, which is the buffering figure")
+        void reportsMeanPerOperation() {
+            String out = buildWith(unbufferedReads(), List.of());
+
+            assertTrue(out.contains("File read /data/dump.hprof — 20 ops"));
+            assertTrue(out.contains("mean 512 B/op"), "the mean is the whole finding");
+            assertTrue(out.contains("bytes 10.0 KiB (10240 B)"),
+                    "the exact byte count travels with the rounded one, so 4096 and 4600 stay apart");
+        }
+
+        @Test
+        @DisplayName("marks the small-operation shape on the row it applies to")
+        void marksSmallOperations() {
+            String row = lineWith(buildWith(unbufferedReads(), List.of()), "File read /data/dump.hprof");
+
+            assertTrue(row.endsWith("!small-ops"), row);
+        }
+
+        @Test
+        @DisplayName("leaves a well-buffered target unmarked")
+        void leavesBufferedTargetUnmarked() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "writeIndex", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 20; i++) {
+                spans.add(ioSpan("w" + i, "File write", "jdk.FileWrite",
+                        "{\"path\":\"/data/index.db\",\"bytesWritten\":1048576}", 3 * MS));
+            }
+
+            String row = lineWith(buildWith(spans, List.of()), "File write /data/index.db");
+
+            assertTrue(row.contains("File write /data/index.db — 20 ops"));
+            assertFalse(row.contains("!small-ops"), "a megabyte per write is not an unbuffered stream");
+        }
+
+        @Test
+        @DisplayName("reports a socket against its peer rather than a path")
+        void namesSocketPeer() {
+            List<TraceSpanRow> spans = List.of(
+                    span("01", null, "query", "INTERNAL", 0, 420, 20, 420, 0),
+                    ioSpan("s1", "Socket read", "jdk.SocketRead",
+                            "{\"host\":\"db.internal\",\"port\":5432,\"bytesRead\":180}", 40 * MS));
+
+            assertTrue(buildWith(spans, List.of()).contains("Socket read db.internal:5432 — 1 op"));
+        }
+
+        @Test
+        @DisplayName("reports an fsync without bytes it never moved")
+        void omitsBytesForFsync() {
+            List<TraceSpanRow> spans = List.of(
+                    span("01", null, "commit", "INTERNAL", 0, 420, 20, 420, 0),
+                    ioSpan("q1", "File force", "jdk.FileForce",
+                            "{\"path\":\"/data/index.db\"}", 2 * MS));
+
+            String row = lineWith(buildWith(spans, List.of()), "File force /data/index.db");
+
+            assertTrue(row.contains("File force /data/index.db — 1 op · time 2ms"), row);
+            assertFalse(row.contains("bytes"),
+                    "0 B against an fsync reads as a lost byte count rather than as none");
+        }
+
+        /*
+         * The case the section earns its keep in: a trace big enough to truncate the tree is exactly
+         * the one whose I/O is worth totalling, and the totals must not stop where the bullets did.
+         */
+        @Test
+        @DisplayName("counts every operation, including ones the span tree had to truncate")
+        void countsBeyondTheTruncatedTree() {
+            List<TraceSpanRow> spans = new ArrayList<>();
+            spans.add(span("01", null, "loadClasses", "INTERNAL", 0, 420, 20, 420, 0));
+            for (int i = 0; i < 500; i++) {
+                spans.add(ioSpan("f" + i, "File read", "jdk.FileRead",
+                        "{\"path\":\"/data/dump.hprof\",\"bytesRead\":512}", MS));
+            }
+
+            String out = buildWith(spans, List.of());
+
+            assertTrue(out.contains("File read ×101 [INTERNAL]"), "the tree still stops at 400 lines");
+            assertTrue(out.contains("File read /data/dump.hprof — 500 ops"),
+                    "the accounting must not stop where the bullets did");
+        }
+
+        @Test
+        @DisplayName("says the counts are lower bounds, because JFR drops fast operations")
+        void statesThresholdCaveat() {
+            String out = buildWith(unbufferedReads(), List.of());
+
+            assertTrue(out.contains("I/O threshold"));
+            assertTrue(out.contains("lower bounds"),
+                    "a model must not read a threshold-filtered count as a measurement");
+        }
+
+        @Test
+        @DisplayName("a trace that touched no I/O says so rather than showing an empty section")
+        void survivesNoIo() {
+            assertTrue(build().contains("no socket or file operations were recorded"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Exceptions")
+    class Exceptions {
+
+        private List<TraceExceptionRow> throws42AndOneEscape() {
+            List<TraceExceptionRow> exceptions = new ArrayList<>();
+            for (int i = 0; i < 42; i++) {
+                exceptions.add(thrown("02", "e" + i, "java.io.FileNotFoundException",
+                        "/data/Foo.class (No such file or directory)", false));
+            }
+            exceptions.add(thrown("04", "e99", "java.util.concurrent.TimeoutException",
+                    "update timed out", true));
+            return exceptions;
+        }
+
+        @Test
+        @DisplayName("groups repeated throws into one finding with a count")
+        void groupsByClassAndMessage() {
+            String out = buildWith(detail().spans(), throws42AndOneEscape());
+
+            assertTrue(out.contains("java.io.FileNotFoundException ×42"),
+                    "42 lines read as 42 problems; one line with a count reads as the pattern it is");
+            assertTrue(out.contains("message: /data/Foo.class (No such file or directory)"));
+        }
+
+        @Test
+        @DisplayName("separates the throw that failed a span from the ones that were caught")
+        void marksEscaped() {
+            String out = buildWith(detail().spans(), throws42AndOneEscape());
+
+            assertTrue(out.contains("43 throws recorded, 1 of which escaped its span."));
+            assertTrue(lineWith(out, "TimeoutException ×1").endsWith("!escaped"));
+            assertFalse(lineWith(out, "FileNotFoundException ×42").contains("!escaped"),
+                    "a caught throw is a cost, not a failure, and must not be marked as one");
+        }
+
+        @Test
+        @DisplayName("says plainly when nothing escaped, so volume is not read as breakage")
+        void namesTheAllCaughtCase() {
+            List<TraceExceptionRow> caught = List.of(
+                    thrown("02", "e1", "java.lang.NumberFormatException", "For input string: \"\"", false));
+
+            assertTrue(buildWith(detail().spans(), caught)
+                    .contains("none of which escaped its span — every one was caught"));
+        }
+
+        @Test
+        @DisplayName("attributes throws to span names rather than to hex ids")
+        void namesTheSpansThatThrew() {
+            String out = buildWith(detail().spans(), throws42AndOneEscape());
+
+            assertTrue(out.contains("thrown in: reserveInventory ×42"));
+            assertTrue(out.contains("thrown in: update inventory ×1"));
+        }
+
+        /* A message carrying an embedded stack trace would otherwise end the bullet it sits in. */
+        @Test
+        @DisplayName("flattens a multi-line message onto its own line")
+        void flattensMessages() {
+            List<TraceExceptionRow> multiline = List.of(
+                    thrown("02", "e1", "java.lang.IllegalStateException", "broke\n\tat Foo.bar(Foo.java:1)", false));
+
+            String out = buildWith(detail().spans(), multiline);
+
+            assertTrue(out.contains("message: broke at Foo.bar(Foo.java:1)"));
+        }
+
+        @Test
+        @DisplayName("a trace that threw nothing says so rather than showing an empty section")
+        void survivesNoThrows() {
+            assertTrue(build().contains("no exceptions or errors were recorded"));
+        }
+
+        @Test
+        @DisplayName("the preamble says a throw is not by itself a failure")
+        void explainsThrowSemantics() {
+            String out = build();
+
+            assertTrue(out.contains("A throw is not a failure."));
+            assertTrue(out.contains("!escaped"), "the marker the rule is about must travel with it");
+            assertTrue(out.contains("control flow"),
+                    "the exceptions-as-control-flow reading is the one a count is for");
+        }
+    }
+
+    @Nested
+    @DisplayName("Runs folded on the server")
+    class ServerRuns {
+
+        private static final String UPLOAD =
+                "{\"path\":\"/tmp/upload.tmp\",\"bytesWritten\":1578}";
+
+        /** The root and, under it, 903,029 writes that never left the database. */
+        private TraceDetail uploadTrace(String ioOrigin, List<TraceExceptionRow> exceptions) {
+            TraceSpanRow root = span("01", null, "POST /api/internal/recordings", "SERVER", 0, 420, 300, 420, 0);
+            TraceSpanRunRow writes = new TraceSpanRunRow(
+                    "0a", "01", 1, 1, "File write", "INTERNAL", "jdk.FileWrite", ioOrigin, true,
+                    "3001", "http-1", 1,
+                    TraceRunDurations.of(new long[]{3_000, 4_000, 9 * MS}, 12),
+                    90 * MS, 1_000L, 400_000L, List.of(), List.of("0b"));
+            return detailOf(detail().trace(), List.of(root), List.of(writes), List.of(), exceptions);
+        }
+
+        private String build(TraceDetail detail, List<TracePromotedGroup> promoted) {
+            return new TraceAiMarkdownBuilder(new TraceExportSource(detail, context(), promoted), NOT_COUNTED).build();
+        }
+
+        @Test
+        @DisplayName("renders a run as one fold line under its parent")
+        void rendersRunAsFold() {
+            String line = lineWith(build(uploadTrace(null, List.of()), List.of()), "File write ×");
+
+            assertTrue(line.startsWith("  - File write ×3 [INTERNAL]"), line);
+            assertTrue(line.endsWith("!folded"), line);
+        }
+
+        @Test
+        @DisplayName("marks a run of class-loading reads as such")
+        void marksClassLoadingRun() {
+            String line = lineWith(build(uploadTrace("CLASS_LOADING", List.of()), List.of()), "File write ×");
+
+            assertTrue(line.endsWith("!folded !class-loading"), line);
+        }
+
+        @Test
+        @DisplayName("counts every operation of a payload group, not one per group")
+        void countsGroupedOperations() {
+            String out = build(uploadTrace(null, List.of()), List.of(
+                    new TracePromotedGroup("jdk.FileWrite", UPLOAD, 903_029, 3_318 * MS, 9 * MS)));
+
+            String row = lineWith(out, "File write /tmp/upload.tmp");
+            assertTrue(row.contains("— 903029 ops"), row);
+            assertTrue(row.contains("(" + 1578L * 903_029 + " B)"), row);
+        }
+
+        @Test
+        @DisplayName("names a throw inside a folded member after its run")
+        void namesThrowOnFoldedMember() {
+            String out = build(uploadTrace(null, List.of(thrown("0b", "e1", "java.io.IOException", "disk full", false))),
+                    List.of());
+
+            assertTrue(out.contains("thrown in: File write ×1"), out);
+        }
+    }
+}

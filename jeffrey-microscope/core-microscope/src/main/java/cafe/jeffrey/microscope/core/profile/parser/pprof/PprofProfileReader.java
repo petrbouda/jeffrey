@@ -1,0 +1,210 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.parser.pprof;
+
+import com.google.perftools.profiles.ProfileProto.Label;
+import com.google.perftools.profiles.ProfileProto.Profile;
+import com.google.perftools.profiles.ProfileProto.Sample;
+import com.google.perftools.profiles.ProfileProto.ValueType;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofEventTypeNaming;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofEventTypeNaming.PprofEventType;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofFrameMapper;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofFrameMapper.MappedStack;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofLabels;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofSampleUnit;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofSampleUnit.BytesUnit;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofSampleUnit.CountUnit;
+import cafe.jeffrey.microscope.core.profile.parser.pprof.mapping.PprofSampleUnit.DurationUnit;
+import cafe.jeffrey.microscope.core.profile.persistence.api.Event;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventStacktrace;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventThread;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventType;
+import cafe.jeffrey.microscope.core.profile.persistence.api.SingleThreadedEventWriter;
+import cafe.jeffrey.microscope.common.Json;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ObjectNode;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Emits the samples of a single pprof {@link Profile} into a {@link SingleThreadedEventWriter},
+ * following the writer's announce-once protocol (each distinct thread / stacktrace is announced
+ * exactly once, before the first event that uses it).
+ * <p>
+ * A pprof profile carries several value dimensions in each sample (its {@code sample_type} list —
+ * e.g. a Go CPU profile has {@code samples}/count and {@code cpu}/nanoseconds; a heap profile has
+ * four). Each dimension becomes its own Jeffrey event type ({@code pprof.<type>}) so they stay
+ * independently browsable, and every non-zero sample value contributes one event to its dimension.
+ * pprof has no per-sample timestamps, so every event is stamped with the profile's collection time.
+ */
+public final class PprofProfileReader {
+
+    private static final String COLUMN_TYPE_TEXT = "text";
+    private static final String COLUMN_TYPE_NUMBER = "number";
+    private static final String SYNTHETIC_THREAD_NAME = "pprof-samples";
+    // Event-type extras key carrying the original pprof sample_type (e.g. `samples/count`) for display.
+    private static final String EXTRA_SAMPLE_TYPE = "sampleType";
+
+    private final SingleThreadedEventWriter writer;
+
+    public PprofProfileReader(SingleThreadedEventWriter writer) {
+        this.writer = writer;
+    }
+
+    public void read(Profile profile) {
+        writer.onThreadStart();
+
+        PprofTables tables = new PprofTables(profile);
+        List<Dimension> dimensions = resolveDimensions(profile, tables);
+        Instant profileTime = Instant.ofEpochSecond(0, profile.getTimeNanos());
+        EventThread syntheticThread = new EventThread(SYNTHETIC_THREAD_NAME, null, null, false);
+
+        Map<EventThread, Long> threadIds = new HashMap<>();
+        Map<List<Long>, Long> stacktraceIds = new HashMap<>();
+        // Label key -> column content type, accumulated across all samples so the Event Viewer can
+        // render the labels of every pprof event type.
+        Map<String, String> labelColumnTypes = new LinkedHashMap<>();
+
+        for (Sample sample : profile.getSampleList()) {
+            emitSample(sample, tables, dimensions, profileTime, syntheticThread,
+                    threadIds, stacktraceIds, labelColumnTypes);
+        }
+
+        JsonNode columns = buildColumns(labelColumnTypes);
+        for (Dimension dimension : dimensions) {
+            writer.onEventType(new EventType(
+                    dimension.eventType().name(),
+                    dimension.eventType().label(),
+                    null,
+                    null,
+                    List.of(),
+                    columns,
+                    Map.of(EXTRA_SAMPLE_TYPE, dimension.eventType().sampleType())));
+        }
+
+        writer.onThreadComplete();
+    }
+
+    private void emitSample(
+            Sample sample,
+            PprofTables tables,
+            List<Dimension> dimensions,
+            Instant profileTime,
+            EventThread syntheticThread,
+            Map<EventThread, Long> threadIds,
+            Map<List<Long>, Long> stacktraceIds,
+            Map<String, String> labelColumnTypes) {
+
+        List<Label> labels = sample.getLabelList();
+        recordLabelColumns(labels, tables, labelColumnTypes);
+
+        EventThread resolvedThread = PprofLabels.resolveThread(labels, tables);
+        EventThread thread = resolvedThread != null ? resolvedThread : syntheticThread;
+        long threadId = threadIds.computeIfAbsent(thread, writer::onEventThread);
+
+        List<Long> locationIds = sample.getLocationIdList();
+        long stacktraceId = stacktraceIds.computeIfAbsent(locationIds, ids -> {
+            MappedStack mapped = PprofFrameMapper.mapStack(ids, tables);
+            return writer.onEventStacktrace(new EventStacktrace(mapped.type(), mapped.frames()));
+        });
+
+        ObjectNode fields = PprofLabels.toFields(labels, tables);
+
+        for (Dimension dimension : dimensions) {
+            if (dimension.index() >= sample.getValueCount()) {
+                continue;
+            }
+            long rawValue = sample.getValue(dimension.index());
+            if (rawValue == 0) {
+                continue;
+            }
+
+            SampleMagnitude magnitude = magnitude(dimension.unit(), rawValue);
+            Event event = new Event(
+                    dimension.eventType().name(),
+                    profileTime,
+                    null,
+                    magnitude.samples(),
+                    magnitude.weight(),
+                    null,
+                    stacktraceId,
+                    threadId,
+                    // Serialized here now that Event carries text: this importer builds a tree of
+                    // its own, and the writer no longer converts one on its way past.
+                    fields.toString(),
+                    null);
+            writer.onEvent(event);
+        }
+    }
+
+    private record Dimension(int index, PprofSampleUnit unit, PprofEventType eventType) {
+    }
+
+    private record SampleMagnitude(long samples, Long weight) {
+    }
+
+    private List<Dimension> resolveDimensions(Profile profile, PprofTables tables) {
+        List<Dimension> dimensions = new ArrayList<>(profile.getSampleTypeCount());
+        for (int i = 0; i < profile.getSampleTypeCount(); i++) {
+            ValueType sampleType = profile.getSampleType(i);
+            String type = tables.string(sampleType.getType());
+            String unit = tables.string(sampleType.getUnit());
+            dimensions.add(new Dimension(
+                    i,
+                    PprofSampleUnit.fromUnitString(unit),
+                    PprofEventTypeNaming.resolve(type, unit)));
+        }
+        return dimensions;
+    }
+
+    private static SampleMagnitude magnitude(PprofSampleUnit unit, long rawValue) {
+        return switch (unit) {
+            case CountUnit ignored -> new SampleMagnitude(rawValue, null);
+            case DurationUnit duration -> new SampleMagnitude(1, duration.toNanos(rawValue));
+            case BytesUnit ignored -> new SampleMagnitude(1, rawValue);
+        };
+    }
+
+    private static void recordLabelColumns(List<Label> labels, PprofTables tables, Map<String, String> columnTypes) {
+        for (Label label : labels) {
+            String key = tables.string(label.getKey());
+            if (key.isBlank()) {
+                continue;
+            }
+            boolean isText = !tables.string(label.getStr()).isBlank();
+            columnTypes.putIfAbsent(key, isText ? COLUMN_TYPE_TEXT : COLUMN_TYPE_NUMBER);
+        }
+    }
+
+    private static JsonNode buildColumns(Map<String, String> labelColumnTypes) {
+        List<ObjectNode> columns = new ArrayList<>(labelColumnTypes.size());
+        for (Map.Entry<String, String> entry : labelColumnTypes.entrySet()) {
+            columns.add(Json.createObject()
+                    .put("field", entry.getKey())
+                    .put("header", entry.getKey())
+                    .put("type", entry.getValue())
+                    .putNull("description"));
+        }
+        return Json.mapper().valueToTree(columns);
+    }
+}

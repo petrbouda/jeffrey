@@ -18,12 +18,12 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.management.manager.FlamegraphManager;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.model.FlamegraphPanel;
-import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.profile.management.panel.PanelContext;
-import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.manager.FlamegraphManager;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.model.FlamegraphPanel;
+import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.panel.PanelContext;
+import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.util.List;
 

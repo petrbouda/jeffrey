@@ -57,18 +57,11 @@
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
-        <!-- Platform modules (formerly transitive via platform-core) -->
+        <!-- JFR model types, analysis and settings shared with the profile analysis below -->
         <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>microscope-persistence</artifactId>
+            <artifactId>common-profile</artifactId>
         </dependency>
-
-        <!-- Profile management (for ProfilesManager, CommonProjectManager, etc.) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>profile-management</artifactId>
-        </dependency>
-
         <!-- MCP: the pure 2026-07-28 protocol, and Jeffrey's adapter over it (Spring MVC, @Tool toolsets) -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -108,6 +101,65 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- DuckDB: the data sources and pools (core.duckdb), the core and per-profile databases
+             (core.persistence, core.profile.persistence) and the heap-dump index -->
+        <dependency>
+            <groupId>org.duckdb</groupId>
+            <artifactId>duckdb_jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-duckdb</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.validation</groupId>
+            <artifactId>jakarta.validation-api</artifactId>
+        </dependency>
+        <!-- The flamegraph wire format (src/main/proto/flamegraph.proto) and the pprof/OTLP readers -->
+        <dependency>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>${protobuf.version}</version>
+        </dependency>
+        <!-- The heap-dump OQL grammar (src/main/antlr4): the generated parser needs the runtime -->
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>antlr4-runtime</artifactId>
+        </dependency>
+        <!-- Primitive-specialised collections for the HPROF walkers and the profile repositories -->
+        <dependency>
+            <groupId>org.eclipse.collections</groupId>
+            <artifactId>eclipse-collections</artifactId>
+        </dependency>
+        <!-- lz4-java: the XXHash64 that groups byte-identical instances in the heap-dump analysis -->
+        <dependency>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openjdk.jmc</groupId>
+            <artifactId>flightrecorder.rules.jdk</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.hdrhistogram</groupId>
+            <artifactId>HdrHistogram</artifactId>
+        </dependency>
         <!-- The connector over a recording volume: its API (clients, DTOs, managers), the connector SPI and the local-directory kind -->
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -153,10 +205,63 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- JfrRecordings/SpansAssert: spans asserted through what a real flight recording committed -->
+        <dependency>
+            <groupId>cafe.jeffrey-analyst</groupId>
+            <artifactId>jeffrey-tracing-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
+        <extensions>
+            <extension>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.1</version>
+            </extension>
+        </extensions>
         <plugins>
+            <!-- src/main/proto: flamegraph.proto (the flamegraph wire format) and the vendored pprof and OTLP schemas -->
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
+                <configuration>
+                    <protocArtifact>com.google.protobuf:protoc:${protobuf.version}:exe:${os.detected.classifier}</protocArtifact>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- src/main/antlr4: the heap-dump OQL grammar; the Java package follows the grammar's directory -->
+            <plugin>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-maven-plugin</artifactId>
+                <version>${antlr4.version}</version>
+                <configuration>
+                    <visitor>true</visitor>
+                    <listener>false</listener>
+                    <sourceDirectory>${basedir}/src/main/antlr4</sourceDirectory>
+                    <outputDirectory>${project.build.directory}/generated-sources/antlr4</outputDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>antlr4</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>exec-maven-plugin</artifactId>
                 <groupId>org.codehaus.mojo</groupId>

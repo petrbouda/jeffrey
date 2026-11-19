@@ -1,0 +1,73 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
+
+import cafe.jeffrey.microscope.model.EventTypeName;
+import cafe.jeffrey.microscope.profile.common.exceptions.ClassLoadingFramePrefixes;
+
+import java.util.List;
+
+/**
+ * Which stack frames mean a promoted file read was the class loader's work.
+ * <p>
+ * The question this answers is not "what file was read" — it cannot be. A fat jar is read by the
+ * class loader, by {@code ServiceLoader} scanning for providers, by {@code getResourceAsStream}, and
+ * by a library unpacking its own native library, and all four arrive at the same
+ * {@code java.util.zip.ZipFile$Source.readAt} leaf frame against the same {@code .jar} path. In one
+ * measured JVM, 2534 of 2628 jar reads were a driver unpacking its {@code .so} and only ~68 were
+ * class loading. Neither the path nor the leaf frame separates them.
+ * <p>
+ * What does separate them is a class-loader frame further down the stack — in that measurement it
+ * sat between 4 and 14 frames from the leaf. So the derivation walks a promoted I/O event's stack
+ * and looks for one of the prefixes below.
+ * <p>
+ * The verdict is deliberately one-sided. A hit means class loading; a miss means only that nothing
+ * said so, which is also what a recording that captured no stack trace produces. {@code io_origin}
+ * is therefore NULL for "not known to be class loading", never for "known not to be" — the UI must
+ * not present the absence as a negative finding.
+ */
+final class ClassLoadingFrames {
+
+    /**
+     * Class-name prefixes that appear in a class-loading stack — the shared list, so this verdict and
+     * the JVM-internal throw classification never disagree about what a loader frame is.
+     */
+    static final List<String> CLASS_NAME_PREFIXES = ClassLoadingFramePrefixes.PREFIXES;
+
+    /** The origin written to {@code trace_spans.io_origin} when one of the prefixes above matches. */
+    static final String CLASS_LOADING_ORIGIN = "CLASS_LOADING";
+
+    /**
+     * The promoted event types this verdict is asked about — the I/O family, and only it.
+     * <p>
+     * A narrower set than {@link BlockingLeafSpans#EVENT_TYPES} on purpose. A park or a monitor wait
+     * inside a class loader would match the frames above just as happily, and the column is
+     * {@code io_origin}: saying a park's <em>I/O</em> was class loading is not a true sentence, and a
+     * later reader would be right to act on it. Sockets stay in because a loader can be reading over
+     * one.
+     */
+    static final List<String> EVENT_TYPES = List.of(
+            EventTypeName.FILE_READ,
+            EventTypeName.FILE_WRITE,
+            EventTypeName.FILE_FORCE,
+            EventTypeName.SOCKET_READ,
+            EventTypeName.SOCKET_WRITE);
+
+    private ClassLoadingFrames() {
+    }
+}

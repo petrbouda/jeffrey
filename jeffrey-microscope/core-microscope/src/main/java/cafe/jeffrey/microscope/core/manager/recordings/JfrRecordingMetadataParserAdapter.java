@@ -19,9 +19,9 @@ package cafe.jeffrey.microscope.core.manager.recordings;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformation;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingInformationParser;
-import cafe.jeffrey.microscope.profile.persistence.api.RecordingSources;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformation;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingInformationParser;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingMetadataParser;
 
 import java.nio.file.Path;

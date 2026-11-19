@@ -29,13 +29,13 @@ import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ToolFixtures;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.profile.management.ProfileInitStages;
+import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
+import cafe.jeffrey.microscope.core.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.microscope.profile.management.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.profile.management.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
 
 import java.nio.file.Path;
 import java.time.Clock;

@@ -12,12 +12,19 @@ Detailed conventions live in `.claude/rules/` and load only when you touch match
 jeffrey-microscope/                    MicroscopeApplication (core-microscope), Vue SPA (pages-microscope; its generic
                                        components, services and design tokens in src/shared, imported as @shared)
   core-microscope/                     REST /api/internal/** (every controller), managers, MCP endpoint and tools
-                                       (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download)
+                                       (…/core/mcp/), the recordings store (core.manager.recordings) and downloads (core.manager.download);
+                                       the profile analysis, one package tree per feature under core.profile (flamegraph,
+                                       frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
+                                       orchestration, …), the recording parsers (core.profile.parser: JFR via the JDK and
+                                       raw chunks, pprof, OTLP), heap dumps (core.profile.heapdump, OQL in .oql), the
+                                       per-profile DuckDB (core.profile.persistence: repository API + impl), the core
+                                       DuckDB of recordings and profiles (core.persistence) and the DuckDB plumbing every
+                                       Microscope database uses (core.duckdb: data sources, pools, DatabaseManager,
+                                       appenders, metrics, the SQL builder in core.duckdb.sql)
   microscope-model/                    the domain records two or more Microscope modules share, no Jackson or JFR
                                        (cafe.jeffrey.microscope.model; ConnectorAddress and ConnectorKind in
                                        model.connector, naming no kind; the imported recordings' files, their kinds
                                        (ManagedFile) and RecordingStorageLayout in model.recording)
-  microscope-persistence/              microscope core DuckDB (recordings, profiles): repository API + DuckDB impl
   connectors/
     volume-connector/                  the connector over a recording volume (writable or read-only): the client
                                        interfaces and DTOs (connector.api), the clients (connector.volume), the
@@ -32,18 +39,12 @@ jeffrey-microscope/                    MicroscopeApplication (core-microscope), 
                                        FileSystemUtils, Measuring, IDGenerator, the volume archives' Lz4Decompressor, …
   microscope-test/                     Microscope's test support: @DuckDBTest, RecordedSession (real chunks),
                                        TestappRecording and CheckoutRecording (real traced runs)
-  duckdb/                              the DuckDB plumbing every Microscope database uses: data sources, pools,
-                                       DatabaseManager, appenders, metrics, the SQL builder (duckdb.sql)
   mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
                                        no Jeffrey, no Spring (ModuleBoundaryTest)
   mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
   notifications/
-  profiles/                            analysis modules: profile-management (every analysis feature, one package
-                                       tree each: flamegraph, frameir, timeseries, subsecond, thread, gc, memory,
-                                       custom events, heap-dump orchestration, …), recording-parser (JFR via the JDK
-                                       and raw chunks, pprof, OTLP), profile-persistence (per-profile DuckDB:
-                                       repository API + impl), common-profile (incl. the JFR model types), heap-dump,
-                                       heapdump-oql
+  common-profile/                      the profile model core-microscope analyses (incl. the JFR model types;
+                                       cafe.jeffrey.microscope.profile.common)
 volume-scheduler/                      one module: VolumeSchedulerApplication (cafe.jeffrey.volumescheduler: config/ (typed
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:
@@ -91,7 +92,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 ### Inspecting DuckDB files
 - Per-profile DB `~/.jeffrey-microscope/profiles/<profile-id>/profile-data.db` (`events`, `threads`, `event_types`, …); core DB `~/.jeffrey-microscope/jeffrey-data.db`.
 - A running app holds an exclusive lock: **copy the file first** (plus `.wal` if present) and open the copy read-only. No `duckdb` CLI is installed — `python3 -m venv /tmp/ddbvenv && /tmp/ddbvenv/bin/pip install duckdb`, then `duckdb.connect(path, read_only=True)`.
-- Schema is `CREATE TABLE` in each `V001__init.sql` (`microscope-persistence`, `profile-persistence` under `src/main/resources/db/migration/`); edit it in place — there are no migrations and no backward compatibility: Flyway validates the core DB on startup, so an existing data dir is wiped with `./run-microscope.sh --clean` after a schema change. JFR event fields reference: https://sap.github.io/jfrevents/
+- Schema is `CREATE TABLE` in each `V001__init.sql` (`core-microscope/src/main/resources/db/migration/`: `microscope/core` for the core DB, `profile` per profile, `heap-dump-index`); edit it in place — there are no migrations and no backward compatibility: Flyway validates the core DB on startup, so an existing data dir is wiped with `./run-microscope.sh --clean` after a schema change. JFR event fields reference: https://sap.github.io/jfrevents/
 
 ## Rules that apply everywhere
 

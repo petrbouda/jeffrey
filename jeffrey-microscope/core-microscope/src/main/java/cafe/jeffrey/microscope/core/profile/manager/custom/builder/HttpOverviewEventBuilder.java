@@ -1,0 +1,305 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.manager.custom.builder;
+
+import tools.jackson.databind.node.ObjectNode;
+import org.eclipse.collections.api.tuple.primitive.IntLongPair;
+import org.eclipse.collections.impl.map.mutable.primitive.IntLongHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.LongLongHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.ObjectLongHashMap;
+import cafe.jeffrey.microscope.model.time.RelativeTimeRange;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordBuilder;
+import cafe.jeffrey.microscope.core.profile.manager.custom.model.http.*;
+import cafe.jeffrey.microscope.core.profile.persistence.api.GenericRecord;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesUtils;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
+import java.util.function.Predicate;
+
+public class HttpOverviewEventBuilder implements RecordBuilder<GenericRecord, HttpOverviewData> {
+
+    private static class UriInfoBuilder {
+        private final String uri;
+        private final LatencyStats responseTimes = new LatencyStats();
+        private final ObjectLongHashMap<String> methodCounts = new ObjectLongHashMap<>();
+        private final IntLongHashMap statusCodeCounts = new IntLongHashMap();
+
+        private long totalReceivedBytes = -1;
+        private long totalSentBytes = -1;
+        private long maxResponseTime = 0;
+
+        public UriInfoBuilder(String uri) {
+            this.uri = uri;
+        }
+
+        public void addResponseTime(long responseTime) {
+            maxResponseTime = Math.max(maxResponseTime, responseTime);
+            responseTimes.record(responseTime);
+        }
+
+        public void addReceivedBytes(long bytes) {
+            if (bytes > 0) {
+                if (totalReceivedBytes != -1) {
+                    totalReceivedBytes += bytes;
+                } else {
+                    totalReceivedBytes = bytes;
+                }
+            }
+        }
+
+        public void addSentBytes(long bytes) {
+            if (bytes > 0) {
+                if (totalSentBytes != -1) {
+                    totalSentBytes += bytes;
+                } else {
+                    totalSentBytes = bytes;
+                }
+            }
+        }
+
+        public void incrementMethodCount(String method) {
+            methodCounts.addToValue(method, 1);
+        }
+
+        public void incrementStatusCodeCount(int statusCode) {
+            statusCodeCounts.addToValue(statusCode, 1);
+        }
+
+        public HttpUriInfo build() {
+            long count4xx = countErrors(statusCodeCounts, 400, 500);
+            long count5xx = countErrors(statusCodeCounts, 500, 600);
+            long requestCount = responseTimes.count();
+            return new HttpUriInfo(
+                    uri,
+                    requestCount,
+                    maxResponseTime,
+                    responseTimes.p99(),
+                    responseTimes.p95(),
+                    calculateSuccessRate(requestCount, count4xx, count5xx),
+                    count4xx,
+                    count5xx,
+                    sumBytes(totalReceivedBytes, totalSentBytes),
+                    totalReceivedBytes,
+                    totalSentBytes);
+        }
+
+        private static long countErrors(IntLongHashMap statusCodeCounts, int from, int to) {
+            long count = 0;
+            for (IntLongPair pair : statusCodeCounts.keyValuesView()) {
+                if (pair.getOne() >= from && pair.getOne() < to) {
+                    count += pair.getTwo();
+                }
+            }
+            return count;
+        }
+    }
+
+    private final Map<String, UriInfoBuilder> uriInfos = new HashMap<>();
+
+    /** Slowest last, so the queue's head is the fastest of the slow ones: the one a slower request evicts. */
+    private static final Comparator<HttpSlowRequest> BY_RESPONSE_TIME =
+            Comparator.comparingLong(HttpSlowRequest::responseTime);
+
+    private final PriorityQueue<HttpSlowRequest> slowRequests = new PriorityQueue<>(BY_RESPONSE_TIME);
+
+    private final LongLongHashMap responseTimeSerie;
+    private final LongLongHashMap requestCountSerie;
+    private final int slowRequestLimit;
+    private final Predicate<String> uriFilter;
+
+    public HttpOverviewEventBuilder(
+            RelativeTimeRange timeRange,
+            int slowRequestLimit,
+            Predicate<String> uriFilter) {
+        this.responseTimeSerie = TimeseriesUtils.initWithZeros(timeRange);
+        this.requestCountSerie = TimeseriesUtils.initWithZeros(timeRange);
+        this.slowRequestLimit = slowRequestLimit;
+        this.uriFilter = uriFilter;
+    }
+
+    @Override
+    public void onRecord(GenericRecord record) {
+        ObjectNode jsonFields = record.jsonFields();
+        if (jsonFields == null) {
+            return;
+        }
+
+        String uri = jsonFields.path("uri").asString("");
+        if (uri.isEmpty() || (uriFilter != null && !uriFilter.test(uri))) {
+            // Skip records without URI or not matching the filter
+            return;
+        }
+
+        // Extract fields from JSON
+        long startTime = record.startTimestamp().toEpochMilli();
+        long responseTime = record.duration().toNanos();
+        String host = jsonFields.path("remoteHost").asString("");
+        int port = jsonFields.path("remotePort").asInt(-1);
+        String method = jsonFields.path("method").asString("");
+        String statusStr = jsonFields.path("statusCode").asString("0");
+        int status = parseStatusCode(statusStr);
+        long requestLength = jsonFields.path("requestLength").asLong(-1);
+        long responseLength = jsonFields.path("responseLength").asLong(-1);
+
+        UriInfoBuilder uriInfoBuilder = uriInfos.computeIfAbsent(uri, UriInfoBuilder::new);
+        uriInfoBuilder.addResponseTime(responseTime);
+        uriInfoBuilder.addReceivedBytes(requestLength);
+        uriInfoBuilder.addSentBytes(responseLength);
+        uriInfoBuilder.incrementMethodCount(method);
+        uriInfoBuilder.incrementStatusCodeCount(status);
+
+        // Track slow requests up to the limit
+        HttpSlowRequest slowRequest = new HttpSlowRequest(
+                uri, method, responseTime, status, requestLength, responseLength, host, port, startTime);
+
+        if (slowRequests.size() < slowRequestLimit) {
+            slowRequests.offer(slowRequest);
+        } else {
+            HttpSlowRequest fastestRequest = slowRequests.peek();
+            if (fastestRequest != null && responseTime > fastestRequest.responseTime()) {
+                slowRequests.poll(); // Remove the fastest
+                slowRequests.offer(slowRequest); // Add the new slower request
+            }
+        }
+
+        long seconds = record.timestampFromStart().toSeconds();
+        responseTimeSerie.updateValue(seconds, -1, first -> Math.max(first, responseTime));
+        requestCountSerie.addToValue(seconds, 1);
+    }
+
+    @Override
+    public HttpOverviewData build() {
+        long requestCount = 0;
+        long count4xx = 0;
+        long count5xx = 0;
+        long maxResponseTime = 0;
+        long totalBytesReceived = -1;
+        long totalBytesSent = -1;
+
+        LatencyStats globalResponseTimes = new LatencyStats();
+
+        ObjectLongHashMap<String> methodCounts = new ObjectLongHashMap<>();
+        IntLongHashMap statusCodeCounts = new IntLongHashMap();
+
+        List<HttpUriInfo> uris = new ArrayList<>(uriInfos.size());
+        for (UriInfoBuilder builder : uriInfos.values()) {
+            HttpUriInfo uri = builder.build();
+
+            requestCount += uri.requestCount();
+            count4xx += uri.count4xx();
+            count5xx += uri.count5xx();
+            totalBytesReceived = accumulateBytes(totalBytesReceived, uri.totalBytesReceived());
+            totalBytesSent = accumulateBytes(totalBytesSent, uri.totalBytesSent());
+
+            if (uri.maxResponseTime() > maxResponseTime) {
+                maxResponseTime = uri.maxResponseTime();
+            }
+            globalResponseTimes.add(builder.responseTimes);
+
+            builder.methodCounts.keyValuesView()
+                    .each(pair -> methodCounts.addToValue(pair.getOne(), pair.getTwo()));
+            builder.statusCodeCounts.keyValuesView()
+                    .each(pair -> statusCodeCounts.addToValue(pair.getOne(), pair.getTwo()));
+
+            uris.add(uri);
+        }
+
+        // Build HTTP header
+        HttpHeader header = new HttpHeader(
+                requestCount,
+                maxResponseTime,
+                globalResponseTimes.p99(),
+                globalResponseTimes.p95(),
+                calculateSuccessRate(requestCount, count4xx, count5xx),
+                count5xx,
+                count4xx,
+                sumBytes(totalBytesReceived, totalBytesSent),
+                totalBytesReceived,
+                totalBytesSent);
+
+        return new HttpOverviewData(
+                header,
+                uris,
+                toHttpStatusStats(statusCodeCounts),
+                toHttpMethodStats(methodCounts),
+                slowestFirst(),
+                TimeseriesUtils.buildSerie("Response Time", responseTimeSerie),
+                TimeseriesUtils.buildSerie("Request Count", requestCountSerie));
+    }
+
+    private static BigDecimal calculateSuccessRate(long requestCount, long count4xx, long count5xx) {
+        if (requestCount == 0) {
+            return BigDecimal.ZERO;
+        }
+        return BigDecimal.valueOf(requestCount - (count4xx + count5xx))
+                .divide(BigDecimal.valueOf(requestCount), 4, RoundingMode.HALF_UP);
+    }
+
+    private static long sumBytes(long received, long sent) {
+        if (received != -1 && sent != -1) {
+            return received + sent;
+        } else if (received != -1) {
+            return received;
+        } else {
+            // Sent has value >= 0, or -1
+            return sent;
+        }
+    }
+
+    private static long accumulateBytes(long current, long addition) {
+        // Addition is not -1 (it means the value is known)
+        if (addition > 0) {
+            // Current is not -1 (already has accumulated value)
+            if (current != -1) {
+                return current + addition;
+            } else {
+                return addition;
+            }
+        }
+        return current;
+    }
+
+    private static List<HttpStatusStats> toHttpStatusStats(IntLongHashMap statusCodeCounts) {
+        List<HttpStatusStats> result = new ArrayList<>(statusCodeCounts.size());
+        statusCodeCounts.keyValuesView().each(pair ->
+                result.add(new HttpStatusStats(pair.getOne(), pair.getTwo())));
+        return result;
+    }
+
+    private static List<HttpMethodStats> toHttpMethodStats(ObjectLongHashMap<String> methodCounts) {
+        List<HttpMethodStats> result = new ArrayList<>(methodCounts.size());
+        methodCounts.keyValuesView().each(pair ->
+                result.add(new HttpMethodStats(pair.getOne(), pair.getTwo())));
+        return result;
+    }
+
+    private int parseStatusCode(String statusStr) {
+        try {
+            return Integer.parseInt(statusStr);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    /** The slow requests, slowest first: the queue keeps them as a heap, in no order a reader can use. */
+    private List<HttpSlowRequest> slowestFirst() {
+        return slowRequests.stream().sorted(BY_RESPONSE_TIME.reversed()).toList();
+    }
+}

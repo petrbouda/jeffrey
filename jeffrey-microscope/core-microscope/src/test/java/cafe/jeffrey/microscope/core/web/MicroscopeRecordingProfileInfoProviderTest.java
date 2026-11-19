@@ -28,7 +28,7 @@ import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRequest;
 import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
 import cafe.jeffrey.microscope.profile.common.pipeline.StageProgress;
 import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
-import cafe.jeffrey.microscope.profile.management.manager.heapdump.HeapDumpStages;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpStages;
 import cafe.jeffrey.microscope.model.recording.Recording;
 import cafe.jeffrey.microscope.core.web.ProfileInitProgress;
 import cafe.jeffrey.microscope.core.web.dto.response.RecordingProfileResponse;

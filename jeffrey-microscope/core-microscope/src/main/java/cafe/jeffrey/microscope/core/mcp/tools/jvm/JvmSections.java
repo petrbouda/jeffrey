@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
 import cafe.jeffrey.microscope.model.Type;
 
 import java.util.Collections;

@@ -1,0 +1,369 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile;
+
+import cafe.jeffrey.microscope.profile.common.analysis.AutoAnalysisResult;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineProgress;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineState;
+import cafe.jeffrey.microscope.profile.common.pipeline.StageProgress;
+import cafe.jeffrey.microscope.profile.common.pipeline.StageStatus;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunOptions;
+import cafe.jeffrey.microscope.profile.common.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.action.ProfileDataInitializer;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventWriter;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileRepositories;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingEventParser;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingEventParserResolver;
+import cafe.jeffrey.microscope.core.profile.persistence.api.RecordingSources;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceAttributeRepository;
+import cafe.jeffrey.microscope.core.profile.persistence.api.MethodTraceWeightRepository;
+import cafe.jeffrey.microscope.core.profile.persistence.api.TraceRepository;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.core.duckdb.DatabaseLease;
+import cafe.jeffrey.microscope.core.duckdb.DatabaseManager;
+import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClient;
+import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+
+import javax.sql.DataSource;
+import java.nio.file.Path;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+import static org.awaitility.Awaitility.await;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Guards the ordering that profile initialization depends on but that no other test can see: the
+ * trace tables are derived from the events, so the derivation has to run after the writer has
+ * finished and before anything can read a trace.
+ * <p>
+ * Deliberately a wiring test rather than an end-to-end one. What the repository tests cannot cover
+ * is that {@code derive()} is called at all -- a deletion there would leave every trace query
+ * returning nothing, with every other test still green.
+ */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
+class ProfileInitializerImplTest {
+
+    private static final Clock CLOCK = Clock.fixed(Instant.parse("2026-01-15T10:00:00Z"), ZoneOffset.UTC);
+
+    private static final String PROFILE_ID = "profile-1";
+
+    @Mock
+    ProfileRepositories profileRepositories;
+
+    @Mock
+    DatabaseManager databaseManager;
+
+    @Mock
+    RecordingEventParserResolver recordingEventParserResolver;
+
+    @Mock
+    EventWriter.Factory eventWriterFactory;
+
+    @Mock
+    ProfileDataInitializer profileDataInitializer;
+
+    @Mock
+    TraceRepository traceRepository;
+
+    @Mock
+    TraceAttributeRepository traceAttributeRepository;
+
+    @Mock
+    MethodTraceWeightRepository methodTraceWeightRepository;
+
+    @Mock
+    EventWriter eventWriter;
+
+    @Mock
+    RecordingEventParser recordingEventParser;
+
+    private final PipelineRunRegistry<String> runRegistry =
+            new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK);
+
+    private ProfileInitializerImpl initializer(ProfileInfo profileInfo) {
+        DataSource dataSource = mock(DataSource.class);
+        DatabaseLease lease = mock(DatabaseLease.class);
+        when(lease.dataSource()).thenReturn(dataSource);
+        when(databaseManager.acquire(profileInfo.id())).thenReturn(lease);
+
+        when(eventWriterFactory.create(any(), any())).thenReturn(eventWriter);
+        when(recordingEventParserResolver.resolve(any())).thenReturn(recordingEventParser);
+        when(profileRepositories.newTraceRepository(dataSource)).thenReturn(traceRepository);
+        when(profileRepositories.newTraceAttributeRepository(dataSource))
+                .thenReturn(traceAttributeRepository);
+        when(profileRepositories.newMethodTraceWeightRepository(dataSource))
+                .thenReturn(methodTraceWeightRepository);
+
+        // The re-cluster and checkpoint steps at the tail run through the infrastructure client.
+        DatabaseClientProvider clientProvider = mock(DatabaseClientProvider.class);
+        when(clientProvider.provide(any())).thenReturn(mock(DatabaseClient.class));
+        when(profileRepositories.databaseClientProvider(dataSource)).thenReturn(clientProvider);
+
+        // The warming stage joins what these return, so a null future would fail the pipeline rather
+        // than the assertion the test is making.
+        when(profileDataInitializer.startAutoAnalysis(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+        when(profileDataInitializer.initialize(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(null));
+
+        return new ProfileInitializerImpl(
+                profileRepositories,
+                databaseManager,
+                recordingEventParserResolver,
+                eventWriterFactory,
+                // Deep stubs: initialization reaches through the manager to the managers it warms,
+                // and every one of those hops would otherwise be a null.
+                _ -> mock(ProfileManager.class, RETURNS_DEEP_STUBS),
+                profileDataInitializer,
+                runRegistry,
+                CLOCK);
+    }
+
+    @Test
+    @DisplayName("derives the trace tables once the events are written")
+    void derivesTracesAfterParsing() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        when(traceRepository.hasSpanEventTypes()).thenReturn(true);
+
+        initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+        // Before the writer completes there is nothing to derive from; after the data initializer
+        // the pre-computed views would have been built against tables that were still empty.
+        // The attribute index reads trace_spans, so it derives strictly after the spans do.
+        InOrder inOrder =
+                inOrder(eventWriter, traceRepository, traceAttributeRepository, profileDataInitializer);
+        inOrder.verify(eventWriter).onComplete();
+        inOrder.verify(traceRepository).derive();
+        inOrder.verify(traceAttributeRepository).derive();
+        inOrder.verify(profileDataInitializer).initialize(any(), any());
+    }
+
+    /**
+     * The rule set reads the recording file and nothing the parse writes, so it is started before
+     * the parse and collected after it. Started afterwards instead, the import would cost both
+     * passes end to end rather than the longer of the two.
+     */
+    @Test
+    @DisplayName("starts the auto analysis before parsing, and collects it in the warming")
+    void startsTheAutoAnalysisBeforeParsing() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        RecordingSources recording = RecordingSources.of(Path.of("recording.jfr"));
+
+        initializer(profileInfo).initialize(profileInfo, recording);
+
+        InOrder inOrder = inOrder(profileDataInitializer, recordingEventParser);
+        inOrder.verify(profileDataInitializer).startAutoAnalysis(profileInfo, recording);
+        inOrder.verify(recordingEventParser).start(any(), any());
+        inOrder.verify(profileDataInitializer).initialize(any(), any());
+    }
+
+    /**
+     * The findings the analysis produced reach the warming rather than being dropped between the two
+     * halves — without this the rules would run and nothing would ever be cached.
+     */
+    @Test
+    @DisplayName("hands the started analysis to the warming")
+    void handsTheStartedAnalysisToTheWarming() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        CompletableFuture<List<AutoAnalysisResult>> started = CompletableFuture.completedFuture(List.of());
+
+        // Built first: the helper stubs both halves with completed futures, which would overwrite
+        // the one this test is about.
+        ProfileInitializerImpl initializer = initializer(profileInfo);
+        when(profileDataInitializer.startAutoAnalysis(any(), any())).thenReturn(started);
+
+        initializer.initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+        verify(profileDataInitializer).initialize(any(), eq(started));
+    }
+
+    /**
+     * The stage waits for the warming rather than merely starting it, which is what makes a
+     * profile's findings a fact about it rather than a race against it.
+     */
+    @Test
+    @DisplayName("waits for the warming before the pipeline completes")
+    void waitsForTheWarming() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        CompletableFuture<Void> warming = new CompletableFuture<>();
+
+        ProfileInitializerImpl initializer = initializer(profileInfo);
+        when(profileDataInitializer.initialize(any(), any())).thenReturn(warming);
+
+        CompletableFuture<Void> pipeline = CompletableFuture.runAsync(
+                () -> initializer.initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr"))));
+
+        await().during(200, MILLISECONDS).atMost(2, SECONDS)
+                .untilAsserted(() -> assertFalse(pipeline.isDone(), "the pipeline did not wait for the warming"));
+
+        warming.complete(null);
+        await().atMost(5, SECONDS).untilAsserted(() -> assertTrue(pipeline.isDone()));
+    }
+
+    @Test
+    @DisplayName("skips the derivation entirely when the recording carries no spans")
+    void skipsDerivationWithoutSpanEventTypes() {
+        ProfileInfo profileInfo = mock(ProfileInfo.class);
+        when(profileInfo.id()).thenReturn(PROFILE_ID);
+        when(traceRepository.hasSpanEventTypes()).thenReturn(false);
+
+        initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+        // Both derivations read every event of the blocking types before they can conclude there is
+        // nothing to attach them to, so an ordinary profiling recording pays a full scan for an
+        // empty result. Asking first costs one row-less probe of event_types.
+        verify(traceRepository, never()).derive();
+        verify(traceAttributeRepository, never()).derive();
+
+        // The rest of the initialization is unaffected -- skipping traces is not skipping the profile.
+        verify(profileDataInitializer).initialize(any(), any());
+    }
+
+    @Nested
+    @DisplayName("Progress")
+    class Progress {
+
+        private StageProgress stage(String id) {
+            return runRegistry.progress(PROFILE_ID).stages().stream()
+                    .filter(stage -> stage.id().equals(id))
+                    .findFirst()
+                    .orElseThrow(() -> new AssertionError("No such stage: " + id));
+        }
+
+        @Test
+        @DisplayName("records every stage of a successful initialization")
+        void recordsEveryStage() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(traceRepository.hasSpanEventTypes()).thenReturn(true);
+
+            initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+            PipelineProgress progress = runRegistry.progress(PROFILE_ID);
+            assertEquals(PipelineState.COMPLETED, progress.state());
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.PARSE).status());
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.TRACES).status());
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.WARMUP).status());
+        }
+
+        /**
+         * The difference worth surfacing: a recording with no spans did not have a fast trace
+         * derivation, it had none at all, and the progress should say so rather than leaving the
+         * reader to infer it from a suspiciously short duration.
+         */
+        @Test
+        @DisplayName("reports a recording without spans as a skipped derivation")
+        void reportsSkippedTraceDerivation() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(traceRepository.hasSpanEventTypes()).thenReturn(false);
+
+            initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.TRACES).status());
+            assertEquals(PipelineState.COMPLETED, runRegistry.progress(PROFILE_ID).state());
+        }
+
+        /**
+         * jdk.MethodTrace only fires for methods a JFR filter named, so nearly every recording has
+         * none. Same reasoning as the trace derivation above: skipped says "there was nothing to
+         * do", a fast success says "there was, and it was quick".
+         */
+        @Test
+        @DisplayName("reports a recording that traced no methods as a skipped weight derivation")
+        void reportsSkippedMethodTraceWeights() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(methodTraceWeightRepository.hasMethodTraces()).thenReturn(false);
+
+            initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+            assertEquals(StageStatus.SKIPPED, stage(ProfileInitStages.METHOD_TRACE_WEIGHTS).status());
+            verify(methodTraceWeightRepository, never()).deriveSelfWeights();
+        }
+
+        @Test
+        @DisplayName("derives self weights when the recording traced methods")
+        void derivesMethodTraceWeights() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            when(methodTraceWeightRepository.hasMethodTraces()).thenReturn(true);
+
+            initializer(profileInfo).initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr")));
+
+            assertEquals(StageStatus.COMPLETED, stage(ProfileInitStages.METHOD_TRACE_WEIGHTS).status());
+            verify(methodTraceWeightRepository).deriveSelfWeights();
+        }
+
+        /**
+         * The gap this closes: a failed initialization used to leave the profile row disabled with
+         * nothing anywhere recording why, because the exception went into a future nobody held.
+         */
+        @Test
+        @DisplayName("a failing stage fails the run, names itself, and still reaches the caller")
+        void failureIsRecordedAndPropagated() {
+            ProfileInfo profileInfo = mock(ProfileInfo.class);
+            when(profileInfo.id()).thenReturn(PROFILE_ID);
+            doThrow(new IllegalStateException("recording is corrupt"))
+                    .when(recordingEventParser).start(any(), any());
+
+            ProfileInitializerImpl initializer = initializer(profileInfo);
+
+            IllegalStateException thrown = assertThrows(IllegalStateException.class,
+                    () -> initializer.initialize(profileInfo, RecordingSources.of(Path.of("recording.jfr"))));
+            assertEquals("recording is corrupt", thrown.getMessage());
+
+            PipelineProgress progress = runRegistry.progress(PROFILE_ID);
+            assertEquals(PipelineState.FAILED, progress.state());
+            assertEquals(StageStatus.FAILED, stage(ProfileInitStages.PARSE).status());
+        }
+    }
+}

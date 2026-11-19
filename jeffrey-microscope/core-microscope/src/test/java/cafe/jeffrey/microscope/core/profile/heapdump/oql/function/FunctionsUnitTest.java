@@ -1,0 +1,201 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.core.profile.heapdump.oql.function;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.util.regex.Pattern;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Pure-Java unit tests for the {@code function/} helpers — no DB, no HeapView.
+ */
+class FunctionsUnitTest {
+
+    @Nested
+    class StringPredicatesTests {
+
+        @Test
+        void startsWith() {
+            assertEquals(Boolean.TRUE, StringPredicates.startsWith("Hello world", "Hello"));
+            assertEquals(Boolean.FALSE, StringPredicates.startsWith("Hello world", "world"));
+        }
+
+        @Test
+        void endsWith() {
+            assertEquals(Boolean.TRUE, StringPredicates.endsWith("Hello.class", ".class"));
+            assertEquals(Boolean.FALSE, StringPredicates.endsWith("Hello.class", ".java"));
+        }
+
+        @Test
+        void contains() {
+            assertEquals(Boolean.TRUE, StringPredicates.contains("foo bar baz", "bar"));
+            assertEquals(Boolean.FALSE, StringPredicates.contains("foo bar baz", "qux"));
+        }
+
+        @Test
+        void matchesRegex() {
+            assertEquals(Boolean.TRUE, StringPredicates.matchesRegex("foo.class", "^foo\\..*"));
+            assertEquals(Boolean.FALSE, StringPredicates.matchesRegex("notfoo", "^foo$"));
+        }
+
+        @Test
+        void equalsIgnoreCase() {
+            assertEquals(Boolean.TRUE, StringPredicates.equalsIgnoreCase("OK", "ok"));
+            assertEquals(Boolean.FALSE, StringPredicates.equalsIgnoreCase("ok", "okay"));
+        }
+
+        @Test
+        void isEmptyString() {
+            assertEquals(Boolean.TRUE, StringPredicates.isEmptyString(""));
+            assertEquals(Boolean.FALSE, StringPredicates.isEmptyString("x"));
+        }
+
+        @Test
+        void nullPropagation() {
+            assertNull(StringPredicates.startsWith(null, "x"));
+            assertNull(StringPredicates.endsWith("x", null));
+            assertNull(StringPredicates.contains(null, "x"));
+        }
+    }
+
+    @Nested
+    class StringAccessorsTests {
+
+        @Test
+        void stringLength() {
+            assertEquals(Integer.valueOf(5), StringAccessors.stringLength("hello"));
+        }
+
+        @Test
+        void substringClamps() {
+            assertEquals("ello", StringAccessors.substring("hello", 1, 5));
+            assertEquals("hello", StringAccessors.substring("hello", -1, 99));
+        }
+
+        @Test
+        void substringWithoutEnd() {
+            assertEquals("ello", StringAccessors.substring("hello", 1, null));
+        }
+
+        @Test
+        void lowerUpperTrim() {
+            assertEquals("ab", StringAccessors.lower("AB"));
+            assertEquals("AB", StringAccessors.upper("ab"));
+            assertEquals("hi", StringAccessors.trim("  hi  "));
+        }
+
+        @Test
+        void indexOfAndLastIndexOf() {
+            assertEquals(Integer.valueOf(0), StringAccessors.indexOf("ababa", "a"));
+            assertEquals(Integer.valueOf(4), StringAccessors.lastIndexOf("ababa", "a"));
+            assertEquals(Integer.valueOf(-1), StringAccessors.indexOf("abc", "z"));
+        }
+
+        @Test
+        void charAtClamps() {
+            assertEquals("b", StringAccessors.charAt("abc", 1));
+            assertNull(StringAccessors.charAt("abc", 99));
+            assertNull(StringAccessors.charAt("abc", -1));
+        }
+    }
+
+    @Nested
+    class FuzzyTextTests {
+
+        @Test
+        void levenshteinIdentical() {
+            assertEquals(Integer.valueOf(0), FuzzyTextFunctions.levenshtein("hello", "hello"));
+        }
+
+        @Test
+        void levenshteinKnownDistance() {
+            assertEquals(Integer.valueOf(3), FuzzyTextFunctions.levenshtein("kitten", "sitting"));
+        }
+
+        @Test
+        void levenshteinEmpty() {
+            assertEquals(Integer.valueOf(5), FuzzyTextFunctions.levenshtein("", "hello"));
+            assertEquals(Integer.valueOf(5), FuzzyTextFunctions.levenshtein("hello", ""));
+        }
+
+        @Test
+        void jaroWinklerSelfIsOne() {
+            assertEquals(1.0, FuzzyTextFunctions.jaroWinklerSimilarity("hello", "hello"), 1e-9);
+        }
+
+        @Test
+        void jaroWinklerKnownPair() {
+            Double sim = FuzzyTextFunctions.jaroWinklerSimilarity("MARTHA", "MARHTA");
+            assertNotNull(sim);
+            // Classic Jaro–Winkler example: ~0.961
+            assertTrue(sim > 0.95 && sim < 0.97,
+                    () -> "expected ~0.961, got " + sim);
+        }
+
+        @Test
+        void jaroWinklerNoOverlap() {
+            assertEquals(0.0, FuzzyTextFunctions.jaroWinklerSimilarity("abc", "xyz"), 1e-9);
+        }
+    }
+
+    @Nested
+    class StringFunctionsTests {
+
+        @Test
+        void toHexFormatsAsZeroXLowerHex() {
+            assertEquals("0xcafebabe", StringFunctions.toHex(0xCAFEBABEL));
+        }
+    }
+
+    @Nested
+    class RegexPatternCacheTests {
+
+        @Test
+        void reusesCompiledPatternForSameRegex() {
+            RegexPatternCache cache = new RegexPatternCache();
+            Pattern first = cache.compile("^foo\\..*");
+            Pattern second = cache.compile("^foo\\..*");
+            assertSame(first, second);
+        }
+
+        @Test
+        void recompilesWhenRegexChanges() {
+            RegexPatternCache cache = new RegexPatternCache();
+            Pattern first = cache.compile("^foo$");
+            Pattern second = cache.compile("^bar$");
+            assertNotSame(first, second);
+            assertTrue(second.matcher("bar").matches());
+            assertTrue(cache.compile("^foo$").matcher("foo").matches());
+        }
+
+        @Test
+        void matchesRegexWithExplicitCache() {
+            RegexPatternCache cache = new RegexPatternCache();
+            assertEquals(Boolean.TRUE, StringPredicates.matchesRegex("foo.class", "^foo\\..*", cache));
+            assertEquals(Boolean.FALSE, StringPredicates.matchesRegex("notfoo", "^foo$", cache));
+            assertNull(StringPredicates.matchesRegex(null, "^foo$", cache));
+        }
+    }
+}

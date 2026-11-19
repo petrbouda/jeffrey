@@ -17,16 +17,16 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.profile.management.flamegraph.export.WeightContext;
+import cafe.jeffrey.microscope.core.profile.flamegraph.export.WeightContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.ProfileInfo;
 import cafe.jeffrey.microscope.model.Type;
 import cafe.jeffrey.microscope.model.WeightUnit;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.model.EventSummaryResult;
-import cafe.jeffrey.microscope.profile.persistence.api.CpuTimeSampleLoss;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
+import cafe.jeffrey.microscope.core.profile.persistence.api.CpuTimeSampleLoss;
 
 import java.time.Duration;
 import java.time.Instant;

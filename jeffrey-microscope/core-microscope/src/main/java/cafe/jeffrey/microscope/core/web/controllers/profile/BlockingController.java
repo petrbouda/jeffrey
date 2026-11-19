@@ -24,13 +24,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.BlockingManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.blocking.BlockingOverview;
-import cafe.jeffrey.microscope.profile.management.manager.model.blocking.ContentionStat;
-import cafe.jeffrey.microscope.profile.management.manager.model.blocking.MonitorWaitStat;
-import cafe.jeffrey.microscope.profile.management.manager.model.blocking.PinnedThreadEntry;
-import cafe.jeffrey.microscope.profile.management.manager.model.blocking.SleepStat;
-import cafe.jeffrey.microscope.profile.management.timeseries.TimeseriesData;
+import cafe.jeffrey.microscope.core.profile.manager.BlockingManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.blocking.BlockingOverview;
+import cafe.jeffrey.microscope.core.profile.manager.model.blocking.ContentionStat;
+import cafe.jeffrey.microscope.core.profile.manager.model.blocking.MonitorWaitStat;
+import cafe.jeffrey.microscope.core.profile.manager.model.blocking.PinnedThreadEntry;
+import cafe.jeffrey.microscope.core.profile.manager.model.blocking.SleepStat;
+import cafe.jeffrey.microscope.core.profile.timeseries.TimeseriesData;
 
 import java.util.List;
 

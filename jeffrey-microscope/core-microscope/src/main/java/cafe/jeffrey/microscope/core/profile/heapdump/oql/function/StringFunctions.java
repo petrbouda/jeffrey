@@ -1,0 +1,67 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.core.profile.heapdump.oql.function;
+
+import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.JavaStringDecoder;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.HeapView;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.InstanceRow;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.JavaClassRow;
+
+import java.sql.SQLException;
+import java.util.Optional;
+
+/**
+ * Plan C string-flavoured functions: {@code toString(o)} and {@code toHex(n)}.
+ * {@code toString} is generalised — for {@code java.lang.String} it decodes
+ * UTF content, for {@link WrapperDecoder known wrappers} it returns the
+ * boxed scalar formatted as a string, otherwise it falls back to the
+ * {@code class@hex} display form used by {@code @displayName}.
+ */
+public final class StringFunctions {
+
+    private static final String JAVA_LANG_STRING = "java.lang.String";
+
+    private StringFunctions() {
+    }
+
+    public static String toStringValue(HeapView view, InstanceRow instance, JavaClassRow clazz) throws SQLException {
+        if (clazz != null && JAVA_LANG_STRING.equals(clazz.name())) {
+            Optional<JavaStringDecoder.Decoded> d = JavaStringDecoder.decode(view, instance);
+            if (d.isPresent()) {
+                return d.get().content();
+            }
+        }
+        if (clazz != null) {
+            Optional<Object> wrapped = WrapperDecoder.decodeWrapper(view, instance.instanceId(), clazz);
+            if (wrapped.isPresent()) {
+                return String.valueOf(wrapped.get());
+            }
+            return clazz.name() + "@" + Long.toHexString(instance.instanceId());
+        }
+        return "@" + Long.toHexString(instance.instanceId());
+    }
+
+    public static String toHex(Object n) {
+        if (n == null) {
+            return null;
+        }
+        if (n instanceof Number num) {
+            return "0x" + Long.toHexString(num.longValue());
+        }
+        throw new IllegalArgumentException("toHex requires a numeric argument, got " + n.getClass());
+    }
+}

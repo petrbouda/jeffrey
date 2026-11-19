@@ -26,10 +26,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.profile.management.manager.custom.JdbcPoolManager;
-import cafe.jeffrey.microscope.profile.management.manager.custom.model.jdbc.pool.JdbcPoolData;
+import cafe.jeffrey.microscope.core.profile.manager.custom.JdbcPoolManager;
+import cafe.jeffrey.microscope.core.profile.manager.custom.model.jdbc.pool.JdbcPoolData;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.management.timeseries.SingleSerie;
+import cafe.jeffrey.microscope.core.profile.timeseries.SingleSerie;
 
 import java.util.List;
 

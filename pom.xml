@@ -166,11 +166,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>profile-management</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>mcp-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -191,11 +186,6 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>microscope-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>volume-connector</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -206,17 +196,7 @@
             </dependency>
             <dependency>
                 <groupId>${project.groupId}</groupId>
-                <artifactId>profile-persistence</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
                 <artifactId>common-profile</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>${project.groupId}</groupId>
-                <artifactId>recording-parser</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -315,7 +295,7 @@
                 <version>${flyway-core.version}</version>
             </dependency>
 
-            <!-- ANTLR4 runtime — used by heapdump-oql for the OQL grammar -->
+            <!-- ANTLR4 runtime — used by core-microscope for the heap-dump OQL grammar -->
             <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4-runtime</artifactId>

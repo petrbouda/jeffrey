@@ -21,7 +21,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ContainerSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SafepointsSection;
-import cafe.jeffrey.microscope.profile.management.feature.FeatureType;
+import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 import java.util.ArrayList;

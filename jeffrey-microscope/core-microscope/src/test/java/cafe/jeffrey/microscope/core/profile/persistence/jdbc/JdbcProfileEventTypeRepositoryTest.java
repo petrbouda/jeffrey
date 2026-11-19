@@ -1,0 +1,273 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2025 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.persistence.jdbc;
+
+import cafe.jeffrey.microscope.core.profile.persistence.api.*;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import cafe.jeffrey.microscope.core.profile.persistence.jdbc.DuckDBSQLFormatter;
+import cafe.jeffrey.microscope.core.profile.persistence.api.EventTypeWithFields;
+import cafe.jeffrey.microscope.core.profile.persistence.api.FieldDescription;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.SpanInterval;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
+
+import javax.sql.DataSource;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@DuckDBTest(migration = "classpath:db/migration/profile")
+class JdbcProfileEventTypeRepositoryTest {
+
+    private static final DuckDBSQLFormatter SQL_FORMATTER = new DuckDBSQLFormatter();
+
+    @Nested
+    class SingleFieldsByEventTypeMethod {
+
+        @Test
+        void returnsEventTypeWithFields(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            Optional<EventTypeWithFields> result = repository.singleFieldsByEventType(Type.fromCode("jdk.ExecutionSample"));
+
+            assertTrue(result.isPresent());
+            assertEquals("jdk.ExecutionSample", result.get().name());
+            assertEquals("Execution Sample", result.get().label());
+            assertNotNull(result.get().content());
+        }
+
+        @Test
+        void returnsEmptyWhenNoEventsForType(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            // ThreadAllocationStatistics has no events with fields in insert-events-with-types.sql
+            Optional<EventTypeWithFields> result = repository.singleFieldsByEventType(Type.fromCode("jdk.ThreadAllocationStatistics"));
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void returnsEmptyForNonExistentType(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            Optional<EventTypeWithFields> result = repository.singleFieldsByEventType(Type.fromCode("jdk.NonExistent"));
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class EventColumnsMethod {
+
+        @Test
+        void returnsColumnsFromDatabase(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<FieldDescription> result = repository.eventColumns(Type.fromCode("jdk.ExecutionSample"));
+
+            assertFalse(result.isEmpty());
+            assertEquals("state", result.get(0).field());
+            assertEquals("State", result.get(0).header());
+        }
+
+        @Test
+        void returnsEmptyListWhenNoColumns(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            // ThreadAllocationStatistics has columns = NULL
+            List<FieldDescription> result = repository.eventColumns(Type.fromCode("jdk.ThreadAllocationStatistics"));
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void returnsEmptyListForNonExistentType(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<FieldDescription> result = repository.eventColumns(Type.fromCode("jdk.NonExistent"));
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class EventSummariesWithTypesMethod {
+
+        @Test
+        void returnsSummariesForSpecifiedTypes(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<EventSummary> result = repository.eventSummaries(List.of(
+                    Type.fromCode("jdk.ExecutionSample"),
+                    Type.fromCode("jdk.GCPhasePause")
+            ));
+
+            assertEquals(2, result.size());
+        }
+
+        @Test
+        void aggregatesSamplesAndWeight(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<EventSummary> result = repository.eventSummaries(List.of(Type.fromCode("jdk.ExecutionSample")));
+
+            assertEquals(1, result.size());
+            EventSummary summary = result.get(0);
+            assertEquals("jdk.ExecutionSample", summary.name());
+            assertEquals(3, summary.samples()); // 3 ExecutionSample events
+        }
+
+        @Test
+        void returnsEmptyListForNonExistentTypes(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<EventSummary> result = repository.eventSummaries(List.of(Type.fromCode("jdk.NonExistent")));
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class SpanScopedEventSummariesMethod {
+
+        private static final long A_FROM = Instant.parse("2025-01-15T10:00:00.000Z").toEpochMilli();
+        private static final long A_TO = Instant.parse("2025-01-15T10:00:00.300Z").toEpochMilli();
+        private static final long B_FROM = Instant.parse("2025-01-15T10:00:02.000Z").toEpochMilli();
+        private static final long B_TO = Instant.parse("2025-01-15T10:00:02.200Z").toEpochMilli();
+
+        @Test
+        void countsOnlySamplesWithinSpanThreadAndWindow(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+            JdbcProfileEventTypeRepository repository =
+                    new JdbcProfileEventTypeRepository(SQL_FORMATTER, new DatabaseClientProvider(dataSource));
+
+            List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
+            SpanScope scope = SpanScope.of(List.of(
+                    SpanInterval.ofMillis(2001, A_FROM, A_TO),
+                    SpanInterval.ofMillis(2002, B_FROM, B_TO)));
+
+            // Span-scoped: only the thread-2001 and thread-2002 in-window samples (GC + out-of-window excluded).
+            EventSummary scoped = repository.eventSummaries(types, scope).get(0);
+            assertEquals(2, scoped.samples());
+
+            // Profile-wide: all four execution samples.
+            EventSummary all = repository.eventSummaries(types).get(0);
+            assertEquals(4, all.samples());
+        }
+
+        /**
+         * A window wider than one bucket must still match. The scope relation carries a bucket column
+         * so the semi-join has an equality to hash on, and an interval spanning several buckets has to
+         * appear in each of them — get that expansion wrong and samples silently vanish from the
+         * middle of a long span.
+         */
+        @Test
+        void countsSamplesAcrossAWindowSpanningManyBuckets(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-span-flamegraph.sql");
+            JdbcProfileEventTypeRepository repository =
+                    new JdbcProfileEventTypeRepository(SQL_FORMATTER, new DatabaseClientProvider(dataSource));
+
+            List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
+            SpanScope wide = SpanScope.of(List.of(
+                    SpanInterval.ofMillis(2001, A_FROM, B_TO),
+                    SpanInterval.ofMillis(2002, A_FROM, B_TO)));
+
+            assertEquals(2, repository.eventSummaries(types, wide).get(0).samples(),
+                    "the same two samples, now reached through a window several seconds wide");
+        }
+
+        /** An operation names its windows instead of listing them; the counts must not change. */
+        @Test
+        void countsTheSameSamplesWhenTheScopeIsNamedRatherThanListed(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-trace-spans.sql");
+            DatabaseClientProvider provider = new DatabaseClientProvider(dataSource);
+            new JdbcTraceRepository(provider).derive();
+            JdbcProfileEventTypeRepository repository =
+                    new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<Type> types = List.of(Type.fromCode("jdk.ExecutionSample"));
+            SpanScope operation = new SpanScope.Operation(
+                    "POST /api/internal/profiles/{profileId}/flamegraph", "SERVER", "jeffrey.HttpServerExchange");
+
+            List<EventSummary> named = repository.eventSummaries(types, operation);
+            List<EventSummary> listed = repository.eventSummaries(types, SpanScope.of(
+                    new JdbcTraceRepository(provider).operationIntervals(new TraceOperationId(
+                            "POST /api/internal/profiles/{profileId}/flamegraph", "SERVER",
+                            "jeffrey.HttpServerExchange"))));
+
+            // Stated outright rather than only compared, so the two agreeing on zero cannot pass for
+            // the two agreeing: the fixture's one execution sample lands 30ms into the exchange.
+            assertEquals(1, named.getFirst().samples());
+            assertEquals(
+                    listed.stream().map(EventSummary::samples).toList(),
+                    named.stream().map(EventSummary::samples).toList(),
+                    "deriving the windows and enumerating them must count the same samples");
+        }
+    }
+
+    @Nested
+    class EventSummariesAllMethod {
+
+        @Test
+        void returnsAllEventSummaries(DataSource dataSource) throws SQLException {
+            TestUtils.executeSql(dataSource, "sql/events/insert-events-with-types.sql");
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<EventSummary> result = repository.eventSummaries();
+
+            // 4 event types in insert-events-with-types.sql
+            assertEquals(4, result.size());
+        }
+
+        @Test
+        void returnsEmptyListWhenNoEventTypes(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcProfileEventTypeRepository repository = new JdbcProfileEventTypeRepository(SQL_FORMATTER, provider);
+
+            List<EventSummary> result = repository.eventSummaries();
+
+            assertTrue(result.isEmpty());
+        }
+    }
+}

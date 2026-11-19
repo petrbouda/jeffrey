@@ -1,0 +1,186 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2024 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.profile.manager;
+
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CallSiteQuery;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CallSites;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution;
+import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeQuery;
+import cafe.jeffrey.microscope.core.profile.flamegraph.export.AiExportConfig;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import cafe.jeffrey.microscope.profile.common.config.GraphParameters;
+import cafe.jeffrey.microscope.model.SpanScope;
+import cafe.jeffrey.microscope.model.Type;
+import cafe.jeffrey.microscope.model.WeightUnit;
+import cafe.jeffrey.microscope.model.EventSummary;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.core.profile.flamegraph.api.DbBasedFlamegraphGenerator;
+import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;
+
+import java.time.Duration;
+import java.util.List;
+
+public class PrimaryFlamegraphManager implements FlamegraphManager {
+
+    private static final Logger LOG = LoggerFactory.getLogger(PrimaryFlamegraphManager.class);
+
+    // Extras key under which pprof/OTLP store the raw `type/unit` sample type.
+    private static final String EXTRA_SAMPLE_TYPE = "sampleType";
+
+    private static final List<Type> SUPPORTED_EVENTS = List.of(
+            Type.NATIVE_LEAK,
+            Type.MALLOC,
+            Type.EXECUTION_SAMPLE,
+            Type.CPU_TIME_SAMPLE,
+            Type.METHOD_TRACE,
+            Type.WALL_CLOCK_SAMPLE,
+            Type.OBJECT_ALLOCATION_SAMPLE,
+            Type.OBJECT_ALLOCATION_IN_NEW_TLAB,
+            Type.OBJECT_ALLOCATION_OUTSIDE_TLAB,
+            Type.THREAD_PARK,
+            Type.THREAD_SLEEP,
+            Type.JAVA_MONITOR_ENTER,
+            Type.JAVA_MONITOR_WAIT,
+            Type.VIRTUAL_THREAD_PINNED);
+
+    private final ProfileEventTypeRepository eventTypeRepository;
+    private final DbBasedFlamegraphGenerator generator;
+    private final boolean flamegraphOnlyImport;
+
+    /**
+     * @param flamegraphOnlyImport whether the profile is an imported stack-sample format (pprof, OTLP),
+     *                             whose flamegraphs are built only by the sample's weight unit
+     */
+    public PrimaryFlamegraphManager(
+            ProfileEventTypeRepository eventTypeRepository,
+            DbBasedFlamegraphGenerator generator,
+            boolean flamegraphOnlyImport) {
+
+        this.eventTypeRepository = eventTypeRepository;
+        this.generator = generator;
+        this.flamegraphOnlyImport = flamegraphOnlyImport;
+    }
+
+    @Override
+    public List<EventSummaryResult> eventSummaries() {
+        return eventTypeRepository.eventSummaries(SUPPORTED_EVENTS).stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .map(EventSummaryResult::new)
+                .toList();
+    }
+
+    @Override
+    public List<EventSummaryResult> eventSummaries(SpanScope spanScope) {
+        return eventTypeRepository.eventSummaries(SUPPORTED_EVENTS, spanScope).stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .map(EventSummaryResult::new)
+                .toList();
+    }
+
+    @Override
+    public List<EventSummaryResult> allEventSummaries() {
+        return eventTypeRepository.eventSummaries().stream()
+                .filter(eventSummary -> eventSummary.samples() > 0)
+                .map(EventSummaryResult::new)
+                .toList();
+    }
+
+    @Override
+    public List<EventSummaryResult> graphableEventSummaries() {
+        return eventTypeRepository.eventSummaries().stream()
+                .filter(eventSummary -> eventSummary.samples() > 0 && eventSummary.hasStacktrace())
+                .map(EventSummaryResult::new)
+                .toList();
+    }
+
+    @Override
+    public byte[] generate(GraphParameters params) {
+        LOG.debug("Generating flamegraph: eventType={} graphType={}", params.eventType(), params.graphType());
+        long startTime = System.nanoTime();
+        byte[] result = generator.generate(adjustParams(params));
+        LOG.debug("Flamegraph generated: eventType={} durationMs={}", params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
+        return result;
+    }
+
+    @Override
+    public String generateAiExport(GraphParameters params) {
+        return generateAiExport(params, null);
+    }
+
+    @Override
+    public String generateAiExport(GraphParameters params, AiExportConfig aiExportConfig) {
+        LOG.debug("Generating AI export: eventType={}", params.eventType());
+        long startTime = System.nanoTime();
+        String result = generator.generateAiExport(adjustParams(params), aiExportConfig);
+        LOG.debug("AI export generated: eventType={} durationMs={}",
+                params.eventType(), Duration.ofNanos(System.nanoTime() - startTime).toMillis());
+        return result;
+    }
+
+    @Override
+    public CodeAttribution codeAttribution(GraphParameters params, CodeQuery query) {
+        return generator.codeAttribution(adjustParams(params), query);
+    }
+
+    @Override
+    public CallSites callSites(GraphParameters params, CallSiteQuery query) {
+        return generator.callSites(params, query);
+    }
+
+    private GraphParameters adjustParams(GraphParameters params) {
+        // Resolve, from the single event summary, the sample weight unit (pprof/OTLP store it as `type/unit`
+        // in extras; JFR has none); whether this is a flamegraph-only import is the profile's. The generator then picks the
+        // builder/frame-processor by unit — and, for imports, ONLY by unit (never the event-code predicates) —
+        // and defaults useWeight from that when not explicitly set.
+        EventSummary summary = eventTypeRepository.eventSummaries(params.eventType()).orElse(null);
+        WeightUnit weightUnit = resolveWeightUnit(summary);
+        return params.toBuilder()
+                .withWeightUnit(weightUnit)
+                .withFlamegraphOnlyImport(flamegraphOnlyImport)
+                .withUseWeight(resolveWeight(params, weightUnit, flamegraphOnlyImport))
+                .build();
+    }
+
+    private static WeightUnit resolveWeightUnit(EventSummary summary) {
+        if (summary == null || summary.extras() == null) {
+            return WeightUnit.NONE;
+        }
+        return WeightUnit.fromSampleType(summary.extras().get(EXTRA_SAMPLE_TYPE));
+    }
+
+    /**
+     * Use weight by default for weighted (bytes/duration) samples and for JFR allocation/blocking events,
+     * unless the caller specified it explicitly. Imported profiles are unit-driven only, so a NONE unit is a
+     * plain count for them (never defaulted to weight via the event code).
+     */
+    private static boolean resolveWeight(GraphParameters params, WeightUnit weightUnit, boolean flamegraphOnlyImport) {
+        if (params.useWeight() != null) {
+            return params.useWeight();
+        }
+        if (weightUnit != WeightUnit.NONE) {
+            return true;
+        }
+        if (flamegraphOnlyImport) {
+            return false;
+        }
+        return params.eventType().isAllocationEvent() || params.eventType().isBlockingEvent();
+    }
+}

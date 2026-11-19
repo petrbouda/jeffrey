@@ -1,0 +1,395 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package cafe.jeffrey.microscope.core.profile.heapdump.parser;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import cafe.jeffrey.microscope.core.profile.heapdump.persistence.DominatorTreeBuilder;
+import cafe.jeffrey.microscope.core.profile.heapdump.persistence.HeapDumpIndexPaths;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.HeapView;
+import cafe.jeffrey.microscope.core.profile.heapdump.view.HprofTag;
+
+class DominatorTreeBuilderTest {
+
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.ofEpochMilli(1L), ZoneOffset.UTC);
+
+    /** Holder-leaf pairs in the large-graph test: twice this many nodes, past one row group. */
+    private static final int LARGE_GRAPH_PAIRS = 150_000;
+
+    private static final long LARGE_GRAPH_BASE_ID = 0x1_0000L;
+
+    private static final long PAIR_LEAF_OFFSET = 0x8L;
+
+    /**
+     * Diamond:
+     *   V (virtual root) → A, B
+     *   A → C
+     *   B → C
+     *   C → D
+     *
+     * Expected dominators: A:V, B:V, C:V (common ancestor of two paths), D:C.
+     * Expected retained sizes (shallow=16 for everyone):
+     *   D = 16, C = 16+16 = 32 (dominates D), A = 16, B = 16.
+     */
+    @Test
+    void diamondGraphProducesExpectedDominators(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long a = 0x1A0L, b = 0x1B0L, c = 0x1C0L, d = 0x1D0L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, b)
+                        .instanceDump(a, classId, idBytes(c, idSize))
+                        .instanceDump(b, classId, idBytes(c, idSize))
+                        .instanceDump(c, classId, idBytes(d, idSize))
+                        .instanceDump(d, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "diamond.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        // Pre-build: dominator tree absent.
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertFalse(view.hasDominatorTree());
+            assertEquals(-1L, view.dominatorOf(a));
+        }
+
+        DominatorTreeBuilder.BuildResult result = DominatorTreeBuilder.build(indexDb);
+        assertEquals(4, result.reachableInstances());
+        assertEquals(2, result.rootEdges(), "two GC-rooted instances → two virtual-root edges");
+
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertTrue(view.hasDominatorTree());
+            assertEquals(DominatorTreeBuilder.VIRTUAL_ROOT, view.dominatorOf(a));
+            assertEquals(DominatorTreeBuilder.VIRTUAL_ROOT, view.dominatorOf(b));
+            assertEquals(DominatorTreeBuilder.VIRTUAL_ROOT, view.dominatorOf(c),
+                    "two paths to C → common ancestor is the virtual root");
+            assertEquals(c, view.dominatorOf(d), "single path to D goes through C");
+
+            // Shallow size = 16-byte object header + 8-byte object field = 24
+            long shallow = 16 + idSize;
+            assertEquals(shallow, view.retainedSize(a));
+            assertEquals(shallow, view.retainedSize(b));
+            assertEquals(shallow * 2, view.retainedSize(c), "C dominates D");
+            assertEquals(shallow, view.retainedSize(d));
+        }
+    }
+
+    /**
+     * Single linear chain: root → X → Y → Z. X dominates Y, Y dominates Z.
+     * Retained sizes accumulate fully along the chain.
+     */
+    @Test
+    void linearChainBubblesRetainedSize(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long x = 0x100L, y = 0x200L, z = 0x300L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, x)
+                        .instanceDump(x, classId, idBytes(y, idSize))
+                        .instanceDump(y, classId, idBytes(z, idSize))
+                        .instanceDump(z, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "chain.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        long shallow = 16 + idSize;
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertEquals(DominatorTreeBuilder.VIRTUAL_ROOT, view.dominatorOf(x));
+            assertEquals(x, view.dominatorOf(y));
+            assertEquals(y, view.dominatorOf(z));
+            assertEquals(shallow, view.retainedSize(z));
+            assertEquals(shallow * 2, view.retainedSize(y));
+            assertEquals(shallow * 3, view.retainedSize(x));
+        }
+    }
+
+    @Test
+    void rebuildIsIdempotent(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long a = 0x1A0L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .instanceDump(a, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "single.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        DominatorTreeBuilder.build(indexDb);
+        DominatorTreeBuilder.build(indexDb); // second build clears + recomputes
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertEquals(1, view.gcRootCount());
+            assertEquals(DominatorTreeBuilder.VIRTUAL_ROOT, view.dominatorOf(a));
+        }
+    }
+
+    /**
+     * The children lookup has no index behind it any more: it relies on the dominator table being
+     * stored in dominator_id order so DuckDB's row-group statistics can prune the scan. This pins
+     * both halves of that arrangement -- the physical order, and the two id indexes that did
+     * survive -- through a plain connection, which reads rows back in storage order.
+     */
+    @Test
+    void storesDominatorRowsInParentOrderAndIndexesIds(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        // Ids chosen so that DFS preorder (the builder's natural row order) differs from
+        // dominator order: the virtual root's children interleave with c's child.
+        long a = 0x1A0L, b = 0x1B0L, c = 0x1C0L, d = 0x1D0L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, b)
+                        .instanceDump(a, classId, idBytes(c, idSize))
+                        .instanceDump(b, classId, idBytes(c, idSize))
+                        .instanceDump(c, classId, idBytes(d, idSize))
+                        .instanceDump(d, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "ordered.hprof");
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement()) {
+            List<Long> storedOrder = new ArrayList<>();
+            try (ResultSet rs = stmt.executeQuery("SELECT dominator_id FROM dominator")) {
+                while (rs.next()) {
+                    storedOrder.add(rs.getLong(1));
+                }
+            }
+            List<Long> sorted = new ArrayList<>(storedOrder);
+            Collections.sort(sorted);
+            assertEquals(4, storedOrder.size());
+            assertEquals(sorted, storedOrder, "dominator rows must be stored in dominator_id order");
+
+            Set<String> indexes = new HashSet<>();
+            try (ResultSet rs = stmt.executeQuery("SELECT index_name FROM duckdb_indexes()")) {
+                while (rs.next()) {
+                    indexes.add(rs.getString(1));
+                }
+            }
+            assertTrue(indexes.contains("idx_dominator_instance"), indexes.toString());
+            assertTrue(indexes.contains("idx_retained_size_instance"), indexes.toString());
+            assertFalse(indexes.contains("idx_dominator_parent"), "replaced by the sorted load");
+        }
+    }
+
+    /**
+     * More nodes than one DuckDB row group (122 880 rows). Past that size the JDBC driver streams a
+     * prepared {@code ORDER BY} out of order while {@code preserve_insertion_order} is off, as it is
+     * for the build; a node array filled in arrival order then disagreed with the node indices the
+     * edges were translated through, and almost every dominator came out wrong. Each pair here is a
+     * rooted holder and the leaf only it references, so every leaf's dominator is its own holder.
+     */
+    @Test
+    void graphLargerThanARowGroupKeepsEveryDominator(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> {
+                    seg.topLevelObjectClassDump(classId, 0xA002L);
+                    for (int pair = 0; pair < LARGE_GRAPH_PAIRS; pair++) {
+                        long holder = holderId(pair);
+                        long leaf = holder + PAIR_LEAF_OFFSET;
+                        seg.gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, holder)
+                                .instanceDump(holder, classId, idBytes(leaf, idSize))
+                                .instanceDump(leaf, classId, idBytes(0L, idSize));
+                    }
+                })
+                .heapDumpEnd()
+                .writeTo(tmp, "large.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+
+        DominatorTreeBuilder.BuildResult result = DominatorTreeBuilder.build(indexDb);
+        assertEquals(LARGE_GRAPH_PAIRS * 2, result.reachableInstances());
+
+        long shallow = 16 + idSize;
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("""
+                     SELECT
+                         COUNT(*) FILTER (WHERE d.dominator_id = 0 AND r.bytes = %d),
+                         COUNT(*) FILTER (WHERE d.dominator_id = d.instance_id - %d AND r.bytes = %d)
+                     FROM dominator d
+                     JOIN retained_size r ON r.instance_id = d.instance_id
+                     """.formatted(shallow * 2, PAIR_LEAF_OFFSET, shallow))) {
+            assertTrue(rs.next());
+            assertEquals(LARGE_GRAPH_PAIRS, rs.getLong(1), "every holder is rooted and retains its leaf");
+            assertEquals(LARGE_GRAPH_PAIRS, rs.getLong(2), "every leaf is dominated by its own holder");
+        }
+    }
+
+    /**
+     * An index file outlives the code that wrote it. A tree with no version row (every tree built
+     * before the table existed) or an older version is read as not built, and the next build replaces
+     * it and records the current version.
+     */
+    @Test
+    void treeOfAnotherBuildReadsAsNotBuiltUntilItIsBuiltAgain(@TempDir Path tmp) throws IOException, SQLException {
+        int idSize = 8;
+        long classId = 0xC001L;
+        long a = 0x1A0L, b = 0x1B0L;
+
+        Path hprof = SyntheticHprof.create("1.0.2", idSize, 0L)
+                .string(0xA001L, "Holder")
+                .string(0xA002L, "next")
+                .loadClass(1, classId, 0, 0xA001L)
+                .heapDumpSegment(seg -> seg
+                        .topLevelObjectClassDump(classId, 0xA002L)
+                        .gcRoot(HprofTag.Sub.ROOT_STICKY_CLASS, a)
+                        .instanceDump(a, classId, idBytes(b, idSize))
+                        .instanceDump(b, classId, idBytes(0L, idSize)))
+                .heapDumpEnd()
+                .writeTo(tmp, "versioned.hprof");
+
+        Path indexDb = HeapDumpIndexPaths.indexFor(hprof);
+        try (HprofMappedFile file = HprofMappedFile.open(hprof)) {
+            HprofIndex.build(file, indexDb, CLOCK);
+        }
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertTrue(view.hasDominatorTree(), "the current build's tree");
+            assertEquals(DominatorTreeBuilder.TREE_VERSION, view.dominatorTreeVersion());
+        }
+        assertEquals(List.of((long) DominatorTreeBuilder.TREE_VERSION), treeVersions(indexDb));
+
+        execute(indexDb, "UPDATE dominator_build SET tree_version = " + (DominatorTreeBuilder.TREE_VERSION - 1));
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertFalse(view.hasDominatorTree(), "an older build's tree, though its rows are all there");
+            assertEquals(DominatorTreeBuilder.TREE_VERSION - 1, view.dominatorTreeVersion());
+        }
+
+        execute(indexDb, "DROP TABLE dominator_build");
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertFalse(view.hasDominatorTree(), "a tree built before trees were versioned");
+            assertEquals(0, view.dominatorTreeVersion());
+        }
+
+        DominatorTreeBuilder.build(indexDb);
+        try (HeapView view = HeapView.open(indexDb)) {
+            assertTrue(view.hasDominatorTree());
+            assertEquals(a, view.dominatorOf(b), "the rebuilt tree");
+        }
+        assertEquals(List.of((long) DominatorTreeBuilder.TREE_VERSION), treeVersions(indexDb),
+                "one version row, the table recreated on an index that had lost it");
+    }
+
+    private static List<Long> treeVersions(Path indexDb) throws SQLException {
+        List<Long> versions = new ArrayList<>();
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT tree_version FROM dominator_build")) {
+            while (rs.next()) {
+                versions.add(rs.getLong(1));
+            }
+        }
+        return versions;
+    }
+
+    private static void execute(Path indexDb, String sql) throws SQLException {
+        try (Connection conn = DriverManager.getConnection("jdbc:duckdb:" + indexDb.toAbsolutePath());
+             Statement stmt = conn.createStatement()) {
+            stmt.execute(sql);
+        }
+    }
+
+    private static long holderId(int pair) {
+        return LARGE_GRAPH_BASE_ID + pair * 2L * PAIR_LEAF_OFFSET;
+    }
+
+    private static byte[] idBytes(long id, int idSize) {
+        try {
+            ByteArrayOutputStream b = new ByteArrayOutputStream();
+            DataOutputStream d = new DataOutputStream(b);
+            if (idSize == 4) {
+                d.writeInt((int) id);
+            } else {
+                d.writeLong(id);
+            }
+            return b.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+}

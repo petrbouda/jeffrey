@@ -1,0 +1,639 @@
+/*
+ * Jeffrey
+ * Copyright (C) 2026 Petr Bouda
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package cafe.jeffrey.microscope.core.persistence.jdbc;
+
+import cafe.jeffrey.microscope.core.persistence.api.*;
+
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import cafe.jeffrey.microscope.core.persistence.api.RecordingGroup;
+import cafe.jeffrey.microscope.model.recording.Bundle;
+import cafe.jeffrey.microscope.model.recording.BundleFile;
+import cafe.jeffrey.microscope.model.recording.Recording;
+import cafe.jeffrey.microscope.model.ProfileInfo;
+import cafe.jeffrey.microscope.model.RecordingEventSource;
+import cafe.jeffrey.microscope.model.recording.RecordingFile;
+import cafe.jeffrey.microscope.model.recording.ManagedFile;
+import cafe.jeffrey.microscope.core.duckdb.client.DatabaseClientProvider;
+import cafe.jeffrey.microscope.test.DuckDBTest;
+import cafe.jeffrey.microscope.test.TestUtils;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+@DuckDBTest(migration = "classpath:db/migration/microscope/core")
+class JdbcRecordingRepositoryTest {
+
+    private static final Instant FIXED_TIME = Instant.parse("2026-01-15T12:00:00Z");
+    private static final Clock CLOCK = Clock.fixed(FIXED_TIME, ZoneOffset.UTC);
+
+    private static long countRows(DataSource dataSource, String sql) throws SQLException {
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+            resultSet.next();
+            return resultSet.getLong(1);
+        }
+    }
+
+    @Nested
+    class FindAllRecordingsMethod {
+
+        @Test
+        void returnsEmptyList_whenNoRecordings(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            List<Recording> result = repository.findAllRecordings();
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void returnsRecordings_whenRecordingsExist(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            List<Recording> result = repository.findAllRecordings();
+
+            assertEquals(2, result.size());
+        }
+
+        @Test
+        void includesRecordingFiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            List<Recording> result = repository.findAllRecordings();
+
+            Recording recording = result.stream()
+                    .filter(r -> "rec-001".equals(r.id()))
+                    .findFirst()
+                    .orElseThrow();
+            assertNotNull(recording.files());
+            assertEquals(1, recording.files().size());
+        }
+    }
+
+    @Nested
+    class FindRecordingMethod {
+
+        @Test
+        void returnsRecording_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            Optional<Recording> result = repository.findRecording("rec-001");
+
+            assertTrue(result.isPresent());
+            assertEquals("Recording One", result.get().recordingName());
+        }
+
+        @Test
+        void returnsEmpty_whenNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            Optional<Recording> result = repository.findRecording("non-existent");
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void includesRecordingFiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            Optional<Recording> result = repository.findRecording("rec-001");
+
+            assertTrue(result.isPresent());
+            assertNotNull(result.get().files());
+            assertEquals(1, result.get().files().size());
+            assertEquals("recording1.jfr", result.get().files().get(0).filename());
+        }
+    }
+
+    @Nested
+    class InsertRecordingMethod {
+
+        @Test
+        void insertsRecordingAndFile(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            Recording recording = new Recording(
+                    "new-rec-001", "New Recording", null,
+                    RecordingEventSource.JFR, Instant.parse("2025-01-15T12:00:00Z"),
+                    Instant.parse("2025-01-15T11:00:00Z"), Instant.parse("2025-01-15T11:30:00Z"),
+                    false, null, null, List.of());
+            RecordingFile recordingFile = new RecordingFile(
+                    "new-file-001", "new-rec-001", "new-recording.jfr",
+                    ManagedFile.JFR, Instant.parse("2025-01-15T12:00:00Z"), 1024);
+
+            repository.insertRecording(recording, recordingFile);
+
+            Optional<Recording> result = repository.findRecording("new-rec-001");
+            assertTrue(result.isPresent());
+            assertEquals("New Recording", result.get().recordingName());
+        }
+    }
+
+    /**
+     * A file imported from this machine is recognised again by what the store already keeps of it:
+     * the name it was stored under and its size in bytes.
+     */
+    @Nested
+    class FindByFileNameAndSizeMethod {
+
+        private static final String FILE_NAME = "app.jfr";
+        private static final long SIZE = 2048;
+        private static final String INSERT_PROFILE = "INSERT INTO profiles (profile_id, profile_name, event_source, "
+                + "created_at, recording_id) VALUES (?, 'app', 'JFR', TIMESTAMPTZ '2026-01-15 12:00:00+00', ?)";
+
+        private static Recording recording(String id, Instant createdAt) {
+            return new Recording(id, FILE_NAME, null, RecordingEventSource.JFR, createdAt,
+                    createdAt, createdAt, false, null, null, List.of());
+        }
+
+        private static RecordingFile file(String recordingId, String filename, long size, Instant createdAt) {
+            return new RecordingFile(recordingId + "-" + filename, recordingId, filename,
+                    ManagedFile.of(filename), createdAt, size);
+        }
+
+        private static JdbcRecordingRepository repository(DataSource dataSource) {
+            return new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+        }
+
+        private static void insertSingleFile(JdbcRecordingRepository repository, String id, long size, Instant at) {
+            repository.insertRecording(recording(id, at), file(id, FILE_NAME, size, at));
+        }
+
+        @Test
+        void findsTheRecordingOfAFileWithTheSameNameAndSize(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "imported", SIZE, FIXED_TIME);
+
+            Optional<Recording> result = repository.findByFileNameAndSize(FILE_NAME, SIZE);
+
+            assertTrue(result.isPresent());
+            assertEquals("imported", result.get().id());
+            assertEquals(1, result.get().files().size());
+        }
+
+        @Test
+        void missesWhenTheSizeDiffers(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "imported", SIZE, FIXED_TIME);
+
+            assertTrue(repository.findByFileNameAndSize(FILE_NAME, SIZE + 1).isEmpty());
+        }
+
+        @Test
+        void missesWhenTheNameDiffers(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "imported", SIZE, FIXED_TIME);
+
+            assertTrue(repository.findByFileNameAndSize("other.jfr", SIZE).isEmpty());
+        }
+
+        /**
+         * A downloaded session is several files; one of its chunks matching a local file says
+         * nothing about the recording as a whole, so only a one-file recording can match.
+         */
+        @Test
+        void neverMatchesOneFileOfARecordingMadeOfSeveral(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            repository.insertRecording(recording("session", FIXED_TIME), file("session", FILE_NAME, SIZE, FIXED_TIME));
+            repository.insertRecordingFile(file("session", "chunk-2.jfr", SIZE, FIXED_TIME));
+
+            assertTrue(repository.findByFileNameAndSize(FILE_NAME, SIZE).isEmpty());
+        }
+
+        @Test
+        void prefersTheNewestRecordingWhenNoneHasAProfile(DataSource dataSource) {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "older", SIZE, FIXED_TIME);
+            insertSingleFile(repository, "newer", SIZE, FIXED_TIME.plusSeconds(60));
+
+            assertEquals("newer", repository.findByFileNameAndSize(FILE_NAME, SIZE).orElseThrow().id());
+        }
+
+        /**
+         * Handing back a profile that already exists is the point of the lookup, so a recording
+         * with one wins over a newer duplicate that would have to be analysed again.
+         */
+        @Test
+        void prefersARecordingWithAProfileOverANewerOneWithout(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "profiled", SIZE, FIXED_TIME);
+            insertSingleFile(repository, "unprofiled", SIZE, FIXED_TIME.plusSeconds(60));
+            insertProfile(dataSource, "prof-1", "profiled");
+
+            Recording result = repository.findByFileNameAndSize(FILE_NAME, SIZE).orElseThrow();
+
+            assertEquals("profiled", result.id());
+            assertEquals("prof-1", result.profileId());
+        }
+
+        @Test
+        void prefersTheNewestRecordingAmongThoseWithAProfile(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = repository(dataSource);
+            insertSingleFile(repository, "older", SIZE, FIXED_TIME);
+            insertSingleFile(repository, "newer", SIZE, FIXED_TIME.plusSeconds(60));
+            insertSingleFile(repository, "newest-unprofiled", SIZE, FIXED_TIME.plusSeconds(120));
+            insertProfile(dataSource, "prof-older", "older");
+            insertProfile(dataSource, "prof-newer", "newer");
+
+            assertEquals("newer", repository.findByFileNameAndSize(FILE_NAME, SIZE).orElseThrow().id());
+        }
+
+        private static void insertProfile(DataSource dataSource, String profileId, String recordingId)
+                throws SQLException {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(INSERT_PROFILE)) {
+                statement.setString(1, profileId);
+                statement.setString(2, recordingId);
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    /**
+     * A recording can be initialized more than once. It stays one row in every listing, carrying the
+     * newest of its profiles, and the repositories list all of them for the recording.
+     */
+    @Nested
+    class RecordingWithSeveralProfiles {
+
+        private static final String RECORDING_ID = "rec-multi";
+        private static final String INSERT_PROFILE = "INSERT INTO profiles (profile_id, profile_name, event_source, "
+                + "created_at, recording_id) VALUES (?, ?, 'JFR', ?, ?)";
+
+        @Test
+        void isListedOnceWithItsNewestProfile(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = initializedTwice(dataSource);
+
+            List<Recording> recordings = repository.findAllRecordings();
+
+            assertEquals(1, recordings.size());
+            assertEquals("prof-newer", recordings.getFirst().profileId());
+            assertEquals("app.jfr #2", recordings.getFirst().profileName());
+            assertEquals("prof-newer", repository.findRecording(RECORDING_ID).orElseThrow().profileId());
+        }
+
+        @Test
+        void listsEveryProfileOfTheRecordingNewestFirst(DataSource dataSource) throws SQLException {
+            initializedTwice(dataSource);
+            var repositories = new JdbcMicroscopeCoreRepositories(new DatabaseClientProvider(dataSource), CLOCK);
+
+            assertEquals(List.of("prof-newer", "prof-older"), repositories.findProfilesByRecording(RECORDING_ID)
+                    .stream().map(ProfileInfo::id).toList());
+            assertTrue(repositories.findProfilesByRecording("another-recording").isEmpty());
+        }
+
+        private static JdbcRecordingRepository initializedTwice(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            repository.insertRecording(
+                    new Recording(RECORDING_ID, "app.jfr", null, RecordingEventSource.JFR, FIXED_TIME,
+                            FIXED_TIME, FIXED_TIME, false, null, null, List.of()),
+                    new RecordingFile("file-multi", RECORDING_ID, "app.jfr", ManagedFile.JFR, FIXED_TIME, 1024));
+            insertProfile(dataSource, "prof-older", "app.jfr", FIXED_TIME);
+            insertProfile(dataSource, "prof-newer", "app.jfr #2", FIXED_TIME.plusSeconds(60));
+            return repository;
+        }
+
+        private static void insertProfile(DataSource dataSource, String profileId, String name, Instant createdAt)
+                throws SQLException {
+            try (Connection connection = dataSource.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(INSERT_PROFILE)) {
+                statement.setString(1, profileId);
+                statement.setString(2, name);
+                statement.setObject(3, createdAt.atOffset(ZoneOffset.UTC));
+                statement.setString(4, RECORDING_ID);
+                statement.executeUpdate();
+            }
+        }
+    }
+
+    @Nested
+    class InsertRecordingFileMethod {
+
+        @Test
+        void insertsAdditionalFile_toExistingRecording(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            RecordingFile additionalFile = new RecordingFile(
+                    "file-003", "rec-001", "recording1-extra.jfr",
+                    ManagedFile.JFR, Instant.parse("2025-01-15T14:00:00Z"), 512);
+
+            repository.insertRecordingFile(additionalFile);
+
+            Optional<Recording> result = repository.findRecording("rec-001");
+            assertTrue(result.isPresent());
+            assertEquals(2, result.get().files().size());
+        }
+    }
+
+    @Nested
+    class FindByIdMethod {
+
+        @Test
+        void returnsRecording_whenExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            Optional<Recording> result = repository.findById("rec-001");
+
+            assertTrue(result.isPresent());
+            assertEquals("Recording One", result.get().recordingName());
+        }
+
+        @Test
+        void returnsEmpty_whenNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            Optional<Recording> result = repository.findById("non-existent");
+
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class DeleteRecordingMethod {
+
+        @Test
+        void deletesRecordingAndFiles(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            repository.deleteRecordingWithFiles("rec-001");
+
+            Optional<Recording> result = repository.findRecording("rec-001");
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    @Nested
+    class GroupMethods {
+
+        @Test
+        void insertsGroupAndReturnsId(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            String groupId = repository.insertGroup("New Group");
+
+            assertNotNull(groupId);
+            assertTrue(repository.groupExists(groupId));
+        }
+
+        @Test
+        void insertsGroup_withCreatedAtFromClock(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            String groupId = repository.insertGroup("Clocked Group");
+
+            Optional<RecordingGroup> group = repository.findGroupById(groupId);
+            assertTrue(group.isPresent());
+            assertEquals(FIXED_TIME, group.get().createdAt());
+        }
+
+        @Test
+        void findsAllGroups(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            List<RecordingGroup> result = repository.findAllRecordingGroups();
+
+            assertEquals(1, result.size());
+            assertEquals("Test Group", result.get(0).name());
+        }
+
+        @Test
+        void groupExists_returnsTrue_whenGroupExists(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            boolean result = repository.groupExists("group-001");
+
+            assertTrue(result);
+        }
+
+        @Test
+        void groupExists_returnsFalse_whenGroupNotExists(DataSource dataSource) {
+            var provider = new DatabaseClientProvider(dataSource);
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            boolean result = repository.groupExists("non-existent");
+
+            assertFalse(result);
+        }
+
+        @Test
+        void deletesGroup_andRecordingsInGroup(DataSource dataSource) throws SQLException {
+            var provider = new DatabaseClientProvider(dataSource);
+            TestUtils.executeSql(dataSource, "sql/recording/insert-recordings.sql");
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(provider, CLOCK);
+
+            repository.deleteGroup("group-001");
+
+            assertFalse(repository.groupExists("group-001"));
+            // Recording in group should also be deleted
+            Optional<Recording> result = repository.findRecording("rec-002");
+            assertTrue(result.isEmpty());
+        }
+    }
+
+    /**
+     * A bundle is several items that arrived together: each initializable one a recording of its own
+     * pointing back to the bundle, the rest download-only files of the bundle itself.
+     */
+    @Nested
+    class BundleMethods {
+
+        private static final String BUNDLE_ID = "bundle-1";
+
+        private static Recording member(String id, String name, RecordingEventSource source, String... files) {
+            List<RecordingFile> recordingFiles = Arrays.stream(files)
+                    .map(filename -> new RecordingFile(id + "-" + filename, id, filename,
+                            ManagedFile.of(filename), FIXED_TIME, 1024))
+                    .toList();
+            return new Recording(id, name, null, source, FIXED_TIME, null, null,
+                    false, null, null, recordingFiles, BUNDLE_ID);
+        }
+
+        private static Bundle bundle(String groupId) {
+            return new Bundle(BUNDLE_ID, "checkout_2026-03-01T12-00-00Z", groupId, FIXED_TIME, List.of(
+                    new BundleFile("log-1", BUNDLE_ID, "gc.jvm-log", ManagedFile.JVM_LOG, FIXED_TIME, 512)));
+        }
+
+        private static void insertBundle(JdbcRecordingRepository repository, String groupId) {
+            repository.insertBundle(bundle(groupId), List.of(
+                    member("rec-jfr", "checkout", RecordingEventSource.JFR, "chunk-1.jfr", "chunk-2.jfr"),
+                    member("rec-heap", "heap.hprof", RecordingEventSource.HEAP_DUMP, "heap.hprof")));
+        }
+
+        @Test
+        void insertsTheBundleItsFilesAndEveryMemberWithItsFiles(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            insertBundle(repository, null);
+
+            Bundle bundle = repository.findBundle(BUNDLE_ID).orElseThrow();
+            assertEquals("checkout_2026-03-01T12-00-00Z", bundle.bundleName());
+            assertEquals(List.of("gc.jvm-log"), bundle.files().stream().map(BundleFile::filename).toList());
+
+            List<Recording> members = repository.findBundleMembers(BUNDLE_ID);
+            assertEquals(2, members.size());
+            Recording jfr = members.stream().filter(r -> r.id().equals("rec-jfr")).findFirst().orElseThrow();
+            assertEquals(BUNDLE_ID, jfr.bundleId());
+            assertEquals(2, jfr.files().size());
+        }
+
+        @Test
+        void aStandaloneRecordingGainsABundleWithoutChangingItsFiles(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            String groupId = repository.insertGroup("incident");
+            RecordingFile file = new RecordingFile("jfr-file", "rec-legacy", "chunk.jfr", ManagedFile.JFR, FIXED_TIME, 1024);
+            repository.insertRecording(new Recording("rec-legacy", "checkout", groupId, RecordingEventSource.JFR,
+                    FIXED_TIME, null, null, false, null, null, List.of(file)), file);
+
+            repository.attachRecordingToBundle("rec-legacy", new Bundle(BUNDLE_ID, "checkout", groupId, FIXED_TIME, List.of()));
+
+            Recording member = repository.findBundleMembers(BUNDLE_ID).getFirst();
+            assertEquals("rec-legacy", member.id());
+            assertEquals(List.of(file), member.files());
+            assertNull(member.groupId());
+            assertEquals(groupId, repository.findBundle(BUNDLE_ID).orElseThrow().groupId());
+            assertEquals(1, repository.findAllRecordings().size());
+        }
+
+        @Test
+        void aFailedAttachmentDoesNotMoveARecordingOrLeaveAnOrphanBundle(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            insertBundle(repository, null);
+            Bundle another = new Bundle("another-bundle", "checkout", null, FIXED_TIME, List.of());
+
+            for (String recordingId : List.of("rec-jfr", "missing")) {
+                assertThrows(IllegalArgumentException.class, () -> repository.attachRecordingToBundle(recordingId, another));
+                assertTrue(repository.findBundle("another-bundle").isEmpty());
+                assertEquals(2, repository.findBundleMembers(BUNDLE_ID).size());
+            }
+        }
+
+        @Test
+        void refreshingADownloadOnlyFileKeepsItsIdAndUpdatesItsSize(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            insertBundle(repository, null);
+
+            repository.upsertBundleFile(new BundleFile("log-1", BUNDLE_ID, "gc.jvm-log", ManagedFile.JVM_LOG,
+                    FIXED_TIME.plusSeconds(60), 1024));
+            repository.upsertBundleFile(new BundleFile("log-2", BUNDLE_ID, "app.log", ManagedFile.APP_LOG,
+                    FIXED_TIME, 256));
+
+            List<BundleFile> files = repository.findBundle(BUNDLE_ID).orElseThrow().files();
+            assertEquals(2, files.size());
+            BundleFile refreshed = files.stream().filter(file -> file.id().equals("log-1")).findFirst().orElseThrow();
+            assertEquals(1024, refreshed.sizeInBytes());
+            assertEquals(FIXED_TIME.plusSeconds(60), refreshed.uploadedAt());
+            assertEquals(2, repository.findBundleMembers(BUNDLE_ID).size());
+        }
+
+        @Test
+        void membersAreListedWithTheRecordingsAndCarryTheirBundle(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            insertBundle(repository, null);
+
+            List<Recording> all = repository.findAllRecordings();
+            assertEquals(2, all.size());
+            assertTrue(all.stream().allMatch(recording -> BUNDLE_ID.equals(recording.bundleId())));
+            assertEquals(1, repository.findAllBundles().size());
+        }
+
+        @Test
+        void aBundlesOneFileMemberIsFoundByItsFileNameAndSize(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            insertBundle(repository, null);
+
+            assertEquals("rec-heap", repository.findByFileNameAndSize("heap.hprof", 1024).orElseThrow().id());
+            assertTrue(repository.findByFileNameAndSize("chunk-1.jfr", 1024).isEmpty());
+        }
+
+        @Test
+        void aMemberWithoutFilesRollsTheWholeBundleBack(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+
+            assertThrows(IllegalArgumentException.class, () -> repository.insertBundle(bundle(null), List.of(
+                    member("rec-jfr", "checkout", RecordingEventSource.JFR, "chunk-1.jfr"),
+                    member("rec-empty", "empty", RecordingEventSource.HEAP_DUMP))));
+
+            assertTrue(repository.findBundle(BUNDLE_ID).isEmpty());
+            assertTrue(repository.findAllRecordings().isEmpty());
+        }
+
+        @Test
+        void deletingTheBundleRemovesItsRowAndFilesButNotItsMembers(DataSource dataSource) throws SQLException {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            insertBundle(repository, null);
+
+            repository.deleteBundle(BUNDLE_ID);
+
+            assertTrue(repository.findBundle(BUNDLE_ID).isEmpty());
+            assertEquals(0, countRows(dataSource, "SELECT count(*) FROM bundle_files"));
+            assertEquals(2, repository.findBundleMembers(BUNDLE_ID).size());
+        }
+
+        @Test
+        void aBundleMovesBetweenGroupsAsAWhole(DataSource dataSource) {
+            JdbcRecordingRepository repository = new JdbcRecordingRepository(new DatabaseClientProvider(dataSource), CLOCK);
+            String groupId = repository.insertGroup("Checkout");
+            insertBundle(repository, null);
+
+            repository.updateBundleGroup(BUNDLE_ID, groupId);
+
+            assertEquals(List.of(BUNDLE_ID), repository.findBundlesByGroupId(groupId).stream().map(Bundle::id).toList());
+            assertTrue(repository.findRecordingsByGroupId(groupId).isEmpty());
+        }
+    }
+}

@@ -22,12 +22,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.model.Type;
-import cafe.jeffrey.microscope.profile.management.manager.ProfileManager;
-import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryManager;
-import cafe.jeffrey.microscope.profile.management.manager.memory.NativeMemoryTrackingManager;
-import cafe.jeffrey.microscope.profile.management.manager.model.nativememory.NativeMemoryOverview;
-import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtCategory;
-import cafe.jeffrey.microscope.profile.management.manager.model.nmt.NmtOverview;
+import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
+import cafe.jeffrey.microscope.core.profile.manager.memory.NativeMemoryManager;
+import cafe.jeffrey.microscope.core.profile.manager.memory.NativeMemoryTrackingManager;
+import cafe.jeffrey.microscope.core.profile.manager.model.nativememory.NativeMemoryOverview;
+import cafe.jeffrey.microscope.core.profile.manager.model.nmt.NmtCategory;
+import cafe.jeffrey.microscope.core.profile.manager.model.nmt.NmtOverview;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.List;

@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.heap;
 
-import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ClassLoaderLeakChainAnalyzer;
-import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.ConsumerReportAnalyzer;
-import cafe.jeffrey.microscope.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
+import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.ClassLoaderLeakChainAnalyzer;
+import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.ConsumerReportAnalyzer;
+import cafe.jeffrey.microscope.core.profile.heapdump.analyzer.heapview.PathToGCRootAnalyzer;
 
 /**
  * How much of a heap report an answer carries. Each cut is declared in the record it applies to, so a
