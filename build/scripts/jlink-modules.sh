@@ -53,50 +53,50 @@ if [[ ! -d "${LIB_DIR}" ]]; then
     exit 1
 fi
 
-# jdeps.exe on Windows cannot read MSYS POSIX paths; convert everything with cygpath.
 if ${IS_WINDOWS}; then
     LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | cygpath -f - -w | paste -s -d ';' -)"
-    JDEPS_CLASSES="$(cygpath -w "${CLASSES_DIR}")"
-    JDEPS_JARS=()
-    for jar in "${LIB_DIR}"/*.jar; do
-        JDEPS_JARS+=("$(cygpath -w "$jar")")
-    done
 else
     LIB_CP="$(find "${LIB_DIR}" -name '*.jar' | paste -s -d ':' -)"
-    JDEPS_CLASSES="${CLASSES_DIR}"
-    JDEPS_JARS=("${LIB_DIR}"/*.jar)
 fi
 
+# jdeps discovers platform module dependencies via static analysis. Its output
+# is merged with the required-modules list below; on platforms where it works
+# (Linux, macOS) it may add modules the list misses, while sort -u deduplicates.
 echo "Running jdeps to discover platform module dependencies..." >&2
 DISCOVERED_MODULES=$(jdeps \
     --multi-release 25 \
     --ignore-missing-deps \
     --print-module-deps \
     --class-path "${LIB_CP}" \
-    "${JDEPS_CLASSES}" \
-    "${JDEPS_JARS[@]}" \
+    "${CLASSES_DIR}" \
+    "${LIB_DIR}"/*.jar \
     2>/dev/null) || true
 
-# jdeps can silently fail on Windows (path handling, command-line length limits).
-# When it discovers nothing, fall back to the standard set of modules that a
-# Spring Boot + embedded Tomcat application needs.
-if [[ -z "${DISCOVERED_MODULES}" ]]; then
-    echo "Warning: jdeps discovered no modules; using Spring Boot baseline" >&2
-    DISCOVERED_MODULES="java.base,java.logging,java.management,java.naming,java.net.http,java.prefs,java.rmi,java.security.jgss,java.security.sasl,java.sql,java.sql.rowset,java.transaction.xa,java.xml,java.xml.crypto"
-fi
-
-# Modules that jdeps cannot discover through static analysis:
+# Every module the Microscope runtime needs. jdeps is unreliable on Windows
+# (returns error text instead of module names), so we list all required modules
+# explicitly rather than relying on its output. Categories:
+#
+# Spring Boot + embedded Tomcat:
+#   java.desktop         — java.beans.PropertyEditorSupport (property binding)
+#   java.instrument      — load-time weaving / agent support
+#   java.logging         — Tomcat DirectJDKLog (java.util.logging)
+#   java.management      — JMX (Actuator, Tomcat)
+#   java.naming          — JNDI (Tomcat StandardServer)
+#   java.security.jgss   — SPNEGO/Kerberos (security stack)
+#   java.security.sasl   — SASL (security stack)
+#   java.sql             — JDBC (DuckDB)
+#   java.transaction.xa  — XA transactions (DataSource)
+#   java.xml             — XML parsing (Spring context)
+#
+# Not discovered by jdeps (incubator, reflection, runtime-only):
 #   jdk.incubator.vector — incubator module, explicitly required by the app
 #   jdk.unsupported      — Netty, protobuf, etc. use sun.misc.Unsafe
 #   jdk.jfr              — JFR event API, runtime-only usage paths
-#   jdk.management       — Spring Boot Actuator, JMX
+#   jdk.management       — Spring Boot Actuator, JMX platform beans
 #   java.compiler        — annotation processing at runtime
-#   java.instrument      — Spring's load-time weaving / agent support
-#   java.desktop         — java.beans.PropertyEditorSupport, used by Spring Boot property binding
-#   java.logging         — Tomcat's DirectJDKLog uses java.util.logging directly
-EXTRA_MODULES="jdk.incubator.vector,jdk.unsupported,jdk.jfr,jdk.management,java.compiler,java.instrument,java.desktop,java.logging"
+REQUIRED_MODULES="java.compiler,java.desktop,java.instrument,java.logging,java.management,java.naming,java.net.http,java.security.jgss,java.security.sasl,java.sql,java.transaction.xa,java.xml,jdk.incubator.vector,jdk.jfr,jdk.management,jdk.unsupported"
 
-ALL_MODULES=$(echo "${DISCOVERED_MODULES},${EXTRA_MODULES}" \
+ALL_MODULES=$(echo "${DISCOVERED_MODULES},${REQUIRED_MODULES}" \
     | tr ',' '\n' \
     | grep -E '^(java|jdk)\.' \
     | sort -u \
