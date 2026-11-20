@@ -60,6 +60,7 @@ const askExamples = `# each of these loads a skill on its own - no slash command
 "did the last three commits regress performance?"        -> regression-check
 "what should I change in this repo to fix it?"           -> optimize-code
 "analyze the exceptions of orders-service"               -> analyze-exceptions
+"is OrderService.reprice hot? who calls it at runtime?"  -> code-insight
 "how many events of each type are in the recording?"     -> jfr-sql
 "which threads still reference that classloader?"        -> heap-sql
 "write up what you found"                                -> report`;
@@ -74,6 +75,7 @@ const invoke = `# Claude Code
 /microscope:regression-check
 /microscope:optimize-code
 /microscope:analyze-exceptions
+/microscope:code-insight
 /microscope:jfr-sql
 /microscope:heap-sql
 /microscope:report
@@ -88,6 +90,7 @@ $profile-run
 $regression-check
 $optimize-code
 $analyze-exceptions
+$code-insight
 $jfr-sql
 $heap-sql
 $report`;
@@ -134,7 +137,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
       <p>To watch them at work, the <router-link to="/agent-plugin">Agent Plugin</router-link> page replays the plugin&rsquo;s recorded eval runs call by call &mdash; which skill took the question, which agent it handed over to, and every Jeffrey tool they called &mdash; and maps the tools each skill names against the ones the runs actually used.</p>
 
       <h2 id="which-skill">Which Skill Answers Your Question</h2>
-      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the twelve cover between them, and what each one needs before it can start.</p>
+      <p>Every row is a question you would actually type. You do not pick from this table &mdash; the agent does, from the same descriptions &mdash; but it is the fastest way to see what the thirteen cover between them, and what each one needs before it can start.</p>
       <table class="skill-chooser">
         <thead>
           <tr>

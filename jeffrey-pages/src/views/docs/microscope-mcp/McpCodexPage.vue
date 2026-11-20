@@ -238,7 +238,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
           </tr>
           <tr>
             <th scope="row">Skills</th>
-            <td class="is-baseline" data-client="Claude Code">Twelve, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
+            <td class="is-baseline" data-client="Claude Code">Thirteen, invoked <span class="docs-compare-value">/microscope:analyze-jfr</span></td>
             <td class="is-primary" data-client="Codex">The same thirteen, invoked <span class="docs-compare-value">$analyze-jfr</span></td>
           </tr>
           <tr>

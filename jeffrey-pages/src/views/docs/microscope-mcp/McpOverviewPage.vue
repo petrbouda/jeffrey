@@ -71,7 +71,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for the duration of the call, runs the tool, and returns a typed result, with Markdown where the agent reads prose. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and seventeen tools in twenty families:</p>
+      <p>A hundred and sixteen tools in twenty families:</p>
       <table>
         <thead>
           <tr>
@@ -153,7 +153,7 @@ onMounted(() => {
           </tr>
           <tr>
             <td><code>jfr_</code></td>
-            <td>7</td>
+            <td>6</td>
             <td>The profile&rsquo;s DuckDB tables &mdash; schema, event types and read-only SQL</td>
           </tr>
           <tr>
