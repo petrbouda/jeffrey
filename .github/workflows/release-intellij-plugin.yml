@@ -13,14 +13,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The IntelliJ plugin's GitHub release, independent of Microscope's (release.yml, tag-driven).
+# The IntelliJ plugin's release, independent of Microscope's (release.yml, tag-driven).
 # It runs only by hand: Actions -> Release IntelliJ Plugin -> Run workflow, with the version
 # typed into the form.
 #
-# It creates a GitHub release tagged intellij-plugin-v<version> with --latest=false so it never
-# becomes GitHub's "latest" release: that designation belongs to Microscope, whose update check
-# (GitHubReleaseChecker) reads /releases/latest. The plugin itself is published to JetBrains
-# Marketplace separately; this release records the version for the jeffrey-pages version banner.
+# It builds the plugin zip (Gradle buildPlugin, Java 21), creates a GitHub release tagged
+# intellij-plugin-v<version> with --latest=false, and attaches the distribution zip. The
+# --latest=false keeps it from becoming GitHub's "latest" release: that designation belongs
+# to Microscope, whose update check (GitHubReleaseChecker) reads /releases/latest.
+#
+# The plugin is also published to JetBrains Marketplace separately; this release provides
+# a direct download and records the version for the jeffrey-pages version banner.
 
 name: Release IntelliJ Plugin
 
@@ -51,13 +54,47 @@ jobs:
         echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
         echo "Releasing IntelliJ Plugin ${VERSION}"
 
-  create-release:
+  build:
     needs: [version]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: jeffrey-intellij-plugin
+    steps:
+    - uses: actions/checkout@v6
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: '21'
+
+    - name: Set version
+      env:
+        VERSION: ${{ needs.version.outputs.version }}
+      run: sed -i "s/^pluginVersion = .*/pluginVersion = ${VERSION}/" gradle.properties
+
+    - name: Build plugin
+      run: ./gradlew buildPlugin
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: intellij-plugin-dist
+        path: jeffrey-intellij-plugin/build/distributions/*.zip
+        if-no-files-found: error
+        retention-days: 1
+
+  create-release:
+    needs: [version, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
     - uses: actions/checkout@v6
+
+    - uses: actions/download-artifact@v8
+      with:
+        name: intellij-plugin-dist
+        path: ${{ runner.temp }}/dist
 
     - name: Create tag and GitHub release
       env:
@@ -81,6 +118,7 @@ jobs:
         fi
 
         gh release create "${TAG}" \
+          ${RUNNER_TEMP}/dist/*.zip \
           --title "IntelliJ Plugin ${VERSION}" \
           --notes "JetBrains Marketplace: [Jeffrey Microscope](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)" \
           --latest=false \
