@@ -19,12 +19,13 @@ name: Release Volume Scheduler
 # by hand: Actions -> Release Volume Scheduler -> Run workflow, with the version typed into the form.
 #
 # It publishes the service's image, a GraalVM native image, petrbouda/volume-scheduler:<version> (and
-# latest), and tags the commit it was built from as volume-scheduler-v<version>. It creates no GitHub
-# release: those belong to Microscope, whose update check reads GitHub's latest release. There is no
+# latest), tags the commit it was built from as volume-scheduler-v<version>, and creates a GitHub
+# release so the jeffrey-pages version banner can discover it via the Releases API. There is no
 # JVM image; the service does not profile itself (async-profiler is a JVM agent).
 #
 # The volume-scheduler-v prefix keeps the tag out of release.yml's v<version> patterns, and a tag
-# pushed with GITHUB_TOKEN starts no workflow anyway.
+# pushed with GITHUB_TOKEN starts no workflow anyway. A GitHub release is created with --latest=false
+# so it never becomes GitHub's "latest" release: that designation belongs to Microscope.
 #
 # native-image does not cross-compile, and compiling under qemu takes most of an hour, so each
 # architecture is built on its own runner, pushed by digest only, and the merge job joins the two
@@ -155,9 +156,10 @@ jobs:
         docker buildx imagetools create "${TAGS[@]}" $(printf "${IMAGE}@sha256:%s " *)
         docker buildx imagetools inspect "${IMAGE}:${VERSION}"
 
-  # Records which commit the image was built from. An existing tag is left alone, so that
-  # re-running a release does not move it.
-  tag:
+  # Records which commit the image was built from and creates a GitHub release so the
+  # jeffrey-pages version banner can discover it via the Releases API. An existing tag is
+  # left alone, so that re-running a release does not move it.
+  create-release:
     needs: [version, merge]
     runs-on: ubuntu-latest
     permissions:
@@ -165,10 +167,13 @@ jobs:
     steps:
     - uses: actions/checkout@v6
 
-    - name: Tag the released commit
+    - name: Create tag and GitHub release
       env:
-        TAG: volume-scheduler-v${{ needs.version.outputs.version }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ needs.version.outputs.version }}
       run: |
+        TAG="volume-scheduler-v${VERSION}"
+
         if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
           echo "Tag ${TAG} already exists, keeping it as it is."
         else
@@ -177,3 +182,14 @@ jobs:
           git tag "${TAG}"
           git push origin "refs/tags/${TAG}"
         fi
+
+        PRERELEASE_FLAG=""
+        if [[ "${VERSION}" =~ -[a-z] ]]; then
+          PRERELEASE_FLAG="--prerelease"
+        fi
+
+        gh release create "${TAG}" \
+          --title "Volume Scheduler ${VERSION}" \
+          --notes "Docker image: \`petrbouda/volume-scheduler:${VERSION}\`" \
+          --latest=false \
+          ${PRERELEASE_FLAG}

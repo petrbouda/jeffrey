@@ -1,0 +1,87 @@
+# Jeffrey
+# Copyright (C) 2026 Petr Bouda
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# The IntelliJ plugin's GitHub release, independent of Microscope's (release.yml, tag-driven).
+# It runs only by hand: Actions -> Release IntelliJ Plugin -> Run workflow, with the version
+# typed into the form.
+#
+# It creates a GitHub release tagged intellij-plugin-v<version> with --latest=false so it never
+# becomes GitHub's "latest" release: that designation belongs to Microscope, whose update check
+# (GitHubReleaseChecker) reads /releases/latest. The plugin itself is published to JetBrains
+# Marketplace separately; this release records the version for the jeffrey-pages version banner.
+
+name: Release IntelliJ Plugin
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'IntelliJ Plugin release version, with or without the leading v (e.g. 0.3.11, 0.4.0-b1).'
+        required: true
+        type: string
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.VERSION }}
+    steps:
+    - name: Resolve version
+      id: resolve
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        VERSION="${INPUT_VERSION#v}"
+        if [[ ! "${VERSION}" =~ ^([0-9]+\.[0-9]+-b[0-9]+|[0-9]+\.[0-9]+\.[0-9]+(-[a-z][a-z0-9-]*)?)$ ]]; then
+          echo "ERROR: version '${VERSION}' does not match [0-9]+.[0-9]+-b[0-9]+ or [0-9]+.[0-9]+.[0-9]+(-<suffix>)? where suffix is -bN or -[a-z][a-z0-9-]*" >&2
+          exit 1
+        fi
+        echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+        echo "Releasing IntelliJ Plugin ${VERSION}"
+
+  create-release:
+    needs: [version]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Create tag and GitHub release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ needs.version.outputs.version }}
+      run: |
+        TAG="intellij-plugin-v${VERSION}"
+
+        if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+          echo "Tag ${TAG} already exists, keeping it as it is."
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${TAG}"
+          git push origin "refs/tags/${TAG}"
+        fi
+
+        PRERELEASE_FLAG=""
+        if [[ "${VERSION}" =~ -[a-z] ]]; then
+          PRERELEASE_FLAG="--prerelease"
+        fi
+
+        gh release create "${TAG}" \
+          --title "IntelliJ Plugin ${VERSION}" \
+          --notes "JetBrains Marketplace: [Jeffrey Microscope](https://plugins.jetbrains.com/plugin/31963-jeffrey-microscope)" \
+          --latest=false \
+          ${PRERELEASE_FLAG}
