@@ -59,6 +59,9 @@ jobs:
   publish:
     needs: [version]
     runs-on: ubuntu-latest
+    outputs:
+      provisioner-tag: ${{ steps.jeffrey.outputs.RELEASE }}
+      async-profiler-version: ${{ steps.ap-version.outputs.VERSION }}
     env:
       # The payload and flavour modules live behind the `payload` profile, so every Maven
       # invocation activates it — otherwise versions:set would leave them at 1.0-SNAPSHOT and
@@ -122,6 +125,13 @@ jobs:
       - name: Stage async-profiler payloads
         run: ../build/scripts/stage-async-profiler-payload.sh .
 
+      - name: Resolve async-profiler version
+        id: ap-version
+        run: |
+          VERSION=$(grep '<async-profiler.version>' pom.xml | sed 's/.*>\(.*\)<.*/\1/')
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "async-profiler ${VERSION}"
+
       - name: Set version
         env:
           VERSION: ${{ needs.version.outputs.version }}
@@ -170,6 +180,8 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ needs.version.outputs.version }}
+        PROVISIONER_TAG: ${{ needs.publish.outputs.provisioner-tag }}
+        AP_VERSION: ${{ needs.publish.outputs.async-profiler-version }}
       run: |
         TAG="jib-v${VERSION}"
 
@@ -187,8 +199,19 @@ jobs:
           PRERELEASE_FLAG="--prerelease"
         fi
 
+        NOTES=$(cat <<EOF
+### Maven Central
+
+**Gradle** — \`cafe.jeffrey-analyst:jeffrey-jib-gradle:${VERSION}\`
+**Maven** — \`cafe.jeffrey-analyst:jeffrey-jib-maven:${VERSION}\`
+
+Provisioner: \`${PROVISIONER_TAG}\`
+async-profiler: \`${AP_VERSION}\`
+EOF
+        )
+
         gh release create "${TAG}" \
           --title "JIB Extension ${VERSION}" \
-          --notes "Maven Central: \`cafe.jeffrey-analyst:jeffrey-jib-gradle:${VERSION}\`" \
+          --notes "${NOTES}" \
           --latest=false \
           ${PRERELEASE_FLAG}
