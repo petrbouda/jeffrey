@@ -315,10 +315,12 @@ const productTabs: ProductTab[] = [
     tagline: 'The profiler your coding agent can call.',
     oneLiner: 'The same analysis you see in the UI, served over MCP 2026-07-28 to Claude Code, Codex and any other 2026-07-28 client — next to your source code.',
     features: [
-      { icon: 'bi-plug-fill', title: '116 tools, 105 read-only', desc: 'Profiles, flamegraphs, JVM dashboards, heap dumps, traces and DuckDB SQL. Every tool declares whether it writes.' },
-      { icon: 'bi-magic', title: 'Skills that know the method', desc: 'profile-run, analyze-jfr, analyze-heap, optimize-code, regression-check and seven more.' },
-      { icon: 'bi-people', title: 'Sub-agents', desc: 'jfr-analyst and heap-analyst read the exports in parallel, and the conversation gets back findings rather than raw documents.' },
-      { icon: 'bi-shield-lock', title: 'No model inside', desc: 'Jeffrey never calls a model provider. Your agent calls in; your profiles stay local.' }
+      { icon: 'bi-speedometer2', title: 'Runtime, not compile-time', desc: 'Real CPU, allocation and lock profiles from your running JVM — not lint rules or static-analysis guesses. Every recommendation is backed by what actually happened under load.' },
+      { icon: 'bi-fire', title: 'Flamegraphs, traces, heap dumps', desc: 'Differential flamegraphs, wall-clock traces, GC analysis, thread states, dominator trees, OQL — 116 tools your agent navigates programmatically.' },
+      { icon: 'bi-code-slash', title: 'Charged to your source code', desc: 'Every hotspot is mapped to the method in your checkout. The agent sees the cost per frame, opens the file and reads the line — runtime names matched to your source spelling.' },
+      { icon: 'bi-stars', title: 'Skills that know the method', desc: 'analyze-jfr, optimize-code, regression-check, profile-run — 13 skills and 2 sub-agents that return typed findings, not raw data.' },
+      { icon: 'bi-check2-square', title: 'Findings carry evidence', desc: 'Each finding is typed with its evidence and a next-tool pointer. The agent follows the chain: hotspot, call sites, source and recommendation.' },
+      { icon: 'bi-git', title: 'From profile to pull request', desc: 'optimize-code maps the hottest frames to source files, proposes minimal edits, applies them and re-profiles to verify the fix landed.' }
     ],
     deployment: {
       eyebrow: 'Install',
