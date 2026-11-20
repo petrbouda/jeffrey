@@ -22,82 +22,37 @@ import { useProductVersions, jibVersionLinks } from '@/composables/useProductVer
 const MICROSCOPE_JAR_URL = 'https://github.com/petrbouda/jeffrey/releases/latest/download/microscope.jar';
 const COPIED_FEEDBACK_MS = 1400;
 
-// ---------- Hero constellation ----------
+// ---------- Pipeline satellites ----------
+// Products that branch off their parent station in the hero pipeline.
 
-// Node coordinates live in the cosmos SVG viewBox (0 0 100 92); the core sits at (CORE_X, CORE_Y).
-const COSMOS_HEIGHT = 92;
-const CORE_X = 50;
-const CORE_Y = 46;
-
-// How prominent a product is drawn: the two analysers, then the two ways to start profiling,
-// then the companions.
-type CosmosTier = 'core' | 'capture' | 'companion';
-
-interface CosmosNode {
+interface PipelineSatellite {
   id: string;
   name: string;
   sub: string;
   icon: string;
-  tip: string;
+  color: string;
   to: string;
   x: number;
   y: number;
-  color: string;
-  // Seconds; offsets the float animation and the pulse speed so nodes don't move in lockstep.
   delay: number;
-  tier: CosmosTier;
-  // Bottom nodes open their tooltip upwards.
-  tipUp?: boolean;
 }
 
-// Listed by tier: on narrow screens the cards stack in this order.
-const cosmosNodes: CosmosNode[] = [
-  {
-    id: 'microscope', name: 'Microscope', sub: 'for you', icon: 'bi-search', tier: 'core',
-    tip: 'Flamegraphs, differential views, sub-second timelines, heap dumps and JVM dashboards from your JFR recordings.',
-    to: '/docs/microscope', x: 24, y: 17, color: 'var(--ms)', delay: 0
-  },
-  {
-    id: 'mcp', name: 'Microscope MCP', sub: 'for your coding agent', icon: 'bi-stars', tier: 'core',
-    tip: '116 tools over MCP for Claude Code, Codex and any MCP 2026-07-28 client. Jeffrey never calls a model itself.',
-    to: '/docs/microscope-mcp', x: 76, y: 21, color: 'var(--mcp)', delay: 1.4
-  },
-  {
-    id: 'provisioner', name: 'Provisioner', sub: 'session bootstrap', icon: 'bi-terminal', tier: 'capture',
-    tip: 'A native CLI. One HOCON file lays out sessions and writes the JVM argfile that starts your app under the profiler.',
-    to: '/docs/provisioner', x: 15, y: 55, color: 'var(--provisioner)', delay: 3.2
-  },
-  {
-    id: 'jib', name: 'Jeffrey JIB', sub: 'build-time', icon: 'bi-box-seam', tier: 'capture',
-    tip: 'A Jib extension that wraps the container entrypoint, so profiling starts before your app does.',
-    to: '/docs/jib', x: 85, y: 59, color: 'var(--jib)', delay: 2
-  },
-  {
-    id: 'volume-scheduler', name: 'Volume Scheduler', sub: 'volume maintenance', icon: 'bi-clock-history', tier: 'companion', tipUp: true,
-    tip: 'A small maintenance service beside the volume your services record into: retention by age, a session cap per instance and a disk budget, plus LZ4 compression.',
-    to: '/docs/volume-scheduler', x: 29, y: 84, color: 'var(--volume-scheduler)', delay: 2.6
-  },
-  {
-    id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack', tier: 'companion', tipUp: true,
-    tip: 'Jump from any flamegraph frame to the source line in your open IntelliJ, Java and Kotlin.',
-    to: '/docs/intellij-plugin', x: 71, y: 86, color: 'var(--ide)', delay: 0.8
-  }
+const pipelineSatellites: PipelineSatellite[] = [
+  { id: 'provisioner', name: 'Provisioner', sub: 'session bootstrap', icon: 'bi-terminal', color: 'var(--provisioner)', to: '/docs/provisioner', x: 6, y: 84.5, delay: 1.5 },
+  { id: 'jib', name: 'Jeffrey JIB', sub: 'build-time', icon: 'bi-box-seam', color: 'var(--jib)', to: '/docs/jib', x: 18.6, y: 84.5, delay: 3.8 },
+  { id: 'volume-scheduler', name: 'Volume Scheduler', sub: 'maintenance', icon: 'bi-clock-history', color: 'var(--volume-scheduler)', to: '/docs/volume-scheduler', x: 37, y: 2, delay: 0.6 },
+  { id: 'intellij', name: 'IntelliJ Plugin', sub: 'frame → source', icon: 'bi-window-stack', color: 'var(--ide)', to: '/docs/intellij-plugin', x: 65, y: 84.5, delay: 4.2 },
+  { id: 'mcp', name: 'Microscope MCP', sub: '116 tools', icon: 'bi-stars', color: 'var(--mcp)', to: '/docs/microscope-mcp', x: 91, y: 2, delay: 2.8 }
 ];
 
-const hoveredNode = ref<string | null>(null);
-
-function nodeStyle(node: CosmosNode): Record<string, string> {
-  return {
-    left: `${node.x}%`,
-    top: `${(node.y / COSMOS_HEIGHT) * 100}%`,
-    '--node-color': node.color,
-    '--delay': `-${node.delay}s`
-  };
-}
-
-function pulsePath(node: CosmosNode): string {
-  return `M${CORE_X},${CORE_Y} L${node.x},${node.y}`;
-}
+// SVG-coordinate branch lines from stations to their satellites (viewBox 0 0 1000 420).
+const BRANCH_LINES = [
+  { x1: 100, y1: 284, x2: 60, y2: 344, color: 'var(--provisioner)' },
+  { x1: 120, y1: 284, x2: 186, y2: 344, color: 'var(--jib)' },
+  { x1: 370, y1: 56, x2: 370, y2: 10, color: 'var(--volume-scheduler)' },
+  { x1: 650, y1: 284, x2: 650, y2: 344, color: 'var(--ide)' },
+  { x1: 910, y1: 56, x2: 910, y2: 10, color: 'var(--mcp)' }
+];
 
 // ---------- Starfield ----------
 
@@ -163,26 +118,15 @@ onBeforeUnmount(() => {
 
 // ---------- Pipeline route ----------
 
-// Positions are percentages of the route box (viewBox 0 0 1000 300).
+// The S-curve is the hero's centrepiece, viewBox 0 0 1000 420.
+const PIPELINE_PATH = 'M10 260 L100 260 C 200 260, 260 80, 370 80 S 540 260, 650 260 S 810 80, 910 80 L990 80';
+const PIPELINE_PULSE_BEGINS = ['0s', '-2.3s', '-4.6s'];
+
 interface RouteStation {
   name: string;
   sub: string;
   icon: string;
   color: string;
-  x: number;
-  y: number;
-}
-
-interface NoteSegment {
-  text: string;
-  strong?: boolean;
-}
-
-// A dashed side note hanging under a station: who helps it, or what else it accepts.
-interface RouteNote {
-  icon: string;
-  color: string;
-  parts: NoteSegment[];
   x: number;
   y: number;
 }
@@ -194,46 +138,31 @@ interface RouteHop {
   y: number;
 }
 
-const ROUTE_PATH = 'M10 180 L110 180 C 210 180, 270 60, 370 60 S 530 180, 630 180 S 790 60, 890 60 L990 60';
-const ROUTE_PULSE_BEGINS = ['0s', '-2s', '-4s'];
-const ROUTE_DASHES = ['M110 208 L110 248', 'M370 88 L370 138', 'M630 208 L630 248', 'M890 88 L890 138'];
-
 const routeStations: RouteStation[] = [
-  { name: 'Your services', sub: 'JFR · async-profiler', icon: 'bi-boxes', color: 'var(--ember)', x: 11, y: 60 },
-  { name: 'Shared volume', sub: '/mnt/jeffrey', icon: 'bi-hdd-stack', color: 'var(--amber)', x: 37, y: 20 },
-  { name: 'Microscope', sub: 'flamegraphs · dashboards', icon: 'bi-search', color: 'var(--ms)', x: 63, y: 60 },
-  { name: 'Coding agent', sub: 'Claude Code · Codex', icon: 'bi-stars', color: 'var(--mcp)', x: 89, y: 20 }
+  { name: 'Your services', sub: 'JFR · async-profiler', icon: 'bi-boxes', color: 'var(--ember)', x: 10, y: 61.9 },
+  { name: 'Shared volume', sub: '/mnt/jeffrey', icon: 'bi-hdd-stack', color: 'var(--amber)', x: 37, y: 19 },
+  { name: 'Microscope', sub: 'flamegraphs · dashboards', icon: 'bi-search', color: 'var(--ms)', x: 65, y: 61.9 },
+  { name: 'Coding agent', sub: 'Claude Code · Codex', icon: 'bi-stars', color: 'var(--mcp)', x: 91, y: 19 }
 ];
 
 const routeHops: RouteHop[] = [
-  { label: 'record', color: 'var(--ember)', x: 24, y: 40 },
-  { label: 'Connector', color: 'var(--ms)', x: 50, y: 40 },
-  { label: 'MCP', color: 'var(--mcp)', x: 76, y: 40 }
+  { label: 'record', color: 'var(--ember)', x: 23.5, y: 42 },
+  { label: 'Connector', color: 'var(--ms)', x: 51, y: 42 },
+  { label: 'MCP', color: 'var(--mcp)', x: 78, y: 42 }
 ];
 
-const routeNotes: RouteNote[] = [
-  {
-    icon: 'bi-terminal', color: 'var(--ember)', x: 11, y: 86.7,
-    parts: [{ text: 'Provisioner', strong: true }, { text: ' or ' }, { text: 'JIB', strong: true }, { text: ' starts them' }]
-  },
-  {
-    icon: 'bi-clock-history', color: 'var(--volume-scheduler)', x: 37, y: 50,
-    parts: [{ text: 'Volume Scheduler', strong: true }, { text: ' keeps it tidy' }]
-  },
-  {
-    icon: 'bi-file-earmark-arrow-up', color: 'var(--ms)', x: 63, y: 86.7,
-    parts: [{ text: 'or drop in a ' }, { text: '.jfr file', strong: true }]
-  },
-  {
-    icon: 'bi-code-slash', color: 'var(--mcp)', x: 89, y: 50,
-    parts: [{ text: 'Investigates', strong: true }, { text: ' and ' }, { text: 'changes the code', strong: true }]
-  }
+// Which satellites belong to which station, by index.
+const STATION_SATELLITE_IDS: string[][] = [
+  ['provisioner', 'jib'],
+  ['volume-scheduler'],
+  ['intellij'],
+  ['mcp']
 ];
 
-// On narrow screens the route becomes a vertical timeline: each station, then its note, then the hop to the next.
-const routeSteps = routeStations.map((station, i) => ({
+// Interleaved steps for the narrow-screen vertical flow.
+const pipelineSteps = routeStations.map((station, i) => ({
   station,
-  note: routeNotes[i],
+  satellites: pipelineSatellites.filter(s => STATION_SATELLITE_IDS[i].includes(s.id)),
   hop: routeHops[i]
 }));
 
@@ -243,6 +172,15 @@ function positionStyle(item: { x: number; y: number; color?: string }): Record<s
     style['--c'] = item.color;
   }
   return style;
+}
+
+function satelliteStyle(sat: PipelineSatellite): Record<string, string> {
+  return {
+    '--x': `${sat.x}%`,
+    '--y': `${sat.y}%`,
+    '--c': sat.color,
+    '--delay': `-${sat.delay}s`
+  };
 }
 
 // ---------- Product showcase ----------
@@ -478,124 +416,92 @@ async function copyCmd(): Promise<void> {
 
 <template>
   <div class="home">
-    <!-- Hero: the Jeffrey mark at the centre of its product constellation -->
+    <!-- Hero: centred copy over the full-width pipeline -->
     <section class="hero">
       <canvas ref="skyCanvas" class="sky" aria-hidden="true"></canvas>
-      <div class="wrap hero-grid">
-        <div class="hero-copy">
-          <span class="kicker">JVM performance analyst · self-hosted</span>
-          <h1 class="hero-title"><span class="hero-title-dim">Profile your JVM</span><br />with runtime data.</h1>
-          <p class="lede">
-            Jeffrey turns JFR recordings and heap dumps into flamegraphs, timeseries and JVM dashboards.
-            You read them in Microscope, and your coding agent reads the same profile over MCP.
-          </p>
-          <div class="ctas">
-            <router-link to="/docs/microscope/quick-start" class="hero-cta hero-cta--primary">
-              Get started <i class="bi bi-arrow-right"></i>
-            </router-link>
-            <router-link to="/docs/microscope-mcp/claude-code" class="hero-cta hero-cta--agent">
-              <i class="bi bi-stars"></i> Connect your agent
-            </router-link>
-          </div>
-          <div class="formats">
-            <span>JFR</span><span>HPROF</span><span>pprof</span><span>OTLP</span><span>Apache-2.0</span>
-            <a :href="MICROSCOPE_JAR_URL">microscope.jar <i class="bi bi-download"></i></a>
-          </div>
-        </div>
-
-        <div class="cosmos" aria-label="The Jeffrey product family">
-          <svg class="cosmos-links" viewBox="0 0 100 92" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-            <ellipse class="ring" :cx="CORE_X" :cy="CORE_Y" rx="34" ry="31" />
-            <ellipse class="ring ring--outer" :cx="CORE_X" :cy="CORE_Y" rx="47" ry="43" />
-            <line
-              v-for="node in cosmosNodes"
-              :key="`edge-${node.id}`"
-              class="edge"
-              :class="{ 'edge--on': hoveredNode === node.id }"
-              :x1="CORE_X" :y1="CORE_Y" :x2="node.x" :y2="node.y"
-              :style="{ stroke: node.color }"
-            />
-            <circle
-              v-for="node in cosmosNodes"
-              :key="`pulse-${node.id}`"
-              class="pulse"
-              r=".7"
-              :style="{ fill: node.color }"
-            >
-              <animateMotion :dur="`${3 + node.delay}s`" repeatCount="indefinite" :path="pulsePath(node)" />
-            </circle>
-          </svg>
-          <div class="core"><img src="/images/jeffrey-icon.svg" alt="" /></div>
-          <router-link
-            v-for="node in cosmosNodes"
-            :key="node.id"
-            :to="node.to"
-            class="node"
-            :class="[`node--${node.id}`, `node--${node.tier}`, { 'node--tip-up': node.tipUp }]"
-            :style="nodeStyle(node)"
-            @mouseenter="hoveredNode = node.id"
-            @mouseleave="hoveredNode = null"
-            @focus="hoveredNode = node.id"
-            @blur="hoveredNode = null"
-          >
-            <span class="node-card">
-              <span class="node-ic"><i class="bi" :class="node.icon"></i></span>
-              <span><b>{{ node.name }}</b><small>{{ node.sub }}</small></span>
-            </span>
-            <span class="tip">
-              {{ node.tip }}
-              <strong>Open docs <i class="bi bi-arrow-up-right"></i></strong>
-            </span>
-          </router-link>
-        </div>
-      </div>
-    </section>
-
-    <div class="wrap"><div class="divider" aria-hidden="true"><img src="/images/jeffrey-icon.svg" alt="" /></div></div>
-
-    <!-- How the parts connect: one curved route from your services to your coding agent -->
-    <section class="pipeline" aria-labelledby="pipeline-title">
       <div class="wrap">
-        <div class="section-head">
-          <h2 id="pipeline-title">One JFR pipeline. Every part works alone.</h2>
-          <p>Your services record to a shared volume. Microscope reads it, or any JFR file you drop in, and your coding agent turns the findings into a code change.</p>
-        </div>
-        <div class="route">
-          <svg class="route-svg" viewBox="0 0 1000 300" aria-hidden="true">
-            <defs>
-              <linearGradient id="home-route-gradient" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="990" y2="0">
-                <stop offset="0" style="stop-color: var(--ember); stop-opacity: 0" />
-                <stop offset="0.1" style="stop-color: var(--ember)" />
-                <stop offset="0.37" style="stop-color: var(--amber)" />
-                <stop offset="0.63" style="stop-color: var(--ms)" />
-                <stop offset="0.9" style="stop-color: var(--mcp)" />
-                <stop offset="1" style="stop-color: var(--mcp); stop-opacity: 0" />
-              </linearGradient>
-            </defs>
-            <path v-for="dash in ROUTE_DASHES" :key="dash" class="route-dash" :d="dash" />
-            <path class="route-glow" :d="ROUTE_PATH" />
-            <path id="home-route-path" class="route-line" :d="ROUTE_PATH" />
-            <circle v-for="begin in ROUTE_PULSE_BEGINS" :key="begin" class="pulse route-pulse" r="4">
-              <animateMotion dur="6s" repeatCount="indefinite" :begin="begin">
-                <mpath href="#home-route-path" />
-              </animateMotion>
-            </circle>
-          </svg>
-          <template v-for="step in routeSteps" :key="step.station.name">
-            <div class="station" :style="positionStyle(step.station)">
-              <span class="station-ic"><i class="bi" :class="step.station.icon"></i></span>
-              <span><b>{{ step.station.name }}</b><small>{{ step.station.sub }}</small></span>
+        <div class="hero-stack">
+          <div class="hero-copy-center">
+            <span class="kicker">JVM performance analyst · self-hosted</span>
+            <h1 class="hero-title"><span class="hero-title-dim">Profile your JVM</span> with runtime data.</h1>
+            <p class="lede">
+              Jeffrey turns JFR recordings and heap dumps into flamegraphs, timeseries and JVM dashboards.
+              You read them in Microscope, and your coding agent reads the same profile over MCP.
+            </p>
+            <div class="ctas">
+              <router-link to="/docs/microscope/quick-start" class="hero-cta hero-cta--primary">
+                Get started <i class="bi bi-arrow-right"></i>
+              </router-link>
+              <router-link to="/docs/microscope-mcp/claude-code" class="hero-cta hero-cta--agent">
+                <i class="bi bi-stars"></i> Connect your agent
+              </router-link>
             </div>
-            <span class="route-note" :style="positionStyle(step.note)">
-              <i class="bi" :class="step.note.icon"></i>
-              <span>
-                <template v-for="(part, i) in step.note.parts" :key="i">
-                  <b v-if="part.strong">{{ part.text }}</b><template v-else>{{ part.text }}</template>
-                </template>
-              </span>
-            </span>
-            <span v-if="step.hop" class="hop" :style="positionStyle(step.hop)">{{ step.hop.label }}</span>
-          </template>
+            <div class="formats">
+              <span>JFR</span><span>HPROF</span><span>pprof</span><span>OTLP</span><span>Apache-2.0</span>
+              <a :href="MICROSCOPE_JAR_URL">microscope.jar <i class="bi bi-download"></i></a>
+            </div>
+          </div>
+
+          <!-- Pipeline: S-curve with stations and satellite products -->
+          <div class="pipeline" aria-label="JFR data pipeline with Jeffrey products">
+            <svg class="pipeline-svg" viewBox="0 0 1000 420" aria-hidden="true">
+              <defs>
+                <linearGradient id="home-pipeline-gradient" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="990" y2="0">
+                  <stop offset="0" style="stop-color: var(--ember); stop-opacity: 0" />
+                  <stop offset="0.08" style="stop-color: var(--ember)" />
+                  <stop offset="0.35" style="stop-color: var(--amber)" />
+                  <stop offset="0.65" style="stop-color: var(--ms)" />
+                  <stop offset="0.92" style="stop-color: var(--mcp)" />
+                  <stop offset="1" style="stop-color: var(--mcp); stop-opacity: 0" />
+                </linearGradient>
+              </defs>
+
+              <!-- Branch lines from stations to satellite products -->
+              <line
+                v-for="(branch, i) in BRANCH_LINES"
+                :key="`branch-${i}`"
+                class="pipeline-branch"
+                :x1="branch.x1" :y1="branch.y1" :x2="branch.x2" :y2="branch.y2"
+                :style="{ stroke: branch.color }"
+              />
+
+              <!-- S-curve glow and line -->
+              <path class="pipeline-glow" :d="PIPELINE_PATH" />
+              <path id="home-pipeline-path" class="pipeline-line" :d="PIPELINE_PATH" />
+
+              <!-- Jeffrey hub at the inflection point -->
+              <circle class="pipeline-hub-bg" cx="500" cy="170" r="22" />
+              <rect x="490" y="159" width="20" height="6" rx="1.5" class="pipeline-hub-bar pipeline-hub-bar--amber" />
+              <rect x="492" y="168" width="16" height="6" rx="1.5" class="pipeline-hub-bar pipeline-hub-bar--ember" />
+              <rect x="494" y="177" width="12" height="6" rx="1.5" class="pipeline-hub-bar pipeline-hub-bar--ms" />
+
+              <!-- Animated pulses -->
+              <circle v-for="begin in PIPELINE_PULSE_BEGINS" :key="begin" class="pipeline-pulse" r="4">
+                <animateMotion dur="7s" repeatCount="indefinite" :begin="begin">
+                  <mpath href="#home-pipeline-path" />
+                </animateMotion>
+              </circle>
+            </svg>
+
+            <!-- Stations and satellite products, interleaved for the narrow-screen vertical flow -->
+            <template v-for="step in pipelineSteps" :key="step.station.name">
+              <div class="station" :style="positionStyle(step.station)">
+                <span class="station-ic"><i class="bi" :class="step.station.icon"></i></span>
+                <span><b>{{ step.station.name }}</b><small>{{ step.station.sub }}</small></span>
+              </div>
+              <router-link
+                v-for="sat in step.satellites"
+                :key="sat.id"
+                :to="sat.to"
+                class="satellite"
+                :style="satelliteStyle(sat)"
+              >
+                <span class="satellite-ic"><i class="bi" :class="sat.icon"></i></span>
+                <span><b>{{ sat.name }}</b><small>{{ sat.sub }}</small></span>
+              </router-link>
+              <span v-if="step.hop" class="hop" :style="positionStyle(step.hop)">{{ step.hop.label }}</span>
+            </template>
+          </div>
         </div>
       </div>
     </section>
@@ -733,8 +639,8 @@ async function copyCmd(): Promise<void> {
 </template>
 
 <style scoped>
-/* Constellation homepage: warm-paper sky, the Jeffrey mark at the centre of its products,
-   then the pipeline as one curved route, then a tabbed product deep-dive. */
+/* Elevated pipeline homepage: warm-paper sky, the centred hero copy over a full-width S-curve
+   pipeline with satellite product cards, then a tabbed product deep-dive. */
 .home {
   --night: #faf7f2;
   --surface: #ffffff;
@@ -749,8 +655,6 @@ async function copyCmd(): Promise<void> {
   --ember: #e4570b;
   --flame-ink: #1b0c00;
   --on-accent: #ffffff;
-  /* Product accents, the same as the docs (DocsProductCard hues at the DocsSidebar 600 shade, so they
-     read as text on white). The -deep shades end the icon gradients of the two core nodes. */
   --ms: #0284c7;
   --ms-deep: #075985;
   --mcp: #059669;
@@ -775,8 +679,6 @@ async function copyCmd(): Promise<void> {
   padding-bottom: 96px;
 }
 
-/* Neutralise Bootstrap's reboot inside the page. :where() keeps these one class strong:
-   enough to beat Bootstrap's element rules, weak enough for every component rule below to win. */
 .home :where(a) {
   color: inherit;
   text-decoration: none;
@@ -821,7 +723,7 @@ async function copyCmd(): Promise<void> {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(40% 55% at 74% 50%, rgba(255, 109, 0, 0.13), transparent 70%);
+  background: radial-gradient(50% 65% at 50% 60%, rgba(255, 109, 0, 0.11), transparent 70%);
   pointer-events: none;
 }
 
@@ -833,21 +735,19 @@ async function copyCmd(): Promise<void> {
   pointer-events: none;
 }
 
-.hero-grid {
+.hero-stack {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 40px;
-  align-items: center;
-  padding-top: 48px;
-  padding-bottom: 40px;
+  padding-top: 60px;
+  padding-bottom: 48px;
 }
 
-.hero-copy {
+.hero-copy-center {
   display: grid;
   gap: 24px;
-  align-content: center;
+  justify-items: center;
+  text-align: center;
+  margin-bottom: 44px;
 }
 
 .hero-title {
@@ -867,13 +767,14 @@ async function copyCmd(): Promise<void> {
 .lede {
   font-size: 18px;
   color: var(--muted);
-  max-width: 54ch;
+  max-width: 60ch;
 }
 
 .ctas {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  justify-content: center;
 }
 
 .hero-cta {
@@ -935,6 +836,7 @@ async function copyCmd(): Promise<void> {
   gap: 8px 20px;
   font: 13px var(--font-mono);
   color: var(--faint);
+  justify-content: center;
 }
 
 .formats a {
@@ -946,16 +848,15 @@ async function copyCmd(): Promise<void> {
   color: var(--text);
 }
 
-/* ============ Constellation ============ */
-.cosmos {
+/* ============ Pipeline ============ */
+.pipeline {
   position: relative;
-  width: 100%;
-  max-width: 720px;
-  justify-self: center;
-  aspect-ratio: 100 / 92;
+  max-width: 1180px;
+  margin: 0 auto;
+  aspect-ratio: 1000 / 420;
 }
 
-.cosmos-links {
+.pipeline-svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -963,253 +864,170 @@ async function copyCmd(): Promise<void> {
   overflow: visible;
 }
 
-.ring {
+.pipeline-glow {
   fill: none;
+  stroke: url(#home-pipeline-gradient);
+  stroke-width: 14;
+  stroke-linecap: round;
+  opacity: 0.14;
+}
+
+.pipeline-line {
+  fill: none;
+  stroke: url(#home-pipeline-gradient);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.pipeline-branch {
+  stroke-width: 1.3;
+  stroke-dasharray: 4 4;
+  opacity: 0.3;
+}
+
+.pipeline-hub-bg {
+  fill: var(--night);
   stroke: var(--line-2);
-  stroke-dasharray: 0.6 1.4;
-  stroke-width: 0.18;
+  stroke-width: 1;
 }
 
-.ring--outer {
-  stroke: var(--line);
+.pipeline-hub-bar--amber {
+  fill: var(--amber);
+  opacity: 0.75;
 }
 
-.edge {
-  stroke-width: 0.3;
-  opacity: 0.6;
-  transition: opacity 0.2s, stroke-width 0.2s;
+.pipeline-hub-bar--ember {
+  fill: var(--ember);
+  opacity: 0.65;
 }
 
-.edge--on {
-  opacity: 1;
-  stroke-width: 0.5;
+.pipeline-hub-bar--ms {
+  fill: var(--ms);
+  opacity: 0.55;
 }
 
-.pulse {
+.pipeline-pulse {
+  fill: var(--amber);
   opacity: 0.9;
 }
 
-.core {
+.station,
+.satellite,
+.hop {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 25%;
-  aspect-ratio: 1;
+  left: var(--x);
+  top: var(--y);
   transform: translate(-50%, -50%);
-  border-radius: 26%;
-  display: grid;
-  place-items: center;
-  background: linear-gradient(160deg, var(--core-top), var(--core-bottom));
-  border: 1px solid rgba(255, 109, 0, 0.3);
-  box-shadow: 0 0 0 12px rgba(255, 109, 0, 0.05), 0 0 0 28px rgba(255, 109, 0, 0.03),
-    0 0 110px rgba(255, 109, 0, 0.32), var(--shadow-card);
-  animation: breathe 5s ease-in-out infinite;
+  z-index: 1;
+  white-space: nowrap;
 }
 
-.core img {
-  width: 56%;
-  height: 56%;
-}
-
-@keyframes breathe {
-  50% {
-    box-shadow: 0 0 0 16px rgba(255, 109, 0, 0.06), 0 0 0 36px rgba(255, 109, 0, 0.03),
-      0 0 150px rgba(255, 109, 0, 0.42), var(--shadow-card);
-  }
-}
-
-.node {
-  position: absolute;
-  transform: translate(-50%, -50%);
-  z-index: 2;
-}
-
-.node-card {
+.station {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 16px 11px 11px;
+  padding: 12px 18px 12px 12px;
   border-radius: var(--r-md);
   background: rgba(255, 255, 255, 0.92);
   border: 1px solid var(--line-2);
-  box-shadow: var(--shadow-card);
+  box-shadow: 0 0 40px -10px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow-card);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  white-space: nowrap;
-  animation: float 7s ease-in-out infinite;
+}
+
+.station-ic {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  color: var(--on-accent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, var(--surface)), var(--c));
+}
+
+.station b {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.station small {
+  display: block;
+  font: 12px/1.4 var(--font-mono);
+  color: var(--faint);
+}
+
+/* Satellite product cards: smaller, with float animation and product-coloured icon. */
+.satellite {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 8px;
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 0 32px -12px color-mix(in srgb, var(--c) 35%, transparent), 0 8px 22px -16px rgba(48, 32, 12, 0.28);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: sat-float 7s ease-in-out infinite;
   animation-delay: var(--delay, 0s);
   transition: border-color 0.2s, background 0.2s;
 }
 
-@keyframes float {
-  50% {
-    transform: translateY(-6px);
-  }
-}
-
-.node-ic {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  font-size: 17px;
-  background: var(--surface-2);
-  color: var(--ember);
-}
-
-.node b {
-  display: block;
-  font-size: 14.5px;
-  font-weight: 500;
-}
-
-.node small {
-  display: block;
-  font-size: 12px;
-  color: var(--faint);
-}
-
-.node--core .node-card {
-  gap: 14px;
-  padding: 16px 22px 16px 16px;
-  border-color: color-mix(in srgb, var(--node-color) 30%, var(--line-2));
-}
-
-.node--core .node-ic {
-  width: 48px;
-  height: 48px;
-  font-size: 22px;
-  color: var(--on-accent);
-}
-
-.node--core b {
-  font-size: 17px;
-}
-
-.node--core small {
-  font-size: 12.5px;
-}
-
-/* Capture: the ways profiling starts. A step below the core: tinted with the product's colour and a little larger. */
-.node--capture .node-card {
-  padding: 12px 18px 12px 12px;
-  border-color: color-mix(in srgb, var(--node-color) 40%, var(--line-2));
-  box-shadow: 0 0 32px color-mix(in srgb, var(--node-color) 18%, transparent), var(--shadow-card);
-}
-
-.node--capture .node-ic {
-  width: 40px;
-  height: 40px;
-  font-size: 18px;
-  color: var(--node-color);
-  background: color-mix(in srgb, var(--node-color) 14%, var(--surface));
-}
-
-.node--capture b {
-  font-size: 15px;
-}
-
-/* Companion: optional extras. Compact and quiet until hovered. */
-.node--companion .node-card {
-  gap: 10px;
-  padding: 8px 14px 8px 8px;
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 8px 22px -16px rgba(48, 32, 12, 0.28);
-}
-
-.node--companion .node-ic {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
-  font-size: 14px;
-  color: var(--faint);
-}
-
-.node--companion b {
-  font-size: 13.5px;
-  font-weight: 400;
-  color: var(--muted);
-}
-
-.node--companion small {
-  font-size: 11px;
-}
-
-.node--companion:hover .node-ic,
-.node--companion:focus-visible .node-ic {
-  color: var(--node-color);
-}
-
-.node--microscope .node-ic {
-  background: linear-gradient(135deg, var(--ms), var(--ms-deep));
-}
-
-.node--mcp .node-ic {
-  background: linear-gradient(135deg, var(--mcp), var(--mcp-deep));
-}
-
-.node--microscope .node-card {
-  box-shadow: 0 0 48px color-mix(in srgb, var(--ms) 28%, transparent), var(--shadow-card);
-}
-
-.node--mcp .node-card {
-  box-shadow: 0 0 48px color-mix(in srgb, var(--mcp) 28%, transparent), var(--shadow-card);
-}
-
-.node:hover .node-card,
-.node:focus-visible .node-card {
-  border-color: var(--node-color, var(--ember));
+.satellite:hover,
+.satellite:focus-visible {
+  border-color: var(--c);
   background: var(--surface);
 }
 
-.node:focus-visible {
+.satellite:focus-visible {
   outline: none;
 }
 
-.tip {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 10px);
-  width: 250px;
-  transform: translate(-50%, 4px);
-  padding: 12px 14px;
-  border-radius: var(--r-sm);
-  background: var(--surface);
-  border: 1px solid var(--line-2);
-  box-shadow: var(--shadow-card);
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--muted);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.18s, transform 0.18s;
-  z-index: 5;
+.satellite-ic {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  color: var(--on-accent);
+  background: var(--c);
 }
 
-.tip strong {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 6px;
+.satellite b {
+  display: block;
+  font-size: 13.5px;
   font-weight: 500;
-  color: var(--node-color, var(--ember));
 }
 
-.node--tip-up .tip {
-  top: auto;
-  bottom: calc(100% + 10px);
+.satellite small {
+  display: block;
+  font-size: 11px;
+  color: var(--faint);
 }
 
-.node:hover .tip,
-.node:focus-visible .tip {
-  opacity: 1;
-  transform: translate(-50%, 0);
+@keyframes sat-float {
+  0%, 100% {
+    transform: translate(-50%, -50%) translateY(0);
+  }
+  50% {
+    transform: translate(-50%, -50%) translateY(-6px);
+  }
 }
 
-.node:hover,
-.node:focus-visible {
-  z-index: 6;
+.hop {
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c);
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: var(--night);
+  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
 }
 
 /* ============ Divider ============ */
@@ -1264,128 +1082,6 @@ async function copyCmd(): Promise<void> {
 .section-head p {
   color: var(--muted);
   max-width: 62ch;
-}
-
-/* ============ Pipeline route ============ */
-.route {
-  position: relative;
-  max-width: 1180px;
-  margin: 36px auto 0;
-  aspect-ratio: 1000 / 300;
-}
-
-.route-svg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.route-glow {
-  fill: none;
-  stroke: url(#home-route-gradient);
-  stroke-width: 12;
-  stroke-linecap: round;
-  opacity: 0.14;
-}
-
-.route-line {
-  fill: none;
-  stroke: url(#home-route-gradient);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-}
-
-.route-dash {
-  fill: none;
-  stroke: var(--line-2);
-  stroke-width: 1.5;
-  stroke-dasharray: 4 6;
-}
-
-.route-pulse {
-  fill: var(--amber);
-}
-
-.station,
-.hop,
-.route-note {
-  position: absolute;
-  left: var(--x);
-  top: var(--y);
-  transform: translate(-50%, -50%);
-  z-index: 1;
-  white-space: nowrap;
-}
-
-.station {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 18px 12px 12px;
-  border-radius: var(--r-md);
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid var(--line-2);
-  box-shadow: 0 0 40px -10px color-mix(in srgb, var(--c) 55%, transparent), var(--shadow-card);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-.station-ic {
-  flex: none;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  font-size: 19px;
-  color: var(--on-accent);
-  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, var(--surface)), var(--c));
-}
-
-.station b {
-  display: block;
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.station small {
-  display: block;
-  font: 12px/1.4 var(--font-mono);
-  color: var(--faint);
-}
-
-.hop {
-  font: 500 10.5px/1 var(--font-mono);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--c);
-  padding: 7px 11px;
-  border-radius: 999px;
-  background: var(--night);
-  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
-}
-
-.route-note {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 13px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  color: var(--muted);
-  background: var(--surface);
-  border: 1px dashed var(--line-2);
-}
-
-.route-note i {
-  color: var(--c);
-}
-
-.route-note b {
-  color: var(--text);
-  font-weight: 500;
 }
 
 /* ============ Product showcase ============ */
@@ -1825,18 +1521,18 @@ async function copyCmd(): Promise<void> {
 
 /* ============ Responsive ============ */
 @media (max-width: 1099px) {
-  .route {
+  .pipeline {
     aspect-ratio: auto;
     width: fit-content;
     max-width: 100%;
-    margin: 28px auto 0;
+    margin: 0 auto;
     padding-left: 30px;
     display: grid;
-    gap: 14px;
+    gap: 10px;
     justify-items: start;
   }
 
-  .route::before {
+  .pipeline::before {
     content: '';
     position: absolute;
     left: 10px;
@@ -1847,13 +1543,13 @@ async function copyCmd(): Promise<void> {
     background: linear-gradient(var(--ember), var(--amber), var(--ms), var(--mcp));
   }
 
-  .route-svg {
+  .pipeline-svg {
     display: none;
   }
 
   .station,
-  .hop,
-  .route-note {
+  .satellite,
+  .hop {
     position: relative;
     left: auto;
     top: auto;
@@ -1865,19 +1561,10 @@ async function copyCmd(): Promise<void> {
     white-space: normal;
   }
 
-  .route-note {
+  .satellite {
     margin-left: 16px;
     white-space: normal;
-  }
-}
-
-@media (max-width: 1099px) {
-  .hero-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .cosmos {
-    margin-top: 12px;
+    animation: none;
   }
 }
 
@@ -1896,63 +1583,20 @@ async function copyCmd(): Promise<void> {
     padding-left: 16px;
     padding-right: 16px;
   }
-}
 
-@media (max-width: 679px) {
-  .cosmos {
-    aspect-ratio: auto;
-    max-width: none;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  .cosmos-links {
-    display: none;
-  }
-
-  .core {
-    position: relative;
-    left: auto;
-    top: auto;
-    transform: none;
-    grid-column: 1 / -1;
-    justify-self: center;
-    width: 120px;
-    margin: 24px 0 36px;
-  }
-
-  .node {
-    position: relative;
-    left: auto !important;
-    top: auto !important;
-    transform: none;
-    min-width: 0;
-  }
-
-  .node--core {
-    grid-column: 1 / -1;
-  }
-
-  .node-card {
-    height: 100%;
-    white-space: normal;
-    animation: none;
-  }
-
-  .tip {
-    display: none;
+  .hero-stack {
+    padding-top: 40px;
+    padding-bottom: 32px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .core,
-  .node-card,
+  .satellite,
   .panel {
     animation: none;
   }
 
-  .pulse {
+  .pipeline-pulse {
     display: none;
   }
 }
