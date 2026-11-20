@@ -19,8 +19,9 @@
 #
 # Maven stages every module (the extensions, core, and the payload and flavour modules behind the
 # `payload` profile) into a local staging repository; JReleaser signs them and uploads to Maven Central.
-# A GitHub release tagged jib-v<version> is created with --latest=false so the jeffrey-pages version
-# banner can discover it via the Releases API without affecting Microscope's "latest" release.
+#
+# The GitHub release is created by the separate Release JIB Extension workflow
+# (release-jib-extension.yml), run after this one completes.
 name: Publish jeffrey-jib to Maven Central
 on:
   workflow_dispatch:
@@ -140,38 +141,3 @@ jobs:
           path: |
             jeffrey-jib/out/jreleaser/trace.log
             jeffrey-jib/out/jreleaser/output.properties
-
-  create-release:
-    needs: [publish]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-    - uses: actions/checkout@v6
-
-    - name: Create tag and GitHub release
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        VERSION: ${{ inputs.version }}
-      run: |
-        TAG="jib-v${VERSION}"
-
-        if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
-          echo "Tag ${TAG} already exists, keeping it as it is."
-        else
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "${TAG}"
-          git push origin "refs/tags/${TAG}"
-        fi
-
-        PRERELEASE_FLAG=""
-        if [[ "${VERSION}" =~ -[a-z] ]]; then
-          PRERELEASE_FLAG="--prerelease"
-        fi
-
-        gh release create "${TAG}" \
-          --title "JIB Extension ${VERSION}" \
-          --notes "Maven Central: \`cafe.jeffrey-analyst:jeffrey-jib-gradle:${VERSION}\`" \
-          --latest=false \
-          ${PRERELEASE_FLAG}
