@@ -191,7 +191,7 @@ jobs:
         NOTES=$(cat <<EOF
 Docker image: \`petrbouda/volume-scheduler:${VERSION}\`
 
-[Docker Hub](https://hub.docker.com/r/petrbouda/volume-scheduler)
+[Docker Hub](https://hub.docker.com/r/petrbouda/volume-scheduler/tags)
 EOF
         )
 

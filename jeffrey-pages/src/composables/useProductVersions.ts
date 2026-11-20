@@ -120,7 +120,7 @@ async function fetchAllReleases(): Promise<Map<string, GitHubRelease>> {
   return found;
 }
 
-const VOLUME_SCHEDULER_DOCKER_HUB_URL = 'https://hub.docker.com/r/petrbouda/volume-scheduler';
+const VOLUME_SCHEDULER_DOCKER_HUB_URL = 'https://hub.docker.com/r/petrbouda/volume-scheduler/tags';
 
 const JIB_GRADLE_URL = 'https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle';
 const JIB_MAVEN_URL = 'https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-maven';
