@@ -34,121 +34,45 @@ export interface ProductVersions {
 
 type ProductId = keyof ProductVersions;
 
-const GITHUB_API_URL = 'https://api.github.com/repos/petrbouda/jeffrey';
-const GITHUB_TAGS_URL = `${GITHUB_API_URL}/tags`;
-const GITHUB_RELEASES_URL = `${GITHUB_API_URL}/releases`;
-const JETBRAINS_PLUGIN_ID = '31963';
-
-// Pinned versions — Maven Central and JetBrains Marketplace do not support CORS,
-// so these cannot be fetched at runtime from a static site.
-const JIB_VERSION = '0.4.0';
-const INTELLIJ_PLUGIN_VERSION = '0.3.11';
+const GITHUB_RELEASES_URL = 'https://api.github.com/repos/petrbouda/jeffrey/releases';
 
 interface GitHubRelease {
   tag_name: string;
   html_url: string;
 }
 
-interface GitHubTag {
-  name: string;
+const TAG_PREFIX_MICROSCOPE = 'v';
+const TAG_PREFIX_PROVISIONER = 'provisioner-v';
+const TAG_PREFIX_VOLUME_SCHEDULER = 'volume-scheduler-v';
+const TAG_PREFIX_JIB = 'jib-v';
+const TAG_PREFIX_INTELLIJ_PLUGIN = 'intellij-plugin-v';
+
+const PREFIXED_PRODUCTS = [
+  TAG_PREFIX_PROVISIONER,
+  TAG_PREFIX_VOLUME_SCHEDULER,
+  TAG_PREFIX_JIB,
+  TAG_PREFIX_INTELLIJ_PLUGIN
+];
+
+function isMicroscopeTag(tagName: string): boolean {
+  return /^v\d/.test(tagName) && PREFIXED_PRODUCTS.every(p => !tagName.startsWith(p));
 }
 
-function latestTagByVersion(tags: GitHubTag[], prefix: string): string | null {
-  const matching = tags
-    .map(t => t.name)
-    .filter(name => name.startsWith(prefix));
-
-  if (matching.length === 0) {
-    return null;
+function findRelease(releases: GitHubRelease[], prefix: string): GitHubRelease | undefined {
+  if (prefix === TAG_PREFIX_MICROSCOPE) {
+    return releases.find(r => isMicroscopeTag(r.tag_name));
   }
-
-  matching.sort((a, b) => {
-    const va = a.slice(prefix.length).split('.').map(Number);
-    const vb = b.slice(prefix.length).split('.').map(Number);
-    for (let i = 0; i < Math.max(va.length, vb.length); i++) {
-      const diff = (vb[i] || 0) - (va[i] || 0);
-      if (diff !== 0) {
-        return diff;
-      }
-    }
-    return 0;
-  });
-
-  return matching[0];
+  return releases.find(r => r.tag_name.startsWith(prefix));
 }
 
-async function fetchMicroscope(): Promise<ProductVersion | null> {
-  try {
-    const response = await fetch(`${GITHUB_RELEASES_URL}/latest`);
-    if (!response.ok) {
-      return null;
-    }
-    const release: GitHubRelease = await response.json();
-    return {
-      version: release.tag_name,
-      url: release.html_url,
-      source: 'GitHub Releases'
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function fetchProvisioner(): Promise<ProductVersion | null> {
-  try {
-    const response = await fetch(`${GITHUB_RELEASES_URL}?per_page=20`);
-    if (!response.ok) {
-      return null;
-    }
-    const releases: GitHubRelease[] = await response.json();
-    const provisioner = releases.find(r => r.tag_name.startsWith('provisioner-'));
-    if (!provisioner) {
-      return null;
-    }
-    return {
-      version: provisioner.tag_name.replace('provisioner-', ''),
-      url: provisioner.html_url,
-      source: 'GitHub Releases'
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function fetchVolumeScheduler(): Promise<ProductVersion | null> {
-  try {
-    const response = await fetch(`${GITHUB_TAGS_URL}?per_page=100`);
-    if (!response.ok) {
-      return null;
-    }
-    const tags: GitHubTag[] = await response.json();
-    const latest = latestTagByVersion(tags, 'volume-scheduler-v');
-    if (!latest) {
-      return null;
-    }
-    return {
-      version: latest.replace('volume-scheduler-', ''),
-      url: 'https://hub.docker.com/repository/docker/petrbouda/volume-scheduler',
-      source: 'DockerHub'
-    };
-  } catch {
-    return null;
-  }
-}
-
-function jibVersion(): ProductVersion {
+function toVersion(release: GitHubRelease, prefix: string): ProductVersion {
+  const version = prefix === TAG_PREFIX_MICROSCOPE
+    ? release.tag_name
+    : release.tag_name.slice(prefix.length - 1);
   return {
-    version: `v${JIB_VERSION}`,
-    url: `https://mvnrepository.com/artifact/cafe.jeffrey-analyst/jeffrey-jib-gradle/${JIB_VERSION}`,
-    source: 'Maven'
-  };
-}
-
-function pluginVersion(): ProductVersion {
-  return {
-    version: `v${INTELLIJ_PLUGIN_VERSION}`,
-    url: `https://plugins.jetbrains.com/plugin/${JETBRAINS_PLUGIN_ID}-jeffrey-microscope`,
-    source: 'JetBrains Marketplace'
+    version,
+    url: release.html_url,
+    source: 'GitHub Releases'
   };
 }
 
@@ -181,20 +105,31 @@ export function useProductVersions() {
   const loading = ref(true);
 
   onMounted(async () => {
-    const [microscope, provisioner, volumeScheduler] = await Promise.all([
-      fetchMicroscope(),
-      fetchProvisioner(),
-      fetchVolumeScheduler()
-    ]);
+    try {
+      const response = await fetch(`${GITHUB_RELEASES_URL}?per_page=100`);
+      if (!response.ok) {
+        loading.value = false;
+        return;
+      }
+      const releases: GitHubRelease[] = await response.json();
 
-    versions.value = {
-      microscope,
-      mcp: microscope ? { ...microscope, source: 'GitHub Releases' } : null,
-      provisioner,
-      jib: jibVersion(),
-      plugin: pluginVersion(),
-      'volume-scheduler': volumeScheduler
-    };
+      const microscope = findRelease(releases, TAG_PREFIX_MICROSCOPE);
+      const provisioner = findRelease(releases, TAG_PREFIX_PROVISIONER);
+      const volumeScheduler = findRelease(releases, TAG_PREFIX_VOLUME_SCHEDULER);
+      const jib = findRelease(releases, TAG_PREFIX_JIB);
+      const plugin = findRelease(releases, TAG_PREFIX_INTELLIJ_PLUGIN);
+
+      versions.value = {
+        microscope: microscope ? toVersion(microscope, TAG_PREFIX_MICROSCOPE) : null,
+        mcp: microscope ? toVersion(microscope, TAG_PREFIX_MICROSCOPE) : null,
+        provisioner: provisioner ? toVersion(provisioner, TAG_PREFIX_PROVISIONER) : null,
+        jib: jib ? toVersion(jib, TAG_PREFIX_JIB) : null,
+        plugin: plugin ? toVersion(plugin, TAG_PREFIX_INTELLIJ_PLUGIN) : null,
+        'volume-scheduler': volumeScheduler ? toVersion(volumeScheduler, TAG_PREFIX_VOLUME_SCHEDULER) : null
+      };
+    } catch {
+      // All banners gracefully hidden on failure
+    }
 
     loading.value = false;
   });
