@@ -87,8 +87,8 @@
                                      release a jeffrey-jib payload actually bundles. -->
                                 <requireProperty>
                                     <property>jeffrey.release</property>
-                                    <regex>^v[0-9][0-9A-Za-z.+-]*$</regex>
-                                    <regexMessage>jeffrey.release must be the Jeffrey release tag the provisioner was downloaded from, e.g. -Djeffrey.release=v0.13.22</regexMessage>
+                                    <regex>^(v|provisioner-v)[0-9][0-9A-Za-z.+-]*$</regex>
+                                    <regexMessage>jeffrey.release must be a release tag the provisioner was downloaded from, e.g. -Djeffrey.release=provisioner-v0.20.0 or -Djeffrey.release=v0.13.22</regexMessage>
                                 </requireProperty>
                             </rules>
                         </configuration>

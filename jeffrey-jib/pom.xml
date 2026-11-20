@@ -73,8 +73,8 @@
              ships is a decision, not whatever happened to be latest on the day of the build. -->
         <async-profiler.version>4.1</async-profiler.version>
         <!-- jeffrey.release is deliberately NOT given a default here. The payload modules record it
-             in their descriptor as the Jeffrey release the provisioner was taken from, and an enforcer
-             rule makes every payload build state it explicitly: -Djeffrey.release=v0.13.22. -->
+             in their descriptor as the release the provisioner was taken from, and an enforcer
+             rule makes every payload build state it explicitly: -Djeffrey.release=provisioner-v0.20.0. -->
     </properties>
 
     <dependencyManagement>
