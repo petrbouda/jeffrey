@@ -437,7 +437,7 @@ const productTabs: ProductTab[] = [
 
 const activeTab = ref<Tab>('microscope');
 const copied = ref(false);
-const { versionFor } = useProductVersions();
+const { versionFor, volumeSchedulerDockerHubUrl } = useProductVersions();
 
 const active = computed(() => productTabs.find(p => p.id === activeTab.value)!);
 
@@ -645,6 +645,16 @@ async function copyCmd(): Promise<void> {
                     </a>
                     <a :href="jibVersionLinks(versionFor('jib')!.version).gradle" target="_blank" rel="noopener noreferrer" class="version-link">
                       Gradle <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                  </div>
+                </template>
+                <template v-else-if="active.id === 'volume-scheduler' && versionFor('volume-scheduler')">
+                  <div class="version-links">
+                    <a :href="versionFor('volume-scheduler')!.url" target="_blank" rel="noopener noreferrer" class="version-link">
+                      GitHub Releases <i class="bi bi-box-arrow-up-right"></i>
+                    </a>
+                    <a :href="volumeSchedulerDockerHubUrl" target="_blank" rel="noopener noreferrer" class="version-link">
+                      Docker Hub <i class="bi bi-box-arrow-up-right"></i>
                     </a>
                   </div>
                 </template>
