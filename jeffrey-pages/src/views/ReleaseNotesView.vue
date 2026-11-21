@@ -964,7 +964,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
     <!-- ──────────────────────── 0.15.0 features ──────────────────────── -->
     <template v-if="selectedVersion === '0.15.0'">
       <!-- Feature 01: Microscope MCP -->
-      <section class="feature-section">
+      <section class="feature-section feature-section-150">
         <div class="feature-frame feature-frame-150">
           <div class="feature-150-label">Microscope MCP</div>
           <h2 class="feature-150-title">Coding Agent from Runtime Profile to Code</h2>
@@ -1079,6 +1079,11 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               <div class="imp-tile-body">
                 <h3><i class="bi bi-clock-history imp-tile-icon-150"></i> Volume Scheduler</h3>
                 <p>Renamed from Jeffrey Hub. The volume path is now required at startup, and both jobs (retention, compression) can be triggered on demand via the REST API.</p>
+                <ul class="imp-detail-list-150">
+                  <li><code>jeffrey.volume-scheduler.volume.path</code> is required &mdash; startup fails without it</li>
+                  <li>Retention and compression jobs exposed on <code>/api/v1</code> for on-demand triggers</li>
+                  <li>Storage endpoint reports per-project and per-instance disk usage</li>
+                </ul>
                 <router-link to="/docs/volume-scheduler" class="imp-link">Open Volume Scheduler docs <i class="bi bi-arrow-right"></i></router-link>
               </div>
             </div>
@@ -1086,6 +1091,11 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
               <div class="imp-tile-body">
                 <h3><i class="bi bi-box-seam imp-tile-icon-150"></i> Self-Sufficient Distribution</h3>
                 <p>Each release ships a jLink-built archive with a bundled JVM and a launcher script &mdash; unpack, run <code>bin/microscope</code>, no external JRE needed.</p>
+                <ul class="imp-detail-list-150">
+                  <li>Bundled custom JVM runtime built with jLink &mdash; no separate JRE install</li>
+                  <li>Single launcher script: <code>bin/microscope</code> on Linux/macOS, <code>bin\microscope.bat</code> on Windows</li>
+                  <li>Compressed archive under 100 MB per platform</li>
+                </ul>
                 <div class="platform-badges-150">
                   <span class="platform-badge-150">Linux amd64</span>
                   <span class="platform-badge-150">macOS arm64</span>
@@ -4167,7 +4177,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 /* Improvements Section */
 .improvements-section {
   background: #f8f9fa;
-  padding: 60px 0 80px;
+  padding: 40px 0 56px;
   border-top: 1px solid #e9ecef;
 }
 
@@ -4428,6 +4438,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 .hero-banner-150 {
   background: linear-gradient(135deg, #071a26 0%, #0d2a3e 40%, #0a2240 70%, #161042 100%);
+  padding: 32px 0;
 }
 
 .hero-banner-150::before {
@@ -4449,12 +4460,12 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   font-weight: 700;
   letter-spacing: 2px;
   text-transform: uppercase;
-  padding: 6px 20px;
+  padding: 5px 18px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .hero-150-badge b {
@@ -4465,11 +4476,11 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 }
 
 .hero-title-150 {
-  font-size: 3rem;
+  font-size: 2.6rem;
   font-weight: 900;
   line-height: 1.08;
   letter-spacing: -1px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   text-align: center;
 }
 
@@ -4481,11 +4492,11 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 }
 
 .hero-summary-150 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: rgba(255, 255, 255, 0.65);
-  line-height: 1.7;
-  max-width: 640px;
-  margin: 0 auto 24px;
+  line-height: 1.65;
+  max-width: 620px;
+  margin: 0 auto 16px;
   text-align: center;
 }
 
@@ -4496,8 +4507,8 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 .hero-150-dots {
   display: flex;
   justify-content: center;
-  gap: 24px;
-  margin-bottom: 24px;
+  gap: 20px;
+  margin-bottom: 16px;
 }
 
 .hero-150-dot-pill {
@@ -4576,6 +4587,16 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   color: #fff;
 }
 
+/* 0.15.0 tighter section spacing */
+.feature-section-150 {
+  padding: 56px 20px;
+}
+
+.feature-section-bg .feature-150 {
+  padding-top: 56px;
+  padding-bottom: 56px;
+}
+
 /* 0.15.0 feature frame — MCP accent */
 .feature-frame-150 {
   background:
@@ -4633,7 +4654,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 .route-150 {
   position: relative;
   max-width: 100%;
-  margin: 44px 0 0;
+  margin: 32px 0 0;
   aspect-ratio: 1000 / 280;
   overflow: visible;
 }
@@ -4777,8 +4798,8 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
 /* 0.15.0 plugin banner */
 .plugin-banner-150 {
-  margin-top: 36px;
-  padding: 24px 28px;
+  margin-top: 24px;
+  padding: 20px 24px;
   border-radius: 14px;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.04), rgba(99, 102, 241, 0.03));
   border: 1px solid #e9ecef;
@@ -4843,7 +4864,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 20px;
-  margin: 32px 0;
+  margin: 24px 0;
 }
 
 .kind-card-150 {
@@ -4931,6 +4952,41 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
   color: #64748b;
 }
 
+/* 0.15.0 improvement detail list */
+.imp-detail-list-150 {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  list-style: none;
+}
+
+.imp-detail-list-150 li {
+  font-size: 0.82rem;
+  color: #6c757d;
+  line-height: 1.6;
+  padding: 3px 0;
+  position: relative;
+}
+
+.imp-detail-list-150 li::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 11px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.imp-detail-list-150 code {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.84em;
+}
+
 /* 0.15.0 improvement tile icon */
 .imp-tile-icon-150 {
   margin-right: 6px;
@@ -4957,7 +5013,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 /* 0.15.0 mobile responsive */
 @media (max-width: 768px) {
   .hero-title-150 {
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
 
   .hero-150-dots {
