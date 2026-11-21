@@ -18,7 +18,54 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-const selectedVersion = ref('0.14.0')
+const selectedVersion = ref('0.15.0')
+
+// ───────────────────────── 0.15.0 Pipeline route ─────────────────────────
+
+interface RouteStation150 {
+  name: string
+  sub: string
+  icon: string
+  color: string
+  x: number
+  y: number
+}
+
+interface RouteHop150 {
+  label: string
+  color: string
+  x: number
+  y: number
+}
+
+const ROUTE_PATH_150 = 'M10 170 L110 170 C210 170, 270 55, 370 55 S530 170, 630 170 S790 55, 890 55 L990 55'
+const ROUTE_PULSE_BEGINS_150 = ['0s', '-2s', '-4s']
+
+const routeStations150: RouteStation150[] = [
+  { name: 'Your services', sub: 'JFR · async-profiler', icon: 'bi-boxes', color: '#e4570b', x: 11, y: 60 },
+  { name: 'Shared volume', sub: '/mnt/jeffrey', icon: 'bi-hdd-stack', color: '#f59e0b', x: 37, y: 19 },
+  { name: 'Microscope', sub: 'flamegraphs · dashboards', icon: 'bi-search', color: '#0284c7', x: 63, y: 60 },
+  { name: 'Coding agent', sub: 'Claude Code · Codex', icon: 'bi-stars', color: '#059669', x: 89, y: 19 }
+]
+
+const routeHops150: RouteHop150[] = [
+  { label: 'record', color: '#e4570b', x: 24, y: 38 },
+  { label: 'Connector', color: '#0284c7', x: 50, y: 38 },
+  { label: 'MCP', color: '#059669', x: 76, y: 38 }
+]
+
+const routeSteps150 = routeStations150.map((station, i) => ({
+  station,
+  hop: routeHops150[i]
+}))
+
+function positionStyle150(item: { x: number; y: number; color?: string }): Record<string, string> {
+  const style: Record<string, string> = { '--x': `${item.x}%`, '--y': `${item.y}%` }
+  if (item.color) {
+    style['--c'] = item.color
+  }
+  return style
+}
 
 interface GalleryImage {
   src: string
@@ -411,25 +458,18 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 <template>
   <div class="release-notes-page">
     <!-- ─────────────────────── 0.15.0 Hero ─────────────────────── -->
-    <section v-if="selectedVersion === '0.15.0'" class="hero-banner">
-      <div class="hero-inner">
-        <div class="hero-version-card">
-          <div class="hero-version-badge">v0.15.0</div>
-          <div class="hero-version-meta">
-            <span class="hero-version-dot server"></span>
-            Volume Scheduler
-          </div>
+    <section v-if="selectedVersion === '0.15.0'" class="hero-banner hero-banner-150">
+      <div class="hero-inner hero-inner-150">
+        <div class="hero-150-badge"><b>v0.15.0</b> &middot; November 2026</div>
+        <h1 class="hero-title hero-title-150"><span>MCP &amp; Connector</span> Release</h1>
+        <p class="hero-summary hero-summary-150">Your coding agent discovers workspaces, navigates projects, pulls production recordings and reads every analysis Microscope offers &mdash; through <strong>pluggable storage</strong> that makes the volume behind it replaceable.</p>
+        <div class="hero-150-dots">
+          <span class="hero-150-dot-pill"><span class="hero-150-dot hero-150-dot-mcp"></span> Microscope MCP</span>
+          <span class="hero-150-dot-pill"><span class="hero-150-dot hero-150-dot-connector"></span> Connector SPI</span>
         </div>
-        <div class="hero-text">
-          <div class="hero-eyebrow">Release Notes</div>
-          <h1 class="hero-title"><span>Next</span> Release</h1>
-          <p class="hero-version">Version 0.15.0 &middot; Upcoming</p>
-          <p class="hero-summary">Jeffrey Hub is now the <strong>Volume Scheduler</strong>: the small maintenance service that runs beside Microscope on the shared recording volume, with scheduled retention and LZ4 compression and a small JSON API for storage figures and jobs.</p>
-          <div class="hero-docs">
-            <span class="hero-docs-label"><i class="bi bi-journal-text"></i> Documentation</span>
-            <router-link to="/docs/volume-scheduler" class="hero-docs-btn"><i class="bi bi-clock-history"></i> Volume Scheduler</router-link>
-            <router-link to="/docs/deployment" class="hero-docs-btn"><i class="bi bi-cloud-upload"></i> Deployment by Example</router-link>
-          </div>
+        <div class="hero-150-ctas">
+          <router-link to="/docs/microscope-mcp" class="hero-150-cta-primary"><i class="bi bi-robot"></i> Read the docs</router-link>
+          <a href="https://www.jeffrey-analyst.cafe/agent-plugin" target="_blank" class="hero-150-cta-secondary"><i class="bi bi-puzzle"></i> Explore the plugin</a>
         </div>
       </div>
     </section>
@@ -747,7 +787,7 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
         <div class="version-bar-left">
           <h3>Release Notes</h3>
           <select v-model="selectedVersion" class="version-select">
-            <option value="0.15.0">0.15.0 &mdash; Next Release</option>
+            <option value="0.15.0">0.15.0 &mdash; MCP &amp; Connector Release</option>
             <option value="0.14.0">0.14.0 &mdash; MCP Release</option>
             <option value="0.13.0">0.13.0 &mdash; Jeffrey Traces Release</option>
             <option value="0.12.0">0.12.0 &mdash; Advisor Release</option>
@@ -923,36 +963,133 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
 
     <!-- ──────────────────────── 0.15.0 features ──────────────────────── -->
     <template v-if="selectedVersion === '0.15.0'">
+      <!-- Feature 01: Microscope MCP -->
+      <section class="feature-section">
+        <div class="feature-frame feature-frame-150">
+          <div class="feature-150-label">Microscope MCP</div>
+          <h2 class="feature-150-title">Coding Agent from Runtime Profile to Code</h2>
+
+          <p class="feature-150-desc">Microscope&rsquo;s MCP endpoint turns a coding agent into a full infrastructure browser. It discovers <strong>workspaces</strong>, lists <strong>projects</strong> and their <strong>instances</strong>, pulls a <strong>time window</strong> of a production recording, reads flamegraphs, traces and heap dumps, and resolves the hot frame to a file and line in your checkout.</p>
+          <p class="feature-150-desc">When the agent runs <strong>inside your repository</strong>, the loop closes: it reads the profile, resolves the hot frame to source code, edits the file to implement the fix, records again and verifies with a differential flamegraph &mdash; <strong>analyze, resolve, fix, verify</strong>, all in one session.</p>
+
+          <!-- Pipeline route -->
+          <div class="route-150">
+            <svg class="route-150-svg" viewBox="0 0 1000 280" aria-hidden="true">
+              <defs>
+                <linearGradient id="release-route-gradient" gradientUnits="userSpaceOnUse" x1="10" y1="0" x2="990" y2="0">
+                  <stop offset="0" stop-color="#f59e0b" stop-opacity="0" />
+                  <stop offset="0.1" stop-color="#e4570b" />
+                  <stop offset="0.37" stop-color="#f59e0b" />
+                  <stop offset="0.63" stop-color="#0284c7" />
+                  <stop offset="0.9" stop-color="#059669" />
+                  <stop offset="1" stop-color="#059669" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <path class="route-150-glow" :d="ROUTE_PATH_150" />
+              <path id="release-route-path" class="route-150-line" :d="ROUTE_PATH_150" />
+              <circle v-for="begin in ROUTE_PULSE_BEGINS_150" :key="begin" class="route-150-pulse" r="4">
+                <animateMotion dur="6s" repeatCount="indefinite" :begin="begin">
+                  <mpath href="#release-route-path" />
+                </animateMotion>
+              </circle>
+            </svg>
+            <template v-for="step in routeSteps150" :key="step.station.name">
+              <div class="route-150-station" :style="positionStyle150(step.station)">
+                <span class="route-150-station-ic"><i class="bi" :class="step.station.icon"></i></span>
+                <span><b>{{ step.station.name }}</b><small>{{ step.station.sub }}</small></span>
+              </div>
+              <span v-if="step.hop" class="route-150-hop" :style="positionStyle150(step.hop)">{{ step.hop.label }}</span>
+            </template>
+          </div>
+
+          <!-- Three capability cards -->
+          <div class="capabilities-150">
+            <div class="capability-150">
+              <div class="capability-150-icon"><i class="bi bi-globe2"></i></div>
+              <h3>Browse &amp; Discover</h3>
+              <p>Workspaces, projects, instances, sessions &mdash; the agent navigates the full volume structure without knowing where it lives.</p>
+            </div>
+            <div class="capability-150">
+              <div class="capability-150-icon"><i class="bi bi-fire"></i></div>
+              <h3>Analyze &amp; Resolve</h3>
+              <p>Flamegraphs, traces, heap dumps, GC timelines &mdash; every Microscope view, with hot frames resolved to source lines in the checkout.</p>
+            </div>
+            <div class="capability-150">
+              <div class="capability-150-icon"><i class="bi bi-clipboard2-check"></i></div>
+              <h3>Fix &amp; Verify</h3>
+              <p>The agent edits the code, records again, and compares with a differential flamegraph &mdash; a closed loop from profile to proof.</p>
+            </div>
+          </div>
+
+          <!-- Agent Plugin banner -->
+          <div class="plugin-banner-150">
+            <div class="plugin-banner-150-icon"><i class="bi bi-puzzle"></i></div>
+            <div>
+              <h3><a href="https://www.jeffrey-analyst.cafe/agent-plugin" target="_blank">Microscope Plugin</a> &mdash; Taught by Use Case</h3>
+              <p>Ships skills and agents, each centered on a question: &ldquo;optimize the CPU hotspots,&rdquo; &ldquo;why is this request slow,&rdquo; &ldquo;did the fix help.&rdquo; Every skill names the tools it needs and the order to call them. <a href="https://www.jeffrey-analyst.cafe/agent-plugin" target="_blank">Explore <i class="bi bi-arrow-right"></i></a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Feature 02: Connector SPI -->
+      <div class="feature-section-bg">
+        <section class="feature-section feature-150">
+          <div class="feature-150-label connector">Connector SPI</div>
+          <h2 class="feature-150-title">Pluggable Storage</h2>
+
+          <p class="feature-150-desc">Microscope reaches exactly one <strong>connector</strong> &mdash; the recording volume. Where that volume lives is now a plug-in decision. Swap storage with a configuration change, not a code change. The same Microscope reads a local directory on a dev laptop, an Azure file share in production, or a third-party backend you plug in yourself.</p>
+
+          <!-- Two built-in connector kinds -->
+          <div class="connector-kinds-150">
+            <div class="kind-card-150 kind-card-150-local">
+              <h3><span class="kind-tag-150 kind-tag-150-local">local</span> Local Directory</h3>
+              <p>Point it at a path and start Microscope. Reads the directory live &mdash; the simplest setup for development and testing.</p>
+              <div class="config-block-150">
+                <span class="config-comment-150"># application.properties</span><br>
+                <span class="config-key-150">jeffrey.microscope.connector.local.path</span>=<span class="config-val-150">/data/recordings</span><br>
+                <span class="config-key-150">jeffrey.microscope.connector.local.read-only</span>=<span class="config-val-150">false</span>
+              </div>
+            </div>
+            <div class="kind-card-150 kind-card-150-azure">
+              <h3><span class="kind-tag-150 kind-tag-150-azure">azure-files</span> Azure File Share</h3>
+              <p>Mounts a share over SMB or NFS, with SAS token or Entra ID auth &mdash; a team-wide production volume.</p>
+              <div class="config-block-150">
+                <span class="config-comment-150"># application.properties</span><br>
+                <span class="config-key-150">jeffrey.microscope.connector.azure-files.endpoint</span>=<span class="config-val-150">https://recordings.file.core.windows.net</span><br>
+                <span class="config-key-150">jeffrey.microscope.connector.azure-files.share</span>=<span class="config-val-150">production-recordings</span><br>
+                <span class="config-key-150">jeffrey.microscope.connector.azure-files.auth</span>=<span class="config-val-150">sas</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Improvements -->
       <div class="improvements-section">
         <div class="improvements-inner">
           <div class="improvements-header">
             <div class="improvements-header-line"></div>
-            <h2><i class="bi bi-wrench"></i> Changes</h2>
+            <h2><i class="bi bi-wrench"></i> Improvements</h2>
             <div class="improvements-header-line"></div>
           </div>
 
-          <div class="improvement-group">
-            <div class="improvement-group-label volume-scheduler"><i class="bi bi-clock-history"></i> Volume Scheduler</div>
-            <div class="improvements-grid">
-              <div class="improvement-tile improvement-tile-text">
-                <div class="imp-tile-body">
-                  <h3>Jeffrey Hub is now Volume Scheduler</h3>
-                  <p>The image is <code>petrbouda/volume-scheduler</code>, released under the tag <code>volume-scheduler-v&lt;version&gt;</code>, and its configuration lives under <code>jeffrey.volume-scheduler.*</code>.</p>
-                  <router-link to="/docs/volume-scheduler" class="imp-link">Open Volume Scheduler docs <i class="bi bi-arrow-right"></i></router-link>
-                </div>
+          <div class="improvements-grid">
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3><i class="bi bi-clock-history imp-tile-icon-150"></i> Volume Scheduler</h3>
+                <p>Renamed from Jeffrey Hub. The volume path is now required at startup, and both jobs (retention, compression) can be triggered on demand via the REST API.</p>
+                <router-link to="/docs/volume-scheduler" class="imp-link">Open Volume Scheduler docs <i class="bi bi-arrow-right"></i></router-link>
               </div>
-              <div class="improvement-tile improvement-tile-text">
-                <div class="imp-tile-body">
-                  <h3>A Required Volume Path</h3>
-                  <p><code>jeffrey.volume-scheduler.volume.path</code> names the directory that holds <code>workspaces/</code>. Startup fails when it is missing, so an unmounted volume is caught at once.</p>
-                  <router-link to="/docs/volume-scheduler/configuration" class="imp-link">Open configuration <i class="bi bi-arrow-right"></i></router-link>
-                </div>
-              </div>
-              <div class="improvement-tile improvement-tile-text">
-                <div class="imp-tile-body">
-                  <h3>Two Jobs, Both Runnable by Hand</h3>
-                  <p><code>retention</code> and <code>compression</code> each have their own <code>enabled</code> and <code>period</code>, and <code>POST /api/v1/jobs/{job}/run</code> runs either one now and answers with its summary.</p>
-                  <router-link to="/docs/volume-scheduler/api" class="imp-link">Open REST API <i class="bi bi-arrow-right"></i></router-link>
+            </div>
+            <div class="improvement-tile improvement-tile-text">
+              <div class="imp-tile-body">
+                <h3><i class="bi bi-box-seam imp-tile-icon-150"></i> Self-Sufficient Distribution</h3>
+                <p>Each release ships a jLink-built archive with a bundled JVM and a launcher script &mdash; unpack, run <code>bin/microscope</code>, no external JRE needed.</p>
+                <div class="platform-badges-150">
+                  <span class="platform-badge-150">Linux amd64</span>
+                  <span class="platform-badge-150">macOS arm64</span>
+                  <span class="platform-badge-150">Windows amd64</span>
                 </div>
               </div>
             </div>
@@ -4287,6 +4424,604 @@ onUnmounted(() => document.removeEventListener('keydown', onLightboxKey))
     grid-template-columns: 1fr;
   }
 }
+/* ───────────────────────── 0.15.0 — MCP & Connector Release ───────────────────────── */
+
+.hero-banner-150 {
+  background: linear-gradient(135deg, #071a26 0%, #0d2a3e 40%, #0a2240 70%, #161042 100%);
+}
+
+.hero-banner-150::before {
+  background:
+    radial-gradient(circle at 20% 50%, rgba(16, 185, 129, 0.18) 0%, transparent 50%),
+    radial-gradient(circle at 80% 40%, rgba(99, 102, 241, 0.14) 0%, transparent 50%);
+}
+
+.hero-inner-150 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.hero-150-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 6px 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 20px;
+}
+
+.hero-150-badge b {
+  background: linear-gradient(135deg, #10b981, #6366f1);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-title-150 {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.hero-title-150 span {
+  background: linear-gradient(135deg, #10b981, #6366f1, #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-summary-150 {
+  font-size: 1.15rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.7;
+  max-width: 640px;
+  margin: 0 auto 24px;
+  text-align: center;
+}
+
+.hero-summary-150 strong {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.hero-150-dots {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.hero-150-dot-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-150-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.hero-150-dot-mcp {
+  background: #10b981;
+  box-shadow: 0 0 10px #10b981;
+}
+
+.hero-150-dot-connector {
+  background: #6366f1;
+  box-shadow: 0 0 10px #6366f1;
+}
+
+.hero-150-ctas {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.hero-150-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.hero-150-cta-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(16, 185, 129, 0.5);
+  color: #fff;
+}
+
+.hero-150-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: background 0.2s;
+}
+
+.hero-150-cta-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* 0.15.0 feature frame — MCP accent */
+.feature-frame-150 {
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(120deg, #10b981, #6366f1, #a855f7, #10b981) border-box;
+  background-size: 100% 100%, 300% 300%;
+  box-shadow: 0 20px 60px -16px rgba(16, 185, 129, 0.25);
+}
+
+.feature-150-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  color: #10b981;
+  margin-bottom: 10px;
+}
+
+.feature-150-label.connector {
+  color: #6366f1;
+}
+
+.feature-150-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  line-height: 1.15;
+  margin-bottom: 16px;
+  letter-spacing: -0.5px;
+  color: #343a40;
+}
+
+.feature-150-desc {
+  font-size: 1.05rem;
+  color: #6c757d;
+  line-height: 1.8;
+  margin-bottom: 16px;
+  max-width: 720px;
+}
+
+.feature-150-desc strong {
+  color: #343a40;
+  font-weight: 600;
+}
+
+.feature-150-desc code {
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+/* 0.15.0 pipeline route */
+.route-150 {
+  position: relative;
+  max-width: 100%;
+  margin: 44px 0 0;
+  aspect-ratio: 1000 / 280;
+  overflow: visible;
+}
+
+.route-150-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.route-150-glow {
+  fill: none;
+  stroke: url(#release-route-gradient);
+  stroke-width: 12;
+  stroke-linecap: round;
+  opacity: 0.16;
+}
+
+.route-150-line {
+  fill: none;
+  stroke: url(#release-route-gradient);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.route-150-pulse {
+  fill: #f59e0b;
+}
+
+.route-150-station,
+.route-150-hop {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  white-space: nowrap;
+}
+
+.route-150-station {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 10px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #e9ecef;
+  box-shadow: 0 0 32px -8px color-mix(in srgb, var(--c) 45%, transparent), 0 1px 4px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.route-150-station-ic {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  color: #fff;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 70%, #f8f9fa), var(--c));
+}
+
+.route-150-station b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.route-150-station small {
+  display: block;
+  font-size: 11px;
+  color: #6c757d;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.route-150-hop {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c);
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #f8f9fa;
+  border: 1px solid color-mix(in srgb, var(--c) 40%, transparent);
+}
+
+/* 0.15.0 capability cards */
+.capabilities-150 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0;
+}
+
+.capability-150 {
+  padding: 24px 20px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #fff;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.capability-150:hover {
+  border-color: #10b981;
+}
+
+.capability-150-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+}
+
+.capability-150 h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: #343a40;
+}
+
+.capability-150 p {
+  font-size: 0.82rem;
+  color: #6c757d;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* 0.15.0 plugin banner */
+.plugin-banner-150 {
+  margin-top: 36px;
+  padding: 24px 28px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.04), rgba(99, 102, 241, 0.03));
+  border: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.plugin-banner-150-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.plugin-banner-150 h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+  color: #343a40;
+}
+
+.plugin-banner-150 h3 a {
+  color: #10b981;
+  text-decoration: none;
+}
+
+.plugin-banner-150 h3 a:hover {
+  text-decoration: underline;
+}
+
+.plugin-banner-150 p {
+  font-size: 0.88rem;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.plugin-banner-150 p a {
+  color: #10b981;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.plugin-banner-150 p a:hover {
+  text-decoration: underline;
+}
+
+/* 0.15.0 feature section specifics */
+.feature-150 .feature-150-label {
+  color: #6366f1;
+}
+
+/* 0.15.0 connector kind cards */
+.connector-kinds-150 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 32px 0;
+}
+
+.kind-card-150 {
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 24px;
+  background: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.kind-card-150::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.kind-card-150-local::before {
+  background: #10b981;
+}
+
+.kind-card-150-azure::before {
+  background: #6366f1;
+}
+
+.kind-card-150 h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #343a40;
+}
+
+.kind-card-150 p {
+  font-size: 0.88rem;
+  color: #6c757d;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.kind-tag-150 {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.kind-tag-150-local {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.kind-tag-150-azure {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.config-block-150 {
+  margin-top: 12px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 0.75rem;
+  line-height: 1.7;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.config-key-150 {
+  color: #7dd3fc;
+}
+
+.config-val-150 {
+  color: #86efac;
+}
+
+.config-comment-150 {
+  color: #64748b;
+}
+
+/* 0.15.0 improvement tile icon */
+.imp-tile-icon-150 {
+  margin-right: 6px;
+  color: #6c757d;
+}
+
+/* 0.15.0 platform badges */
+.platform-badges-150 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.platform-badge-150 {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.08);
+  color: #10b981;
+}
+
+/* 0.15.0 mobile responsive */
+@media (max-width: 768px) {
+  .hero-title-150 {
+    font-size: 2rem;
+  }
+
+  .hero-150-dots {
+    gap: 12px;
+  }
+
+  .hero-150-ctas {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .capabilities-150 {
+    grid-template-columns: 1fr;
+  }
+
+  .connector-kinds-150 {
+    grid-template-columns: 1fr;
+  }
+
+  .plugin-banner-150 {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .route-150 {
+    aspect-ratio: auto;
+    width: fit-content;
+    max-width: 100%;
+    margin: 28px 0 0;
+    padding-left: 28px;
+    display: grid;
+    gap: 10px;
+    justify-items: start;
+  }
+
+  .route-150::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 20px;
+    bottom: 20px;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(#f59e0b, #0284c7, #059669);
+  }
+
+  .route-150-svg {
+    display: none;
+  }
+
+  .route-150-station,
+  .route-150-hop {
+    position: relative;
+    left: auto;
+    top: auto;
+    transform: none;
+  }
+
+  .route-150-station {
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
 /* ───────────────────────── 0.14.0 — MCP Release (emerald → lime → cyan) ───────────────────────── */
 
 .hero-banner-140 {
