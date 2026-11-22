@@ -33,7 +33,7 @@ const headings = [
   { id: 'plain-spring', text: 'Plain Spring: @Import', level: 2 },
   { id: 'http', text: 'HTTP: Naming and Settings', level: 2 },
   { id: 'attributes', text: 'HTTP: Attribute Customizers', level: 2 },
-  { id: 'client', text: 'Outbound Calls: RestTemplate', level: 2 },
+  { id: 'client', text: 'Outbound Calls: RestClient and RestTemplate', level: 2 },
   { id: 'jdbc', text: 'DataSource, HikariCP and MyBatis', level: 2 },
   { id: 'grpc', text: 'gRPC: No Starter', level: 2 },
   { id: 'overriding', text: 'Overriding What the Starter Wires', level: 2 },
@@ -63,7 +63,7 @@ class ObservabilityConfiguration {
 
 const allImports = `@Configuration
 @Import({
-    JeffreyTracingConfiguration.class,        // HTTP filter, MVC naming, RestTemplate interceptor
+    JeffreyTracingConfiguration.class,        // HTTP filter, MVC naming, RestClient/RestTemplate interceptor
     JeffreyJdbcTracingConfiguration.class,    // wraps every DataSource bean
     JeffreyHikariTracingConfiguration.class,  // connection-pool events from HikariCP
     JeffreyMyBatisTracingConfiguration.class  // statements named by mapper method
@@ -105,13 +105,24 @@ const springMvcNaming = `public class SpringMvcRequestNaming implements HttpRequ
     }
 }`;
 
-const clientInterceptor = `// jeffrey-tracing-spring ships JfrClientHttpRequestInterceptor as a bean;
-// attach it where you build the client:
-RestTemplate restTemplate = new RestTemplate();
-restTemplate.getInterceptors().add(interceptor);   // the bean from the configuration
+const clientInterceptor = `// With the Spring Boot starter (4.2+), every RestClient.Builder bean carries the
+// interceptor automatically — no code needed:
+@Bean
+CommandLineRunner demo(RestClient.Builder builder) {
+    RestClient client = builder.baseUrl("https://api.example.com").build();
+    // outbound calls appear as leaf spans in the trace
+}
+
+// Without the starter, attach it where you build the client:
+RestClient client = RestClient.builder()
+        .requestInterceptor(interceptor)   // the bean from the configuration
+        .build();
 
 // Or with a normaliser that collapses variable path segments into a template:
-new JfrClientHttpRequestInterceptor(uri -> "payments" + normalize(uri.getPath()));`;
+new JfrClientHttpRequestInterceptor(uri -> "payments" + normalize(uri.getPath()));
+
+// RestTemplate shares the same ClientHttpRequestInterceptor interface:
+restTemplate.getInterceptors().add(interceptor);`;
 
 const manualClient = `public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInterceptor {
 
@@ -353,11 +364,13 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
         <strong>The starter's header customizer backs off by <em>name</em>, not by type</strong>, and is registered even when both header lists are empty. Backing off by type would let any application customizer suppress it, which is backwards for an extension point whose purpose is that customizers compose; and guarding it with <code>@ConditionalOnProperty</code> would silently fail for the YAML list form, where the bound key is <code>capture-request-headers[0]</code> rather than <code>capture-request-headers</code>.
       </DocsCallout>
 
-      <h2 id="client">Outbound Calls: RestTemplate</h2>
+      <h2 id="client">Outbound Calls: RestClient and RestTemplate</h2>
+
+      <p><code>JfrClientHttpRequestInterceptor</code> implements <code>ClientHttpRequestInterceptor</code>, which is shared by both <code>RestClient</code> and <code>RestTemplate</code> &mdash; one interceptor serves both. With the Spring Boot starter (4.2+), a <code>RestClientCustomizer</code> attaches it to every auto-configured <code>RestClient.Builder</code> automatically.</p>
 
       <DocsCodeBlock :code="clientInterceptor" language="java" />
 
-      <p>It is only a bean, not attached automatically: Spring Boot 4 removed <code>RestTemplateCustomizer</code>, and a plain Spring application builds its own clients anyway. By default it records host and path with the query string dropped (that is where ids and tokens live), and accepts a <code>Function&lt;URI, String&gt;</code> to collapse variable path segments into a template. Written by hand, the same interceptor is:</p>
+      <p>By default it records host and path with the query string dropped (that is where ids and tokens live), and accepts a <code>Function&lt;URI, String&gt;</code> to collapse variable path segments into a template. Written by hand, the same interceptor is:</p>
 
       <DocsCodeBlock :code="manualClient" language="java" />
 

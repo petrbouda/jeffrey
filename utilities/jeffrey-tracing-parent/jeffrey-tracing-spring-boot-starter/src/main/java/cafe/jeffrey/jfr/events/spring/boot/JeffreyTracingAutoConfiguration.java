@@ -21,6 +21,7 @@ import cafe.jeffrey.jfr.events.servlet.HttpExchangeAttributesCustomizer;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeFilter;
 import cafe.jeffrey.jfr.events.servlet.HttpExchangeSettings;
 import cafe.jeffrey.jfr.events.spring.JeffreyTracingConfiguration;
+import cafe.jeffrey.jfr.events.spring.JfrClientHttpRequestInterceptor;
 import jakarta.servlet.Filter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -28,8 +29,10 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -105,5 +108,30 @@ public class JeffreyTracingAutoConfiguration {
         registration.setUrlPatterns(properties.urlPatterns());
         registration.setOrder(properties.order());
         return registration;
+    }
+
+    /**
+     * Activates only when {@code spring-boot-restclient} is on the classpath — a separate class so
+     * the JVM never tries to resolve {@link RestClientCustomizer} when it is absent.
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.boot.restclient.RestClientCustomizer")
+    static class RestClientCustomizerAutoConfiguration {
+
+        /**
+         * Attaches the outbound-call interceptor to every {@code RestClient.Builder} auto-configured
+         * by Boot, so outbound HTTP calls appear as leaf spans in the trace with no code on the
+         * application's side.
+         * <p>
+         * Backs off by name so an application can replace it without suppressing it by type — the
+         * same pattern as the header customizer above.
+         */
+        @Bean
+        @ConditionalOnMissingBean(name = "jeffreyRestClientCustomizer")
+        RestClientCustomizer jeffreyRestClientCustomizer(
+                JfrClientHttpRequestInterceptor interceptor) {
+
+            return builder -> builder.requestInterceptor(interceptor);
+        }
     }
 }

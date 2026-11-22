@@ -64,8 +64,9 @@ final class SpanNameTemplates {
     /**
      * The naming conventions for Jeffrey's own exchange types, as templates — the same strings the
      * {@code @Span} annotations on the event classes declare. New recordings carry these
-     * declarations themselves; the map is what names the same events on recordings that predate
-     * the annotation, and it is why that backward-compat set genuinely cannot grow.
+     * declarations themselves; the map names the same events on older recordings that predate the
+     * annotation. It is frozen: a new entry would only apply to old recordings, which by definition
+     * cannot carry a new event type.
      */
     static final Map<String, String> BUILT_IN = Map.of(
             EventTypeName.HTTP_SERVER_EXCHANGE, "{method} {uri}",
