@@ -32,6 +32,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.restclient.RestClientCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -110,19 +111,27 @@ public class JeffreyTracingAutoConfiguration {
     }
 
     /**
-     * Attaches the outbound-call interceptor to every {@code RestClient.Builder} auto-configured by
-     * Boot, so outbound HTTP calls appear as leaf spans in the trace with no code on the
-     * application's side.
-     * <p>
-     * Backs off by name so an application can replace it without suppressing it by type — the same
-     * pattern as the header customizer above.
+     * Activates only when {@code spring-boot-restclient} is on the classpath — a separate class so
+     * the JVM never tries to resolve {@link RestClientCustomizer} when it is absent.
      */
-    @Bean
-    @ConditionalOnMissingBean(name = "jeffreyRestClientCustomizer")
-    @ConditionalOnClass(name = "org.springframework.web.client.RestClient")
-    public RestClientCustomizer jeffreyRestClientCustomizer(
-            JfrClientHttpRequestInterceptor interceptor) {
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(name = "org.springframework.boot.restclient.RestClientCustomizer")
+    static class RestClientCustomizerAutoConfiguration {
 
-        return builder -> builder.requestInterceptor(interceptor);
+        /**
+         * Attaches the outbound-call interceptor to every {@code RestClient.Builder} auto-configured
+         * by Boot, so outbound HTTP calls appear as leaf spans in the trace with no code on the
+         * application's side.
+         * <p>
+         * Backs off by name so an application can replace it without suppressing it by type — the
+         * same pattern as the header customizer above.
+         */
+        @Bean
+        @ConditionalOnMissingBean(name = "jeffreyRestClientCustomizer")
+        RestClientCustomizer jeffreyRestClientCustomizer(
+                JfrClientHttpRequestInterceptor interceptor) {
+
+            return builder -> builder.requestInterceptor(interceptor);
+        }
     }
 }
