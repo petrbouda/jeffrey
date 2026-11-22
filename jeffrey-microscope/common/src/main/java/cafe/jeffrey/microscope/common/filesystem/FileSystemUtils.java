@@ -144,7 +144,7 @@ public abstract class FileSystemUtils {
         }
     }
 
-    private static String readFromClasspath(String pathOnClasspath) {
+    public static String readFromClasspath(String pathOnClasspath) {
         String path = pathOnClasspath.substring("classpath:".length());
         try (InputStream stream = FileSystemUtils.class.getClassLoader().getResourceAsStream(path)) {
             if (stream == null) {

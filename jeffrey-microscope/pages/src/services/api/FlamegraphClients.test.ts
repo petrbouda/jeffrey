@@ -24,8 +24,6 @@ import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import SingleSpanFlamegraphClient from '@/services/api/SingleSpanFlamegraphClient';
 import SpanFlamegraphClient from '@/services/api/SpanFlamegraphClient';
 import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
-import BothGraphData from '@/services/api/model/BothGraphData';
-
 vi.mock('axios', () => ({
   default: {
     post: vi.fn()
@@ -461,4 +459,3 @@ describe('DifferentialFlamegraphClient payloads', () => {
     );
   });
 });
-
