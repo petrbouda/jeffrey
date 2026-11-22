@@ -89,7 +89,7 @@ public class ConnectorConnection {
         DiscoveryClient.WorkspaceResult result = clients.discovery().workspace(workspaceId);
         return switch (result.status()) {
             case AVAILABLE -> Optional.of(workspaceManagerFactory.create(connector, result.info(), clients));
-            case UNAVAILABLE, OFFLINE, UNKNOWN -> Optional.empty();
+            case UNAVAILABLE, OFFLINE -> Optional.empty();
         };
     }
 

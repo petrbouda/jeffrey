@@ -17,14 +17,6 @@
 
 /* Global Styles */
 
-.bg-soft-blue {
-  background-color: #4a76a8 !important; /* Lighter blue color */
-}
-
-.text-soft-blue {
-  color: #4a76a8 !important;
-}
-
 /* Modal Styling - Position close buttons in right corner */
 .modal-header {
   display: flex !important;

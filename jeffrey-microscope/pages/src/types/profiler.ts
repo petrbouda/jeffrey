@@ -81,15 +81,6 @@ export interface ConfigToken {
   value: string;
 }
 
-export interface ConfigCardDefinition {
-  id: keyof OptionStates;
-  title: string;
-  subtitle: string;
-  icon: string;
-  cardType: 'required' | 'optional';
-  component?: string;
-}
-
 /** Placeholder for the Agent Path field, and the path used when it is left blank. */
 export const DEFAULT_AGENT_PATH = '/path/to/libasyncProfiler.so';
 

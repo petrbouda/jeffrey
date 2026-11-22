@@ -27,7 +27,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Walks a {@link cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.OqlExpr.PathExpr}

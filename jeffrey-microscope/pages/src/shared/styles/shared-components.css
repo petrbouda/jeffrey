@@ -100,46 +100,6 @@
   gap: 8px;
 }
 
-.page-header-btn {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  color: var(--color-white);
-  border: none;
-  padding: 5px 12px;
-  border-radius: 6px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  white-space: nowrap;
-  transition: all 0.2s ease;
-  height: 30px;
-}
-
-.page-header-btn:hover {
-  box-shadow: 0 2px 8px rgba(94, 100, 255, 0.3);
-}
-
-.page-filter-select {
-  background: var(--color-light);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 4px 24px 4px 10px;
-  font-size: 0.75rem;
-  color: var(--color-text);
-  cursor: pointer;
-  height: 30px;
-  transition: border-color 0.15s ease;
-  appearance: auto;
-}
-
-.page-filter-select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(94, 100, 255, 0.1);
-  outline: none;
-}
-
 .page-search {
   display: flex;
   align-items: center;
@@ -171,45 +131,6 @@
   font-size: 0.75rem;
   color: var(--color-text);
   width: 100%;
-}
-
-/* Workspace Cards Grid */
-.workspace-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 300px));
-  gap: 12px;
-}
-
-/* Danger Zone Card Variant */
-.danger-card {
-  background: linear-gradient(135deg, var(--color-white), #fff8f8);
-  border: 1px solid rgba(239, 68, 68, 0.12);
-  border-radius: 16px;
-  box-shadow:
-    0 4px 20px rgba(0, 0, 0, 0.04),
-    0 1px 3px rgba(0, 0, 0, 0.02);
-}
-
-.danger-card-header {
-  background: linear-gradient(135deg, #fef2f2, var(--color-white));
-  border-bottom: 1px solid rgba(239, 68, 68, 0.12);
-  border-radius: 16px 16px 0 0;
-  padding: 16px 24px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.danger-card-header-icon {
-  font-size: 1.25rem;
-  color: var(--color-danger);
-}
-
-.danger-card-header-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #991b1b;
-  margin: 0;
 }
 
 /* ===========================================
@@ -326,17 +247,6 @@
 .icon-info-btn:hover {
   background-color: var(--color-light);
   color: var(--color-dark);
-}
-
-/* ===========================================
-   Standard Form Label (filter/tool labels)
-   =========================================== */
-.form-label-standard {
-  margin-bottom: 0.25rem;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  font-weight: 600;
-  color: var(--color-text-muted);
 }
 
 /* ===========================================
@@ -466,139 +376,6 @@
 }
 
 /* ===========================================
-   Button Variants
-   =========================================== */
-.btn-primary-gradient {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
-  border: none;
-  font-weight: 600;
-  border-radius: 10px;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow:
-    0 4px 12px rgba(94, 100, 255, 0.3),
-    0 2px 4px rgba(94, 100, 255, 0.2);
-}
-
-.btn-primary-gradient:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover), #3f46ff);
-  transform: translateY(-2px);
-  box-shadow:
-    0 6px 16px rgba(94, 100, 255, 0.4),
-    0 3px 6px rgba(94, 100, 255, 0.3);
-}
-
-.btn-primary-gradient:active {
-  transform: translateY(-1px);
-}
-
-.btn-primary-gradient:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* ===========================================
-   Job Table Styles (Scheduler)
-   =========================================== */
-.job-icon-sm {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
-  border-radius: 0.25rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.inline-params {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.param-badge {
-  display: inline-flex;
-  align-items: center;
-  background-color: var(--color-bg-light, #f8f9fa);
-  border-radius: 0.125rem;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-}
-
-.param-key {
-  font-weight: 600;
-  margin-right: 0.25rem;
-  color: var(--color-text-muted);
-}
-
-.param-value {
-  color: var(--color-text-dark, #212529);
-}
-
-/* Disabled job styling */
-.disabled-job {
-  background-color: rgba(0, 0, 0, 0.03);
-  opacity: 0.75;
-}
-
-.disabled-job td {
-  color: var(--color-text-muted);
-}
-
-.disabled-job .param-badge {
-  background-color: var(--color-light);
-  border-color: var(--color-border);
-}
-
-/* Job icon color variants */
-.bg-teal-soft {
-  background-color: rgba(32, 201, 151, 0.15);
-}
-
-.text-teal {
-  color: #20C997;
-}
-
-.bg-blue-soft {
-  background-color: rgba(13, 110, 253, 0.15);
-}
-
-.text-blue {
-  color: var(--color-accent-blue);
-}
-
-.bg-purple-soft {
-  background-color: rgba(111, 66, 193, 0.15);
-}
-
-.text-purple {
-  color: var(--color-purple);
-}
-
-.bg-orange-soft {
-  background-color: rgba(253, 126, 20, 0.15);
-}
-
-.text-orange {
-  color: #fd7e14;
-}
-
-.bg-cyan-soft {
-  background-color: rgba(13, 202, 240, 0.15);
-}
-
-.text-cyan {
-  color: #0dcaf0;
-}
-
-.bg-danger-soft {
-  background-color: rgba(220, 53, 69, 0.15);
-}
-
-/* ===========================================
    Feature Disabled Alert (amber warning variant)
    Used by: CustomDisabledFeatureAlert, AiDisabledFeatureAlert,
    ContainerNotAvailableAlert, TracingDisabledFeatureAlert
@@ -723,89 +500,6 @@
   margin-bottom: 1rem;
 }
 
-/* ===========================================
-   Recording Group Headers
-   Used in: RecordingsList, RecordingsView
-   =========================================== */
-.recording-group-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.15s ease;
-}
-
-.recording-group-header:hover {
-  background: var(--color-light);
-}
-
-.recording-group-drop-target {
-  background: rgba(94, 100, 255, 0.06);
-  outline: 2px dashed var(--color-primary);
-  outline-offset: -2px;
-  border-radius: 6px;
-}
-
-.recording-group-drop-target .recording-group-name {
-  color: var(--color-primary);
-}
-
-.recording-group-chevron {
-  font-size: 0.65rem;
-  color: var(--color-text-light);
-  transition: transform 0.15s ease;
-}
-
-.recording-group-name {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--color-text);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.recording-group-count {
-  font-size: 0.65rem;
-  color: var(--color-text-light);
-  background: var(--color-light);
-  padding: 0 6px;
-  border-radius: 8px;
-}
-
-.recording-group-empty {
-  padding: 8px 8px 8px 20px;
-  font-size: 0.72rem;
-  color: var(--color-text-light);
-  font-style: italic;
-}
-
-.recording-group-actions {
-  margin-left: auto;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-}
-
-.recording-group-header:hover .recording-group-actions {
-  opacity: 1;
-}
-
-.recording-group-items {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-left: 12px;
-  margin-top: 6px;
-  margin-bottom: 6px;
-  animation: recordingGroupExpand 0.2s ease-out;
-}
-
-@keyframes recordingGroupExpand {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
 /* Drag handle of a recording or bundle card in the recordings list */
 .recording-drag-handle {
   display: flex;
@@ -829,25 +523,6 @@
 
 .recording-drag-handle:active {
   cursor: grabbing;
-}
-
-.recording-group-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.7rem;
-  color: var(--color-text-light);
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.recording-group-action-delete:hover {
-  color: var(--color-danger-hover);
-  background: #fef2f2;
 }
 
 /* ===========================================
@@ -894,90 +569,6 @@
   font-size: 0.85rem;
   margin-top: 1px;
   flex-shrink: 0;
-}
-
-/* ----- Server context card (read-only server display) ----- */
-.server-context-card {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: 14px;
-  background: var(--color-white);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  position: relative;
-  overflow: hidden;
-}
-
-.server-context-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--color-primary);
-}
-
-.server-context-name {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-dark);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.server-context-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  background: var(--color-success-light);
-  color: var(--color-success-hover);
-  border-radius: 999px;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  flex-shrink: 0;
-}
-
-/* ----- Settings row (toggle/checkbox row inside drawer) ----- */
-.setting-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: 14px;
-  background: var(--color-neutral-bg);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.setting-row:hover {
-  border-color: var(--color-primary-light);
-  background: var(--color-white);
-}
-
-.setting-row-text {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.setting-row-title {
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-dark);
-}
-
-.setting-row-sub {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  line-height: 1.4;
 }
 
 /* ----- Modern inline alert ----- */

@@ -21,7 +21,6 @@ public abstract class FileExtensions {
 
     public static final String ASPROF_TEMP = "jfr.(.*)~";
     public static final String JFR = "jfr";
-    public static final String LZ4 = "lz4";
     public static final String JFR_LZ4 = "jfr.lz4";
     public static final String HPROF_GZ = "hprof.gz";
     public static final String HPROF = "hprof";

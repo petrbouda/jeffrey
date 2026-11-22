@@ -21,27 +21,15 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
 import java.util.stream.Stream;
 
 public abstract class FileSystemUtils {
-
-    public static boolean isNotHidden(Path path) {
-        try {
-            return !Files.isHidden(path);
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot recognize whether the file is hidden or not", e);
-        }
-    }
 
     public static boolean isDirectory(Path path) {
         return Files.exists(path) && Files.isDirectory(path);
@@ -49,22 +37,6 @@ public abstract class FileSystemUtils {
 
     public static boolean isFile(Path path) {
         return Files.exists(path) && Files.isRegularFile(path);
-    }
-
-    public static Instant modifiedAt(Path path) {
-        try {
-            return Files.getLastModifiedTime(path).toInstant();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Cannot read the last modification time: " + path, e);
-        }
-    }
-
-    public static List<Path> sortedFilesInDirectory(Path directory, Comparator<Path> comparator) {
-        try (Stream<Path> stream = Files.list(directory)) {
-            return stream.sorted(comparator).toList();
-        } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read directory: " + directory, e);
-        }
     }
 
     /**
@@ -107,17 +79,6 @@ public abstract class FileSystemUtils {
             return Files.createDirectories(path);
         } catch (IOException e) {
             throw new RuntimeException("Cannot create parent directories: " + path);
-        }
-    }
-
-    public static List<Path> allFilesInDirectory(Path dir) {
-        try (var stream = Files.walk(dir, 1)) {
-            return stream
-                    .filter(Files::isRegularFile)
-                    .filter(FileSystemUtils::isNotHidden)
-                    .toList();
-        } catch (IOException e) {
-            throw new UncheckedIOException("", e);
         }
     }
 
@@ -195,25 +156,4 @@ public abstract class FileSystemUtils {
         }
     }
 
-    /**
-     * Returns a Path to a classpath resource. This is primarily useful for tests
-     * that need to access test resources as file system paths.
-     * <p>
-     * Note: This only works for resources that exist on the file system (not inside JARs).
-     *
-     * @param resourcePath the path to the resource on the classpath (without "classpath:" prefix)
-     * @return the Path to the resource
-     * @throws IllegalArgumentException if the resource is not found
-     */
-    public static Path classpathPath(String resourcePath) {
-        URL resource = FileSystemUtils.class.getClassLoader().getResource(resourcePath);
-        if (resource == null) {
-            throw new IllegalArgumentException("Resource not found on classpath: " + resourcePath);
-        }
-        try {
-            return Path.of(resource.toURI());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException("Invalid resource URI: " + resourcePath, e);
-        }
-    }
 }

@@ -40,14 +40,8 @@ import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.PanelContext;
 import cafe.jeffrey.microscope.core.profile.resources.request.GenerateSingleSpanFlamegraphRequest;
 import cafe.jeffrey.microscope.core.profile.resources.request.GenerateSpanFlamegraphRequest;
-import cafe.jeffrey.microscope.core.profile.resources.request.SpanFlamegraphOptions;
-import cafe.jeffrey.microscope.core.profile.model.GraphType;
-import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
-import cafe.jeffrey.microscope.core.profile.model.ProfilingStartEnd;
 import cafe.jeffrey.microscope.core.profile.model.SpanInterval;
 import cafe.jeffrey.microscope.core.profile.model.SpanScope;
-import cafe.jeffrey.microscope.core.profile.model.time.RelativeTimeRange;
-import cafe.jeffrey.microscope.core.profile.model.time.UndefinedTimeRange;
 
 import java.util.List;
 

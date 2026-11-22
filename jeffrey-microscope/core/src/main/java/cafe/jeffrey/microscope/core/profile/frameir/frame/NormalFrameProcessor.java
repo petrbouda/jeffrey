@@ -21,8 +21,6 @@ import cafe.jeffrey.microscope.core.profile.model.FrameType;
 import cafe.jeffrey.microscope.core.profile.jfr.JfrStackFrame;
 import cafe.jeffrey.microscope.core.profile.persistence.api.FlamegraphRecord;
 
-import java.util.List;
-
 public class NormalFrameProcessor extends SingleFrameProcessor {
 
     private final FrameNameBuilder frameNameBuilder = new FrameNameBuilder();
