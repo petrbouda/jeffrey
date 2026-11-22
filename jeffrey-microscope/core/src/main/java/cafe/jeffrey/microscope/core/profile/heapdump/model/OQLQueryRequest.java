@@ -60,24 +60,4 @@ public record OQLQueryRequest(
         }
     }
 
-    /** A page starting at {@code offset}. */
-    public OQLQueryRequest(String query, int limit, int offset, boolean includeRetainedSize,
-                           boolean scanLargeStrings) {
-        this(query, limit, offset, includeRetainedSize, scanLargeStrings, null);
-    }
-
-    /**
-     * Backwards-compatible four-arg constructor — existing callers default
-     * {@code scanLargeStrings} to false.
-     */
-    public OQLQueryRequest(String query, int limit, int offset, boolean includeRetainedSize) {
-        this(query, limit, offset, includeRetainedSize, false);
-    }
-
-    /**
-     * Create a request with default limit, offset, and no retained size calculation.
-     */
-    public OQLQueryRequest(String query) {
-        this(query, DEFAULT_LIMIT, DEFAULT_OFFSET, false, false, null);
-    }
 }

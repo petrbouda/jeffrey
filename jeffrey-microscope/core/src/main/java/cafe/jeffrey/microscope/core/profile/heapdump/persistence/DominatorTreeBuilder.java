@@ -168,10 +168,6 @@ public final class DominatorTreeBuilder {
     public record BuildResult(int reachableInstances, int rootEdges, long iterations,
                               java.time.Duration buildTime, List<SubPhaseTiming> subPhases) {
 
-        /** Backwards-compatible factory for tests/callers that don't need sub-phase data. */
-        public BuildResult(int reachableInstances, int rootEdges, long iterations, Duration buildTime) {
-            this(reachableInstances, rootEdges, iterations, buildTime, List.of());
-        }
     }
 
     private DominatorTreeBuilder() {

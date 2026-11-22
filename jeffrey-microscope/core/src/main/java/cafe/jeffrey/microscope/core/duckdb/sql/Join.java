@@ -24,7 +24,6 @@ public class Join {
     private final String stringCondition;
     private final Condition conditionObject;
 
-    // Constructor for string-based condition (backward compatibility)
     public Join(JoinType type, String table, String condition) {
         this.type = type;
         this.table = table;
@@ -32,7 +31,6 @@ public class Join {
         this.conditionObject = null;
     }
 
-    // Constructor for Condition object
     public Join(JoinType type, String table, Condition condition) {
         this.type = type;
         this.table = table;

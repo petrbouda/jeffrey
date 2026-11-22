@@ -119,10 +119,9 @@ RestClient client = RestClient.builder()
         .build();
 
 // Or with a normaliser that collapses variable path segments into a template:
-new JfrClientHttpRequestInterceptor(uri -> "payments" + normalize(uri.getPath()));`;
+new JfrClientHttpRequestInterceptor(uri -> "payments" + normalize(uri.getPath()));
 
-const clientInterceptorLegacy = `// Legacy: the same interceptor works with RestTemplate (deprecated in Boot 4.2):
-RestTemplate restTemplate = new RestTemplate();
+// RestTemplate shares the same ClientHttpRequestInterceptor interface:
 restTemplate.getInterceptors().add(interceptor);`;
 
 const manualClient = `public class JeffreyJfrRestTemplateInterceptor implements ClientHttpRequestInterceptor {
@@ -374,8 +373,6 @@ JfrGrpcServerInterceptor jfrGrpcServerInterceptor() {
       <p>By default it records host and path with the query string dropped (that is where ids and tokens live), and accepts a <code>Function&lt;URI, String&gt;</code> to collapse variable path segments into a template. Written by hand, the same interceptor is:</p>
 
       <DocsCodeBlock :code="manualClient" language="java" />
-
-      <DocsCodeBlock :code="clientInterceptorLegacy" language="java" />
 
       <p>For a client whose response arrives on threads you don't control — <code>WebClient</code>, an async <code>HttpClient</code> — the blocking interceptor shape does not fit; see <router-link to="/docs/tracing/http-events#async-clients">Async Clients</router-link>.</p>
 
