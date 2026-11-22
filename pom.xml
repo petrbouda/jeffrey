@@ -50,7 +50,7 @@
             -Djeffrey-events.version=<released> to build against what is on Maven Central.
         -->
         <jeffrey-events.version>1.0-SNAPSHOT</jeffrey-events.version>
-        <spring-boot.version>4.1.2</spring-boot.version>
+        <spring-boot.version>4.2.0</spring-boot.version>
         <spring-ai.version>2.0.2</spring-ai.version>
         <duckdb.version>2.0.0.0</duckdb.version>
         <flyway.version>10.26.0</flyway.version>
@@ -59,7 +59,7 @@
         <protobuf.version>4.36.2</protobuf.version>
         <mockito.version>5.24.0</mockito.version>
         <jackson.version>3.2.4</jackson.version>
-        <logback.version>1.6.5</logback.version>
+        <logback.version>1.6.6</logback.version>
         <hikaricp.version>7.1.0</hikaricp.version>
         <snakeyaml.version>2.7</snakeyaml.version>
         <antlr4.version>4.13.2</antlr4.version>

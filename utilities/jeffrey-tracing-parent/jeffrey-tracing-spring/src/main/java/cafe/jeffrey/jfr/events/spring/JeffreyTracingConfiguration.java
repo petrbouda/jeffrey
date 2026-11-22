@@ -95,11 +95,17 @@ public class JeffreyTracingConfiguration {
     }
 
     /**
-     * Records outbound calls made through a {@code RestTemplate} this interceptor is added to.
+     * Records outbound calls made through a {@code RestClient} or {@code RestTemplate} this
+     * interceptor is added to.
      * <p>
-     * It is only a bean here, not attached to anything: Spring Boot 4 removed
-     * {@code RestTemplateCustomizer}, and a plain Spring application builds its own clients anyway.
-     * Add it where the client is built — {@code restTemplate.getInterceptors().add(interceptor)}.
+     * {@link ClientHttpRequestInterceptor} is shared by both clients, so one bean serves both.
+     * It is only a bean here, not attached to anything: a plain Spring application builds its own
+     * clients. Add it where the client is built —
+     * {@code RestClient.builder().requestInterceptor(interceptor)} or
+     * {@code restTemplate.getInterceptors().add(interceptor)}.
+     * <p>
+     * The {@code jeffrey-tracing-spring-boot-starter} auto-wires it onto every
+     * {@code RestClient.Builder} through a {@code RestClientCustomizer}.
      */
     @Bean
     public JfrClientHttpRequestInterceptor jeffreyClientHttpRequestInterceptor() {

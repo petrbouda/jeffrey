@@ -75,6 +75,11 @@
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <version>${spring-boot.version}</version>
+                    <configuration>
+                        <sbom>
+                            <format>cyclonedx</format>
+                        </sbom>
+                    </configuration>
                     <executions>
                         <execution>
                             <id>repackage</id>

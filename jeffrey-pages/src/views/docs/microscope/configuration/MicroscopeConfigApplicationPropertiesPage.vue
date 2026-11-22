@@ -227,7 +227,7 @@ onMounted(() => {
               devcontainer reaching the host as <code>host.docker.internal</code>, or a machine on the LAN
               dialling this one by name. Behind a reverse proxy, name the hostname clients dial and either
               turn on <code>jeffrey.microscope.mcp.trust-forwarded-headers</code> or set Spring Boot's
-              <code>server.forward-headers-strategy</code>. Read at startup. See
+              <code>server.request.header.forwarded.strategy</code>. Read at startup. See
               <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>.
             </td>
           </tr>
