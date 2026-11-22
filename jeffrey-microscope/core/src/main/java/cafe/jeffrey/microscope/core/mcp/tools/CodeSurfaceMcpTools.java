@@ -50,7 +50,6 @@ import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceNotificatio
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceOperationRow;
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceOperationsPage;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
-import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolCost;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;

@@ -30,10 +30,6 @@ public abstract class InstantUtils {
         return instant != null ? FORMATTER.format(instant) : null;
     }
 
-    public static Instant parseInstant(String instant) {
-        return Instant.from(FORMATTER.parse(instant));
-    }
-
     public static Long toEpochMilli(Instant instant) {
         return instant != null ? instant.toEpochMilli() : null;
     }

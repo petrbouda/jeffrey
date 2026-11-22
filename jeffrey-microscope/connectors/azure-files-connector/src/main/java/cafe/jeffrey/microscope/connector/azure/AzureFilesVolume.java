@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.connector.azure;
 
-import cafe.jeffrey.shared.volume.VolumeAccess;
 import cafe.jeffrey.shared.volume.VolumeEntry;
 import cafe.jeffrey.shared.volume.VolumePath;
 import cafe.jeffrey.shared.volume.WritableVolume;

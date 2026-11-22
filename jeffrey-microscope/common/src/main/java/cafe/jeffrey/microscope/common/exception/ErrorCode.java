@@ -26,17 +26,12 @@ public enum ErrorCode {
     PROFILE_NOT_FOUND,
     RECORDING_NOT_FOUND,
     RECORDING_SESSION_NOT_FOUND,
-    RECORDING_FILE_NOT_FOUND,
-    REPOSITORY_NOT_FOUND,
     UNKNOWN_ERROR_RESPONSE,
     CONNECTOR_UNAVAILABLE,
     EMPTY_RECORDING_SESSION,
 
     // Validation errors
     INVALID_REQUEST,
-
-    // Profiler errors
-    PROFILER_CONFIGURATION_ERROR,
 
     // Connector operation errors
     CONNECTOR_OPERATION_FAILED,
@@ -50,8 +45,6 @@ public enum ErrorCode {
             PROFILE_NOT_FOUND,
             RECORDING_NOT_FOUND,
             RECORDING_SESSION_NOT_FOUND,
-            RECORDING_FILE_NOT_FOUND,
-            REPOSITORY_NOT_FOUND,
             RESOURCE_NOT_FOUND);
 
     public boolean isNotFound() {

@@ -23,7 +23,6 @@ import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.FromClause;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.ObjectSource;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.OqlExpr;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.OqlStatement.OqlQuery;
-import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.OrderItem;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.PathSegment;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.ast.SelectClause.Projection;
 import cafe.jeffrey.microscope.core.profile.heapdump.oql.compiler.ClassHierarchyResolver;

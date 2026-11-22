@@ -24,11 +24,7 @@ import PrimaryFlamegraphClient from '@/services/api/PrimaryFlamegraphClient';
 import SingleSpanFlamegraphClient from '@/services/api/SingleSpanFlamegraphClient';
 import SpanFlamegraphClient from '@/services/api/SpanFlamegraphClient';
 import DifferentialFlamegraphClient from '@/services/api/DifferentialFlamegraphClient';
-import StaticFlamegraphClient from '@/services/api/StaticFlamegraphClient';
 import BothGraphData from '@/services/api/model/BothGraphData';
-import FlamegraphData from '@/services/api/model/FlamegraphData';
-import Frame from '@/services/api/model/Frame';
-import TimeseriesData from '@/services/timeseries/model/TimeseriesData';
 
 vi.mock('axios', () => ({
   default: {
@@ -466,60 +462,3 @@ describe('DifferentialFlamegraphClient payloads', () => {
   });
 });
 
-/**
- * StaticFlamegraphClient intentionally stays OUTSIDE the RemoteFlamegraphClient hierarchy: it
- * serves saved/statically generated graphs entirely from memory and has no REST endpoint, so
- * there are no wire payloads to share with the remote clients. These tests pin its "payloads"
- * instead: the exact constructor-provided data instances and the guarantee that no HTTP request
- * is ever issued.
- */
-describe('StaticFlamegraphClient behavior', () => {
-  const staticFlamegraph = FlamegraphData.fromFrames([[new Frame(0, 7, 'root', 'UNKNOWN')]]);
-  const staticTimeseries = new TimeseriesData([]);
-
-  function client(): StaticFlamegraphClient {
-    return new StaticFlamegraphClient(new BothGraphData(staticFlamegraph, staticTimeseries));
-  }
-
-  it('provideBoth returns the constructor data unchanged and ignores all arguments', async () => {
-    const result = await client().provideBoth(GraphComponents.BOTH, timeRange, 'ignored');
-
-    expect(result.flamegraph).toBe(staticFlamegraph);
-    expect(result.timeseries).toBe(staticTimeseries);
-    expect(postMock()).not.toHaveBeenCalled();
-  });
-
-  it('provide returns the exact flamegraph instance without any HTTP call', async () => {
-    const result = await client().provide(timeRange);
-
-    expect(result).toBe(staticFlamegraph);
-    expect(postMock()).not.toHaveBeenCalled();
-  });
-
-  it('provideTimeseries returns the exact timeseries instance without any HTTP call', async () => {
-    const result = await client().provideTimeseries('ignored');
-
-    expect(result).toBe(staticTimeseries);
-    expect(postMock()).not.toHaveBeenCalled();
-  });
-
-  it('save resolves as a no-op and never posts to the repository', async () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    try {
-      await expect(
-        client().save(GraphComponents.BOTH, 'static-flamegraph', timeRange)
-      ).resolves.toBeUndefined();
-
-      expect(postMock()).not.toHaveBeenCalled();
-      expect(consoleError).toHaveBeenCalledWith(
-        'Cannot export flamegraph from statically generated data'
-      );
-    } finally {
-      consoleError.mockRestore();
-    }
-  });
-
-  it('does not support mode toggles (inherited default)', () => {
-    expect(client().supportsModeToggle()).toBe(false);
-  });
-});

@@ -30,7 +30,6 @@ import cafe.jeffrey.microscope.core.profile.model.SpanScope;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.model.WeightUnit;
 import cafe.jeffrey.microscope.core.profile.model.EventSummary;
-import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.flamegraph.api.DbBasedFlamegraphGenerator;
 import cafe.jeffrey.microscope.core.profile.model.EventSummaryResult;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileEventTypeRepository;

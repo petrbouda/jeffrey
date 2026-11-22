@@ -23,7 +23,5 @@ public enum WorkspaceStatus {
     // The workspace is temporarily unavailable, possibly the workspace has been removed (connector or on live filesystem).
     UNAVAILABLE,
     // The workspace is not reachable at the moment, possibly due to network issues.
-    OFFLINE,
-    // The status of the workspace has not been already determined.
-    UNKNOWN
+    OFFLINE
 }
