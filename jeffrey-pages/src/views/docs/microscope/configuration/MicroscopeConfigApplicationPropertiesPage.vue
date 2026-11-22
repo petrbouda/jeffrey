@@ -362,7 +362,7 @@ onMounted(() => {
               Which tool families to advertise, comma-separated; empty means whatever the preset selects,
               all of them by default. Families are
               named by their tool prefix: <code>profiles</code>, <code>operations</code>, <code>jfr</code>,
-              <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
+              <code>flamegraph</code>, <code>code</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
               <code>heap</code>, <code>recordings</code>, <code>connector</code>, <code>ide</code>. Keep
