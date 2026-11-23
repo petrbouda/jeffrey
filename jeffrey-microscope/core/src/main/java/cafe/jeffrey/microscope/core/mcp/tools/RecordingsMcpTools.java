@@ -249,7 +249,7 @@ public class RecordingsMcpTools {
             call.reportProgress(0.0, 1.0, "Importing the recording");
             recordingId = recordingsManager.importRecordingFromPath(recordingPath);
         } catch (RuntimeException failure) {
-            throw new ToolExecutionException(IMPORT_FAILED + recordingPath, failure);
+            throw new ToolExecutionException(IMPORT_FAILED + recordingPath + ": " + failure.getMessage(), failure);
         }
         if (revision != null) {
             revisions.record(recordingId, revision, dirty);

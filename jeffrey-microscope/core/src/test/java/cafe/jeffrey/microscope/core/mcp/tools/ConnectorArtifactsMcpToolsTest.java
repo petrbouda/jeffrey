@@ -595,21 +595,27 @@ class ConnectorArtifactsMcpToolsTest {
             verify(repository, times(1)).streamFile(SESSION_ID, "f-gc");
         }
 
+        /**
+         * There is no in-memory catalogue of fetched files any more, and the landing path is keyed by the
+         * file's name rather than its fileId, so a repeat fetch reads the session again to resolve the
+         * fileId to a name. With the connector gone, that read now fails rather than being answered from
+         * the earlier fetch - the disk copy avoids a second transfer only while the connector still lists
+         * the session.
+         */
         @Test
-        void aFileAlreadyFetchedIsAnsweredWithoutAskingTheConnectorAgain() throws IOException {
+        void aRepeatFetchReadsTheSessionAgainAndSurfacesAConnectorThatIsDown() throws IOException {
             connectorHolds(session(finished("f-log", "service-app.log", ManagedFile.APP_LOG)));
             when(repository.streamFile(SESSION_ID, "f-log")).thenReturn(streamed("service-app.log"));
             complete(tools.fetchFile(REF.encode(), "f-log", RESOURCE_READ));
 
-            // The connector is gone: the session lookup the preflight would make now fails.
+            // The connector is gone: the session lookup the preflight makes now fails.
             when(repository.recordingSession(SESSION_ID)).thenThrow(
                     new JeffreyException(ErrorType.INTERNAL, ErrorCode.CONNECTOR_UNAVAILABLE, "hub is down"));
 
-            JsonNode answer = Json.readTree(complete(tools.fetchFile(REF.encode(), "f-log", RESOURCE_READ)));
+            JeffreyException down = assertThrows(JeffreyException.class,
+                    () -> complete(tools.fetchFile(REF.encode(), "f-log", RESOURCE_READ)));
 
-            assertEquals(unlinkedTarget("service-app.log").toString(), answer.path("path").asText());
-            assertTrue(answer.path("alreadyHere").asBoolean());
-            assertEquals("APP_LOG", answer.path("type").asText());
+            assertTrue(down.getMessage().contains("hub is down"), down.getMessage());
             verify(repository, times(1)).streamFile(SESSION_ID, "f-log");
         }
 

@@ -350,8 +350,9 @@ change; no tool here changes the share either way.
 A large session takes a while to pull. `connector_download` runs the transfer on the call and streams
 `notifications/progress` over the response, then returns `status: DOWNLOADED` with the `recordingId`
 when the transfer lands. A failure is raised as a tool error with its `reason`; a transfer that
-`STARTUP` can no longer reach answers `STARTUP_NOT_RETAINED`. A concurrent `connector_download` of the
-same session joins the one transfer rather than starting a second.
+`STARTUP` can no longer reach answers `STARTUP_NOT_RETAINED`. Two concurrent `connector_download` calls
+for the same session each run their own transfer; duplicate work is fail-safe (it never corrupts a
+recording), so a repeat call is harmless.
 
 The same applies one step later: `recordings_analyzeRecording` on a large recording streams progress
 and returns the `profileId` when the parse finishes. `recordings_status(recordingId)` reports a

@@ -31,6 +31,7 @@ import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.server.McpTraceContext;
 import cafe.jeffrey.microscope.mcp.server.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpRequestContext;
 import io.modelcontextprotocol.modern.server.McpSyncResponse;
@@ -106,6 +107,15 @@ final class McpToolBridge {
         } catch (ToolDispatchException e) {
             // UnknownToolException is a ToolDispatchException; both are caller errors (bad name / argument).
             return errorResult(e.getMessage());
+        } catch (ToolExecutionException e) {
+            // An explicit tool error: its message is the reason the agent reads.
+            return errorResult(e.getMessage());
+        } catch (RuntimeException e) {
+            // Any other failure inside a tool - a validation refusal, a long tool whose work failed - is a
+            // CallToolResult with isError carrying the reason, never a JSON-RPC protocol error. The toolset
+            // wraps the tool's own exception, so surface the cause's message where there is one.
+            Throwable reason = e.getCause() != null ? e.getCause() : e;
+            return errorResult(reason.getMessage() != null ? reason.getMessage() : e.getMessage());
         }
         return switch (outcome) {
             case McpToolResult result -> toCallToolResult(result);

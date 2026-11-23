@@ -1369,9 +1369,13 @@ class ConnectorMcpToolsTest {
                 verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
             }
 
-            /** A transfer already running for the whole session is joined, not questioned. */
+            /**
+             * There is no in-flight registry any more, so a second eliciting call does not know about a
+             * transfer already running: it reads the session itself and asks the window question rather
+             * than joining. The running transfer is the one call that reached the download manager.
+             */
             @Test
-            void doesNotAskWhileAnAttemptIsInFlight() throws Exception {
+            void asksEvenWhileAnotherAttemptIsInFlight() throws Exception {
                 CountDownLatch started = new CountDownLatch(1);
                 CountDownLatch release = new CountDownLatch(1);
                 RecordingsDownloadManager downloads = blockingDownload("rec-whole", started, release);
@@ -1384,7 +1388,7 @@ class ConnectorMcpToolsTest {
 
                     McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING);
 
-                    assertInstanceOf(McpToolResult.class, outcome);
+                    assertInstanceOf(McpToolOutcome.InputRequired.class, outcome);
                 } finally {
                     release.countDown();
                 }
@@ -1652,9 +1656,12 @@ class ConnectorMcpToolsTest {
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
 
-        /** A closed window is settled, so asking twice costs one transfer. */
+        /**
+         * With no retained-download cache, an identical repeat call is not served from the recording the
+         * first made: each closed-window call transfers its own part again.
+         */
         @Test
-        void aClosedWindowIsAnsweredFromTheRecordingItAlreadyMade() {
+        void anIdenticalClosedWindowCallTransfersAgain() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
             resolvesTo(projectWith(fourChunks(), downloads));
@@ -1667,7 +1674,7 @@ class ConnectorMcpToolsTest {
             complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
             complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
 
-            verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
+            verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
 
         /**
@@ -1708,9 +1715,12 @@ class ConnectorMcpToolsTest {
             verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
         }
 
-        /** Only the newest recording is in doubt: a closed window before it is settled on the newest session too. */
+        /**
+         * The same on the newest session: with no retained-download cache, an identical closed-window
+         * call before the newest recording transfers again rather than being served from the first.
+         */
         @Test
-        void aClosedWindowBeforeTheNewestRecordingIsAnsweredFromTheRecordingItAlreadyMade() {
+        void anIdenticalClosedWindowCallBeforeTheNewestRecordingTransfersAgain() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
             resolvesTo(projectWith(newestFourChunks(), downloads));
@@ -1723,7 +1733,7 @@ class ConnectorMcpToolsTest {
             complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
             complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
 
-            verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
+            verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
 
         @Test
@@ -1889,8 +1899,13 @@ class ConnectorMcpToolsTest {
             }
         }
 
+        /**
+         * No tool-level single-flight any more: two concurrent calls for the same ref each run their own
+         * transfer. Both succeed and return a recording - duplicate work is fail-safe (isolated temp dirs,
+         * fresh ids), never corruption.
+         */
         @Test
-        void concurrentCallsWithTheSameFullRefJoinOneTransfer() throws Exception {
+        void concurrentCallsWithTheSameFullRefEachRunTheirOwnTransfer() throws Exception {
             CountDownLatch preflights = new CountDownLatch(2);
             CountDownLatch transferStarted = new CountDownLatch(1);
             CountDownLatch release = new CountDownLatch(1);
@@ -1931,14 +1946,18 @@ class ConnectorMcpToolsTest {
 
                 assertTrue(firstCall.get(2, TimeUnit.SECONDS).contains("rec-new"));
                 assertTrue(secondCall.get(2, TimeUnit.SECONDS).contains("rec-new"));
-                assertEquals(1, transfers.get());
+                assertEquals(2, transfers.get());
             } finally {
                 release.countDown();
             }
         }
 
+        /**
+         * A transfer that finished while another call was still in its preflight is not reused: the second
+         * call runs its own transfer. Both return a recording.
+         */
         @Test
-        void reusesTransferCompletedWhileAnotherCallWasStillInPreflight() throws Exception {
+        void aSecondCallRunsItsOwnTransferEvenAfterTheFirstCompleted() throws Exception {
             CountDownLatch secondPreflight = new CountDownLatch(1);
             CountDownLatch releasePreflight = new CountDownLatch(1);
             CountDownLatch transferStarted = new CountDownLatch(1);
@@ -1977,7 +1996,7 @@ class ConnectorMcpToolsTest {
                 assertTrue(first.get(3, TimeUnit.SECONDS).contains("rec-new"));
                 releasePreflight.countDown();
                 assertTrue(second.get(3, TimeUnit.SECONDS).contains("rec-new"));
-                assertEquals(1, transfers.get());
+                assertEquals(2, transfers.get());
             } finally {
                 releasePreflight.countDown();
             }

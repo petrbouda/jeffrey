@@ -50,6 +50,7 @@ import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;
 import cafe.jeffrey.microscope.core.profile.manager.FlagsData;
@@ -119,6 +120,7 @@ public class JvmMcpTools {
 
     private static final String SECTIONS_TOOL = "jvm_sections";
     private static final String AUTO_ANALYSIS_TOOL = "jvm_autoAnalysis";
+    private static final String AUTO_ANALYSIS_FAILED = "Running Auto Analysis over the recording failed: ";
     private static final String RETRY_WHY = "runs the rule set again, as a new attempt";
     private static final String CONFIGURATION_TOOL = "jvm_configuration";
     private static final String THREADS_TOOL = "jvm_threads";
@@ -307,7 +309,11 @@ public class JvmMcpTools {
         // Runs on this call and streams progress; AutoAnalysisManager is single-flight internally, so a
         // concurrent compute for the same profile joins the one run rather than starting a second.
         call.reportProgress(0.0, 1.0, "Running Auto Analysis over the recording");
-        profileManager.autoAnalysisManager().generate();
+        try {
+            profileManager.autoAnalysisManager().generate();
+        } catch (RuntimeException failure) {
+            throw new ToolExecutionException(AUTO_ANALYSIS_FAILED + failure.getMessage(), failure);
+        }
         return McpToolResult.of(computed(reachable(autoAnalysisSection), link));
     }
 
