@@ -25,7 +25,6 @@ import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import tools.jackson.databind.node.ObjectNode;
 
-import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -35,21 +34,13 @@ import java.util.Set;
  */
 final class McpCallContexts {
 
-    /** A client that declared the tasks extension, so a long call may be handed back as a task. */
-    static final McpCallContext TASKS = new McpCallContext(new McpClientCapabilities(
-            false, Set.of(McpClientCapabilities.TASKS_EXTENSION), Json.createObject()), Map.of(), Optional.empty());
+    /** A client that does not render form elicitations, so a tool that would ask proceeds without asking. */
+    static final McpCallContext NON_ELICITING = new McpCallContext(new McpClientCapabilities(
+            false, Set.of(), Json.createObject()), Map.of(), Optional.empty());
 
-    /** A client that declared something, but not the tasks extension. */
-    static final McpCallContext NO_TASKS = new McpCallContext(new McpClientCapabilities(
-            true, Set.of(McpClientCapabilities.SKILLS_EXTENSION), Json.createObject()), Map.of(), Optional.empty());
-
-    /** A client that renders form elicitations and declared no extension. */
+    /** A client that renders form elicitations. */
     static final McpCallContext ELICITING = new McpCallContext(new McpClientCapabilities(
             true, Set.of(), Json.createObject()), Map.of(), Optional.empty());
-
-    /** A client that renders form elicitations and declared the tasks extension. */
-    static final McpCallContext ELICITING_TASKS = new McpCallContext(new McpClientCapabilities(
-            true, Set.of(McpClientCapabilities.TASKS_EXTENSION), Json.createObject()), Map.of(), Optional.empty());
 
     /**
      * The same client retrying its call with the user's answer to the question asked under {@code key}.
@@ -63,17 +54,10 @@ final class McpCallContexts {
     }
 
     /**
-     * The task wait the tests give a task-capable client, so a deferral is seen in a tenth of a second
-     * rather than after the five the production budget takes. The standard budget stays at 45 s, so a
-     * deferral still proves the client was not held for it.
-     */
-    static final Duration SHORT_TASK_WAIT = Duration.ofMillis(100);
-
-    /**
      * The text of an outcome the tool finished with — what a test reads when it passed a context that
-     * lets the tool neither ask nor defer, such as {@link McpCallContext#RESOURCE_READ}.
+     * lets the tool not ask, such as {@link McpCallContext#RESOURCE_READ}.
      *
-     * @throws IllegalStateException when the tool asked a question or deferred after all
+     * @throws IllegalStateException when the tool asked a question after all
      */
     static String complete(McpToolOutcome outcome) {
         return outcome.requireComplete().text();

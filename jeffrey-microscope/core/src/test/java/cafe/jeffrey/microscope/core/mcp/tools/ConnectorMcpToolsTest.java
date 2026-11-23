@@ -106,9 +106,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING_TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.answering;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
 import static cafe.jeffrey.microscope.mcp.server.McpCallContext.RESOURCE_READ;
 import static org.awaitility.Awaitility.await;

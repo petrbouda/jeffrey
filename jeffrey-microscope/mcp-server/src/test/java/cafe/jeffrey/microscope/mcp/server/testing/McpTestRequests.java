@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.mcp.server.testing;
 
-import cafe.jeffrey.microscope.mcp.server.McpClientCapabilities;
 import cafe.jeffrey.microscope.mcp.server.McpMetaKeys;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -126,13 +125,6 @@ public final class McpTestRequests {
     /** A client that renders form elicitations. */
     public static ObjectNode elicitingClient() {
         return (ObjectNode) MAPPER.readTree("{\"elicitation\":{\"form\":{}}}");
-    }
-
-    /** A client that declared the tasks extension. */
-    public static ObjectNode tasksClient() {
-        ObjectNode capabilities = MAPPER.createObjectNode();
-        capabilities.putObject("extensions").putObject(McpClientCapabilities.TASKS_EXTENSION);
-        return capabilities;
     }
 
     /** The {@code params._meta} a modern client sends. */

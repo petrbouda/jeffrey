@@ -31,6 +31,7 @@ import cafe.jeffrey.microscope.core.mcp.McpDiagnostics;
 import cafe.jeffrey.microscope.core.mcp.McpGuardFilter;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.CompletionsFeature;
+import cafe.jeffrey.microscope.core.mcp.McpInstructions;
 import cafe.jeffrey.microscope.core.mcp.McpCompletions;
 import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
@@ -307,6 +308,16 @@ public class McpConfiguration {
     public McpServerCustomizer<McpServer.Builder> jeffreySkillsCustomizer(McpSkillCatalogue skills) {
         SkillsFeature skillsFeature = new SkillsFeature(skills);
         return builder -> builder.feature(skillsFeature);
+    }
+
+    /**
+     * The agent-facing {@code instructions} {@code server/discover} returns: how to use the advertised
+     * families — start at {@code profiles_list}, the call order, the result conventions, the writers.
+     */
+    @Bean
+    public McpServerCustomizer<McpServer.Builder> jeffreyInstructionsCustomizer(AdvertisedFamilies advertisedFamilies) {
+        String instructions = McpInstructions.text(advertisedFamilies);
+        return builder -> builder.instructions(instructions);
     }
 
     /**

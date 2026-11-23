@@ -30,11 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class McpCallContextTest {
 
-    /** A resource read has no result to put a question or a task into, and no answers to hand over. */
+    /** A resource read has no result to put a question into, and no answers to hand over. */
     @Test
-    void aResourceReadCanNeitherAskNorDefer() {
+    void aResourceReadCannotAsk() {
         assertFalse(McpCallContext.RESOURCE_READ.canElicitForm());
-        assertFalse(McpCallContext.RESOURCE_READ.tasksSupported());
         assertTrue(McpCallContext.RESOURCE_READ.inputResponse("confirm").isEmpty());
     }
 
@@ -68,12 +67,12 @@ class McpCallContextTest {
     @Test
     void reportsWhatTheClientDeclared() {
         McpClientCapabilities declared = McpClientCapabilities.parse(McpJson.readTree(
-                "{\"elicitation\":{},\"extensions\":{\"io.modelcontextprotocol/tasks\":{}}}"));
+                "{\"elicitation\":{},\"extensions\":{\"io.modelcontextprotocol/skills\":{}}}"));
 
         McpCallContext context = new McpCallContext(declared, Map.of(), Optional.empty());
 
         assertTrue(context.canElicitForm());
-        assertTrue(context.tasksSupported());
+        assertTrue(context.client().extensions().contains("io.modelcontextprotocol/skills"));
     }
 
     @Test

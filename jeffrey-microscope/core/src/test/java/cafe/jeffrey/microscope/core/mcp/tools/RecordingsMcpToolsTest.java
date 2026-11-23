@@ -74,10 +74,8 @@ import org.junit.jupiter.api.function.ThrowingSupplier;
 import tools.jackson.databind.JsonNode;
 
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.NO_TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.answering;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
+import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.NON_ELICITING;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
 import static cafe.jeffrey.microscope.mcp.server.McpCallContext.RESOURCE_READ;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -642,7 +640,7 @@ class RecordingsMcpToolsTest {
                 IllegalArgumentException e = assertThrows(
                         IllegalArgumentException.class, () -> complete(tools.delete(RECORDING_ID, RESOURCE_READ)));
 
-                assertTrue(e.getMessage().contains("operations_cancel"), e.getMessage());
+                assertTrue(e.getMessage().contains("recordings_status"), e.getMessage());
                 verify(recordingsManager, never()).deleteRecording(any());
             } finally {
                 release.countDown();
@@ -829,7 +827,7 @@ class RecordingsMcpToolsTest {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
             McpToolOutcome outcome = tools.delete(RECORDING_ID,
-                    answering(TASKS, KEY, McpInputResponse.Action.DECLINE, null));
+                    answering(NON_ELICITING, KEY, McpInputResponse.Action.DECLINE, null));
 
             assertInstanceOf(McpToolResult.class, outcome);
             verify(recordingsManager).deleteRecording(RECORDING_ID);
@@ -839,7 +837,7 @@ class RecordingsMcpToolsTest {
         void aClientThatCannotAnswerIsNotAsked() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
 
-            McpToolOutcome outcome = tools.delete(RECORDING_ID, TASKS);
+            McpToolOutcome outcome = tools.delete(RECORDING_ID, NON_ELICITING);
 
             assertInstanceOf(McpToolResult.class, outcome);
             verify(recordingsManager).deleteRecording(RECORDING_ID);

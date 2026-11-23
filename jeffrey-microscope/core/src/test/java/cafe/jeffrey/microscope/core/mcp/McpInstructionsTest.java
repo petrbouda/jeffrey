@@ -30,7 +30,7 @@ class McpInstructionsTest {
 
     private static final List<String> WRITERS = List.of(
             "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete", "heap_prepare",
-            "heap_oql", "connector_download", "connector_fetchFile", "jvm_autoAnalysis", "operations_cancel",
+            "heap_oql", "connector_download", "connector_fetchFile", "jvm_autoAnalysis",
             "ide_link", "ide_open");
 
     private static String text(Set<String> families) {
@@ -50,44 +50,29 @@ class McpInstructionsTest {
         }
 
         @Test
-        void namesAllElevenWriters() {
-            assertTrue(text.contains("Eleven tools are not read-only"), text);
+        void namesAllTenWriters() {
+            assertTrue(text.contains("Ten tools are not read-only"), text);
             for (String writer : WRITERS) {
                 assertTrue(text.contains(writer), writer + " is missing: " + text);
             }
-            assertTrue(text.contains("wait up to 45 s, then answer with an operationId"), text);
+            assertTrue(text.contains("run on the call and stream notifications/progress over the response's "
+                    + "SSE stream"), text);
         }
 
-        /**
-         * One text for every client, so it names both paths: the operationId a client without the
-         * tasks extension polls, and the task one that declared it is handed after the short wait.
-         */
+        /** The long work streams; it is never polled through an operationId or deferred to a task. */
         @Test
-        void describesTheTaskPathBesideTheOperationId() {
-            assertTrue(text.contains("A client that declared the MCP tasks extension gets a standard task "
-                    + "after about 5 s instead"), text);
-            assertTrue(text.contains("whose taskId is that operationId"), text);
-            assertTrue(text.contains("follow it with tasks/get and stop it with tasks/cancel"), text);
-        }
-
-        /**
-         * heap_prepare never waits, on either path, and which handle comes back is the client's
-         * declaration, not the server's choice: the note has to say both.
-         */
-        @Test
-        void saysHeapPrepareHandsBackAtOnceTheHandleTheClientsDeclarationPicks() {
-            assertTrue(text.contains("heap_prepare does not wait: a client that declared the tasks extension "
-                    + "gets its task at once, any other client its operationId"), text);
-            assertFalse(text.contains("its operationId, or its task, at once"), text);
-            assertFalse(text.contains("(heap_prepare answers with one at once)"), text);
+        void namesNoOperationIdOrTaskPath() {
+            assertFalse(text.contains("operationId"), text);
+            assertFalse(text.contains("tasks extension"), text);
+            assertFalse(text.contains("tasks/get"), text);
+            assertFalse(text.contains("operations_"), text);
         }
 
         @Test
-        void letsARunningImportOrTransferBeFollowedAsATask() {
-            assertTrue(text.contains("answered with a running operationId or a task is followed, not "
-                    + "called again"), text);
-            assertTrue(text.contains("joined by calling connector_download with the arguments its followUp names, "
-                    + "or by following its task"), text);
+        void saysARunningTransferIsJoinedNotCalledAgain() {
+            assertTrue(text.contains("streams progress and returns the profile when it finishes"), text);
+            assertTrue(text.contains("joined by calling connector_download with the arguments its followUp names"),
+                    text);
             assertTrue(text.contains("a window named by its window argument"), text);
             assertFalse(text.contains("startTime"), text);
         }
@@ -127,8 +112,8 @@ class McpInstructionsTest {
         /** The two per-tool hints are in every tool's _meta; the text says what they mean, once. */
         @Test
         void explainsTheCostAndRequiresHints() {
-            assertTrue(text.contains("jeffrey/cost is CHEAP, MODERATE, EXPENSIVE, or SLOW for one that may "
-                    + "finish its work in the background"), text);
+            assertTrue(text.contains("jeffrey/cost is CHEAP, MODERATE, EXPENSIVE, or SLOW for one that runs "
+                    + "on the call and streams progress until it finishes"), text);
             assertTrue(text.contains("jeffrey/requires, when present, lists what must already be in place, "
                     + "such as TRACES or HEAP_DUMP_INDEXED."), text);
         }
@@ -204,7 +189,7 @@ class McpInstructionsTest {
         /** The requirement examples come from the advertised families only. */
         @Test
         void namesTheRequirementsOfTheAdvertisedFamilies() {
-            String text = text(Set.of("profiles", "heap", "operations"));
+            String text = text(Set.of("profiles", "heap"));
 
             assertTrue(text.contains("jeffrey/cost is CHEAP, MODERATE, EXPENSIVE, or SLOW"), text);
             assertTrue(text.contains("jeffrey/requires, when present, lists what must already be in place, "
@@ -223,11 +208,11 @@ class McpInstructionsTest {
 
         @Test
         void countsOnlyTheWritersAmongTheAdvertisedFamilies() {
-            String text = text(Set.of("profiles", "recordings", "heap", "operations"));
+            String text = text(Set.of("profiles", "recordings", "heap"));
 
-            assertTrue(text.contains("Six tools are not read-only"), text);
+            assertTrue(text.contains("Five tools are not read-only"), text);
             for (String writer : List.of("recordings_analyzeFile", "recordings_analyzeRecording",
-                    "recordings_delete", "heap_prepare", "heap_oql", "operations_cancel")) {
+                    "recordings_delete", "heap_prepare", "heap_oql")) {
                 assertTrue(text.contains(writer), writer + " is missing: " + text);
             }
             for (String absent : List.of("connector_download", "connector_fetchFile", "jvm_autoAnalysis", "ide_link")) {
@@ -238,21 +223,20 @@ class McpInstructionsTest {
 
         @Test
         void speaksOfASingleSlowWriterInTheSingular() {
-            String text = text(Set.of("profiles", "jvm", "operations"));
+            String text = text(Set.of("profiles", "jvm"));
 
-            assertTrue(text.contains("Two tools are not read-only"), text);
-            assertTrue(text.contains("The one that can take a while - jvm_autoAnalysis with compute - "
-                    + "waits up to 45 s, then answers with an operationId"), text);
-            assertTrue(text.contains("A client that declared the MCP tasks extension gets a standard task "
-                    + "after about 5 s instead"), text);
+            assertTrue(text.contains("One tool is not read-only"), text);
+            assertTrue(text.contains("The one that can take a while - jvm_autoAnalysis with compute - runs on "
+                    + "the call and streams notifications/progress over the response's SSE stream"), text);
+            assertFalse(text.contains("operationId"), text);
             assertFalse(text.contains("heap_prepare"), text);
         }
 
         @Test
         void saysTheWritersAnswerStraightAwayWhenNoneIsSlow() {
-            String text = text(Set.of("profiles", "ide", "operations"));
+            String text = text(Set.of("profiles", "ide"));
 
-            assertTrue(text.contains("Three tools are not read-only"), text);
+            assertTrue(text.contains("Two tools are not read-only"), text);
             assertTrue(text.contains("They all answer straight away"), text);
             assertFalse(text.contains("45 s"), text);
             assertFalse(text.contains("tasks extension"), text);
@@ -260,10 +244,11 @@ class McpInstructionsTest {
 
         @Test
         void keepsARuleOnlyWhenEveryFamilyItNamesIsAdvertised() {
-            String withoutProfiles = text(Set.of("recordings", "operations"));
-            String withProfiles = text(Set.of("profiles", "recordings", "operations"));
+            String withoutProfiles = text(Set.of("recordings"));
+            String withProfiles = text(Set.of("profiles", "recordings"));
 
-            assertTrue(withoutProfiles.contains("is followed, not called again"), withoutProfiles);
+            assertTrue(withoutProfiles.contains("streams progress and returns the profile when it finishes"),
+                    withoutProfiles);
             assertFalse(withoutProfiles.contains("profiles_list"), withoutProfiles);
             assertTrue(withProfiles.contains("After a recordings_delete, profiles_list"), withProfiles);
         }
@@ -278,10 +263,10 @@ class McpInstructionsTest {
 
         @Test
         void exceptsOnlyAdvertisedFamiliesFromTheProfileIdRule() {
-            String text = text(Set.of("profiles", "recordings", "heap", "operations"));
+            String text = text(Set.of("profiles", "recordings", "heap"));
 
-            assertTrue(text.contains("Every tool except profiles_list and the recordings_ and operations_ "
-                    + "families takes a required profileId"), text);
+            assertTrue(text.contains("Every tool except profiles_list and the recordings_ family "
+                    + "takes a required profileId"), text);
         }
     }
 }

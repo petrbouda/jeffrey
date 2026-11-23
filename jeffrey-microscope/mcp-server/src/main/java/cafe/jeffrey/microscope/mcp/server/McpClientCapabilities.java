@@ -36,7 +36,6 @@ import java.util.Set;
  */
 public record McpClientCapabilities(boolean elicitationForm, Set<String> extensions, ObjectNode raw) {
 
-    public static final String TASKS_EXTENSION = "io.modelcontextprotocol/tasks";
     public static final String SKILLS_EXTENSION = "io.modelcontextprotocol/skills";
 
     /** A client that declared nothing. */

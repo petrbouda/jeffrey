@@ -109,7 +109,6 @@ class McpRequestContextTest {
             McpCallContext context = request("tools/call", null).callContext();
 
             assertTrue(context.canElicitForm());
-            assertFalse(context.tasksSupported());
             assertTrue(context.inputResponses().isEmpty());
         }
 

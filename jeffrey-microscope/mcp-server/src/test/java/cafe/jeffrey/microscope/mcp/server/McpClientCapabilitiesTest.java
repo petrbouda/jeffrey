@@ -60,11 +60,11 @@ class McpClientCapabilitiesTest {
 
         @Test
         void readsTheDeclaredExtensionIds() {
-            McpClientCapabilities capabilities = parse("{\"extensions\":{\"" + McpClientCapabilities.TASKS_EXTENSION
-                    + "\":{},\"" + McpClientCapabilities.SKILLS_EXTENSION + "\":{}}}");
+            McpClientCapabilities capabilities = parse("{\"extensions\":{\"" + McpClientCapabilities.SKILLS_EXTENSION
+                    + "\":{},\"io.modelcontextprotocol/other\":{}}}");
 
             assertEquals(
-                    Set.of("io.modelcontextprotocol/tasks", "io.modelcontextprotocol/skills"),
+                    Set.of("io.modelcontextprotocol/skills", "io.modelcontextprotocol/other"),
                     capabilities.extensions());
         }
 

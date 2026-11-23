@@ -46,8 +46,8 @@ public enum McpToolCost {
     EXPENSIVE,
 
     /**
-     * Can hand back an operation or a task instead of the answer: the call may outlast its wait, and
-     * the work then continues in the background under an {@code operationId}.
+     * Runs on the call and may take a while: it streams {@code notifications/progress} over the
+     * response and returns its result when the work finishes.
      */
     SLOW
 }

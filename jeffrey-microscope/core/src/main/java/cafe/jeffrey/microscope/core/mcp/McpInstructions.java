@@ -67,7 +67,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TRACES;
  * that is withheld would send the reader after tools that do not exist, and the writer count is the
  * count of the writers that are actually served.
  */
-final class McpInstructions {
+public final class McpInstructions {
 
     private static final String PARAGRAPH_BREAK = "\n\n";
     private static final String LIST_SEPARATOR = ", ";
@@ -186,7 +186,7 @@ final class McpInstructions {
                     + "minutes, the startup, latest or peak chunk, the minutes before or around a moment) or "
                     + "the span its started and duration columns allow, and recordings_analyzeRecording turns "
                     + "the recordingId into a profile; a transfer still running is joined by calling "
-                    + "connector_download with the arguments its followUp names, or by following its task."),
+                    + "connector_download with the arguments its followUp names."),
             new OrderRule(Set.of(IDE), "ide_resolve comes before a finding names a file or a line - the "
                     + "exports carry call paths, never file paths; ide_windows settles a window ide_resolve "
                     + "calls ambiguous and ide_link pins it; ide_open is for when the reader asked to be "
@@ -311,7 +311,7 @@ final class McpInstructions {
     /**
      * The instructions for an installation that advertises these families.
      */
-    static String text(AdvertisedFamilies advertised) {
+    public static String text(AdvertisedFamilies advertised) {
         List<String> paragraphs = new ArrayList<>();
         paragraphs.add(INTRODUCTION);
         if (advertised.has(PROFILES)) {

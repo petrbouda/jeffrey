@@ -71,11 +71,6 @@ public record McpCallContext(
         return client.elicitationForm();
     }
 
-    /** Whether the tool may answer with a task instead of waiting. */
-    public boolean tasksSupported() {
-        return client.extensions().contains(McpClientCapabilities.TASKS_EXTENSION);
-    }
-
     /** The answer to the question asked under this key, if the client sent one. */
     public Optional<McpInputResponse> inputResponse(String key) {
         return Optional.ofNullable(inputResponses.get(key));

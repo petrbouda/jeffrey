@@ -112,40 +112,6 @@ class ExternalMcpPropertiesTest {
     }
 
     /**
-     * A writer's long work is followed through operations_status and stopped through
-     * operations_cancel; an explicit list that serves a writer without them hands out operationIds
-     * nobody can poll.
-     */
-    @Nested
-    class OperationsRule {
-
-        @ParameterizedTest
-        @ValueSource(strings = {"recordings", "heap", "connector", "ide", "jvm"})
-        void refusesAWriterFamilyWithoutOperations(String writer) {
-            IllegalArgumentException failure =
-                    assertThrows(IllegalArgumentException.class, () -> withFamilies(Set.of(writer)));
-
-            assertTrue(failure.getMessage().contains("operations"), failure.getMessage());
-            assertTrue(failure.getMessage().contains(writer), failure.getMessage());
-        }
-
-        @Test
-        void acceptsAWriterFamilyThatKeepsOperations() {
-            ExternalMcpProperties properties = withFamilies(Set.of(HEAP, "operations"));
-
-            assertTrue(properties.advertises(HEAP));
-            assertTrue(properties.advertises("operations"));
-        }
-
-        @Test
-        void acceptsReadOnlyFamiliesWithoutOperations() {
-            ExternalMcpProperties properties = withFamilies(Set.of(JFR, "flamegraph"));
-
-            assertFalse(properties.advertises("operations"));
-        }
-    }
-
-    /**
      * A connector download is a recording nobody can analyse unless recordings_analyzeRecording is served
      * too, so an explicit list with connector has to keep recordings.
      */

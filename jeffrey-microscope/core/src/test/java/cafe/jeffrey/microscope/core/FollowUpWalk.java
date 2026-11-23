@@ -45,8 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 final class FollowUpWalk {
 
-    /** Calls a walk never makes: one removes what the walk reads, the other stops what it waits on. */
-    private static final Set<String> NOT_FOLLOWED = Set.of("recordings_delete", "operations_cancel");
+    /** A call the walk never makes: it removes what the walk reads. */
+    private static final Set<String> NOT_FOLLOWED = Set.of("recordings_delete");
 
     /**
      * Well above what any walk takes today -- the testapp walk over four profiles is the longest, at about

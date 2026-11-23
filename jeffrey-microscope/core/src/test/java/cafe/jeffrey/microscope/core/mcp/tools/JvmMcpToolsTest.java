@@ -1489,7 +1489,6 @@ class JvmMcpToolsTest {
             assertEquals(0, out.get("dashboard").get("findings").size());
             assertEquals("{\"CRITICAL\":0,\"WARNING\":0,\"INFO\":0,\"OK\":0}",
                     out.get("dashboard").get("findingCounts").toString());
-            assertTrue(out.get("operationId").isNull());
             verify(autoAnalysisManager, never()).generate();
         }
 
