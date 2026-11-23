@@ -24,12 +24,26 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
+import cafe.jeffrey.microscope.core.mcp.JeffreyPromptRepository;
+import cafe.jeffrey.microscope.core.mcp.JeffreyResourceRepository;
+import cafe.jeffrey.microscope.core.mcp.JeffreyToolRepository;
 import cafe.jeffrey.microscope.core.mcp.McpDiagnostics;
+import cafe.jeffrey.microscope.core.mcp.McpGuardFilter;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
+import cafe.jeffrey.microscope.core.mcp.McpResources;
 import cafe.jeffrey.microscope.core.mcp.McpSkillCatalogue;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
+import cafe.jeffrey.microscope.core.mcp.SkillsFeature;
+import io.modelcontextprotocol.modern.server.McpServer;
+import io.modelcontextprotocol.modern.server.feature.McpSyncPromptRepository;
+import io.modelcontextprotocol.modern.server.feature.McpSyncResourceRepository;
+import io.modelcontextprotocol.modern.server.feature.McpSyncToolRepository;
+import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
+import org.springframework.ai.mcp.customizer.McpServerCustomizer;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.core.Ordered;
 import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
@@ -322,5 +336,71 @@ public class McpConfiguration {
     @Bean
     public McpPromptRegistry mcpPromptRegistry(McpSkillCatalogue skills) {
         return new McpPromptRegistry(skills);
+    }
+
+    // --- Spring AI modern MCP server (2026-07-28) wiring ---
+    // The programmatic bridge: Jeffrey's hand-written toolset, skills, resources, prompts and guard
+    // served through the SDK's SPI, so the modern server owns /api/mcp with no feature loss.
+
+    /** Where the endpoint lives; must match spring.ai.mcp.server.modern.mcp-endpoint. */
+    private static final String MCP_ENDPOINT_PATH = "/api/mcp";
+
+    /**
+     * Routes the modern server's tools/list and tools/call through Jeffrey's {@link McpToolsetAssembler}
+     * instead of the SDK's default in-memory tool repository (which is {@code @ConditionalOnMissingBean}).
+     */
+    @Bean
+    public McpSyncToolRepository jeffreyToolRepository(McpToolsetAssembler assembler) {
+        return new JeffreyToolRepository(assembler);
+    }
+
+    /** Registers the {@code skills/*} extension as a custom {@code McpFeature} on the modern server. */
+    @Bean
+    public McpServerCustomizer<McpServer.Builder> jeffreySkillsCustomizer(McpSkillCatalogue skills) {
+        SkillsFeature skillsFeature = new SkillsFeature(skills);
+        return builder -> builder.feature(skillsFeature);
+    }
+
+    /**
+     * Jeffrey's host/origin/bearer guard is the single authority, so the SDK transport's own header
+     * validator is {@code NOOP}.
+     */
+    @Bean
+    public ServerHttpHeaderValidator mcpHeaderValidator() {
+        return ServerHttpHeaderValidator.NOOP;
+    }
+
+    /** Runs {@link McpGuardFilter} (host/origin/bearer + the enabled toggle) in front of the endpoint. */
+    @Bean
+    public FilterRegistrationBean<McpGuardFilter> mcpGuardFilterRegistration(
+            ExternalMcpProperties properties, McpRequestGuard guard) {
+        FilterRegistrationBean<McpGuardFilter> registration =
+                new FilterRegistrationBean<>(new McpGuardFilter(properties, guard));
+        registration.addUrlPatterns(MCP_ENDPOINT_PATH);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    /**
+     * The {@code jeffrey://} resources and templates, reading through the toolset. Diagnostics are not
+     * wired yet (the tool-metrics feed moved with the old controller), so the {@code jeffrey://diagnostics}
+     * resource is omitted until the metrics are re-collected in the bridge.
+     */
+    @Bean
+    public McpResources mcpResources(
+            McpToolsetAssembler assembler, ExternalMcpProperties properties, McpSkillCatalogue skills) {
+        return new McpResources(assembler.toolset(), assembler::documents, properties, null, skills.servesAny());
+    }
+
+    /** Serves resources/list, resources/templates/list and resources/read, including {@code skill://} files. */
+    @Bean
+    public McpSyncResourceRepository jeffreyResourceRepository(McpResources resources, McpSkillCatalogue skills) {
+        return new JeffreyResourceRepository(resources, skills);
+    }
+
+    /** Serves prompts/list and prompts/get — the skill bodies. */
+    @Bean
+    public McpSyncPromptRepository jeffreyPromptRepository(McpPromptRegistry prompts) {
+        return new JeffreyPromptRepository(prompts);
     }
 }

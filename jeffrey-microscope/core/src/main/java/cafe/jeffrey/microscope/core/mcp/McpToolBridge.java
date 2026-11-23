@@ -38,6 +38,7 @@ import tools.jackson.databind.JsonNode;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Maps between Jeffrey's tool SPI ({@code mcp-protocol}) and the Spring AI / MCP SDK's modern server
@@ -146,7 +147,9 @@ final class McpToolBridge {
         if (caps == null) {
             return McpClientCapabilities.NONE;
         }
-        return new McpClientCapabilities(caps.supportsElicitationForm(), caps.extensions().keySet(), Json.createObject());
+        // extensions() is null when the client declared none.
+        Set<String> extensions = caps.extensions() == null ? Set.of() : caps.extensions().keySet();
+        return new McpClientCapabilities(caps.supportsElicitationForm(), extensions, Json.createObject());
     }
 
     private static Map<String, McpInputResponse> inputResponses(Map<String, Object> responses) {
