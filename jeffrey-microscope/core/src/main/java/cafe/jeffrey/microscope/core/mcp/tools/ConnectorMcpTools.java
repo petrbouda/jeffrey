@@ -675,7 +675,7 @@ public class ConnectorMcpTools {
                     chosen.window().resolve(chosen.given(), () -> subject), retry, call, read, base,
                     Optional.of(subject));
             case WindowAnswer.NotAnswered notAnswered -> answer(key, null, DownloadFacts.notDownloaded(
-                    notAnswered.reason(), preflight), null, base);
+                    notAnswered.reason(), preflight), base);
             case WindowAnswer.Incomplete incomplete -> windowQuestion.ask(subject, incomplete.problem());
         };
     }
@@ -701,7 +701,7 @@ public class ConnectorMcpTools {
                     .<McpToolOutcome>map(subject -> windowQuestion.ask(subject, notRetained.reason()))
                     .orElseGet(() -> answer(DownloadKey.of(ref, null, null, null), notRetained.chosen(),
                             DownloadFacts.notRetained(notRetained.reason(), read.orElseThrow().preflight()),
-                            null, base));
+                            base));
             case WindowResolution.Refused refused -> askAgain
                     .<McpToolOutcome>map(subject -> windowQuestion.ask(subject, refused.problem()))
                     .orElseThrow(() -> new IllegalArgumentException(refused.problem()));
@@ -781,32 +781,9 @@ public class ConnectorMcpTools {
      */
     private McpToolOutcome downloadReportingRetained(DownloadKey key, ChosenWindow chosen, Boolean retry,
                                                      McpCallContext call, Optional<SessionRead> read, String base) {
-        Optional<OperationHandle<String>> before = downloads.current(key);
-        String priorId = before.map(OperationHandle::operationId).orElse(null);
-        boolean priorTerminal = before.map(handle -> handle.snapshot().state().terminal()).orElse(false);
-        try {
-            return download(key, chosen, retry, call, read, base);
-        } catch (RuntimeException failure) {
-            Optional<OperationHandle<String>> attempt = downloads.current(key);
-            if (attempt.isPresent()) {
-                OperationHandle<String> current = attempt.get();
-                OperationState state = current.snapshot().state();
-                boolean reportsThisAttempt = !Boolean.TRUE.equals(retry) || !priorTerminal
-                        || !current.operationId().equals(priorId);
-                if (reportsThisAttempt && (state == OperationState.FAILED || state == OperationState.CANCELLED)) {
-                    String operationId = registerDownload(key, chosen, current, null, base);
-                    return answer(key, chosen, DownloadFacts.ended(state, failureMessage(current)), operationId, base);
-                }
-            }
-            // A rejected retry preflight did not create an attempt. Its own error must not be
-            // replaced by the previous attempt's retained outcome.
-            throw failure;
-        }
-    }
-
-    private static String failureMessage(OperationHandle<String> attempt) {
-        Throwable failure = attempt.snapshot().failure();
-        return failure == null ? null : failure.getMessage();
+        // The transfer runs on this call, so a failure is this call's exception; there is no retained
+        // operation to turn a prior attempt's failure into a status.
+        return download(key, chosen, retry, call, read, base);
     }
 
     /**
@@ -839,7 +816,7 @@ public class ConnectorMcpTools {
         // A complete whole-session copy already on disk is handed back without re-downloading.
         if (key.wholeSession() && !mayHaveChanged
                 && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
-            return answer(key, chosen, DownloadFacts.here(alreadyHere.get().recordingId()), null, base);
+            return answer(key, chosen, DownloadFacts.here(alreadyHere.get().recordingId()), base);
         }
 
         LOG.info("Downloading a connector session over MCP: project_id={} session_id={} window={} file_ids={}",
@@ -851,7 +828,7 @@ public class ConnectorMcpTools {
         // dir and mints a fresh recording id, so concurrent transfers cannot collide on disk.
         call.reportProgress(0.0, transferBytes, "Downloading the connector session");
         String recordingId = key.transfer(project.recordingsDownloadManager());
-        return answer(key, chosen, landing.landed(recordingId), null, base);
+        return answer(key, chosen, landing.landed(recordingId), base);
     }
 
     /**
@@ -862,35 +839,13 @@ public class ConnectorMcpTools {
      *               without a recording
      * @return the operation id
      */
-    private String registerDownload(DownloadKey key, ChosenWindow chosen, OperationHandle<String> operation,
-                                    Function<String, DownloadFacts> landed, String base) {
-        String operationId = operation.operationId();
-        Function<String, McpToolResult> finished = landed == null
-                ? recordingId -> answer(key, chosen, DownloadFacts.here(recordingId), operationId, base)
-                : recordingId -> answer(key, chosen, landed.apply(recordingId), operationId, base);
-        return operations.register(OperationKind.CONNECTOR_DOWNLOAD, operation, downloadResult(key), finished,
-                key.retryCall());
-    }
-
-    private static Function<String, DownloadResult> downloadResult(DownloadKey key) {
-        String sessionRef = key.ref().encode();
-        return recordingId -> new DownloadResult(recordingId, sessionRef);
-    }
-
-    /** What a finished download produced, as operations_status reports it. */
-    private record DownloadResult(String recordingId, String sessionRef) {
-    }
-
     /**
-     * The one answer every state of a download gives: the facts, the part asked for, the transfer
-     * behind them, what to call next and the page for the user.
+     * The one answer every state of a download gives: the facts, the part asked for, what to call next
+     * and the page for the user.
      *
-     * @param operationId the transfer this answer reports, or null when there is none
-     * @param base        the link base, read on the request thread; see {@link UiLinks#base()}
+     * @param base the link base, read on the request thread; see {@link UiLinks#base()}
      */
-    private McpToolResult answer(DownloadKey key, ChosenWindow chosen, DownloadFacts facts,
-                                 String operationId, String base) {
-        McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+    private McpToolResult answer(DownloadKey key, ChosenWindow chosen, DownloadFacts facts, String base) {
         LandedBundle bundle = LandedBundle.of(recordingsManager, facts.recordingId());
         facts = facts.withProfileId(bundle.profileId(facts.recordingId()));
         CoveredSpan covered = CoveredSpan.of(recordingsManager, facts);
@@ -904,11 +859,11 @@ public class ConnectorMcpTools {
                 key.fileIds() == null ? List.of() : key.fileIds(), facts.recordingId(), facts.profileId(),
                 bundle.bundleId(), bundle.items(),
                 facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), covered.startEpochMs(),
-                covered.endEpochMs(), chosen, operationId, operation, followUp(key, facts, bundle, operationId),
+                covered.endEpochMs(), chosen, followUp(key, facts, bundle),
                 uiLink));
     }
 
-    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, LandedBundle bundle, String operationId) {
+    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, LandedBundle bundle) {
         NextSteps.Builder next = NextSteps.builder(advertised);
         return switch (facts.status()) {
             case DOWNLOADED -> next
@@ -920,7 +875,6 @@ public class ConnectorMcpTools {
                             () -> HEAP_ITEMS_GUIDANCE.formatted(String.join(", ", bundle.heapDumpIds())))
                     .followUp();
             case RUNNING -> next
-                    .next(ConnectorCalls.poll(operationId))
                     .next(key.sameCall(JOIN_WHY))
                     .followUp();
             case NOT_DOWNLOADED -> next

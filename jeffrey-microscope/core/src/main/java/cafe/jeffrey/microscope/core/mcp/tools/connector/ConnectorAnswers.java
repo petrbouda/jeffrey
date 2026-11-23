@@ -18,7 +18,6 @@
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CatalogueStatus;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
@@ -322,12 +321,6 @@ public final class ConnectorAnswers {
             @McpDescription("What a predefined window picked and why; null when the call named the part itself or "
                     + "took the whole session without a window")
             ChosenWindow chosen,
-            @McpNullable
-            @McpDescription("The transfer behind this answer, for operations_status and operations_cancel")
-            String operationId,
-            @McpNullable
-            @McpDescription("That transfer as operations_status reports it")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription("The profile once analysed, else the recordings page once downloaded, else the connector "
                     + "browser, in the Microscope UI, for the user")
@@ -381,12 +374,6 @@ public final class ConnectorAnswers {
             @McpDescription("That profile's recording start, as UTC epoch milliseconds: an uptime in a GC log "
                     + "is this instant plus the uptime. Null without a profile or a start")
             Long profilingStartedAtEpochMs,
-            @McpNullable
-            @McpDescription("The transfer behind this answer, for operations_status and operations_cancel")
-            String operationId,
-            @McpNullable
-            @McpDescription("That transfer as operations_status reports it")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription("The connector's page in the Microscope UI, for the user")
             String uiLink) {

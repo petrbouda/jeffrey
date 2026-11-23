@@ -349,7 +349,7 @@ public class ConnectorArtifactsMcpTools {
         // and the path is still good.
         Optional<RetainedFetch> retained = retainedLocally(key);
         if (retained.isPresent()) {
-            return answer(key, retained.get().facts(), null, uiLink);
+            return answer(key, retained.get().facts(), uiLink);
         }
 
         Preflight preflight = preflight(ref, fileId);
@@ -359,7 +359,7 @@ public class ConnectorArtifactsMcpTools {
 
         Optional<Path> here = alreadyHere(ref, file.name(), local, target);
         if (here.isPresent()) {
-            return answer(key, fetched(file, here.get(), true, local), null, uiLink);
+            return answer(key, fetched(file, here.get(), true, local), uiLink);
         }
 
         LOG.info("Fetching a connector artifact over MCP: project_id={} session_id={} file_id={} name={}",
@@ -368,7 +368,7 @@ public class ConnectorArtifactsMcpTools {
         // so a concurrent fetch of the same file cannot leave a half-written target.
         call.reportProgress(0.0, file.size(), "Fetching the connector artifact");
         Path fetchedPath = transfer(preflight.project(), ref, fileId, target);
-        return answer(key, fetched(file, fetchedPath, false, local), null, uiLink);
+        return answer(key, fetched(file, fetchedPath, false, local), uiLink);
     }
 
     /**
@@ -457,39 +457,21 @@ public class ConnectorArtifactsMcpTools {
      *
      * @return the operation id
      */
-    private String register(ConnectorFileRef key, OperationHandle<Path> operation, Function<Path, FetchFacts> landed,
-                            String uiLink) {
-        String operationId = operation.operationId();
-        return operations.register(OperationKind.CONNECTOR_FETCH, operation, fetchResult(key),
-                path -> answer(key, landed.apply(path), operationId, uiLink), key.retryCall());
-    }
-
-    private static Function<Path, FetchResult> fetchResult(ConnectorFileRef key) {
-        String sessionRef = key.session().encode();
-        return path -> new FetchResult(path.toString(), sessionRef, key.fileId());
-    }
-
-    /** What a finished fetch produced, as operations_status reports it. */
-    private record FetchResult(String path, String sessionRef, String fileId) {
-    }
-
     /**
-     * The one answer every state of a fetch gives: the file, the transfer behind it, what to do with
-     * it next and the page for the user.
+     * The one answer every state of a fetch gives: the file, what to do with it next and the page for
+     * the user.
      */
-    private McpToolResult answer(ConnectorFileRef key, FetchFacts facts, String operationId, String uiLink) {
-        McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+    private McpToolResult answer(ConnectorFileRef key, FetchFacts facts, String uiLink) {
         return McpToolResult.of(new Fetch(facts.status(), key.session().encode(), key.fileId(), facts.filename(),
                 facts.type(), facts.sizeBytes(), facts.path(), facts.alreadyHere(), facts.recordingId(),
-                facts.profileId(), facts.profilingStartedAtEpochMs(), operationId, operation,
-                followUp(key, facts, operationId), uiLink));
+                facts.profileId(), facts.profilingStartedAtEpochMs(),
+                followUp(key, facts), uiLink));
     }
 
-    private McpFollowUp followUp(ConnectorFileRef key, FetchFacts facts, String operationId) {
+    private McpFollowUp followUp(ConnectorFileRef key, FetchFacts facts) {
         NextSteps.Builder next = NextSteps.builder(advertised);
         if (facts.status() == FetchStatus.RUNNING) {
-            return next.next(ConnectorCalls.poll(operationId))
-                    .next(key.sameCall(JOIN_WHY))
+            return next.next(key.sameCall(JOIN_WHY))
                     .followUp();
         }
         boolean heapDump = HEAP_DUMPS.contains(facts.type());

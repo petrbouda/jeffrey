@@ -303,7 +303,7 @@ public class JvmMcpTools {
         String link = viewLink(autoAnalysisSection.view());
         AutoAnalysisStatus status = autoAnalysisSection.status();
         if (status == AutoAnalysisStatus.COMPUTED) {
-            return McpToolResult.of(computed(reachable(autoAnalysisSection), null, link));
+            return McpToolResult.of(computed(reachable(autoAnalysisSection), link));
         }
         if (status == AutoAnalysisStatus.CANNOT_COMPUTE || !Boolean.TRUE.equals(compute)) {
             return McpToolResult.of(notComputed(status, link));
@@ -312,7 +312,7 @@ public class JvmMcpTools {
         // concurrent compute for the same profile joins the one run rather than starting a second.
         call.reportProgress(0.0, 1.0, "Running Auto Analysis over the recording");
         profileManager.autoAnalysisManager().generate();
-        return McpToolResult.of(computed(reachable(autoAnalysisSection), null, link));
+        return McpToolResult.of(computed(reachable(autoAnalysisSection), link));
     }
 
     @Tool(description = "Returns one of the garbage-collection pages beneath the jvm_gc overview: "
@@ -830,13 +830,11 @@ public class JvmMcpTools {
         return section.reachable(section.render(), advertised::servesTool);
     }
 
-    private AutoAnalysisSection.Answer computed(
-            AutoAnalysisDashboard dashboard, McpOperationRegistry.Snapshot operation, String link) {
+    private AutoAnalysisSection.Answer computed(AutoAnalysisDashboard dashboard, String link) {
         NextSteps.Builder next = NextSteps.builder(advertised);
         autoAnalysisSection.followUp(next, dashboard);
         return new AutoAnalysisSection.Answer(AutoAnalysisStatus.COMPUTED, null, profileId(),
-                autoAnalysisSection.id(), autoAnalysisSection.title(), dashboard,
-                operation == null ? null : operation.operationId(), operation, next.followUp(), link);
+                autoAnalysisSection.id(), autoAnalysisSection.title(), dashboard, next.followUp(), link);
     }
 
     private AutoAnalysisSection.Answer notComputed(AutoAnalysisStatus status, String link) {
@@ -846,17 +844,7 @@ public class JvmMcpTools {
                 .next(onProfile(SECTIONS_TOOL).why(OTHER_SECTIONS_WHY))
                 .followUp();
         return new AutoAnalysisSection.Answer(status, computable ? NOT_COMPUTED : CANNOT_COMPUTE, profileId(),
-                autoAnalysisSection.id(), autoAnalysisSection.title(), null, null, null, followUp, link);
-    }
-
-    private AutoAnalysisSection.Answer computing(McpOperationRegistry.Snapshot operation, String link) {
-        McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(NextCalls.to(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
-                        .why(POLL_WHY))
-                .followUp();
-        return new AutoAnalysisSection.Answer(AutoAnalysisStatus.NOT_COMPUTED, COMPUTING, profileId(),
-                autoAnalysisSection.id(), autoAnalysisSection.title(), null, operation.operationId(), operation,
-                followUp, link);
+                autoAnalysisSection.id(), autoAnalysisSection.title(), null, followUp, link);
     }
 
     private McpFollowUp exceptionSitesFollowUp(ExceptionSites.Selection selection, int limit, McpCursor.Next next) {

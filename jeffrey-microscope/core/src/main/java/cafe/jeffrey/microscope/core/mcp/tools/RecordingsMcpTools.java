@@ -284,7 +284,7 @@ public class RecordingsMcpTools {
         // Import then analyse, both on this call, streaming progress. The analysis is single-flight per
         // recording in the manager; the import reuse check above handles the already-imported case.
         String profileId = runAnalysis(recordingId, name, call);
-        return McpToolResult.of(analysis(profileOf(recordingId, profileId, base), null, base));
+        return McpToolResult.of(analysis(profileOf(recordingId, profileId, base), base));
     }
 
     /**
@@ -330,7 +330,7 @@ public class RecordingsMcpTools {
             LOG.info("Returning the profile of a file already stored over MCP: recording_id={} profile_id={}",
                     recording.id(), live.get());
             String base = UiLinks.base();
-            return McpToolResult.of(analysis(profileOf(recording.id(), live.get(), base).asReused(), null, base));
+            return McpToolResult.of(analysis(profileOf(recording.id(), live.get(), base).asReused(), base));
         }
         LOG.info("Analyzing the stored recording of a file already stored over MCP: recording_id={}", recording.id());
         return analyzed(recording.id(), name, false, call);
@@ -559,8 +559,7 @@ public class RecordingsMcpTools {
                     + "that reported the analysis was still running")
             String recordingId) {
         AnalysisFacts facts = statusOf(recordingId);
-        String operationId = operations.latestForRecording(facts.recordingId()).orElse(null);
-        return McpToolResult.of(analysis(facts, operationId, UiLinks.base()));
+        return McpToolResult.of(analysis(facts, UiLinks.base()));
     }
 
     private AnalysisFacts statusOf(String recordingId) {
@@ -697,7 +696,7 @@ public class RecordingsMcpTools {
             // call's produced the profile — the retained one is the failure being set aside.
             Optional<String> live = enabledProfile(recordingId);
             if (live.isPresent()) {
-                return McpToolResult.of(analysis(profileOf(recordingId, live.get(), base), null, base));
+                return McpToolResult.of(analysis(profileOf(recordingId, live.get(), base), base));
             }
         }
         String profileId;
@@ -705,9 +704,9 @@ public class RecordingsMcpTools {
             profileId = runAnalysis(recordingId, name, call);
         } catch (RuntimeException failure) {
             return McpToolResult.of(analysis(
-                    AnalysisFacts.failed(recordingId, null, List.of(), null, failure.getMessage()), null, base));
+                    AnalysisFacts.failed(recordingId, null, List.of(), null, failure.getMessage()), base));
         }
-        return McpToolResult.of(analysis(profileOf(recordingId, profileId, base), null, base));
+        return McpToolResult.of(analysis(profileOf(recordingId, profileId, base), base));
     }
 
     /**
@@ -728,21 +727,18 @@ public class RecordingsMcpTools {
      * operation behind them when there is one, what to call next, and the page for the user — the
      * profile once it is ready, the recordings list, which shows the parse, until then.
      *
-     * @param operationId the attempt this answer reports, or null when no attempt of this call's
-     *                    produced it
-     * @param base        the link base, read on the request thread; see {@link UiLinks#base()}
+     * @param base the link base, read on the request thread; see {@link UiLinks#base()}
      */
-    private RecordingAnalysis analysis(AnalysisFacts facts, String operationId, String base) {
-        McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+    private RecordingAnalysis analysis(AnalysisFacts facts, String base) {
         String uiLink = facts.status() == AnalysisStatus.READY
                 ? UiLinks.profile(base, facts.profileId())
                 : UiLinks.page(base, MicroscopePage.RECORDINGS);
         return new RecordingAnalysis(facts.status(), facts.recordingId(), facts.profileId(), facts.name(),
                 facts.eventSource(), facts.reused(), facts.stages(), facts.errorCode(), facts.errorMessage(),
-                facts.reason(), operationId, operation, followUp(facts, operationId), uiLink);
+                facts.reason(), followUp(facts), uiLink);
     }
 
-    private McpFollowUp followUp(AnalysisFacts facts, String operationId) {
+    private McpFollowUp followUp(AnalysisFacts facts) {
         String recordingId = facts.recordingId();
         boolean known = recordingId != null;
         NextSteps.Builder next = NextSteps.builder(advertised);
@@ -753,8 +749,6 @@ public class RecordingsMcpTools {
             case RUNNING -> next
                     .nextWhen(known, NextCalls.to(STATUS_TOOL).with(RECORDING_ID, recordingId)
                             .why(POLL_RECORDING_WHY))
-                    .nextWhen(!known && operationId != null, NextCalls.to(OPERATIONS_STATUS)
-                            .with(OPERATION_ID, operationId).why(POLL_OPERATION_WHY))
                     .followUp();
             case NOT_STARTED -> next
                     .next(NextCalls.to(ANALYZE_RECORDING_TOOL).with(RECORDING_ID, recordingId).why(ANALYZE_WHY))
@@ -855,13 +849,6 @@ public class RecordingsMcpTools {
             @McpNullable
             @McpDescription("What the status means when it is not obvious from the status alone")
             String reason,
-            @McpNullable
-            @McpDescription("The attempt behind this answer, for operations_status and operations_cancel; "
-                    + "null when no attempt of this call's produced it")
-            String operationId,
-            @McpNullable
-            @McpDescription("That attempt as operations_status reports it")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription("The profile's page in the Microscope UI once READY, else the recordings page, "
                     + "for the user")
