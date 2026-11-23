@@ -51,7 +51,7 @@
         -->
         <jeffrey-events.version>1.0-SNAPSHOT</jeffrey-events.version>
         <spring-boot.version>4.2.0</spring-boot.version>
-        <spring-ai.version>2.0.3</spring-ai.version>
+        <spring-ai.version>2.1.0</spring-ai.version>
         <duckdb.version>2.0.0.0</duckdb.version>
         <flyway.version>10.26.0</flyway.version>
         <flyway-core.version>13.11.1</flyway-core.version>
