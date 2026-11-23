@@ -1606,8 +1606,8 @@ class McpToolsetAssemblerTest {
                     McpTestProperties.of(true, true, true, Set.of(), "heap"),
                     McpTestProperties.of(true, true, true, Set.of(), "jfr"),
                     McpTestProperties.of(true, true, true, Set.of(), "connector"),
-                    McpTestProperties.of(true, false, false, Set.of("jfr", "ide", "connector", "recordings", "operations"), "heap"),
-                    McpTestProperties.of(true, true, true, Set.of("profiles", "flamegraph", "connector", "recordings", "operations")));
+                    McpTestProperties.of(true, false, false, Set.of("jfr", "ide", "connector", "recordings"), "heap"),
+                    McpTestProperties.of(true, true, true, Set.of("profiles", "flamegraph", "connector", "recordings")));
             for (ExternalMcpProperties properties : configurations) {
                 Set<String> served = assembler(properties).toolset().specs().stream()
                         .map(McpToolSpec::name)
@@ -1637,13 +1637,13 @@ class McpToolsetAssemblerTest {
             Set<String> all = families(assembler(true));
             assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "compare", "traces",
                     "jvm", "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline",
-                    "memory", "heap", "connector", "ide", "operations"), all);
+                    "memory", "heap", "connector", "ide"), all);
             assertEquals(all, families(preset("all")));
             assertEquals(Set.of("profiles", "recordings", "jfr", "flamegraph", "code", "jvm", "compare", "traces",
-                    "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory", "operations"),
+                    "http", "jdbc", "grpc", "methodtracing", "io", "blocking", "timeline", "memory"),
                     families(preset("jfr")));
-            assertEquals(Set.of("profiles", "recordings", "heap", "operations"), families(preset("heap")));
-            assertEquals(Set.of("profiles", "recordings", "connector", "operations"), families(preset("connector")));
+            assertEquals(Set.of("profiles", "recordings", "heap"), families(preset("heap")));
+            assertEquals(Set.of("profiles", "recordings", "connector"), families(preset("connector")));
         }
 
         @Test
@@ -1656,8 +1656,8 @@ class McpToolsetAssemblerTest {
         @Test
         void explicitFamiliesOverridePresetAndSwitchesStillConstrainThem() {
             McpToolsetAssembler filtered = assembler(McpTestProperties.of(
-                    true, false, false, Set.of("jfr", "ide", "connector", "recordings", "operations"), "heap"));
-            assertEquals(Set.of("jfr", "recordings", "operations"), families(filtered));
+                    true, false, false, Set.of("jfr", "ide", "connector", "recordings"), "heap"));
+            assertEquals(Set.of("jfr", "recordings"), families(filtered));
             assertThrows(IllegalArgumentException.class,
                     () -> filtered.toolset().call("heap_status", Json.createObject()));
         }
@@ -1668,7 +1668,7 @@ class McpToolsetAssemblerTest {
          */
         @Test
         void aHintToAWithheldFamilyIsLeftOutOfTheAnswer() {
-            String trimmed = flamegraphExportUnder(Set.of("profiles", "flamegraph", "jvm", "operations"));
+            String trimmed = flamegraphExportUnder(Set.of("profiles", "flamegraph", "jvm"));
 
             assertTrue(trimmed.contains("jvm_threads"), trimmed);
             assertFalse(trimmed.contains("timeline_"), trimmed);

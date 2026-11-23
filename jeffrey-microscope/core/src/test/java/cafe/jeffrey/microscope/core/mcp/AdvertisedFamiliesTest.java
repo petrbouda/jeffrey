@@ -47,7 +47,7 @@ class AdvertisedFamiliesTest {
             AdvertisedFamilies advertised = AdvertisedFamilies.of(
                     McpTestProperties.of(true, true, true, Set.of(), "heap"));
 
-            assertEquals(Set.of("profiles", "recordings", "heap", "operations"), advertised.families());
+            assertEquals(Set.of("profiles", "recordings", "heap"), advertised.families());
         }
 
         @Test

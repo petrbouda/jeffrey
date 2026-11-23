@@ -145,7 +145,7 @@ class ExternalMcpPropertiesTest {
         ExternalMcpProperties jfr = McpTestProperties.of(true, true, true, Set.of(), JFR);
 
         for (String family : Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare",
-                "operations", "traces", "http", "jdbc", "grpc", "methodtracing", "io", "blocking",
+                "traces", "http", "jdbc", "grpc", "methodtracing", "io", "blocking",
                 "timeline", "memory")) {
             assertTrue(jfr.advertises(family), family);
         }
@@ -159,7 +159,7 @@ class ExternalMcpPropertiesTest {
         ExternalMcpProperties heap = McpTestProperties.of(true, true, true, Set.of(), HEAP);
 
         for (String family : ExternalMcpProperties.knownFamilies()) {
-            assertEquals(Set.of("profiles", "recordings", HEAP, "operations").contains(family),
+            assertEquals(Set.of("profiles", "recordings", HEAP).contains(family),
                     heap.advertises(family), family);
         }
     }
