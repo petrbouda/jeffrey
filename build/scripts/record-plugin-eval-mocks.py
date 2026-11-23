@@ -68,7 +68,6 @@ import re
 import shutil
 import subprocess
 import sys
-import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
@@ -136,9 +135,6 @@ CLIENT_INFO = {"name": "plugin-eval-recorder", "version": "1"}
 JFR_OPTIONS = ("settings=profile,jdk.JavaExceptionThrow#enabled=true,jdk.JavaExceptionThrow#throttle=off,"
                "dumponexit=true")
 REQUEST_TIMEOUT_SECONDS = 180
-OPERATION_POLL_SECONDS = 2
-OPERATION_FINISHED = ("COMPLETED", "FAILED", "CANCELLED")
-OPERATION_BUDGET_SECONDS = 900
 MAX_CALLS = 1500
 # The order history's own pass (crawl): a handful of seeds and what their answers offer.
 ORDERS_MAX_CALLS = 400
@@ -166,13 +162,12 @@ LIVE_COMMITS = "liveCommits"
 
 PROFILE_ID = "profileId"
 BASELINE_PROFILE_ID = "baselineProfileId"
-OPERATION_ID = "operationId"
 
 # The writers are recorded only where this script calls them on purpose — the imports and the heap
 # preparation — never from a nextTools entry, which could change the state the other answers describe.
 NOT_CALLED_FROM_ANSWERS = {
     "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete", "heap_prepare",
-    "connector_download", "connector_fetchFile", "operations_cancel", "ide_link", "ide_open",
+    "connector_download", "connector_fetchFile", "ide_link", "ide_open",
 }
 FILE_NAME_SAFE = re.compile(r"[A-Za-z0-9._-]+")
 # Text the agent writes itself rather than copies from an answer — a SQL or OQL query. A mock pinned to the
@@ -359,6 +354,28 @@ class Recorded:
     unmatched: dict[str, dict[tuple, tuple[dict, str]]] = field(default_factory=lambda: collections.defaultdict(dict))
 
 
+def jsonrpc_response(raw: str, content_type: str) -> dict:
+    """The JSON-RPC response in a modern server's reply. A tools/call answers over Streamable HTTP as a
+    text/event-stream: notifications/progress frames, then the result frame last. Take the data: frame
+    carrying the JSON-RPC response (the one with a result or an error). A plain-JSON reply is parsed as it is.
+    """
+    if "text/event-stream" not in content_type:
+        return json.loads(raw)
+    message = None
+    data_lines: list[str] = []
+    for line in raw.splitlines() + [""]:
+        if line.startswith("data:"):
+            data_lines.append(line[len("data:"):].lstrip())
+        elif not line.strip() and data_lines:
+            frame = json.loads("\n".join(data_lines))
+            if "result" in frame or "error" in frame:
+                message = frame
+            data_lines = []
+    if message is None:
+        raise RuntimeError(f"no JSON-RPC response frame in SSE body: {raw[:200]}")
+    return message
+
+
 class Jeffrey:
     def __init__(self, url: str):
         self.url = url
@@ -377,9 +394,12 @@ class Jeffrey:
         request = urllib.request.Request(self.url, data=json.dumps(body).encode(), method="POST", headers=headers)
         try:
             with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
-                envelope = json.loads(response.read())
+                content_type = response.headers.get("Content-Type", "")
+                raw = response.read().decode("utf-8")
         except urllib.error.HTTPError as error:
-            envelope = json.loads(error.read() or b"{}")
+            content_type = error.headers.get("Content-Type", "") if error.headers else ""
+            raw = (error.read() or b"{}").decode("utf-8")
+        envelope = jsonrpc_response(raw, content_type)
         if "error" in envelope:
             raise RuntimeError(f"{method} {params.get('name', '')}: {envelope['error']}")
         return envelope["result"]
@@ -389,22 +409,6 @@ class Jeffrey:
 
     def call(self, tool: str, arguments: dict) -> dict:
         return self.request("tools/call", {"name": tool, "arguments": arguments})
-
-    def finished(self, answer: dict) -> dict:
-        """The answer of a call, or of the operation it started once that has finished."""
-        operation = (answer.get("structuredContent") or {}).get(OPERATION_ID)
-        deadline = time.monotonic() + OPERATION_BUDGET_SECONDS
-        while operation and time.monotonic() < deadline:
-            status = self.call("operations_status", {OPERATION_ID: operation})
-            # The snapshot names its state `status`; reading any other key returns at once, before the
-            # operation has finished.
-            if (status.get("structuredContent") or {}).get("status") in OPERATION_FINISHED:
-                return status
-            time.sleep(OPERATION_POLL_SECONDS)
-        if operation:
-            raise RuntimeError(f"operation {operation} did not finish within {OPERATION_BUDGET_SECONDS} s")
-        return answer
-
 
 def text_of(answer: dict) -> str:
     return "\n".join(part["text"] for part in answer.get("content", []) if part.get("type") == "text")
@@ -462,22 +466,18 @@ def import_profiles(jeffrey: Jeffrey, files: dict[str, Path], recorded: Recorded
         arguments = {"path": str(path), "name": PROFILE_NAMES[kind], "force": True}
         if commits and kind in commits:
             arguments["commit"] = commits[kind]
+        # The long tools run on the call and stream progress, so the answer is already the finished result.
         answer = jeffrey.call("recordings_analyzeFile", arguments)
-        final = jeffrey.finished(answer)
-        ids[kind] = (final.get("structuredContent") or {}).get(PROFILE_ID) \
-            or ((final.get("structuredContent") or {}).get("result") or {}).get(PROFILE_ID)
+        ids[kind] = (answer.get("structuredContent") or {}).get(PROFILE_ID) \
+            or ((answer.get("structuredContent") or {}).get("result") or {}).get(PROFILE_ID)
         if not ids[kind]:
-            raise RuntimeError(f"no profileId after importing {path}: {text_of(final)[:400]}")
+            raise RuntimeError(f"no profileId after importing {path}: {text_of(answer)[:400]}")
         if kind == "heap":
             # The one import a case repeats: the heap case names this file, so its answer is the mock.
             recorded.fixed["recordings_analyzeFile"] = seen_by_model(answer)
             recorded.inputs["recordings_analyzeFile"][()] = {"path": str(path)}
-            operation = (answer.get("structuredContent") or {}).get(OPERATION_ID)
-            if operation:
-                recorded.answers["operations_status"][(operation,)] = seen_by_model(final)
-                recorded.inputs["operations_status"][(operation,)] = {OPERATION_ID: operation}
     profiles = Profiles(**{kind: ids[kind] for kind in PROFILE_KINDS})
-    jeffrey.finished(jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap}))
+    jeffrey.call("heap_prepare", {PROFILE_ID: profiles.heap})
     # The answer a case gets is the one at rest: every other heap mock is recorded from the prepared dump,
     # so a heap_prepare recorded while it was still running would tell the model to poll a preparation
     # that, in every other answer, has already finished.
@@ -509,7 +509,7 @@ def profile_only_calls(tools: list[dict], profiles: tuple[str, ...], pairs: list
     calls = []
     for tool in tools:
         name, schema = tool["name"], tool.get("inputSchema") or {}
-        if name in NOT_CALLED_FROM_ANSWERS or name == "operations_status":
+        if name in NOT_CALLED_FROM_ANSWERS:
             continue
         required = [argument for argument in schema.get("required", [])]
         free = [argument for argument in required if argument not in (PROFILE_ID, BASELINE_PROFILE_ID)

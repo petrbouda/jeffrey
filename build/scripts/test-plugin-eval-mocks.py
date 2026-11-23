@@ -173,27 +173,20 @@ class ReplayContractTest(RecorderSandbox):
         self.assertTrue(self.violates(pattern, 'jvm_exceptionSites', {'profileId': 'b', 'framePrefixes': ['java.']}))
         self.assertTrue(self.violates(pattern, 'jvm_exceptionSites', {'profileId': 'b'}))
 
-    def test_async_heap_import_seeds_terminal_status(self):
-        class SlowServer(recorder.Jeffrey):
+    def test_long_import_takes_the_result_from_the_call(self):
+        # The long tools run on the call and stream progress, so the import answer is already the
+        # finished result: no operationId, nothing to poll, and no operations_status mock to seed.
+        class StreamingServer(recorder.Jeffrey):
             def __init__(self):
-                self.polls = 0
+                pass
             def call(self, tool, args):
                 if tool == 'recordings_analyzeFile':
-                    if args['name'] == 'checkout heap dump':
-                        return answer({'operationId': 'slow-heap', 'status': 'RUNNING'})
-                    return answer({'profileId': args['name']})
-                if tool == 'operations_status':
-                    self.polls += 1
-                    if self.polls == 1:
-                        return answer({'operationId': 'slow-heap', 'status': 'RUNNING'})
-                    return answer({'operationId': 'slow-heap', 'status': 'COMPLETED', 'result': {'profileId': 'h'}})
-                return answer({'status': 'COMPLETED'})
+                    return answer({'profileId': args['name'], 'status': 'READY'})
+                return answer({'status': 'READY'})
         recorded = recorder.Recorded()
-        with patch.object(recorder.time, 'sleep'):
-            profiles = recorder.import_profiles(SlowServer(), {k: Path(k) for k in recorder.PROFILE_KINDS}, recorded)
-        self.assertEqual('h', profiles.heap)
-        self.assertIn('operations_status', recorded.answers, 'RUNNING import must have a replayable poll')
-        self.assertEqual('COMPLETED', json.loads(recorded.answers['operations_status'][('slow-heap',)])['status'])
+        profiles = recorder.import_profiles(StreamingServer(), {k: Path(k) for k in recorder.PROFILE_KINDS}, recorded)
+        self.assertEqual('checkout heap dump', profiles.heap)
+        self.assertNotIn('operations_status', recorded.answers)
 
 
 class CodeToolsTest(RecorderSandbox):
