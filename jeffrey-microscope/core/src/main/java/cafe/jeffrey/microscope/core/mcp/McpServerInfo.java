@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpToolNames;
 import tools.jackson.databind.node.ObjectNode;

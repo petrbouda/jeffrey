@@ -16,8 +16,8 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.common.JeffreyVersion;
 import cafe.jeffrey.microscope.core.utils.Json;

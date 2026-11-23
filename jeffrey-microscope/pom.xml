@@ -35,7 +35,6 @@
         <module>connectors</module>
         <module>pages</module>
         <module>core</module>
-        <module>mcp-protocol</module>
         <module>mcp-server</module>
     </modules>
 

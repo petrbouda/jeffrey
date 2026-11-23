@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
 import java.util.function.Function;
 
 /**

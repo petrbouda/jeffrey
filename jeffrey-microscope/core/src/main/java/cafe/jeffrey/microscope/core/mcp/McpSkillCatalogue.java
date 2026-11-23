@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpErrorCode;
-import cafe.jeffrey.microscope.mcp.protocol.McpProtocolException;
-import cafe.jeffrey.microscope.mcp.protocol.McpResource;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkill;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillFile;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.server.McpErrorCode;
+import cafe.jeffrey.microscope.mcp.server.McpProtocolException;
+import cafe.jeffrey.microscope.mcp.server.McpResource;
+import cafe.jeffrey.microscope.mcp.server.McpSkill;
+import cafe.jeffrey.microscope.mcp.server.McpSkillFile;
+import cafe.jeffrey.microscope.mcp.server.McpSkillProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;

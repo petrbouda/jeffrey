@@ -19,10 +19,10 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpClientCapabilities;
+import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import tools.jackson.databind.node.ObjectNode;
 
 import java.time.Duration;

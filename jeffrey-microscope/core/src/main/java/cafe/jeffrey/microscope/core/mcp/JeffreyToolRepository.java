@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpRequestContext;
 import io.modelcontextprotocol.modern.server.feature.McpSyncTool;
@@ -32,7 +32,7 @@ import java.util.List;
  * Serves the modern MCP server's {@code tools/list} and {@code tools/call} from Jeffrey's own
  * {@link McpToolProvider} toolset, replacing the SDK's default in-memory repository. Supplying this bean
  * is the single seam that keeps the hand-written toolset — its closed schemas, {@code jeffrey/*} hints
- * and {@link cafe.jeffrey.microscope.mcp.protocol.McpToolResult} conventions — behind a standard server.
+ * and {@link cafe.jeffrey.microscope.mcp.server.McpToolResult} conventions — behind a standard server.
  * <p>
  * Per-profile scoping is unchanged: {@code find} hands back a tool whose handler calls
  * {@link McpToolProvider#call}, and {@code ProfileScopedToolset} resolves the {@code profileId} argument

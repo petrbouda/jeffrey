@@ -17,7 +17,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpResource;
+import cafe.jeffrey.microscope.mcp.server.McpResource;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;

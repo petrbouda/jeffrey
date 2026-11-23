@@ -16,17 +16,19 @@
  */
 
 /**
- * Jeffrey's MCP adapter over the protocol module: the Spring MVC boundary, {@code @Tool} reflection,
+ * Jeffrey's MCP module: the MCP {@code 2026-07-28} protocol types and SPI (tool/result/outcome records,
+ * closed schema tooling, cursor, extensions), and the {@code @Tool} adapter over them — reflection,
  * profile scoping, the tool hints and the finding convention.
  */
 module cafe.jeffrey.microscope.mcp.server {
     requires transitive cafe.jeffrey.microscope.common;
-    requires transitive cafe.jeffrey.microscope.mcp.protocol;
     requires cafe.jeffrey.jfr.events;
 
     requires spring.ai.model;
     requires spring.web;
-    requires tools.jackson.databind;
+    requires transitive tools.jackson.databind;
+    requires com.fasterxml.jackson.annotation;
+    requires org.slf4j;
 
     exports cafe.jeffrey.microscope.mcp.server;
     exports cafe.jeffrey.microscope.mcp.server.finding;

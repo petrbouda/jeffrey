@@ -16,13 +16,13 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpCompletion;
-import cafe.jeffrey.microscope.mcp.protocol.McpCompletionRef;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
-import cafe.jeffrey.microscope.mcp.protocol.McpPromptProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpCompletion;
+import cafe.jeffrey.microscope.mcp.server.McpCompletionRef;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpPrompt;
+import cafe.jeffrey.microscope.mcp.server.McpPromptProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import org.junit.jupiter.api.Nested;

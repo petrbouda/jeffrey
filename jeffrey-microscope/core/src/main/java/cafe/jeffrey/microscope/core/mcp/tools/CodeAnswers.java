@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.Meth
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.CodeAttribution.TierValue;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodKey;
 import cafe.jeffrey.microscope.core.profile.flamegraph.code.MethodRef;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
 import cafe.jeffrey.microscope.core.profile.model.GraphType;
 import cafe.jeffrey.microscope.core.profile.model.SpanScope;
 import cafe.jeffrey.microscope.core.profile.model.Type;

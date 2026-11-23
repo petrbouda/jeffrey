@@ -17,12 +17,12 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpResource;
-import cafe.jeffrey.microscope.mcp.protocol.McpResourceNotFoundException;
-import cafe.jeffrey.microscope.mcp.protocol.McpResourceProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkill;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillFile;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.server.McpResource;
+import cafe.jeffrey.microscope.mcp.server.McpResourceNotFoundException;
+import cafe.jeffrey.microscope.mcp.server.McpResourceProvider;
+import cafe.jeffrey.microscope.mcp.server.McpSkill;
+import cafe.jeffrey.microscope.mcp.server.McpSkillFile;
+import cafe.jeffrey.microscope.mcp.server.McpSkillProvider;
 import io.modelcontextprotocol.modern.McpException;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpRequestContext;

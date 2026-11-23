@@ -17,9 +17,6 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpProtocolVersions;
-import cafe.jeffrey.microscope.mcp.protocol.McpServerIdentity;
 import cafe.jeffrey.microscope.common.JeffreyVersion;
 
 import java.util.List;

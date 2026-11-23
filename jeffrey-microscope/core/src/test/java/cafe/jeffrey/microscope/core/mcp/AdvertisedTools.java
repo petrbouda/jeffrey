@@ -26,7 +26,7 @@ import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;

@@ -18,10 +18,10 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
-import cafe.jeffrey.microscope.mcp.protocol.McpProtocolException;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkill;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.server.McpClientCapabilities;
+import cafe.jeffrey.microscope.mcp.server.McpProtocolException;
+import cafe.jeffrey.microscope.mcp.server.McpSkill;
+import cafe.jeffrey.microscope.mcp.server.McpSkillProvider;
 import io.modelcontextprotocol.modern.McpException;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpAsyncResponse;

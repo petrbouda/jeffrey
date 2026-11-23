@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 
 import java.util.List;
 

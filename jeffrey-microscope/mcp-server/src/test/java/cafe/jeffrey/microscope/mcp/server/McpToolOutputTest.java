@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

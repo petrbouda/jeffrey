@@ -18,19 +18,19 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputRequest;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
-import cafe.jeffrey.microscope.mcp.protocol.McpProgressSink;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.McpTraceContext;
-import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpClientCapabilities;
+import cafe.jeffrey.microscope.mcp.server.McpFormElicitation;
+import cafe.jeffrey.microscope.mcp.server.McpInputRequest;
+import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.server.McpProgressSink;
+import cafe.jeffrey.microscope.mcp.server.McpToolAnnotations;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpTraceContext;
+import cafe.jeffrey.microscope.mcp.server.ToolDispatchException;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpRequestContext;
 import io.modelcontextprotocol.modern.server.McpSyncResponse;
@@ -42,7 +42,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Maps between Jeffrey's tool SPI ({@code mcp-protocol}) and the Spring AI / MCP SDK's modern server
+ * Maps between Jeffrey's tool SPI ({@code mcp-server}) and the Spring AI / MCP SDK's modern server
  * types, so the hand-written {@link McpToolProvider} toolset serves the modern server unchanged — its
  * closed ($ref-free) schemas, its {@code jeffrey/*} {@code _meta} hints, per-profile scoping and
  * {@link McpToolResult}/{@link McpToolOutcome} conventions all preserved.

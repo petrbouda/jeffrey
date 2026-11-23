@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorSessionScan;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.mcp.server.McpToolMetrics;

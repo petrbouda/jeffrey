@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.UiLinkRoutes;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.server.McpToolNames;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

@@ -60,11 +60,7 @@
         </dependency>
 
         <!-- JFR model types, analysis and settings shared with the profile analysis below -->
-        <!-- MCP: the pure 2026-07-28 protocol, and Jeffrey's adapter over it (Spring MVC, @Tool toolsets) -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>mcp-protocol</artifactId>
-        </dependency>
+        <!-- MCP: the 2026-07-28 protocol types and SPI, and Jeffrey's @Tool adapter over them -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>mcp-server</artifactId>
@@ -201,15 +197,7 @@
             <artifactId>volume</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- McpTestRequests and McpSchemaConformance: the protocol's generic test helpers -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>mcp-protocol</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <!-- McpNextToolConformance and McpTestToolsets: Jeffrey's own MCP test helpers -->
+        <!-- The MCP test helpers: McpTestRequests, McpSchemaConformance, McpNextToolConformance, McpTestToolsets -->
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>mcp-server</artifactId>

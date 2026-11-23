@@ -18,8 +18,7 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import tools.jackson.databind.JsonNode;
 
 import java.util.Collection;

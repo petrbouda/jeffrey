@@ -17,10 +17,10 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpErrorCode;
-import cafe.jeffrey.microscope.mcp.protocol.McpProtocolException;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkill;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillFile;
+import cafe.jeffrey.microscope.mcp.server.McpErrorCode;
+import cafe.jeffrey.microscope.mcp.server.McpProtocolException;
+import cafe.jeffrey.microscope.mcp.server.McpSkill;
+import cafe.jeffrey.microscope.mcp.server.McpSkillFile;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

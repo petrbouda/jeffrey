@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.mcp.tools.UiLinkRoutes;
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.testing.McpTestRequests;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 

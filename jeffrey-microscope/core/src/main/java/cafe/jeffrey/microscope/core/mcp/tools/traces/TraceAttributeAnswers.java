@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.traces;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeSearchResult;
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeValues;

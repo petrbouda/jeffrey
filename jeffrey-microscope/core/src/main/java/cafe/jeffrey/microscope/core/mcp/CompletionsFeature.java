@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpCompletion;
-import cafe.jeffrey.microscope.mcp.protocol.McpCompletionRef;
+import cafe.jeffrey.microscope.mcp.server.McpCompletion;
+import cafe.jeffrey.microscope.mcp.server.McpCompletionRef;
 import io.modelcontextprotocol.modern.McpException;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpAsyncResponse;

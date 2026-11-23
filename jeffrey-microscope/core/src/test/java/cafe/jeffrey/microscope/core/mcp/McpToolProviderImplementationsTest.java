@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.server.ProfileScopedToolset;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import org.junit.jupiter.api.Test;

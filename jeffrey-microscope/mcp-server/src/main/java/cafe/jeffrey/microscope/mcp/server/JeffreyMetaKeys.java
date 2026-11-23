@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpMetaKeys;
 
 /**
  * The keys Jeffrey adds to a tool's own {@code _meta} in {@code tools/list}, beside the protocol's

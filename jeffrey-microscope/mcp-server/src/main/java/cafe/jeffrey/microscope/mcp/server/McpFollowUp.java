@@ -18,7 +18,6 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import java.util.List;
 
 /**

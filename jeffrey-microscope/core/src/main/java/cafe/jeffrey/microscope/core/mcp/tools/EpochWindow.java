@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
 
 /**
  * A time window on the UTC epoch-millisecond base every MCP time travels in: what a windowed answer

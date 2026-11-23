@@ -16,9 +16,9 @@
  */
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
-import cafe.jeffrey.microscope.mcp.protocol.McpPromptProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkill;
+import cafe.jeffrey.microscope.mcp.server.McpPrompt;
+import cafe.jeffrey.microscope.mcp.server.McpPromptProvider;
+import cafe.jeffrey.microscope.mcp.server.McpSkill;
 
 import java.util.ArrayList;
 import java.util.Collections;

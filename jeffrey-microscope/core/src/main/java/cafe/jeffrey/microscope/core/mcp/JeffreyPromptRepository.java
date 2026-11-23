@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
-import cafe.jeffrey.microscope.mcp.protocol.McpPromptProvider;
+import cafe.jeffrey.microscope.mcp.server.McpPrompt;
+import cafe.jeffrey.microscope.mcp.server.McpPromptProvider;
 import io.modelcontextprotocol.modern.McpException;
 import io.modelcontextprotocol.modern.McpSchema;
 import io.modelcontextprotocol.modern.server.McpRequestContext;
