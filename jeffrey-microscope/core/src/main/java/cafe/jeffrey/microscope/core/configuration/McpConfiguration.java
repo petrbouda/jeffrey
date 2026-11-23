@@ -30,6 +30,8 @@ import cafe.jeffrey.microscope.core.mcp.JeffreyToolRepository;
 import cafe.jeffrey.microscope.core.mcp.McpDiagnostics;
 import cafe.jeffrey.microscope.core.mcp.McpGuardFilter;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
+import cafe.jeffrey.microscope.core.mcp.CompletionsFeature;
+import cafe.jeffrey.microscope.core.mcp.McpCompletions;
 import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpResources;
@@ -348,5 +350,23 @@ public class McpConfiguration {
     @Bean
     public McpSyncPromptRepository jeffreyPromptRepository(McpPromptRegistry prompts) {
         return new JeffreyPromptRepository(prompts);
+    }
+
+    /**
+     * Completes {@code profileId}/{@code baselineProfileId}. The toolset arrives as a supplier because
+     * {@code isAvailable()} is read while answering {@code server/discover}, which must not resolve the
+     * toolset.
+     */
+    @Bean
+    public McpCompletions mcpCompletions(
+            McpToolsetAssembler assembler, McpPromptRegistry prompts, ExternalMcpProperties properties) {
+        return new McpCompletions(assembler::toolset, prompts, properties);
+    }
+
+    /** Registers {@code completion/complete} as a custom {@code McpFeature} on the modern server. */
+    @Bean
+    public McpServerCustomizer<McpServer.Builder> jeffreyCompletionsCustomizer(McpCompletions completions) {
+        CompletionsFeature completionsFeature = new CompletionsFeature(completions);
+        return builder -> builder.feature(completionsFeature);
     }
 }
