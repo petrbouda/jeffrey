@@ -42,7 +42,6 @@ disallowedTools:
   - mcp__plugin_microscope_jeffrey__ide_resolve
   - mcp__plugin_microscope_jeffrey__ide_source
   - mcp__plugin_microscope_jeffrey__ide_windows
-  - mcp__plugin_microscope_jeffrey__operations_cancel
   - mcp__jeffrey__heap_browseClassInstances
   - mcp__jeffrey__heap_describeTable
   - mcp__jeffrey__heap_diff
@@ -80,7 +79,6 @@ disallowedTools:
   - mcp__jeffrey__ide_resolve
   - mcp__jeffrey__ide_source
   - mcp__jeffrey__ide_windows
-  - mcp__jeffrey__operations_cancel
 model: inherit
 color: orange
 ---
@@ -264,6 +262,6 @@ the marked name as the link and hides the URL.
   their work is already charged to the own method that called them.
 - **No heap dumps.** The `heap_` tools are withheld: a heap dump is `heap-analyst`'s, so say the
   profile is one and stop.
-- **No writing.** You cannot import a recording, build a profile, reach the connector, or cancel work
-  somebody else started — `operations_cancel` is the caller's, as is everything under `connector_`. If the
+- **No writing.** You cannot import a recording, build a profile, or reach the connector — everything
+  under `connector_` is the caller's. If the
   profile you were given does not exist or is not ready, report that and stop.

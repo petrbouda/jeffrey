@@ -7,16 +7,15 @@ allowed-tools: mcp__plugin_microscope_jeffrey__* mcp__jeffrey__*
 # Analysing a Jeffrey profile
 
 Jeffrey holds *profiles*: one analysed JFR recording or heap dump each. Nearly every tool reads.
-The few that do not create a profile or a cache, start work on the connector or in your editor, or stop
-work that was started — `recordings_` turns a recording *file* into a profile, and
-`operations_cancel` stops an import that was a mistake — and none of them changes an analysed
+The few that do create a profile or a cache, or start work on the connector or in your editor —
+`recordings_` turns a recording *file* into a profile — none of them changes an analysed
 profile.
 
 Tool names below omit the prefix your client puts in front of them — `mcp__plugin_microscope_jeffrey__` in Claude Code with the `microscope` plugin, `mcp__jeffrey__` in Codex or wherever the server is registered by hand as `jeffrey`, `mcp_jeffrey_` in Gemini CLI; the rest of the name is exact camelCase: `jfr_listTables`, not `jfr_list_tables`.
 
 ## 1. Get a `profileId`
 
-Every tool takes one, except `profiles_list` and the `recordings_`, `connector_` and `operations_`
+Every tool takes one, except `profiles_list` and the `recordings_` and `connector_`
 families, which are how a `profileId` comes to exist. `profiles_list` pages: a hundred profiles per
 call, with `nextCursor` and `hasMore` in the answer, so a catalogue past that size needs a second
 call carrying the cursor before "it is not there" is true.
@@ -27,12 +26,9 @@ in Jeffrey yet. Call `recordings_analyzeFile` with the **absolute** path;
 already imported; after re-recording to the same path, pass `force=true`. The Jeffrey process opens
 that path, so
 the file has to be on the machine Jeffrey runs on — a container or a remote Jeffrey cannot see your
-working directory. A small recording is analysed inside the call and comes back with its
-`profileId`. A large one comes back with a status of `RUNNING` and an `operationId` — and no
-`recordingId`, because the copy may not have finished — and `operations_status(operationId)`
-follows the copy and the analysis until the `profileId` appears. Poll that rather than calling
-`recordings_analyzeFile` a second time to see whether it is done. `operations_cancel(operationId)` stops an import started by
-mistake. Operation ids live for an hour in Jeffrey's memory and do not survive a restart.
+working directory. `recordings_analyzeFile` runs the copy and the analysis on the call, streaming
+`notifications/progress`, and returns `status: READY` with the `profileId` when the analysis finishes.
+A failed import is raised as a tool error with its reason.
 
 **The recording is on the connector** — the user asked about an environment rather than a file
 ("production", "staging", "what recorded in the last hour"), and nothing local matches. Switch to

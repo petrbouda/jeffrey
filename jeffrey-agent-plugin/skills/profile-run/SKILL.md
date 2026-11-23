@@ -87,10 +87,9 @@ often has the same name and a size Jeffrey already knows, and without it the imp
 old profile instead of this run. `commit` and `dirty` go with it so `profiles_get` can tell every
 later reader whether their checkout is the code that ran.
 
-A small recording comes back with a `profileId`. A large one comes back with a status of `RUNNING`
-and an `operationId` — no `recordingId` yet, because the copy may still be in flight — and
-`operations_status(operationId)` follows it until the `profileId` appears. Poll that rather than
-calling again. `operations_cancel(operationId)` stops an import that pointed at the wrong file. The ids live for an hour in Jeffrey's memory.
+`recordings_analyzeFile` runs the copy and the analysis on the call, streaming `notifications/progress`,
+and returns the `profileId` when the analysis finishes. A failed import is raised as a tool error with
+its reason.
 
 Then hand off: the **analyze-jfr** skill has the families, the entry sequence and the flamegraph
 choice per question. Start with `profiles_summary` — it reports what the recording actually captured,

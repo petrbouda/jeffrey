@@ -32,15 +32,14 @@ they say Microscope has restarted with it.
 ```
 connector_sessions(withinLastMinutes=60)                  → rows, newest first, each with a sessionRef
   … which interval? — ask, with started/duration in front of the user
-connector_download(sessionRef, window=LAST_MINUTES)       → recordingId + bundleId + items, or RUNNING with an operationId
+connector_download(sessionRef, window=LAST_MINUTES)       → recordingId + bundleId + items (streams progress, returns when done)
    or connector_download(sessionRef, window=STARTUP|LATEST|PEAK|WHOLE)
    or connector_download(sessionRef, window=BEFORE|AROUND, atEpochMs, minutes)
    or connector_download(sessionRef, startEpochMs, endEpochMs) → a span of your own
    or connector_download(sessionRef, fileIds=["…"])       → the same, for files picked from connector_files
    or connector_download(sessionRef)                      → the whole session, when it is short
-recordings_analyzeRecording(recordingId)             → profileId, or RUNNING with an operationId
+recordings_analyzeRecording(recordingId)             → profileId (streams progress, returns when done)
    and, for a memory question, recordings_analyzeRecording(<heap item's recordingId>) → its own profileId
-operations_status(operationId)                       → where any of these has got to
 … then analyze-jfr (or analyze-heap on the heap item's profile)
 recordings_delete(recordingId)                       → when the question is answered
 
@@ -49,8 +48,8 @@ connector_fetchFile(sessionRef, fileId)                   → one of them, as a 
 ```
 
 Three calls on the main path, and the third is a tool you already know; the question in between
-is what keeps a day-long session from being pulled for an hour's worth of answer, and
-`operations_status` is how the two long ones are followed. There is no connector-specific analysis:
+is what keeps a day-long session from being pulled for an hour's worth of answer. The two long calls
+stream progress and return when they finish. There is no connector-specific analysis:
 once a part of a session is downloaded it is a bundle of normal Jeffrey recordings.
 
 ## 1. Find the session — one call, not four
@@ -222,9 +221,8 @@ its own. The two are separate on purpose: a large session is a
 long transfer and then a long analysis, and one call doing both is the shape that hits a tool
 timeout with nothing to show for it.
 
-Both calls answer inside the call for a small session and hand back an `operationId` for a large
-one — see the last section for how that is followed. Say what you are doing before starting a big
-one.
+Both calls run on the call and stream progress, returning when they finish — see the last section.
+Say what you are doing before starting a big one.
 
 Downloading the same whole session twice is wasteful and never necessary — `connector_download` returns
 the recording it already has rather than fetching it again, but you should have read the row's
@@ -254,10 +252,9 @@ the GC log say" — or the session has no recording at all — do not download t
    is the only way to that one. Every artifact reads `FETCH`, including one of a session still
    recording: an application log is worth grepping while it is being written. More rows than one
    page: `hasMore` with a `nextCursor`, passed back as `cursor`.
-2. `connector_fetchFile(sessionRef, fileId)` — answers `status: FETCHED` with the **absolute `path`**
-   the file now has on this machine, and its `filename` (or `RUNNING` with an `operationId` for a
-   transfer that outlasts the call). A file already fetched comes back as it is; one whose transfer
-   failed or was cancelled is started again by calling the tool again.
+2. `connector_fetchFile(sessionRef, fileId)` — runs on the call, streaming progress, and answers
+   `status: FETCHED` with the **absolute `path`** the file now has on this machine, and its
+   `filename`. A file already fetched comes back as it is.
 3. **Read the file with your own tools.** Jeffrey runs on this machine and hands you the path
    rather than parsing the log for you: `grep -n 'Exception' <path>`, `sed -n '1200,1260p' <path>`,
    `tail -200 <path>`, your file reader. A crash file reads top-down — the `#` header names the
@@ -348,20 +345,14 @@ wants, say so — changing it is an operator's decision, not something to work a
 **It does not change the share.** A connector with `readOnly: true` is declared to refuse every
 change; no tool here changes the share either way.
 
-## When a transfer outlasts the call
+## A long transfer streams progress
 
-A large session takes longer to pull than a client waits for a tool call. `connector_download` then
-returns a status saying the transfer continues, and an `operationId`, rather than a `recordingId`.
-**Poll `operations_status(operationId)`** — it reports the attempt's progress, its result once the
-transfer lands, and the exact retry instructions when it failed — rather than calling
-`connector_download` again; a second call answers from the local store and is harmless, but it is the
-poll that says what is happening. `operations_cancel(operationId)` asks a transfer to stop, best
-effort, and rolls back nothing already written. A failed or cancelled transfer is remembered for an
-hour — `connector_download` answers `status: FAILED` or `CANCELLED` with its `reason` — and during that
-hour it reports that outcome rather than starting again unless it is called with `retry=true`.
+A large session takes a while to pull. `connector_download` runs the transfer on the call and streams
+`notifications/progress` over the response, then returns `status: DOWNLOADED` with the `recordingId`
+when the transfer lands. A failure is raised as a tool error with its `reason`; a transfer that
+`STARTUP` can no longer reach answers `STARTUP_NOT_RETAINED`. A concurrent `connector_download` of the
+same session joins the one transfer rather than starting a second.
 
-The same applies one step later: `recordings_analyzeRecording` on a large recording returns a status
-of `RUNNING` with its own `operationId`, and `operations_status` says when the profile is ready.
-`recordings_status(recordingId)` answers the same question for a `recordingId` you already hold,
-which after `connector_download` you do. Operation ids live in Jeffrey's memory for an hour after the
-work completes and are forgotten on restart.
+The same applies one step later: `recordings_analyzeRecording` on a large recording streams progress
+and returns the `profileId` when the parse finishes. `recordings_status(recordingId)` reports a
+build still running for a `recordingId` you already hold, which after `connector_download` you do.

@@ -17,13 +17,10 @@ Tool names below omit the prefix your client puts in front of them — `mcp__plu
 **The user named a file** (`heap.hprof`, `dump.hprof.gz`) — call `recordings_analyzeFile` with the
 **absolute** path; `recordings_analyzeFile` returns the existing profile for a file with the same
 name and size as one already imported; after re-recording to the same path, pass `force=true`.
-The Jeffrey process opens that path, so the file has to be on the machine Jeffrey runs on. A
-small dump is parsed inside the call and comes back with its `profileId`. A large one comes back
-with a status of `RUNNING` and an `operationId` — and no `recordingId`, because the copy may not
-have finished — and `operations_status(operationId)` follows the copy and the parse until the
-`profileId` appears. Poll that rather than calling `recordings_analyzeFile` again.
-`operations_cancel(operationId)`
-stops an import started by mistake; the ids live for an hour in Jeffrey's memory.
+The Jeffrey process opens that path, so the file has to be on the machine Jeffrey runs on.
+`recordings_analyzeFile` runs the copy and the parse on the call, streaming `notifications/progress`,
+and returns `status: READY` with the `profileId` when the parse finishes. A failed import is raised as
+a tool error with its reason.
 
 **The dump is on the connector** — the user asked about a deployed application rather than a file. Switch to
 the **analyze-connector** skill. A downloaded session is a bundle, and its heap dump is an item of its own,
@@ -84,12 +81,11 @@ the `heap_prepare` call that computes it, with this mapping:
 
 `heap_prepare` with no argument builds everything — the index, the dominator tree and all of the
 above — which is the right call for a dump nobody has opened yet. Pass one report name to compute
-just that one on a dump that is already indexed. It returns immediately with an `operationId`;
-`heap_status` reports a `state` (`IDLE`, `RUNNING`, `COMPLETED`, `FAILED`) and the stages, each with
-the `report` it computes, as they complete, `operations_status(operationId)` reports the same
-attempt with its result and retry instructions, and each answer becomes readable as its stage
-finishes rather than at the end. A dominator build over a multi-gigabyte heap takes minutes, so do
-something else meanwhile rather than polling tightly. A build that failed or was cancelled stays
+just that one on a dump that is already indexed. It runs on the call, streaming `notifications/progress`,
+and `heap_status` reports a `state` (`IDLE`, `RUNNING`, `COMPLETED`, `FAILED`) and the stages, each with
+the `report` it computes, as they complete; each answer becomes readable as its stage
+finishes rather than at the end. A dominator build over a multi-gigabyte heap takes minutes. A build
+that failed or was cancelled stays
 that way until `heap_prepare` is called with `retry=true`; without it the tool reports the retained
 outcome rather than starting again. A finished build is never offered for rebuilding as a next call.
 
@@ -118,7 +114,7 @@ whose report is not built yet says so when it opens.
 - **`AVAILABLE`** — its `nextTools` read the area now; send them unchanged when it is chosen.
 - **`NEEDS_PREPARATION`** — offer it with "needs heap_prepare (slow)" and its `gap`. Its `nextTools`
   are the preparation: the whole pipeline for a dump with no index yet, the one report otherwise.
-  Run it only when the area is chosen, follow it with `heap_status` (or its `operationId`), then read
+  Run it only when the area is chosen, follow it with `heap_status`, then read
   the area with the reader the table below names.
 - **`NOT_RECORDED`** — the profile has lost its dump; say so with the `remedy`.
 

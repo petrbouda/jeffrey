@@ -71,8 +71,7 @@ recordings_analyzeFile(path="/abs/head.jfr", name="candidate <short-sha>", force
 `force=true` on both, because both files were just recorded: a re-run to the same path can match an
 earlier import by name and size, and then the call returns that old profile — and ignores `name`.
 
-Both may come back with a status of `RUNNING` and an `operationId`; poll `operations_status` with
-it, and `operations_cancel` it if the wrong build was recorded.
+Both run on the call, streaming progress, and return the `profileId` when the analysis finishes.
 
 ## 4. Ask whether they are comparable before reading the difference
 

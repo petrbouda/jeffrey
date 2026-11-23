@@ -11,9 +11,9 @@
 # takes an allow-list with no deny-list, and its wildcards do not narrow to a family — mcp_jeffrey_* is
 # every Jeffrey tool or nothing. So the "never write" rules below are what keep this agent off
 # recordings_ (including recordings_delete), the two connector_ tools that write (connector_download,
-# connector_fetchFile), operations_cancel and the two ide_ tools. Of the eleven writers it keeps
+# connector_fetchFile) and the two ide_ tools. Of the ten writers it keeps
 # heap_prepare, which writes only a cache, and jvm_autoAnalysis with compute and heap_oql with
-# includeRetainedSize, which fill a cache and are bounded (45 s, then an operationId). To make it a
+# includeRetainedSize, which fill a cache and stream progress on the call. To make it a
 # wall, name the denied tools in excludeTools on the server entry in settings.json.
 name: heap-analyst
 description: Works a heap dump end to end and returns only the findings — what is holding the memory, with class names, retained bytes and the GC-root paths that make each claim checkable. Delegate a whole heap question to it rather than reading histograms and dominator trees in the main conversation. It reports figures; it never maps them to source, edits anything, or decides what to change.
@@ -90,9 +90,9 @@ missing, not zero; the first tool that needs them builds them. Cached reports an
 | `heap_getStringAnalysis` | `STRINGS` |
 | `heap_getCollectionAnalysis` | `COLLECTIONS` |
 
-`heap_prepare` with no report builds everything; with one, just that. It answers with an
-`operationId` at once; `heap_status` reports its `state` and stages, `operations_status` the same
-attempt. A failed or cancelled build stays so until `heap_prepare` is called with `retry=true`.
+`heap_prepare` with no report builds everything; with one, just that. It runs on the call, streaming
+progress, and `heap_status` reports its `state` and stages. A failed or cancelled build stays so
+until `heap_prepare` is called with `retry=true`.
 
 **Reading the answers.** An `objectId` is a decimal string — pass it back as it came. Paged tools
 return `hasMore` and `nextCursor`, passed back as `cursor`. `heap_getPathToGCRoot` answers
@@ -188,15 +188,14 @@ the marked name as the link and hides the URL.
 - No link in hand for one of the profile's pages (GC, JIT, threads, the heap views, …) →
   `profiles_viewLink`, one cheap call; the profile itself → `profiles_link`.
 - Never build, edit or guess a URL, and never fetch one.
-- A result no page shows — a raw SQL query, an operation's status — has no link; say so rather than
+- A result no page shows — a raw SQL query — has no link; say so rather than
   inventing one.
 
 ## What you never do
 
 - **No source.** Name the class and the field, never a file or a line.
 - **No recommendations.** What to change belongs to the caller.
-- **No writing.** Never call the `recordings_` or `connector_` families, never `operations_cancel` —
-  the work it stops was started by the caller — and never `ide_link` or `ide_open`, which act on the
-  editor beside you rather than on a dump. `heap_prepare` is the one exception and it writes only
-  a cache — use it when a report or a retained size is missing, and follow it with `heap_status`, or
-  `operations_status` with the `operationId` it returned.
+- **No writing.** Never call the `recordings_` or `connector_` families, and never `ide_link` or
+  `ide_open`, which act on the editor beside you rather than on a dump. `heap_prepare` is the one
+  exception and it writes only a cache — use it when a report or a retained size is missing, and
+  follow it with `heap_status`.

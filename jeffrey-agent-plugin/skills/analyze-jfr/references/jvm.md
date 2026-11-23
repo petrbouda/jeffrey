@@ -81,6 +81,6 @@ What the tools know and a hand-written query does not:
 `jvm_autoAnalysis` reads a cache: `status` is `COMPUTED`, `NOT_COMPUTED` or `CANNOT_COMPUTE` (the
 recording is gone, or the profile is not a JFR recording). On `NOT_COMPUTED` its `followUp` offers
 `compute: true`, which runs the rule set now — it reads the whole recording through the JMC
-toolkit, so it is slow and asked for rather than assumed; past its wait it answers with an
-`operationId` for `operations_status`. The other sections answer either way. For anything these do not shape — a distribution over
+toolkit, so it is slow and asked for rather than assumed; it runs on the call, streaming progress, and
+returns the findings when it finishes. The other sections answer either way. For anything these do not shape — a distribution over
 time, a correlation between two event types — the `jfr-sql` skill has the schema and the queries.

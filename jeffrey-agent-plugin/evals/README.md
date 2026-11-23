@@ -434,9 +434,8 @@ and the response headers; answer contents and tool schemas were preserved. The r
 full inputs on future captures, retaining the first response and input together when required keys
 collide. It still captures only a bounded subset of calls; it is not a general server simulator.
 `recordings_analyzeFile` replays a snapshot of the recorded import (name/force do not simulate a
-second import). A slow future import retains its initial operation answer and records the terminal
-`operations_status` for that operation, so the model can poll to the same profile. No synthetic
-operation answer has been added to the current synchronous-import fixtures.
+second import). The import now runs on the call and streams progress to completion, so a fixture
+holds the terminal answer with its `profileId`; there is no separate status call to record.
 
 **A long answer reaches the eval child as a file.** `claude plugin eval` reads `_tools.json` for each
 tool's name, description and input schema only, so the `_meta` of the recorded `tools/list` —

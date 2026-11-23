@@ -5983,12 +5983,6 @@
   }
  },
  {
-  "tool": "operations_status",
-  "arguments": {
-   "operationId": "3e53510c-6a06-4c7c-a316-b14965a2f334"
-  }
- },
- {
   "tool": "profiles_evidence",
   "arguments": {
    "profileId": "01a1ea99-10f4-727d-8050-bfe25d48d093"
