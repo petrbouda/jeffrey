@@ -28,8 +28,8 @@ jeffrey-microscope/                    MicroscopeApplication (core), Vue SPA (pa
                                        frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
                                        orchestration, …) and the JFR model it reads (core.profile.jfr: the JFR model
                                        types; core.profile.{event,exceptions,analysis,treetable,graph}),
-                                       the init pipelines (core.pipeline) and the long-running
-                                       operations polled over MCP (core.operation), Jeffrey's own jeffrey.Notification
+                                       the init pipelines (core.pipeline) and their long-running
+                                       operation handles (core.operation), Jeffrey's own jeffrey.Notification
                                        events (core.notification), the recording parsers (core.profile.parser: JFR via the JDK and
                                        raw chunks, pprof, OTLP), heap dumps (core.profile.heapdump, OQL in .oql), the
                                        per-profile DuckDB (core.profile.persistence: repository API + impl), the core
@@ -138,7 +138,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
-- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 116 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 114 tools and the ten writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 

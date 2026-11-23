@@ -302,39 +302,6 @@ class RecordingsMcpToolsTest {
             assertTrue(result.contains("Checkout run"));
         }
 
-        @Test
-        void joinedCallersSeeTheNameAppliedByTheAttemptTheyJoined() throws Exception {
-            Path file = recordingFile("app.jfr");
-            BoundedJobs<String, String> jobs = ToolFixtures.jobs(Duration.ofSeconds(5));
-            RecordingsMcpTools concurrent = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(jobs).build();
-            CountDownLatch analysisReached = new CountDownLatch(1);
-            CountDownLatch releaseAnalysis = new CountDownLatch(1);
-            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                analysisReached.countDown();
-                releaseAnalysis.await();
-                return PROFILE_ID;
-            });
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            profileIs(true, "First name");
-
-            CompletableFuture<String> first = CompletableFuture.supplyAsync(
-                    () -> withRequestContext(
-                            () -> complete(concurrent.analyzeFile(file.toString(), "First name", null, null, null, RESOURCE_READ))));
-            assertTrue(analysisReached.await(5, SECONDS));
-            CompletableFuture<String> second = CompletableFuture.supplyAsync(
-                    () -> withRequestContext(
-                            () -> complete(concurrent.analyzeFile(file.toString(), "Second name", null, null, null, RESOURCE_READ))));
-            await().during(Duration.ofMillis(50)).atMost(5, SECONDS).until(() -> !second.isDone());
-            releaseAnalysis.countDown();
-
-            assertTrue(first.get(5, SECONDS).contains("\"name\":\"First name\""));
-            assertTrue(second.get(5, SECONDS).contains("\"name\":\"First name\""));
-            verify(recordingsManager).updateProfileName(PROFILE_ID, "First name");
-            verify(recordingsManager, never()).updateProfileName(PROFILE_ID, "Second name");
-        }
-
         /**
          * A file with the same name and size as one already stored is answered with the profile the
          * first call built, rather than a second copy and a second profile of one recording.
@@ -520,101 +487,9 @@ class RecordingsMcpToolsTest {
         private static final String SECOND_RECORDING_ID = "rec-2";
         private static final String SECOND_PROFILE_ID = "prof-2";
 
-        private RecordingsMcpTools concurrent(Duration waitBudget) {
-            return RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(ToolFixtures.jobs(waitBudget)).build();
-        }
-
         private Recording stored(String recordingId, String profileId) {
             return new Recording(recordingId, "app.jfr", null, RecordingEventSource.JFR,
                     START, START, START.plusSeconds(60), true, profileId, "app.jfr", List.of());
-        }
-
-        @Test
-        void aSecondCallForTheSameNewFileJoinsTheImportInFlight() throws Exception {
-            Path file = recordingFile("app.jfr");
-            RecordingsMcpTools tools = concurrent(Duration.ofSeconds(5));
-            CountDownLatch importing = new CountDownLatch(1);
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.importRecordingFromPath(file)).thenAnswer(invocation -> {
-                importing.countDown();
-                awaitQuietly(release);
-                return RECORDING_ID;
-            });
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-
-            CompletableFuture<String> first = CompletableFuture.supplyAsync(
-                    () -> withRequestContext(
-                            () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
-            CompletableFuture<String> second;
-            try {
-                assertTrue(importing.await(5, SECONDS));
-                second = CompletableFuture.supplyAsync(
-                        () -> withRequestContext(
-                                () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
-                // Past the reuse check, which found nothing because the first copy has not landed.
-                verify(recordingsManager, timeout(5_000).times(2)).findByFileNameAndSize("app.jfr", Files.size(file));
-                await().during(Duration.ofMillis(100)).atMost(5, SECONDS).until(() -> !second.isDone());
-            } finally {
-                release.countDown();
-            }
-
-            var firstAnswer = Json.mapper().readTree(first.get(5, SECONDS));
-            var secondAnswer = Json.mapper().readTree(second.get(5, SECONDS));
-            assertEquals(firstAnswer.path("operationId").asString(), secondAnswer.path("operationId").asString());
-            assertEquals(PROFILE_ID, firstAnswer.path("profileId").asString(), firstAnswer.toString());
-            assertEquals(PROFILE_ID, secondAnswer.path("profileId").asString(), secondAnswer.toString());
-            verify(recordingsManager, times(1)).importRecordingFromPath(file);
-            verify(recordingsManager, times(1)).analyzeRecording(RECORDING_ID);
-        }
-
-        @Test
-        void aForcedCallDuringAnImportInFlightStartsItsOwn() throws Exception {
-            Path file = recordingFile("app.jfr");
-            RecordingsMcpTools tools = concurrent(Duration.ofMillis(50));
-            CountDownLatch importing = new CountDownLatch(1);
-            CountDownLatch release = new CountDownLatch(1);
-            AtomicInteger imports = new AtomicInteger();
-            when(recordingsManager.importRecordingFromPath(file)).thenAnswer(invocation -> {
-                if (imports.incrementAndGet() > 1) {
-                    return SECOND_RECORDING_ID;
-                }
-                importing.countDown();
-                awaitQuietly(release);
-                return RECORDING_ID;
-            });
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
-            when(recordingsManager.analyzeRecording(SECOND_RECORDING_ID)).thenReturn(SECOND_PROFILE_ID);
-            lenient().when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            lenient().when(recordingsManager.findRecording(SECOND_RECORDING_ID))
-                    .thenReturn(Optional.of(stored(SECOND_RECORDING_ID, SECOND_PROFILE_ID)));
-
-            String firstOperation;
-            String forcedOperation;
-            try {
-                CompletableFuture<String> first = CompletableFuture.supplyAsync(
-                        () -> withRequestContext(
-                                () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
-                assertTrue(importing.await(5, SECONDS));
-                firstOperation = Json.mapper().readTree(first.get(5, SECONDS)).path("operationId").asString();
-                forcedOperation = Json.mapper().readTree(withRequestContext(
-                        () -> complete(tools.analyzeFile(file.toString(), null, true, null, null, RESOURCE_READ))))
-                        .path("operationId").asString();
-
-                assertFalse(firstOperation.equals(forcedOperation), forcedOperation);
-                await().atMost(5, SECONDS).until(() -> operations.status(forcedOperation).finishedAtEpochMs() != null);
-                assertEquals(OperationState.COMPLETED, operations.status(forcedOperation).status());
-                assertEquals(SECOND_PROFILE_ID, Json.mapper().valueToTree(operations.status(forcedOperation).result())
-                        .path("profileId").asString());
-            } finally {
-                release.countDown();
-            }
-
-            await().atMost(5, SECONDS).until(() -> operations.status(firstOperation).finishedAtEpochMs() != null);
-            assertEquals(PROFILE_ID, Json.mapper().valueToTree(operations.status(firstOperation).result())
-                    .path("profileId").asString());
-            verify(recordingsManager, times(2)).importRecordingFromPath(file);
         }
 
         @Test
@@ -637,7 +512,6 @@ class RecordingsMcpToolsTest {
             assertFalse(imported.path("reused").asBoolean(), imported.toString());
             assertEquals(PROFILE_ID, reused.path("profileId").asString(), reused.toString());
             assertTrue(reused.path("reused").asBoolean(), reused.toString());
-            assertTrue(reused.path("operationId").isNull(), reused.toString());
             verify(recordingsManager, times(1)).importRecordingFromPath(file);
         }
 
@@ -1251,7 +1125,7 @@ class RecordingsMcpToolsTest {
         }
 
         @Test
-        void aFinishedImportIsReadyWithItsOperationAndTheProfilesPage() throws IOException {
+        void aFinishedImportIsReadyWithTheProfilesPage() throws IOException {
             Path file = recordingFile("ready.jfr");
             when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
             when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
@@ -1262,36 +1136,9 @@ class RecordingsMcpToolsTest {
             assertEquals("READY", answer.path("status").asString());
             assertEquals(PROFILE_ID, answer.path("profileId").asString());
             assertTrue(answer.path("uiLink").asString().endsWith("/profiles/" + PROFILE_ID), answer.toString());
-            assertEquals("RECORDING_IMPORT", answer.path("operation").path("kind").asString());
-            assertEquals("COMPLETED", answer.path("operation").path("status").asString());
-            assertEquals(answer.path("operationId").asString(), answer.path("operation").path("operationId").asString());
             JsonNode next = answer.path("followUp").path("nextTools").get(0);
             assertEquals("profiles_summary", next.path("tool").asString());
             assertEquals(PROFILE_ID, next.path("arguments").path("profileId").asString());
-        }
-
-        @Test
-        void aStillRunningAnalysisPointsAtTheRecordingsPageAndTheStatusCall() {
-            BoundedJobs<String, String> jobs = ToolFixtures.jobs(Duration.ofMillis(50));
-            RecordingsMcpTools slow = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(jobs).build();
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                release.await();
-                return PROFILE_ID;
-            });
-            try {
-                JsonNode answer = conforming(complete(slow.analyzeRecording(RECORDING_ID, true, RESOURCE_READ)));
-
-                assertEquals("RUNNING", answer.path("status").asString());
-                assertTrue(answer.path("uiLink").asString().endsWith("/recordings"), answer.toString());
-                assertEquals("RUNNING", answer.path("operation").path("status").asString());
-                JsonNode poll = answer.path("followUp").path("nextTools").get(0);
-                assertEquals("recordings_status", poll.path("tool").asString());
-                assertEquals(RECORDING_ID, poll.path("arguments").path("recordingId").asString());
-            } finally {
-                release.countDown();
-            }
         }
 
         @Test
@@ -1301,7 +1148,6 @@ class RecordingsMcpToolsTest {
             JsonNode answer = conforming(tools.status(RECORDING_ID).text());
 
             assertEquals("NOT_STARTED", answer.path("status").asString());
-            assertTrue(answer.path("operation").isNull());
             JsonNode analyse = answer.path("followUp").path("nextTools").get(0);
             assertEquals("recordings_analyzeRecording", analyse.path("tool").asString());
             assertFalse(analyse.path("arguments").has("retry"), analyse.toString());
@@ -1322,43 +1168,14 @@ class RecordingsMcpToolsTest {
             assertTrue(retry.path("arguments").path("retry").asBoolean());
         }
 
-        /**
-         * A failure this process retains is reported with the attempt behind it and the retry to
-         * make, on every poll, until retry=true starts a new attempt.
-         */
         @Test
-        void aRetainedFailureNamesTheRetryAndCarriesTheFailedAttempt() {
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
-            when(recordingsManager.analyzeRecording(RECORDING_ID))
-                    .thenThrow(new IllegalStateException("recording parser stopped"));
-            JsonNode attempted = conforming(complete(tools.analyzeRecording(RECORDING_ID, true, RESOURCE_READ)));
-            assertEquals("FAILED", attempted.path("status").asString());
-
-            JsonNode answer = conforming(tools.status(RECORDING_ID).text());
-
-            assertEquals("FAILED", answer.path("status").asString());
-            assertEquals("recording parser stopped", answer.path("errorMessage").asString());
-            assertEquals("FAILED", answer.path("operation").path("status").asString());
-            assertEquals(attempted.path("operationId").asString(), answer.path("operationId").asString());
-            assertTrue(answer.path("uiLink").asString().endsWith("/recordings"), answer.toString());
-            JsonNode retry = answer.path("followUp").path("nextTools").get(0);
-            assertEquals("recordings_analyzeRecording", retry.path("tool").asString());
-            assertEquals(RECORDING_ID, retry.path("arguments").path("recordingId").asString());
-            assertTrue(retry.path("arguments").path("retry").asBoolean());
-            assertEquals(2, McpNextToolConformance.assertFollowable(answer, recordingsSpecs()),
-                    "the answer's retry and the operation's own retry: " + answer);
-        }
-
-        @Test
-        void aReadyProfileIsReportedWithoutAnOperationWhenNoneIsRetained() {
+        void aReadyProfileIsReported() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
             profileIs(true);
 
             JsonNode answer = conforming(tools.status(RECORDING_ID).text());
 
             assertEquals("READY", answer.path("status").asString());
-            assertTrue(answer.path("operationId").isNull());
-            assertTrue(answer.path("operation").isNull());
         }
 
         /** The next calls go where the installation serves them: without profiles, no summary call. */
@@ -1366,7 +1183,7 @@ class RecordingsMcpToolsTest {
         void dropsTheSummaryCallWhereTheProfilesFamilyIsNotServed() {
             when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
             profileIs(true);
-            RecordingsMcpTools trimmed = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
+            RecordingsMcpTools trimmed = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry)
                     .withAdvertised(new AdvertisedFamilies(Set.of(AdvertisedFamilies.RECORDINGS))).build();
 
             JsonNode answer = trimmed.status(RECORDING_ID).structuredContent();
@@ -1418,79 +1235,6 @@ class RecordingsMcpToolsTest {
             String result = answer.get(5, SECONDS);
             assertTrue(result.contains("\"profileId\":\"" + PROFILE_ID + "\""), result);
             assertFalse(runRegistry.isRunning(PROFILE_ID));
-        }
-
-        @Test
-        void handsBackSomethingToPollRatherThanHangingOn() {
-            // A budget short enough that the stubbed work cannot beat it, so the timeout path is the
-            // one under test rather than a race.
-            RecordingsMcpTools slow = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(ToolFixtures.jobs(Duration.ofMillis(50))).build();
-            // Held open by the test rather than by a sleep, so the work is still running when the
-            // budget expires without leaving a thread asleep for five seconds after the assertions.
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                release.await();
-                return PROFILE_ID;
-            });
-
-            try {
-                String result = complete(slow.analyzeRecording(RECORDING_ID, true, RESOURCE_READ));
-
-                assertTrue(result.contains("\"status\":\"RUNNING\""));
-                assertTrue(result.contains(RECORDING_ID));
-                // Explicitly null rather than absent: the field is always there, and its emptiness is
-                // what says there is no profile to reach for yet.
-                assertTrue(result.contains("\"profileId\":null"), result);
-            } finally {
-                release.countDown();
-            }
-        }
-
-        @Test
-        void appliesTheRequestedNameAfterAWaitTimeout() throws IOException {
-            Path file = recordingFile("app.jfr");
-            BoundedJobs<String, String> jobs = ToolFixtures.jobs(Duration.ofMillis(50));
-            RecordingsMcpTools slow = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(jobs).build();
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                release.await();
-                return PROFILE_ID;
-            });
-
-            assertTrue(complete(slow.analyzeFile(file.toString(), "Checkout run", null, null, null, RESOURCE_READ))
-                    .contains("\"status\":\"RUNNING\""));
-            release.countDown();
-
-            await().atMost(5, SECONDS).untilAsserted(() ->
-                    verify(recordingsManager).updateProfileName(PROFILE_ID, "Checkout run"));
-        }
-
-        @Test
-        void reportsALateFailureWithItsReasonOnEveryPoll() {
-            BoundedJobs<String, String> jobs = ToolFixtures.jobs(Duration.ofMillis(50));
-            RecordingsMcpTools slow = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(jobs).build();
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                release.await();
-                throw new IllegalStateException("recording parser stopped");
-            });
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
-
-            assertTrue(complete(slow.analyzeRecording(RECORDING_ID, true, RESOURCE_READ))
-                    .contains("\"status\":\"RUNNING\""));
-            release.countDown();
-            await().atMost(5, SECONDS).until(() -> jobs.outcome(RECORDING_ID).isPresent());
-
-            String first = slow.status(RECORDING_ID).text();
-            String second = slow.status(RECORDING_ID).text();
-            assertTrue(first.contains("\"status\":\"FAILED\""), first);
-            assertTrue(first.contains("recording parser stopped"), first);
-            assertTrue(first.contains(RETRY_CALL), first);
-            assertTrue(second.contains("recording parser stopped"), second);
         }
 
         /**
@@ -1564,7 +1308,7 @@ class RecordingsMcpToolsTest {
                     PipelineRunOptions.bounded(1, null),
                     CLOCK);
             RecordingsMcpTools serial =
-                    RecordingsMcpToolsFixture.of(recordingsManager, serialRegistry, operations, CLOCK).build();
+                    RecordingsMcpToolsFixture.of(recordingsManager, serialRegistry).build();
             CountDownLatch firstStarted = new CountDownLatch(1);
             CountDownLatch releaseFirst = new CountDownLatch(1);
             AtomicBoolean queuedWorkStarted = new AtomicBoolean();
@@ -1642,7 +1386,6 @@ class RecordingsMcpToolsTest {
             // who wants to know what went wrong last time can find it.
             assertEquals(PROFILE_ID, result.path("profileId").asString(), result.toString());
             assertEquals("READY", result.path("status").asString(), "no top-level failure: " + result);
-            assertEquals("FAILED", result.path("operation").path("status").asString());
         }
 
         /**
@@ -1681,7 +1424,6 @@ class RecordingsMcpToolsTest {
 
             assertEquals(PROFILE_ID, result.path("profileId").asString(), result.toString());
             assertEquals("READY", result.path("status").asString(), "no failure status: " + result);
-            assertTrue(result.path("operation").isNull(), "the stale attempt is set aside: " + result);
             verify(recordingsManager, times(1)).analyzeRecording(RECORDING_ID);
         }
 
@@ -1702,160 +1444,6 @@ class RecordingsMcpToolsTest {
                     IllegalArgumentException.class, () -> tools.status(RECORDING_ID).text());
 
             assertTrue(e.getMessage().contains("No such recording"));
-        }
-    }
-
-    /**
-     * A client that declared the tasks extension is handed a long import or analysis as a task after
-     * the task budget instead of waiting out the standard 45 s, and the task answers with the profile
-     * a caller that waited would have been given.
-     */
-    @Nested
-    class TaskCapableClient {
-
-        /** The standard 45 s budget, and a task-capable client handed the task after a tenth of a second. */
-        private RecordingsMcpTools shortTaskWait() {
-            return RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withAnswers(new OperationAnswers(SHORT_TASK_WAIT)).build();
-        }
-
-        private McpToolOutcome withinTwentySeconds(ThrowingSupplier<McpToolOutcome> call, CountDownLatch release) {
-            try {
-                return assertTimeout(Duration.ofSeconds(20), call);
-            } catch (AssertionError e) {
-                release.countDown();
-                throw e;
-            }
-        }
-
-        private String completedAnswer(String taskId) {
-            // Polled on this thread: the answer links to the profile, which is built off the bound request.
-            await().pollInSameThread().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
-                    McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-            return assertInstanceOf(McpTaskState.Completed.class,
-                    operations.task(taskId, kind -> true).state()).result().text();
-        }
-
-        @Test
-        void handsBackARunningImportAsATaskWellBeforeTheStandardWait() throws Exception {
-            Path file = recordingFile("large.jfr");
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                assertTrue(release.await(60, SECONDS));
-                return PROFILE_ID;
-            });
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            profileIs(true);
-
-            RecordingsMcpTools tools = shortTaskWait();
-            McpToolOutcome outcome = withinTwentySeconds(
-                    () -> tools.analyzeFile(file.toString(), null, null, null, null, TASKS), release);
-
-            String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-            assertEquals(OperationKind.RECORDING_IMPORT, operations.status(taskId).kind());
-            assertEquals(McpTaskStatus.WORKING, operations.task(taskId, kind -> true).status());
-
-            release.countDown();
-            JsonNode answer = Json.readTree(completedAnswer(taskId));
-            assertEquals(PROFILE_ID, answer.path("profileId").asString(), answer.toString());
-            assertEquals(RECORDING_ID, answer.path("recordingId").asString(), answer.toString());
-            assertEquals(taskId, answer.path("operationId").asString(), answer.toString());
-        }
-
-        @Test
-        void handsBackARunningAnalysisAsATaskWellBeforeTheStandardWait() {
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                assertTrue(release.await(60, SECONDS));
-                return PROFILE_ID;
-            });
-            profileIs(true);
-
-            RecordingsMcpTools tools = shortTaskWait();
-            McpToolOutcome outcome = withinTwentySeconds(
-                    () -> tools.analyzeRecording(RECORDING_ID, null, TASKS), release);
-
-            String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-            assertEquals(OperationKind.RECORDING_ANALYSIS, operations.status(taskId).kind());
-
-            release.countDown();
-            JsonNode answer = Json.readTree(completedAnswer(taskId));
-            assertEquals(PROFILE_ID, answer.path("profileId").asString(), answer.toString());
-            assertEquals(taskId, answer.path("operationId").asString(), answer.toString());
-        }
-
-        /**
-         * The answer is rendered wherever the finished operation is first seen, which need not be a
-         * request thread: the link is built from the base read when the call registered it.
-         */
-        @Test
-        void completesWithTheLinkOfTheCallingRequestWhenNoRequestIsBoundLater() throws Exception {
-            Path file = recordingFile("unbound.jfr");
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                assertTrue(release.await(60, SECONDS));
-                return PROFILE_ID;
-            });
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            profileIs(true);
-            String expectedLink = UiLinks.profile(PROFILE_ID);
-            RecordingsMcpTools tools = shortTaskWait();
-            String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, withinTwentySeconds(
-                    () -> tools.analyzeFile(file.toString(), null, null, null, null, TASKS), release)).taskId();
-
-            RequestContextHolder.resetRequestAttributes();
-            release.countDown();
-
-            await().atMost(5, SECONDS).untilAsserted(() -> assertEquals(
-                    McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-            McpTaskState.Completed completed = assertInstanceOf(McpTaskState.Completed.class,
-                    operations.task(taskId, kind -> true).state());
-            assertEquals(expectedLink, Json.readTree(completed.result().text()).path("uiLink").asString());
-        }
-
-        /**
-         * An import that lands inside the task budget is answered at once, and what the task holds
-         * for that operation is the very same text.
-         */
-        @Test
-        void answersAnImportThatLandsInsideTheTaskBudgetWithTheTasksOwnAnswer() throws IOException {
-            Path file = recordingFile("small.jfr");
-            when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-            profileIs(true);
-
-            McpToolOutcome outcome = tools.analyzeFile(file.toString(), null, null, null, null, TASKS);
-
-            String answer = assertInstanceOf(McpToolResult.class, outcome).text();
-            String taskId = Json.readTree(answer).path("operationId").asString();
-            assertEquals(answer, completedAnswer(taskId));
-        }
-
-        /** Without the extension the call still waits, and still answers with the operation to poll. */
-        @Test
-        void aClientWithoutTheExtensionStillGetsTheOperationToPoll() {
-            RecordingsMcpTools bounded = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                    .withJobs(ToolFixtures.jobs(Duration.ofMillis(50))).build();
-            CountDownLatch release = new CountDownLatch(1);
-            when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(false)));
-            when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-                assertTrue(release.await(60, SECONDS));
-                return PROFILE_ID;
-            });
-
-            try {
-                McpToolOutcome outcome = bounded.analyzeRecording(RECORDING_ID, null, NO_TASKS);
-
-                JsonNode answer = Json.readTree(assertInstanceOf(McpToolResult.class, outcome).text());
-                assertEquals("RUNNING", answer.path("status").asString(), answer.toString());
-                assertFalse(answer.path("operationId").asString().isBlank(), answer.toString());
-            } finally {
-                release.countDown();
-            }
         }
     }
 

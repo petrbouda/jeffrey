@@ -34,7 +34,6 @@ const headings = [
   { id: 'what-you-give-up', text: 'What You Give Up', level: 2 },
   { id: 'prompts-skills-and-resources', text: 'Prompts, Skills and Resources', level: 2 },
   { id: 'the-wire-protocol', text: 'The Wire Protocol', level: 2 },
-  { id: 'tasks', text: 'Tasks', level: 3 },
   { id: 'input-requests', text: 'Input Requests', level: 3 },
   { id: 'what-an-older-client-sees', text: 'What an Older Client Sees', level: 3 },
   { id: 'instructions-and-completions', text: 'Instructions and Completions', level: 2 },
@@ -104,7 +103,6 @@ const discoverResult = `{
       "resources": { "subscribe": false, "listChanged": false },
       "completions": {},
       "extensions": {
-        "io.modelcontextprotocol/tasks": {},
         "io.modelcontextprotocol/skills": {}
       }
     },
