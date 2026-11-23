@@ -25,12 +25,9 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.McpTestProperties;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorSessionRef;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
@@ -81,8 +78,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
 import static cafe.jeffrey.microscope.mcp.protocol.McpCallContext.RESOURCE_READ;
 import static org.awaitility.Awaitility.await;
@@ -117,7 +112,6 @@ class ConnectorArtifactsMcpToolsTest {
 
     private final ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
     private final RecordingsManager recordingsManager = mock(RecordingsManager.class);
-    private final McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
     private final RepositoryManager repository = mock(RepositoryManager.class);
 
     private ConnectorArtifactsMcpTools tools;
@@ -127,7 +121,7 @@ class ConnectorArtifactsMcpToolsTest {
         // The request every link is built from, inherited by the threads a test starts.
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()), true);
         tools = ConnectorArtifactsMcpToolsFixture.of(resolver, recordingsManager, home.resolve("artifacts"),
-                        home.resolve("profiles"), operations, CLOCK, EVERY_FAMILY)
+                        home.resolve("profiles"), CLOCK, EVERY_FAMILY)
                 .withBudget(Duration.ofSeconds(5)).build();
     }
 
@@ -457,110 +451,6 @@ class ConnectorArtifactsMcpToolsTest {
     @Nested
     class Fetching {
 
-        /**
-         * A client that declared the tasks extension is handed a long transfer as a task after the
-         * task budget. Only the wait on the transfer is shortened: the preflight that finds the file
-         * on the connector keeps the whole response budget.
-         */
-        @Nested
-        class TaskCapableClient {
-
-            private ConnectorArtifactsMcpTools standardBudget() {
-                return standardBudget(ToolFixtures.answers());
-            }
-
-            /** The standard 45 s budget, and a task-capable client handed the task after a tenth of a second. */
-            private ConnectorArtifactsMcpTools shortTaskWait() {
-                return standardBudget(new OperationAnswers(SHORT_TASK_WAIT));
-            }
-
-            private ConnectorArtifactsMcpTools standardBudget(OperationAnswers answers) {
-                return new ConnectorArtifactsMcpTools(resolver, recordingsManager, home.resolve("artifacts"),
-                        home.resolve("profiles"), operations, answers, CLOCK, BoundedJobs.WAIT_BUDGET,
-                        EVERY_FAMILY);
-            }
-
-            @Test
-            void handsBackARunningTransferAsATask() throws Exception {
-                RecordingSession session = session(finished("f-log", "service-app.log", ManagedFile.APP_LOG));
-                connectorHolds(session);
-                StreamedFile streamed = streamed("service-app.log");
-                CountDownLatch release = new CountDownLatch(1);
-                when(repository.streamFile(SESSION_ID, "f-log")).thenAnswer(_ -> {
-                    assertTrue(release.await(60, TimeUnit.SECONDS));
-                    return streamed;
-                });
-                ConnectorArtifactsMcpTools tools = shortTaskWait();
-
-                McpToolOutcome outcome;
-                try {
-                    outcome = assertTimeout(Duration.ofSeconds(20),
-                            () -> tools.fetchFile(REF.encode(), "f-log", TASKS));
-                } catch (AssertionError e) {
-                    release.countDown();
-                    throw e;
-                }
-
-                String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-                assertEquals(OperationKind.CONNECTOR_FETCH, operations.status(taskId).kind());
-
-                release.countDown();
-                await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                        McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-                JsonNode answer = Json.readTree(assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-                assertEquals(unlinkedTarget("service-app.log").toString(), answer.path("path").asString());
-                assertEquals(taskId, answer.path("operationId").asString(), answer.toString());
-            }
-
-            /**
-             * A transfer that fails after the call was handed a task names, in its operation, the call
-             * that starts it again: this tool with the same session and file, a typed call rather than a
-             * sentence.
-             */
-            @Test
-            void aFailedTransferNamesTheCallThatFetchesItAgain() throws Exception {
-                connectorHolds(session(finished("f-log", "service-app.log", ManagedFile.APP_LOG)));
-                CountDownLatch release = new CountDownLatch(1);
-                when(repository.streamFile(SESSION_ID, "f-log")).thenAnswer(_ -> {
-                    assertTrue(release.await(60, TimeUnit.SECONDS));
-                    throw new IllegalStateException("hub went away");
-                });
-                ConnectorArtifactsMcpTools tools = shortTaskWait();
-
-                McpToolOutcome outcome;
-                try {
-                    outcome = tools.fetchFile(REF.encode(), "f-log", TASKS);
-                } finally {
-                    release.countDown();
-                }
-
-                String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-                await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                        OperationState.FAILED, operations.status(taskId).status()));
-                JsonNode snapshot = Json.toTree(operations.status(taskId));
-                JsonNode retry = snapshot.path("followUp").path("nextTools").get(0);
-                assertEquals("connector_fetchFile", retry.path("tool").asString(), snapshot.toString());
-                assertEquals(REF.encode(), retry.path("arguments").path("sessionRef").asString());
-                assertEquals("f-log", retry.path("arguments").path("fileId").asString());
-                McpNextToolConformance.assertFollowable(snapshot, StructuredAnswers.reachable());
-            }
-
-            /** A transfer that lands inside the task budget answers the call with the task's own text. */
-            @Test
-            void answersATransferThatLandsInsideTheTaskBudgetWithTheTasksOwnAnswer() throws IOException {
-                connectorHolds(session(finished("f-log", "service-app.log", ManagedFile.APP_LOG)));
-                when(repository.streamFile(SESSION_ID, "f-log")).thenReturn(streamed("service-app.log"));
-
-                McpToolOutcome outcome = standardBudget().fetchFile(REF.encode(), "f-log", TASKS);
-
-                String answer = assertInstanceOf(McpToolResult.class, outcome).text();
-                String taskId = Json.readTree(answer).path("operationId").asString();
-                assertEquals(answer, assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-            }
-        }
-
         @Test
         void fetchesAFinishedArtifactUnderTheArtifactsDirectoryAndAnswersWithItsPath() throws IOException {
             connectorHolds(session(finished("f-log", "service-app.log", ManagedFile.APP_LOG)));
@@ -576,8 +466,6 @@ class ConnectorArtifactsMcpToolsTest {
             assertFalse(answer.path("alreadyHere").asBoolean());
             assertEquals("FETCHED", answer.path("status").asString());
             assertTrue(StructuredAnswers.guidance(answer).contains("your own tools"), answer.toString());
-            assertFalse(answer.path("operationId").asString().isBlank(), answer.toString());
-            assertEquals("COMPLETED", answer.path("operation").path("status").asString());
             assertTrue(answer.path("uiLink").asString().endsWith("/connector"), answer.toString());
         }
 
@@ -631,9 +519,9 @@ class ConnectorArtifactsMcpToolsTest {
         @Test
         void aHeapDumpSaysTheHeapToolsAreNotServedWhenTheHeapFamilyIsWithheld() throws IOException {
             tools = ConnectorArtifactsMcpToolsFixture.of(resolver, recordingsManager, home.resolve("artifacts"),
-                            home.resolve("profiles"), operations, CLOCK,
+                            home.resolve("profiles"), CLOCK,
                             AdvertisedFamilies.of(McpTestProperties.of(
-                                    true, true, true, Set.of("profiles", "recordings", "connector", "operations"))))
+                                    true, true, true, Set.of("profiles", "recordings", "connector"))))
                     .withBudget(Duration.ofSeconds(5)).build();
             connectorHolds(session(finished("f-heap", "heap-dump.hprof.gz", ManagedFile.HEAP_DUMP_GZ)));
             when(repository.streamFile(SESSION_ID, "f-heap")).thenReturn(streamed("heap-dump.hprof.gz"));

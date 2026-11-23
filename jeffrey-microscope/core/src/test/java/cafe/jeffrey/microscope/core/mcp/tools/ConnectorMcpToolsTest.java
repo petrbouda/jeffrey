@@ -983,78 +983,6 @@ class ConnectorMcpToolsTest {
                     .build();
         }
 
-        /**
-         * A client that declared the tasks extension is handed a long transfer as a task after the
-         * task budget. Only the wait on the transfer is shortened: the preflight that reads the
-         * session from the connector keeps the whole response budget.
-         */
-        @Nested
-        class TaskCapableClient {
-
-            @Test
-            void handsBackARunningTransferAsATask() throws Exception {
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools standard = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
-                        .withOperations(operations).withAnswers(new OperationAnswers(SHORT_TASK_WAIT))
-                        .build();
-                RepositoryManager repo = mock(RepositoryManager.class);
-                when(repo.recordingSession(SESSION_ID)).thenReturn(jfrSession(SESSION_ID, NOW));
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
-                    assertTrue(release.await(60, TimeUnit.SECONDS));
-                    return "rec-new";
-                });
-                ProjectManager project = mock(ProjectManager.class);
-                when(project.repositoryManager()).thenReturn(repo);
-                when(project.info()).thenReturn(new ProjectInfo(
-                        PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
-                when(project.recordingsDownloadManager()).thenReturn(downloads);
-                resolvesTo(project);
-                noLocalRecordings();
-
-                McpToolOutcome outcome;
-                try {
-                    outcome = assertTimeout(Duration.ofSeconds(20),
-                            () -> standard.download(REF.encode(), null, null, null, null, null, null, null, TASKS));
-                } catch (AssertionError e) {
-                    release.countDown();
-                    throw e;
-                }
-
-                String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-                assertEquals(OperationKind.CONNECTOR_DOWNLOAD, operations.status(taskId).kind());
-
-                release.countDown();
-                await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                        McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-                JsonNode answer = Json.readTree(assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-                assertEquals("rec-new", answer.path("recordingId").asString(), answer.toString());
-                assertEquals(taskId, answer.path("operationId").asString(), answer.toString());
-            }
-
-            /** A transfer that lands inside the task budget answers the call with the task's own text. */
-            @Test
-            void answersATransferThatLandsInsideTheTaskBudgetWithTheTasksOwnAnswer() {
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools standard = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
-                        .withOperations(operations).build();
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
-                resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-                noLocalRecordings();
-
-                McpToolOutcome outcome = standard.download(REF.encode(), null, null, null, null, null, null, null, TASKS);
-
-                String answer = assertInstanceOf(McpToolResult.class, outcome).text();
-                String taskId = Json.readTree(answer).path("operationId").asString();
-                assertEquals(answer, assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-            }
-        }
 
         @Test
         void downloadsTheSessionTheRefNamesAndReturnsTheRecordingId() {
@@ -1383,11 +1311,9 @@ class ConnectorMcpToolsTest {
             @Test
             void asksAboutASessionOverTheSizeThresholdAlone() {
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools strict = new ConnectorMcpTools(connectorManager, resolver, recordingsManager, CLOCK,
-                        Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, operations,
-                        ToolFixtures.answers(), new DownloadWindowQuestion(Duration.ofHours(1), 1000),
-                        AdvertisedFamiliesFixture.EVERY_FAMILY);
+                ConnectorMcpTools strict = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
+                        .withWindowQuestion(new DownloadWindowQuestion(Duration.ofHours(1), 1000))
+                        .build();
                 resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
                 noLocalRecordings();
 
@@ -1493,46 +1419,6 @@ class ConnectorMcpToolsTest {
                 assertTrue(StructuredAnswers.guidance(answer).contains("recordings_delete"), answer.toString());
             }
 
-            /**
-             * The still-running answer to a chosen window names that window, and following it to the
-             * letter joins the same transfer: no second question, no second download.
-             */
-            @Test
-            void followingTheStillRunningAnswerToAChosenWindowJoinsItsTransfer() {
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenAnswer(_ -> {
-                    assertTrue(release.await(10, TimeUnit.SECONDS));
-                    return "rec-window";
-                });
-                resolvesTo(projectWith(threeHours(), downloads));
-                noLocalRecordings();
-                ConnectorMcpTools impatient = toolsWithBudget(Duration.ofMillis(200));
-                JsonNode first;
-                JsonNode followed;
-                try {
-                    message(impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING));
-                    first = StructuredAnswers.json(ConnectorMcpTools.class, "download", impatient.download(
-                            REF.encode(), null, null, null, null, null, null, null, answering(ELICITING, KEY,
-                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}")));
-                    assertEquals("RUNNING", first.path("status").asString(), first.toString());
-                    assertEquals(List.of("operations_status", "connector_download"), StructuredAnswers.nextTools(first));
-                    JsonNode join = StructuredAnswers.call(first, "connector_download");
-                    assertEquals(NOW.minus(Duration.ofHours(1)).toEpochMilli(), join.path("startEpochMs").asLong(), join.toString());
-                    assertEquals(NOW.toEpochMilli(), join.path("endEpochMs").asLong(), join.toString());
-                    assertFalse(join.has("retry"), "joining is not a retry");
-
-                    McpToolOutcome followUp = impatient.download(REF.encode(), null, null, null,
-                            join.path("startEpochMs").asLong(), join.path("endEpochMs").asLong(), null, null, ELICITING);
-
-                    followed = Json.readTree(assertInstanceOf(McpToolResult.class, followUp).text());
-                } finally {
-                    release.countDown();
-                }
-                assertFalse(first.path("operationId").asString().isBlank(), first.toString());
-                assertEquals(first.path("operationId").asString(), followed.path("operationId").asString());
-                verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
-            }
 
             /** A window no chunk covers is asked about again, not turned into an error. */
             @Test
@@ -1641,40 +1527,6 @@ class ConnectorMcpToolsTest {
                 verifyNoInteractions(downloads);
             }
 
-            /** Asked first, then on the retry the transfer runs as it would have: here, as a task. */
-            @Test
-            void aClientWithTasksIsAskedAndThenHandedATask() throws Exception {
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools standard = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
-                        .withOperations(operations).withAnswers(new OperationAnswers(SHORT_TASK_WAIT))
-                        .build();
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenAnswer(_ -> {
-                    assertTrue(release.await(60, TimeUnit.SECONDS));
-                    return "rec-window";
-                });
-                resolvesTo(projectWith(threeHours(), downloads));
-                noLocalRecordings();
-
-                message(standard.download(REF.encode(), null, null, null, null, null, null, null, ELICITING_TASKS));
-                McpToolOutcome outcome;
-                try {
-                    outcome = assertTimeout(Duration.ofSeconds(20), () -> standard.download(
-                            REF.encode(), null, null, null, null, null, null, null, answering(ELICITING_TASKS, KEY,
-                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}")));
-                } finally {
-                    release.countDown();
-                }
-
-                String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-                await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                        McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-                JsonNode answer = Json.readTree(assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-                assertEquals("rec-window", answer.path("recordingId").asString(), answer.toString());
-            }
         }
 
         private RecordingSession fourChunks() {
