@@ -82,7 +82,7 @@ jobs:
           out="${RUNNER_TEMP}/confirm.json"
           curl -s --max-time 10 -o "$out" \
             -H 'Content-Type: application/json' \
-            -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' \
+            -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' -H 'Mcp-Name: sample_confirm' \
             -d "$req" "$URL"
           echo "sample_confirm:"; cat "$out"; echo
           grep -q 'input_required' "$out" || { echo "FAIL: no input_required"; exit 1; }
@@ -95,7 +95,7 @@ jobs:
           out="${RUNNER_TEMP}/progress.txt"
           curl -N -s --max-time 20 -D "${RUNNER_TEMP}/progress.hdr" -o "$out" \
             -H 'Content-Type: application/json' -H 'Accept: text/event-stream' \
-            -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' \
+            -H 'MCP-Protocol-Version: 2026-07-28' -H 'Mcp-Method: tools/call' -H 'Mcp-Name: sample_progress' \
             -d "$req" "$URL"
           echo "headers:"; cat "${RUNNER_TEMP}/progress.hdr"; echo "body:"; cat "$out"; echo
           grep -qi 'text/event-stream' "${RUNNER_TEMP}/progress.hdr" || { echo "FAIL: not SSE"; exit 1; }
