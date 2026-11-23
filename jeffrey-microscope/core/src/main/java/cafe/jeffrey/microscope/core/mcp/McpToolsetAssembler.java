@@ -158,12 +158,6 @@ public class McpToolsetAssembler {
             OperationAnswers answers,
             Clock clock) {
 
-        // Shared by every call rather than built per call, so a second request joins the run in flight.
-        BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns =
-                BoundedOperation.standard(OperationKind.JVM_AUTO_ANALYSIS, operations, answers, clock);
-        BoundedOperation<OQLQueryResult> retainedOqlRuns =
-                BoundedOperation.standard(OperationKind.HEAP_OQL, operations, answers, clock);
-
         ProfileFamilies onProfile = new ProfileFamilies(contextCache, advertised);
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PROFILES),
@@ -200,8 +194,7 @@ public class McpToolsetAssembler {
                 onProfile.of(HeapOqlMcpTools.class, HEAP, (scope, profileId) -> {
                     // OQL reads the same index, so it is refused on the same terms.
                     requireIndexedHeapDump(scope.profileManager(), profileId);
-                    return new HeapOqlMcpTools(scope.profileManager(), retainedOqlRuns,
-                            () -> contextCache.acquire(profileId), advertised);
+                    return new HeapOqlMcpTools(scope.profileManager(), advertised);
                 }),
                 onProfile.of(HeapDumpMcpTools.class, HEAP,
                         (scope, profileId) -> heapTools(scope.profileManager(), profileId, advertised)),

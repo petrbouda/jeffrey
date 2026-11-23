@@ -108,24 +108,15 @@ public class HeapOqlMcpTools {
             "One OQL row is larger than an answer can carry; select fewer or smaller fields.";
 
     private final ProfileManager profileManager;
-    private final BoundedOperation<OQLQueryResult> retainedRuns;
-    private final Supplier<? extends AutoCloseable> backgroundLease;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param retainedRuns    shared by every call, so a query that builds the dominator tree is run
-     *                        once however often it is asked, and operations_status can follow it
-     * @param backgroundLease holds this profile open while such a query outlives the call
-     * @param advertised      the families this installation serves, which gate the next calls
+     * @param advertised the families this installation serves, which gate the next calls
      */
     public HeapOqlMcpTools(
             ProfileManager profileManager,
-            BoundedOperation<OQLQueryResult> retainedRuns,
-            Supplier<? extends AutoCloseable> backgroundLease,
             AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
-        this.retainedRuns = retainedRuns;
-        this.backgroundLease = backgroundLease;
         this.advertised = advertised;
     }
 
@@ -182,18 +173,12 @@ public class HeapOqlMcpTools {
                     null, null));
         }
 
-        return retainedRuns.run(new BoundedOperation.Work<>(
-                        String.join(KEY_SEPARATOR, profileId, statement,
-                                String.valueOf(pageSize), start.key()),
-                        backgroundLease,
-                        () -> succeeded(profileManager.heapDumpManager().executeQuery(request)),
-                        result -> present(page, result, null, null),
-                        page.call(OQL_TOOL).with(CURSOR, cursor == null || cursor.isBlank() ? null : cursor.trim())
-                                .why(WHY_RETRY)),
-                call,
-                new BoundedOperation.Replies<>(
-                        (result, operation) -> present(page, result, operation.operationId(), operation),
-                        operation -> running(page, operation)));
+        // Runs on this call and streams progress. HeapDumpSessionCache serialises work on a per-dump lock
+        // and buildDominatorTreeIfNeeded is idempotent, so a concurrent retained query on the same dump
+        // waits for and reuses the one tree rather than building a second.
+        call.reportProgress(0.0, 1.0, "Building the dominator tree and computing retained sizes");
+        OQLQueryResult result = succeeded(profileManager.heapDumpManager().executeQuery(request));
+        return McpToolResult.of(present(page, result, null, null));
     }
 
     /**
