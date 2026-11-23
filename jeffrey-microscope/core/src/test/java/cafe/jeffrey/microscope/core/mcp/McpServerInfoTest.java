@@ -59,23 +59,10 @@ class McpServerInfoTest {
                 {"tools":true,"resources":true,"prompts":true,
                  "resourceSubscriptions":false,"listChangedNotifications":false,
                  "structuredToolResults":true,
-                 "completions":true,"instructions":true,"resourceLinks":true,"tasks":true,"skills":true,
-                 "streaming":false,"sessions":false,"progressNotifications":false,
+                 "completions":true,"instructions":true,"resourceLinks":true,"skills":true,
+                 "streaming":true,"sessions":false,"progressNotifications":true,
                  "paginatedTools":["profiles_list"]}
                 """), json.path("capabilities"));
-    }
-
-    /**
-     * Tasks follow the operations a served family starts; an installation that serves no such family
-     * follows none, and says so here as {@code server/discover} does by leaving the extension out.
-     */
-    @Test
-    void reportsNoTasksWhenNoServedFamilyStartsAnOperation() {
-        McpServerInfo info = new McpServerInfo(
-                McpTestProperties.of(true, true, true, Set.of("profiles")),
-                new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles"), false);
-
-        assertFalse(Json.readTree(info.json()).path("capabilities").path("tasks").asBoolean(true));
     }
 
     /**
@@ -86,20 +73,10 @@ class McpServerInfoTest {
     @Test
     void reportsNoCompletionsWhenTheProfilesFamilyIsNotServed() {
         McpServerInfo info = new McpServerInfo(
-                McpTestProperties.of(true, false, false, Set.of("heap", "operations")),
+                McpTestProperties.of(true, false, false, Set.of("heap")),
                 new ReflectiveToolset(new DiagnosticFixture(), "heap"), false);
 
         assertFalse(Json.readTree(info.json()).path("capabilities").path("completions").asBoolean(true));
-    }
-
-    /** One served family that starts operations is enough. */
-    @Test
-    void reportsTasksWhileAnyServedFamilyStartsAnOperation() {
-        McpServerInfo info = new McpServerInfo(
-                McpTestProperties.of(true, false, false, Set.of("recordings", "operations")),
-                new ReflectiveToolset(new ProfileDiscoveryFixture(), "profiles"), false);
-
-        assertTrue(Json.readTree(info.json()).path("capabilities").path("tasks").asBoolean(false));
     }
 
     /**
@@ -120,7 +97,7 @@ class McpServerInfoTest {
     @Test
     void advertisesPaginationOnlyForExposedDiscoveryTools() {
         McpServerInfo info = new McpServerInfo(
-                McpTestProperties.of(true, false, false, Set.of("heap", "operations")),
+                McpTestProperties.of(true, false, false, Set.of("heap")),
                 new ReflectiveToolset(new DiagnosticFixture(), "heap"), false);
 
         assertEquals(Json.readTree("[]"),

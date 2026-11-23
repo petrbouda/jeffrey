@@ -88,7 +88,7 @@ class McpCompletionsTest {
 
         @Test
         void offersNoneWhenTheCatalogueFamilyIsNotSelected() {
-            assertFalse(completions(McpTestProperties.of(true, true, true, Set.of("heap", "operations"))).isAvailable());
+            assertFalse(completions(McpTestProperties.of(true, true, true, Set.of("heap"))).isAvailable());
         }
 
         /**

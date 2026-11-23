@@ -121,7 +121,7 @@ class ExternalMcpPropertiesTest {
         @Test
         void refusesConnectorWithoutRecordings() {
             IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> withFamilies(Set.of("connector", "operations")));
+                    () -> withFamilies(Set.of("connector")));
 
             assertTrue(failure.getMessage().contains("recordings"), failure.getMessage());
             assertTrue(failure.getMessage().contains("connector"), failure.getMessage());
@@ -129,7 +129,7 @@ class ExternalMcpPropertiesTest {
 
         @Test
         void acceptsConnectorWithRecordings() {
-            ExternalMcpProperties properties = withFamilies(Set.of("connector", "recordings", "operations"));
+            ExternalMcpProperties properties = withFamilies(Set.of("connector", "recordings"));
 
             assertTrue(properties.advertises("connector"));
             assertTrue(properties.advertises("recordings"));

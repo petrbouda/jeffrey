@@ -56,7 +56,6 @@ public final class McpTestRequests {
     private static final String FIELD_PARAMS = "params";
     private static final String FIELD_NAME = "name";
     private static final String FIELD_URI = "uri";
-    private static final String FIELD_TASK_ID = "taskId";
     private static final String FIELD_ARGUMENTS = "arguments";
     private static final String FIELD_VERSION = "version";
 
@@ -64,14 +63,11 @@ public final class McpTestRequests {
     private static final String PROMPTS_GET = "prompts/get";
     private static final String RESOURCES_READ = "resources/read";
 
-    /** The param each named method repeats in {@code Mcp-Name}; {@code tasks/*} name their {@code taskId}. */
+    /** The param each named method repeats in {@code Mcp-Name}. */
     private static final Map<String, String> NAME_FIELDS = Map.of(
             TOOLS_CALL, FIELD_NAME,
             PROMPTS_GET, FIELD_NAME,
-            RESOURCES_READ, FIELD_URI,
-            "tasks/get", FIELD_TASK_ID,
-            "tasks/update", FIELD_TASK_ID,
-            "tasks/cancel", FIELD_TASK_ID);
+            RESOURCES_READ, FIELD_URI);
 
     private static final String CLIENT_NAME = "mcp-test-client";
     private static final String CLIENT_VERSION = "1";
