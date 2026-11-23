@@ -37,8 +37,6 @@ import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
@@ -109,7 +107,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING_TASKS;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.answering;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
@@ -1988,84 +1985,6 @@ class ConnectorMcpToolsTest {
             }
         }
 
-        /**
-         * What connector_download answers once the attempt under its key has failed, until retry=true: the
-         * failed attempt's status, not the failure again and not a new transfer.
-         */
-        private static void assertReportsARetainedFailure(String answer) {
-            assertEquals("FAILED", Json.mapper().readTree(answer).path("status").asString(), answer);
-        }
-
-        @Test
-        void retryPreflightFailureIsNotReplacedByThePreviousAttemptFailure() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID)).thenThrow(new IllegalStateException("old failure"));
-            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
-            when(project.repositoryManager().recordingSession(SESSION_ID))
-                    .thenReturn(jfrSession(SESSION_ID, NOW))
-                    .thenThrow(new JeffreyInternalException(ErrorCode.CONNECTOR_UNAVAILABLE, "new preflight failure"));
-            resolvesTo(project);
-            noLocalRecordings();
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            JeffreyException failure = assertThrows(JeffreyException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
-            assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, failure.getCode());
-            assertTrue(failure.getMessage().contains("new preflight failure"), failure.getMessage());
-            verify(downloads, times(1)).downloadSession(SESSION_ID);
-        }
-
-        @Test
-        void mcpFailuresReturnAnOperationIdAndRequireAnExplicitRetry() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID))
-                    .thenThrow(new IllegalStateException("connection lost"))
-                    .thenReturn("rec-retried");
-            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-            noLocalRecordings();
-            var first =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, false, RESOURCE_READ)));
-            String operationId = first.path("operationId").asString();
-            assertFalse(operationId.isBlank());
-            assertEquals("FAILED", first.path("status").asString());
-            var retained =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, false, RESOURCE_READ)));
-            assertEquals(operationId, retained.path("operationId").asString());
-            verify(downloads, times(1)).downloadSession(SESSION_ID);
-            var retry =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
-            assertFalse(operationId.equals(retry.path("operationId").asString()));
-            assertEquals("COMPLETED", retry.path("operation").path("status").asString());
-        }
-
-        /**
-         * A failed transfer is reported with the call that starts it again - the same session and the
-         * same part, with retry=true - and its operation, as operations_status reports it, names the
-         * very same call rather than a sentence.
-         */
-        @Test
-        void aFailedTransferHandsBackTheCallThatRetriesIt() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadWindow(eq(SESSION_ID), any())).thenThrow(new IllegalStateException("connection lost"));
-            resolvesTo(projectWith(fourChunks(), downloads));
-            noLocalRecordings();
-            long start = NOW.plusSeconds(200).toEpochMilli();
-            long end = NOW.plusSeconds(320).toEpochMilli();
-
-            JsonNode failed = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, start, end, null, false, RESOURCE_READ));
-
-            assertEquals("FAILED", failed.path("status").asString(), failed.toString());
-            assertTrue(failed.path("reason").asString().contains("connection lost"), failed.toString());
-            JsonNode retry = StructuredAnswers.call(failed, "connector_download");
-            assertEquals(REF.encode(), retry.path("sessionRef").asString());
-            assertEquals(start, retry.path("startEpochMs").asLong());
-            assertEquals(end, retry.path("endEpochMs").asLong());
-            assertTrue(retry.path("retry").asBoolean());
-            JsonNode operationRetry = failed.path("operation").path("followUp").path("nextTools").get(0);
-            assertEquals("connector_download", operationRetry.path("tool").asString());
-            assertEquals(retry, operationRetry.path("arguments"));
-            assertTrue(failed.path("uiLink").asString().endsWith("/connector"), failed.toString());
-        }
 
         /** A whole session already here is a DOWNLOADED answer that counts nothing it did not count. */
         @Test
@@ -2097,57 +2016,6 @@ class ConnectorMcpToolsTest {
             assertTrue(answer.path("uiLink").asString().endsWith("/profiles/profile-1"), answer.toString());
         }
 
-        @Test
-        void failedTransferCanBeRetriedWithTheSameFullRef() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID))
-                    .thenThrow(new IllegalStateException("connection lost"))
-                    .thenReturn("rec-retried");
-            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-            noLocalRecordings();
-
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ))
-                    .contains("rec-retried"));
-        }
-
-        @Test
-        void lateFailureIsRetainedAcrossPollsUntilRetryIsExplicit() throws Exception {
-            CountDownLatch transferStarted = new CountDownLatch(1);
-            CountDownLatch release = new CountDownLatch(1);
-            CountDownLatch failed = new CountDownLatch(1);
-            AtomicInteger attempts = new AtomicInteger();
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
-                int attempt = attempts.incrementAndGet();
-                if (attempt == 1) {
-                    transferStarted.countDown();
-                    release.await(1, TimeUnit.SECONDS);
-                    failed.countDown();
-                    throw new IllegalStateException("late connection loss");
-                }
-                return "rec-retried";
-            });
-            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-            noLocalRecordings();
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
-
-            String first = complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
-            assertTrue(first.contains("still running"), first);
-            assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
-            release.countDown();
-            assertTrue(failed.await(1, TimeUnit.SECONDS));
-
-            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            verify(downloads, times(1)).downloadSession(SESSION_ID);
-
-            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ))
-                    .contains("rec-retried"));
-            verify(downloads, times(2)).downloadSession(SESSION_ID);
-        }
 
         @Test
         void refetchesACompletedSessionWhenItsRetainedRecordingWasDeleted() {
@@ -2167,53 +2035,6 @@ class ConnectorMcpToolsTest {
             verify(downloads, times(2)).downloadSession(SESSION_ID);
         }
 
-        @Test
-        void failureDuringAPollPreflightDoesNotSilentlyRestartTheTransfer() throws Exception {
-            CountDownLatch transferStarted = new CountDownLatch(1);
-            CountDownLatch releaseTransfer = new CountDownLatch(1);
-            CountDownLatch failurePublished = new CountDownLatch(1);
-            CountDownLatch secondPreflight = new CountDownLatch(1);
-            CountDownLatch releasePreflight = new CountDownLatch(1);
-            AtomicInteger preflightCalls = new AtomicInteger();
-
-            RepositoryManager repository = mock(RepositoryManager.class);
-            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
-                if (preflightCalls.incrementAndGet() == 2) {
-                    secondPreflight.countDown();
-                    releasePreflight.await(2, TimeUnit.SECONDS);
-                }
-                return jfrSession(SESSION_ID, NOW);
-            });
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
-                transferStarted.countDown();
-                releaseTransfer.await(2, TimeUnit.SECONDS);
-                throw new PublishedFailure(failurePublished);
-            });
-            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
-            when(project.repositoryManager()).thenReturn(repository);
-            resolvesTo(project);
-            noLocalRecordings();
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
-
-            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
-                    .contains("still running"));
-            assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
-            try (ExecutorService callers = Executors.newSingleThreadExecutor()) {
-                Future<String> poll = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-                assertTrue(secondPreflight.await(1, TimeUnit.SECONDS));
-                releaseTransfer.countDown();
-                assertTrue(failurePublished.await(1, TimeUnit.SECONDS));
-                releasePreflight.countDown();
-
-                assertReportsARetainedFailure(poll.get(1, TimeUnit.SECONDS));
-                verify(downloads, times(1)).downloadSession(SESSION_ID);
-            } finally {
-                releaseTransfer.countDown();
-                releasePreflight.countDown();
-            }
-        }
 
         @Test
         void unavailableProjectLookupIsNotReportedAsAStaleRef() {

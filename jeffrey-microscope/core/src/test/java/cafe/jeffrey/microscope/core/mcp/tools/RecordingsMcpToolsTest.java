@@ -166,15 +166,14 @@ class RecordingsMcpToolsTest {
     }
 
     @Test
-    void importedProfileExposesItsOperationIdentityAndCanonicalStatus() throws IOException {
+    void importedProfileIsReadyWithItsProfileId() throws IOException {
         Path file = recordingFile("operation.jfr");
         when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
         when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
         String result = complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ));
-        assertTrue(result.contains("\"operationId\""), result);
-        assertTrue(result.contains("\"operation\""), result);
-        assertTrue(result.contains("\"status\":\"COMPLETED\""), result);
+        assertTrue(result.contains("\"status\":\"READY\""), result);
+        assertTrue(result.contains(PROFILE_ID), result);
     }
 
     @Nested
@@ -185,7 +184,7 @@ class RecordingsMcpToolsTest {
         @Test
         void recordsTheCommitTheCallerBuiltFrom() throws IOException {
             RecordingCommitResolver revisions = mock(RecordingCommitResolver.class);
-            RecordingsMcpTools tagging = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
+            RecordingsMcpTools tagging = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry)
                     .withRevisions(revisions).build();
             Path file = recordingFile("built.jfr");
             when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
@@ -216,48 +215,9 @@ class RecordingsMcpToolsTest {
         }
     }
 
+    /** A failed import is a failed call: it surfaces as a tool error so the envelope marks it isError. */
     @Test
-    void copyingIsBoundedAndCancellationPreventsAnalysisAfterTheCopyReturns() throws Exception {
-        Path file = recordingFile("large.jfr");
-        CountDownLatch entered = new CountDownLatch(1);
-        CountDownLatch release = new CountDownLatch(1);
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-        RecordingsMcpTools bounded = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                .withJobs(ToolFixtures.jobs(Duration.ofMillis(50))).build();
-        when(recordingsManager.importRecordingFromPath(file)).thenAnswer(invocation -> {
-            entered.countDown();
-            while (release.getCount() != 0) {
-                try {
-                    release.await();
-                } catch (InterruptedException ignored) {
-                    // Simulate a copy implementation that finishes its current write first.
-                }
-            }
-            return RECORDING_ID;
-        });
-        CompletableFuture<String> call = CompletableFuture.supplyAsync(
-                () -> withRequestContext(
-                        () -> complete(bounded.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ))));
-        String operationId;
-        try {
-            assertTrue(entered.await(5, SECONDS));
-            String response = call.get(1, SECONDS);
-            operationId = Json.mapper().readTree(response).path("operationId").asString();
-            assertFalse(operationId.isBlank());
-            assertEquals(OperationState.CANCEL_REQUESTED, operations.cancel(operationId, kind -> true).status());
-        } finally {
-            release.countDown();
-        }
-        await().atMost(5, SECONDS).until(() -> operations.status(operationId).status() == OperationState.CANCELLED);
-        verify(recordingsManager, never()).analyzeRecording(anyString());
-    }
-
-    /**
-     * A failed import is a failed call, not an answer: it surfaces as a tool error so the envelope
-     * marks it isError, and it still names the operation so operations_status can be asked about it.
-     */
-    @Test
-    void immediateImportFailureIsAToolErrorThatNamesTheOperation() throws IOException {
+    void immediateImportFailureIsAToolError() throws IOException {
         Path file = recordingFile("broken.jfr");
         when(recordingsManager.importRecordingFromPath(file)).thenThrow(new IllegalStateException("copy failed"));
 
@@ -265,48 +225,18 @@ class RecordingsMcpToolsTest {
                 () -> complete(tools.analyzeFile(file.toString(), null, null, null, null, RESOURCE_READ)));
 
         assertTrue(e.getMessage().contains("copy failed"), e.getMessage());
-        assertTrue(e.getMessage().contains("\"status\":\"FAILED\""), e.getMessage());
-        String operationId = Json.mapper().readTree(e.getMessage().substring(e.getMessage().indexOf('{')))
-                .path("operationId").asString();
-        assertEquals(OperationState.FAILED, operations.status(operationId).status());
         verify(recordingsManager, never()).analyzeRecording(anyString());
     }
 
     @Test
-    void cancellationAfterAnalysisSucceedsPreservesTheProfileAndAcceptedName() throws Exception {
+    void appliesTheRequestedProfileName() throws IOException {
         Path file = recordingFile("finishing.jfr");
-        CountDownLatch entered = new CountDownLatch(1);
-        CountDownLatch release = new CountDownLatch(1);
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-        RecordingsMcpTools bounded = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK)
-                .withJobs(ToolFixtures.jobs(Duration.ofMillis(50))).build();
         when(recordingsManager.importRecordingFromPath(file)).thenReturn(RECORDING_ID);
         when(recordingsManager.findRecording(RECORDING_ID)).thenReturn(Optional.of(recording(true)));
-        when(recordingsManager.analyzeRecording(RECORDING_ID)).thenAnswer(invocation -> {
-            entered.countDown();
-            while (release.getCount() != 0) {
-                try {
-                    release.await();
-                } catch (InterruptedException ignored) {
-                    // Analysis cannot abort its final durable write and returns a usable profile.
-                }
-            }
-            return PROFILE_ID;
-        });
-        String operationId =
-                Json.mapper().readTree(complete(bounded.analyzeFile(file.toString(), "Accepted name", null, null, null, RESOURCE_READ)))
-                .path("operationId").asString();
-        try {
-            assertTrue(entered.await(5, SECONDS));
-            assertEquals(OperationState.CANCEL_REQUESTED, operations.cancel(operationId, kind -> true).status());
-        } finally {
-            release.countDown();
-        }
-        await().atMost(5, SECONDS).until(() -> operations.status(operationId).finishedAtEpochMs() != null);
-        assertEquals(OperationState.COMPLETED, operations.status(operationId).status());
-        assertTrue(operations.status(operationId).cancellationRequested());
-        assertEquals(PROFILE_ID, Json.mapper().valueToTree(operations.status(operationId).result())
-                .path("profileId").asString());
+        when(recordingsManager.analyzeRecording(RECORDING_ID)).thenReturn(PROFILE_ID);
+
+        complete(tools.analyzeFile(file.toString(), "Accepted name", null, null, null, RESOURCE_READ));
+
         verify(recordingsManager).updateProfileName(PROFILE_ID, "Accepted name");
     }
 

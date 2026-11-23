@@ -196,13 +196,11 @@ public final class StructuredAnswers {
                             mock(RecordingsManager.class), CLOCK).build(), AdvertisedFamilies.CONNECTOR),
                     CatalogueSpecs.served(ConnectorArtifactsMcpToolsFixture.of(mock(ProjectManagerResolver.class),
                             mock(RecordingsManager.class), Path.of("artifacts"), Path.of("profiles"),
-                            new McpOperationRegistry(CLOCK), CLOCK, AdvertisedFamiliesFixture.EVERY_FAMILY).build(),
+                            CLOCK, AdvertisedFamiliesFixture.EVERY_FAMILY).build(),
                             AdvertisedFamilies.CONNECTOR),
                     CatalogueSpecs.served(RecordingsMcpToolsFixture.of(mock(RecordingsManager.class),
-                            new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK),
-                            new McpOperationRegistry(CLOCK), CLOCK).build(), AdvertisedFamilies.RECORDINGS),
-                    CatalogueSpecs.served(new OperationsMcpTools(new McpOperationRegistry(CLOCK), kind -> true),
-                            AdvertisedFamilies.OPERATIONS));
+                            new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)).build(),
+                            AdvertisedFamilies.RECORDINGS));
         }
     }
 
