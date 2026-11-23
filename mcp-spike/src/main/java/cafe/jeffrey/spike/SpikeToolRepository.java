@@ -130,15 +130,9 @@ public class SpikeToolRepository implements McpSyncToolRepository {
 
     private static McpSyncResponse<McpSchema.CallToolOutcome> handleConfirm(
             McpRequestContext context, McpSchema.CallToolRequest request) {
-        if (context.retry()) {
-            // Retry carries the client's ElicitResult. TODO(first CI build): confirm
-            // exactly how the answer is surfaced on retry (ctx.retry() is true here).
-            McpSchema.CallToolResult done = McpSchema.CallToolResult.builder()
-                    .structuredContent(Map.of("confirmed", true))
-                    .isError(false)
-                    .build();
-            return McpSyncResponse.<McpSchema.CallToolOutcome>result(done);
-        }
+        // The spike proves the input_required SHAPE is emitted. Reading the client's
+        // ElicitResult on the re-invocation is a Phase 2 detail: McpRequestContext exposes
+        // no retry() accessor, so the exact answer-read API is nailed down during the port.
         McpSchema.InputRequiredResult ask = McpSchema.InputRequiredResult.builder()
                 .elicit("confirm", McpSchema.ElicitFormRequest.builder("Confirm the action?", CONFIRM_FORM).build())
                 .requestState("spike")
