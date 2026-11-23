@@ -91,7 +91,7 @@ const ingestDenyRule = `[mcp_servers.jeffrey]
 disabled_tools = [
   "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete",
   "connector_download", "connector_fetchFile", "heap_prepare",
-  "operations_cancel", "ide_link", "ide_open",
+  "ide_link", "ide_open",
 ]`;
 
 const manualAdd = `codex mcp add jeffrey --url http://localhost:8585/api/mcp`;
@@ -167,7 +167,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
 
       <p><code>~/.codex/agents/</code> makes them available in every repository; <code>.codex/agents/</code> inside a checkout scopes them to that one. The skills look for an agent by name and delegate to it when one exists, and read the exports themselves when none does &mdash; so this step is optional, and skipping it costs context rather than correctness.</p>
 
-      <p>One difference worth knowing: the Claude Code <code>jfr-analyst</code> is denied the writing tools one by one in its own definition &mdash; the <code>recordings_</code> writers, the whole <code>connector_</code> family, the whole <code>heap_</code> family (heap dumps are <code>heap-analyst</code>&rsquo;s), <code>operations_cancel</code> and the whole <code>ide_</code> family &mdash; and <code>heap-analyst</code> is held to an allow-list, so neither can create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny nine of the eleven writers at the server instead &mdash; <code>jvm_autoAnalysis</code> and <code>heap_oql</code> only fill a cache and stay open:</p>
+      <p>One difference worth knowing: the Claude Code <code>jfr-analyst</code> is denied the writing tools one by one in its own definition &mdash; the <code>recordings_</code> writers, the whole <code>connector_</code> family, the whole <code>heap_</code> family (heap dumps are <code>heap-analyst</code>&rsquo;s) and the whole <code>ide_</code> family &mdash; and <code>heap-analyst</code> is held to an allow-list, so neither can create a profile even if it tried. Codex has no per-agent tool deny-list, so the Codex versions are sandboxed read-only against your files and told not to write &mdash; an instruction rather than a wall. If that distinction matters to you, deny eight of the ten writers at the server instead &mdash; <code>jvm_autoAnalysis</code> and <code>heap_oql</code> only fill a cache and stay open:</p>
       <DocsCodeBlock :code="ingestDenyRule" language="toml" />
 
       <h2 id="approvals">Approvals</h2>
@@ -177,7 +177,7 @@ const removal = `codex plugin marketplace remove jeffrey`;
       <p>Tool names arrive prefixed with the server they came from &mdash; <code>mcp__jeffrey__flamegraph_export</code> and so on. <code>enabled_tools</code> and <code>disabled_tools</code> on the same block narrow what the model sees at all, which is the sharper instrument when you want a strictly read-only Jeffrey for one machine regardless of what the server advertises.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
-      <p>Codex abandons a tool call after <strong>sixty seconds</strong> by default. The <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> are built for that &mdash; they hand back <code>RUNNING</code> and an <code>operationId</code> well inside it &mdash; but the 45-second wait plus the time to render and send the answer leaves little of the sixty, and an export over a large recording is not bounded that way at all. Codex then reports a timeout for a call that was about to answer. Raise the client&rsquo;s own timeout to <strong>120 seconds</strong>:</p>
+      <p>Codex abandons a tool call after <strong>sixty seconds</strong> by default. The <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> stream their progress while they run, but the call stays open until the work finishes &mdash; and an import or a connector transfer over a large recording, or an export, can take longer than the sixty. Codex then reports a timeout for a call that was still working. Raise the client&rsquo;s own timeout to <strong>120 seconds</strong>:</p>
       <DocsCodeBlock :code="timeoutConfig" language="toml" />
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>

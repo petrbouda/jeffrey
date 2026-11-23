@@ -64,9 +64,10 @@ jeffrey-microscope/                    MicroscopeApplication (core), Vue SPA (pa
                                        in model.repository; the imported recordings' file kinds (ManagedFile,
                                        FileCategory, FileExtensions) in model.recording; file matchers in
                                        model.repository.matcher)
-  mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
-                                       no Jeffrey, no Spring (ModuleBoundaryTest)
-  mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
+  mcp-protocol/                        pure MCP 2026-07-28 protocol types + SPI: tool/result/outcome records, closed
+                                       schema tooling, cursor, extensions; no Jeffrey, no Spring (ModuleBoundaryTest)
+  mcp-server/                          Jeffrey's @Tool adapter: ReflectiveToolset/ProfileScopedToolset/ToolMethodIndex,
+                                       the ToolInvocation span, hints, findings (the modern Spring AI server + bridge live in core)
 volume-scheduler/                      one module: VolumeSchedulerApplication (cafe.jeffrey.volumescheduler: config/ (typed
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:

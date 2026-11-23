@@ -22,7 +22,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.finding.McpFinding;
@@ -261,7 +261,7 @@ final class ComparisonQuality {
         onlyBaseline.removeAll(common);
 
         QualityDocument skeleton = new QualityDocument(SCHEMA_VERSION, FINDING_SCHEMA_VERSION, clock.millis(),
-                AbstractMcpStreamableHttpController.serverVersion(), ProfileEvidence.WHOLE_RECORDING, SEMANTICS,
+                JeffreyMcpServer.serverVersion(), ProfileEvidence.WHOLE_RECORDING, SEMANTICS,
                 ProfileEvidence.SETTINGS_SCOPE, EVENT_OVERLAP_MEANING, EVENT_COUNT_DEFINITION, primarySide,
                 baselineSide, followUp, CompareMcpTools.pairLink(primary.info().id(), baseline.info().id()),
                 new WorkloadNormalization(false, NO_WORKLOAD_NORMALIZATION), duration, Map.of(),

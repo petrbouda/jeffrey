@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.mcp.protocol.testing;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
 import cafe.jeffrey.microscope.mcp.protocol.McpMetaKeys;
-import cafe.jeffrey.microscope.mcp.protocol.McpTransportHeaders;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
@@ -45,6 +44,11 @@ public final class McpTestRequests {
 
     /** The one revision the server speaks. */
     public static final String VERSION = "2026-07-28";
+
+    /** The transport header names a conforming client sends, with the body's {@code _meta}. */
+    public static final String PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version";
+    public static final String METHOD_HEADER = "Mcp-Method";
+    public static final String NAME_HEADER = "Mcp-Name";
 
     private static final String JSONRPC_VERSION = "2.0";
     private static final String FIELD_JSONRPC = "jsonrpc";
@@ -101,12 +105,12 @@ public final class McpTestRequests {
     public static Request request(String method, ObjectNode params, ObjectNode capabilities) {
         ObjectNode body = envelope(method, params, capabilities);
         body.set(FIELD_ID, IntNode.valueOf(DEFAULT_ID));
-        return new Request(body, headersFor(method, params));
+        return new Request(body, VERSION, method, nameOf(method, params));
     }
 
     /** The same request without an id: a notification. */
     public static Request notification(String method, ObjectNode params) {
-        return new Request(envelope(method, params, MAPPER.createObjectNode()), headersFor(method, params));
+        return new Request(envelope(method, params, MAPPER.createObjectNode()), VERSION, method, nameOf(method, params));
     }
 
     /** {@code tools/call} of one tool with these arguments; null arguments sends none. */
@@ -157,11 +161,6 @@ public final class McpTestRequests {
         return body;
     }
 
-    /** The headers a conforming client sends for this method: version, method and, when named, the name. */
-    private static McpTransportHeaders headersFor(String method, ObjectNode params) {
-        return new McpTransportHeaders(VERSION, method, nameOf(method, params));
-    }
-
     private static String nameOf(String method, ObjectNode params) {
         String field = NAME_FIELDS.get(method);
         if (field == null) {
@@ -172,16 +171,17 @@ public final class McpTestRequests {
     }
 
     /**
-     * One request: the body and the headers that travel with it.
+     * One request: the body and the transport headers that travel with it.
      *
-     * @param body    the JSON-RPC body
-     * @param headers the transport headers
+     * @param body            the JSON-RPC body
+     * @param protocolVersion the {@code MCP-Protocol-Version} header
+     * @param method          the {@code Mcp-Method} header
+     * @param name            the {@code Mcp-Name} header, or null where the method names nothing
      */
-    public record Request(ObjectNode body, McpTransportHeaders headers) {
+    public record Request(ObjectNode body, String protocolVersion, String method, String name) {
 
         public Request {
             body = Objects.requireNonNull(body, "body").deepCopy();
-            Objects.requireNonNull(headers, "headers");
         }
 
         @Override
@@ -194,11 +194,6 @@ public final class McpTestRequests {
             return body.toString();
         }
 
-        /** The same body under other headers. */
-        public Request withHeaders(McpTransportHeaders replacement) {
-            return new Request(body, replacement);
-        }
-
         /** The same request with the id replaced. */
         public Request withId(JsonNode id) {
             return editBody(edited -> edited.set(FIELD_ID, id));
@@ -208,7 +203,7 @@ public final class McpTestRequests {
         public Request editBody(Consumer<ObjectNode> edit) {
             ObjectNode edited = body.deepCopy();
             edit.accept(edited);
-            return new Request(edited, headers);
+            return new Request(edited, protocolVersion, method, name);
         }
 
         /** The same headers over a body changed inside {@code params._meta}. */
@@ -219,9 +214,9 @@ public final class McpTestRequests {
         /** The headers that are present, by their HTTP names, for a servlet or MockMvc request. */
         public Map<String, String> httpHeaders() {
             Map<String, String> http = new LinkedHashMap<>();
-            putIfPresent(http, McpTransportHeaders.PROTOCOL_VERSION_HEADER, headers.protocolVersion());
-            putIfPresent(http, McpTransportHeaders.METHOD_HEADER, headers.method());
-            putIfPresent(http, McpTransportHeaders.NAME_HEADER, headers.name());
+            putIfPresent(http, PROTOCOL_VERSION_HEADER, protocolVersion);
+            putIfPresent(http, METHOD_HEADER, method);
+            putIfPresent(http, NAME_HEADER, name);
             return http;
         }
 

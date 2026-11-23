@@ -52,11 +52,6 @@ class McpToolOutcomeTest {
 
             assertThrows(IllegalStateException.class, asking::requireComplete);
         }
-
-        @Test
-        void aTaskIsNotAnAnswer() {
-            assertThrows(IllegalStateException.class, () -> new McpToolOutcome.Deferred("op-1").requireComplete());
-        }
     }
 
     @Nested
@@ -65,11 +60,6 @@ class McpToolOutcomeTest {
         @Test
         void refusesAQuestionWithNothingToAsk() {
             assertThrows(IllegalArgumentException.class, () -> new McpToolOutcome.InputRequired(Map.of()));
-        }
-
-        @Test
-        void refusesATaskWithoutAnId() {
-            assertThrows(IllegalArgumentException.class, () -> new McpToolOutcome.Deferred(" "));
         }
 
         @Test

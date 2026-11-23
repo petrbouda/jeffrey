@@ -20,7 +20,7 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpToolNames;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -48,7 +48,7 @@ public final class McpServerInfo {
     public McpServerInfo(ExternalMcpProperties properties, McpToolProvider toolset, boolean servesSkills) {
         List<McpToolSpec> specs = toolset.specs();
         ObjectNode info = Json.createObject()
-                .put("version", AbstractMcpStreamableHttpController.serverVersion())
+                .put("version", JeffreyMcpServer.serverVersion())
                 .put("preset", properties.preset())
                 .put("toolCount", specs.size());
         info.set("effectiveFamilies", Json.toTree(specs.stream()
@@ -58,7 +58,7 @@ public final class McpServerInfo {
                 .sorted()
                 .toList()));
         info.set("supportedProtocolVersions", Json.toTree(
-                AbstractMcpStreamableHttpController.supportedProtocolVersions()));
+                JeffreyMcpServer.supportedProtocolVersions()));
         ObjectNode capabilities = info.putObject("capabilities")
                 .put("tools", true)
                 .put("resources", true)

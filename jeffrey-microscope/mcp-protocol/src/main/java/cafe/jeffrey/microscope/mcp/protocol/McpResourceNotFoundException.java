@@ -23,7 +23,7 @@ package cafe.jeffrey.microscope.mcp.protocol;
  * <p>The envelope answers it with {@code -32602} and the exception's own sentence, so a client can tell
  * "that item is gone" from "the server broke" ({@code -32603}); {@code 2026-07-28} forbids the older
  * {@code -32002}. A provider may throw it directly; the dispatcher also derives it from a tool that failed
- * underneath a resource with an error its server names as not found ({@link McpFailurePolicy.Kind#NOT_FOUND}).</p>
+ * underneath a resource with an error its server names as not found (not found).</p>
  */
 public class McpResourceNotFoundException extends RuntimeException {
 

@@ -31,7 +31,7 @@ import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.feature.ProfileDisabledFeatures;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpToolCost;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
@@ -207,7 +207,7 @@ public class ProfileEvidenceMcpTools {
                         .with(PROFILE_ID, profileId).with(COMPUTE, true).why(COMPUTE_WHY))
                 .followUp();
         EvidenceDocument skeleton = new EvidenceDocument(SCHEMA_VERSION, FINDING_SCHEMA_VERSION, clock.millis(),
-                AbstractMcpStreamableHttpController.serverVersion(), SEMANTICS, ProfileEvidence.SETTINGS_SCOPE,
+                JeffreyMcpServer.serverVersion(), SEMANTICS, ProfileEvidence.SETTINGS_SCOPE,
                 ProfileEvidence.identity(manager.info(), commits.resolve(manager.info().recordingId()).orElse(null)),
                 new EvidenceFilters(ProfileEvidence.WHOLE_RECORDING, ALL, ALL, false, false),
                 followUp, ProfileEvidence.samplerHealth(manager), status,

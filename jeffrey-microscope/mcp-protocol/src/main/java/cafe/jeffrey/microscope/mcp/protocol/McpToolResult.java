@@ -24,7 +24,7 @@ import java.util.Objects;
  * A tool's readable answer and, when explicitly supplied, its machine-readable object.
  * <p>
  * How large either may be is the server's choice, not the result's: the dispatcher caps the text and
- * refuses structured content past its {@link McpDispatcherSettings#maxResultChars()} with
+ * refuses structured content past its the result character cap with
  * {@link #OVERSIZED_STRUCTURED_CONTENT}, and a server may refuse it earlier, inside the tool call, by
  * asking {@link #exceeds}.
  */

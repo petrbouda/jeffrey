@@ -180,13 +180,6 @@ class ToolInvocationTest {
         }
 
         @Test
-        void passesATaskThroughAsItself() {
-            McpToolOutcome.Deferred deferred = assertInstanceOf(McpToolOutcome.Deferred.class, invokeOutcome("defer"));
-
-            assertEquals("op-7", deferred.taskId());
-        }
-
-        @Test
         void passesAResultThroughAsItself() {
             assertEquals("answered", invokeOutcome("answer").requireComplete().text());
         }
@@ -196,11 +189,10 @@ class ToolInvocationTest {
             assertEquals("", invokeOutcome("nothing").requireComplete().text());
         }
 
-        /** The schema promises structured data on a result; a task has no result yet to hold it. */
+        /** A tool that declares an output schema must return structured content. */
         @Test
         void holdsOnlyAResultToItsDeclaredOutputSchema() {
             assertThrows(IllegalStateException.class, () -> invokeOutcome("plainButDeclared"));
-            assertInstanceOf(McpToolOutcome.Deferred.class, invokeOutcome("deferDeclared"));
         }
     }
 
@@ -371,10 +363,6 @@ class ToolInvocationTest {
             return QUESTION;
         }
 
-        public McpToolOutcome defer() {
-            return new McpToolOutcome.Deferred("op-7");
-        }
-
         public McpToolOutcome answer() {
             return McpToolResult.text("answered");
         }
@@ -386,11 +374,6 @@ class ToolInvocationTest {
         @McpOutputSchema(Empty.class)
         public McpToolOutcome plainButDeclared() {
             return McpToolResult.text("no structure");
-        }
-
-        @McpOutputSchema(Empty.class)
-        public McpToolOutcome deferDeclared() {
-            return new McpToolOutcome.Deferred("op-8");
         }
 
         public String echo(String message) {

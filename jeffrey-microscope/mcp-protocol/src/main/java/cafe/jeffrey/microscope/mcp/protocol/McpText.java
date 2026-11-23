@@ -23,7 +23,7 @@ package cafe.jeffrey.microscope.mcp.protocol;
  * Silent truncation is the failure mode this exists to prevent: a capped list looks exactly like a
  * complete one, and a model that cannot see the cap reports the visible part as the whole story. Every
  * text that hit the ceiling therefore ends with a line naming it. The ceiling is the server's; the
- * dispatcher applies its own ({@link McpDispatcherSettings#maxResultChars()}) to every text result.
+ * dispatcher applies its own (the result character cap) to every text result.
  */
 public final class McpText {
 

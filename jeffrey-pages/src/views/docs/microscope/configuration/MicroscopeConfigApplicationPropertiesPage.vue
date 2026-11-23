@@ -316,9 +316,8 @@ onMounted(() => {
             <td><code>2</code></td>
             <td>
               How many <code>recordings_analyzeFile</code> imports run at once. A call beyond that
-              number is not refused: it is reported as <code>QUEUED</code> by
-              <code>operations_status</code> and starts when a slot frees, and
-              <code>operations_cancel</code> on a queued attempt means it never starts. A positive
+              number is not refused: it waits for a slot before it begins its work, streaming
+              progress once it starts. A positive
               integer. Read at startup.
             </td>
           </tr>

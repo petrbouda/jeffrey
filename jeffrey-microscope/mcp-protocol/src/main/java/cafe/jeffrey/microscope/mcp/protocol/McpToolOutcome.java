@@ -22,13 +22,14 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * What a tool answers with: a result, a question it needs answered first, or a task still running.
+ * What a tool answers with: a result, or a question it needs answered first.
  * <p>
  * The tool decides which from the {@link McpCallContext} it was handed — it never asks a client that
- * cannot answer, and never defers for one that does not speak tasks. The envelope renders each.
+ * cannot answer. Long work runs on the call and streams progress rather than deferring. The envelope
+ * renders each.
  */
 public sealed interface McpToolOutcome
-        permits McpToolResult, McpToolOutcome.InputRequired, McpToolOutcome.Deferred {
+        permits McpToolResult, McpToolOutcome.InputRequired {
 
     /**
      * This outcome as a finished result, for a caller that has nowhere to put anything else — a resource
@@ -65,23 +66,6 @@ public sealed interface McpToolOutcome
         public McpToolResult requireComplete() {
             throw new IllegalStateException("The tool asked for input where no answer can be given: "
                     + requests.keySet());
-        }
-    }
-
-    /**
-     * The work is still running and is reachable as a task with this id.
-     */
-    record Deferred(String taskId) implements McpToolOutcome {
-
-        public Deferred {
-            if (taskId == null || taskId.isBlank()) {
-                throw new IllegalArgumentException("A deferred answer needs the id of its task");
-            }
-        }
-
-        @Override
-        public McpToolResult requireComplete() {
-            throw new IllegalStateException("The tool deferred to a task where no task can be followed: " + taskId);
         }
     }
 }

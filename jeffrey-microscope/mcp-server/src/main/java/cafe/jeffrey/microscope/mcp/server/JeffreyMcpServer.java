@@ -18,8 +18,11 @@
 package cafe.jeffrey.microscope.mcp.server;
 
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
+import cafe.jeffrey.microscope.mcp.protocol.McpProtocolVersions;
 import cafe.jeffrey.microscope.mcp.protocol.McpServerIdentity;
 import cafe.jeffrey.microscope.common.JeffreyVersion;
+
+import java.util.List;
 
 /**
  * What Jeffrey's MCP server is, wherever the protocol asks the server to say: the identity every result
@@ -42,5 +45,15 @@ public final class JeffreyMcpServer {
     public static final McpCursor CURSOR = new McpCursor(PRODUCT_NAME);
 
     private JeffreyMcpServer() {
+    }
+
+    /** Jeffrey's build version, as {@code jeffrey://server} and the evidence documents state it. */
+    public static String serverVersion() {
+        return IDENTITY.version();
+    }
+
+    /** The protocol revisions this server speaks. */
+    public static List<String> supportedProtocolVersions() {
+        return McpProtocolVersions.SUPPORTED;
     }
 }

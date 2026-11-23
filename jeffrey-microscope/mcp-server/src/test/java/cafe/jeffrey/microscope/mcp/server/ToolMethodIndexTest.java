@@ -793,10 +793,10 @@ class ToolMethodIndexTest {
 
     static class StructuredOutcomeTools {
 
-        @Tool(description = "Answers with a structured result or a task")
+        @Tool(description = "Answers with a structured result")
         @McpOutputSchema(Numbered.class)
         public McpToolOutcome run(McpCallContext call) {
-            return new McpToolOutcome.Deferred("op-1");
+            return McpToolResult.text("structured");
         }
     }
 }
