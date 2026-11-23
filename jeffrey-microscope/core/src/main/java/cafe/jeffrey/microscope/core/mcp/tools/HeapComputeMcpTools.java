@@ -127,21 +127,13 @@ public class HeapComputeMcpTools {
 
     private final ProfileManager profileManager;
     private final HeapDumpInitService initService;
-    private final Supplier<? extends AutoCloseable> backgroundLease;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param answers    how a preparation still running is answered, by what the client declared
      * @param advertised the families this installation serves, which gate the next calls
      */
     public HeapComputeMcpTools(ProfileManager profileManager, HeapDumpInitService initService,
-            Supplier<? extends AutoCloseable> backgroundLease, McpOperationRegistry operations,
-            OperationAnswers answers, AdvertisedFamilies advertised) {
-        this.operations = operations;
-        this.answers = answers;
-        this.backgroundLease = backgroundLease;
+            AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
         this.initService = initService;
         this.advertised = advertised;
@@ -150,13 +142,10 @@ public class HeapComputeMcpTools {
     @Tool(description = "Builds what this profile's heap dump needs before the reading tools can "
             + "answer: the index, the dominator tree that retained sizes come from, and the cached "
             + "reports (leak suspects, biggest objects, class-loader analysis, top consumers, string "
-            + "and collection analysis). Answers at once with the stage list and an operationId for "
-            + "operations_status and operations_cancel, or with a task for a client that declared the "
-            + "MCP tasks extension; the work continues in the background and "
-            + "heap_status reports it. A report name computes just that one on a dump that is "
-            + "already indexed. Completed work that covers the requested reports is reused and an "
-            + "active run is joined; a retained failed or cancelled run starts again only with "
-            + "retry=true. What it writes is a cache.")
+            + "and collection analysis). Runs on this call, streaming notifications/progress stage by "
+            + "stage, and returns the stage list when it finishes; heap_status also reports it. A report "
+            + "name computes just that one on a dump that is already indexed. Completed work that covers "
+            + "the requested reports is reused and an active run is joined. What it writes is a cache.")
     @McpOutputSchema(PrepareAnswer.class)
     @McpToolHints(readOnly = false)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.HEAP_DUMP)
@@ -381,9 +370,5 @@ public class HeapComputeMcpTools {
                             stage.status(), stage.durationMs()))
                     .toList();
         }
-    }
-
-    /** What a finished preparation produced, as operations_status reports it. */
-    private record PreparedHeap(String profileId, List<HeapReport> reports) {
     }
 }

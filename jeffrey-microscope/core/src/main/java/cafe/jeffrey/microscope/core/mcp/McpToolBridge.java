@@ -110,11 +110,9 @@ final class McpToolBridge {
         return switch (outcome) {
             case McpToolResult result -> toCallToolResult(result);
             case McpToolOutcome.InputRequired inputRequired -> toInputRequired(inputRequired, request.name());
-            // Temporary: a tool not yet rewritten to synchronous streaming still defers. Removed with the
-            // long-work engine once all SLOW tools run inline.
-            case McpToolOutcome.Deferred deferred -> errorResult(
-                    "Tool " + request.name() + " is mid-migration to streaming progress (operation "
-                            + deferred.taskId() + ").");
+            // No tool returns Deferred any more (long work streams on this call); kept exhaustive until the
+            // dead hand-rolled dispatcher that still references it is removed with the rest of the old plumbing.
+            case McpToolOutcome.Deferred ignored -> errorResult("Long work streams progress and does not defer.");
         };
     }
 

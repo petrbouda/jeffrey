@@ -60,7 +60,6 @@ public record AdvertisedFamilies(Set<String> families) {
     public static final String HEAP = "heap";
     public static final String CONNECTOR = "connector";
     public static final String IDE = "ide";
-    public static final String OPERATIONS = "operations";
 
     /** What a hint to a withheld family becomes: nothing, which {@code NextSteps} leaves out. */
     private static final String NO_HINT = "";

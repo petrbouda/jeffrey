@@ -112,7 +112,6 @@ public class JvmMcpTools {
 
     private static final String PROFILE_ID = "profileId";
     private static final String COMPUTE = "compute";
-    private static final String OPERATION_ID = "operationId";
     private static final String INDEX = "index";
     private static final String STATE = "state";
     private static final String LIMIT = "limit";
@@ -128,7 +127,6 @@ public class JvmMcpTools {
     private static final String GC_TOOL = "jvm_gc";
     private static final String JIT_TOOL = "jvm_jit";
     private static final String BLOCKING_MONITORS_TOOL = "blocking_monitors";
-    private static final String OPERATIONS_STATUS_TOOL = "operations_status";
     private static final String EXCEPTION_SITES_TOOL = "jvm_exceptionSites";
     private static final String FRAME_PREFIXES = "framePrefixes";
     private static final String THROWN_CLASS = "thrownClass";
@@ -166,7 +164,6 @@ public class JvmMcpTools {
             + "and it may hand back an operation to follow";
     private static final String OTHER_SECTIONS_WHY =
             "lists the dashboards that answer the same subsystems directly from the parsed events";
-    private static final String POLL_WHY = "reports the run's progress, and its findings once it completes";
 
     /** How many threads one dump answers with unless asked for fewer or more. */
     private static final int DEFAULT_DUMP_THREADS = 50;
@@ -285,9 +282,8 @@ public class JvmMcpTools {
             + "status is COMPUTED, NOT_COMPUTED or CANNOT_COMPUTE (no JFR recording file). Computed and "
             + "cached at import, so normally a cache read. For a profile that missed that, compute=true "
             + "runs it - slow and unbounded in memory, since it reads the whole recording through the "
-            + "rule set. A compute run waits up to 45 s, then answers NOT_COMPUTED with an operationId "
-            + "for operations_status - a client that declared the MCP tasks extension gets a task after "
-            + "about 5 s instead; the findings arrive in that operation's result.")
+            + "rule set. A compute run runs on this call, streaming notifications/progress, and returns "
+            + "the findings with status COMPUTED when it finishes.")
     @McpToolHints(readOnly = false, idempotent = true)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.AUTO_ANALYSIS)
     @McpOutputSchema(AutoAnalysisSection.Answer.class)

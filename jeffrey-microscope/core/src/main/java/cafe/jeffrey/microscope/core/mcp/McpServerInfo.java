@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.mcp;
 
-import cafe.jeffrey.microscope.core.mcp.tools.OperationTasks;
 import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
@@ -70,17 +69,13 @@ public final class McpServerInfo {
                 .put("completions", properties.advertises(AdvertisedFamilies.PROFILES))
                 .put("instructions", true)
                 .put("resourceLinks", true)
-                // The tasks extension, declared exactly when server/discover declares it: some served
-                // family starts operations a task could follow.
-                .put("tasks", OperationTasks.followsAny(kind -> McpToolsetAssembler.reachable(kind, properties)))
-                // The skills extension, likewise declared exactly when server/discover declares it.
+                // The skills extension, declared exactly when server/discover declares it.
                 .put("skills", servesSkills)
-                // POST-only and stateless on purpose: no SSE stream, no session id, and therefore no
-                // server-initiated notifications. Work a writer starts is polled through operations_,
-                // or through tasks/get by a client that declared the tasks extension.
-                .put("streaming", false)
+                // Streamable HTTP: a long tool streams notifications/progress over SSE and returns its
+                // final result on the same response; the server keeps no session between calls.
+                .put("streaming", true)
                 .put("sessions", false)
-                .put("progressNotifications", false);
+                .put("progressNotifications", true);
         // Derived from the schemas rather than named: a tool pages when it takes a cursor, and a list
         // written here by hand would go stale the day a third tool learned to.
         capabilities.set("paginatedTools", Json.toTree(specs.stream()

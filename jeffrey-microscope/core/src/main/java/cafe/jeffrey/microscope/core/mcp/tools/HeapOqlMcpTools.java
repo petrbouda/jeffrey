@@ -83,13 +83,11 @@ public class HeapOqlMcpTools {
     private static final String OQL_TOOL = "heap_oql";
     private static final String PATH_TO_ROOT_TOOL = "heap_getPathToGCRoot";
     private static final String INSTANCE_DETAIL_TOOL = "heap_getInstanceDetail";
-    private static final String OPERATIONS_STATUS_TOOL = "operations_status";
     private static final String PROFILE_ID = "profileId";
     private static final String QUERY = "query";
     private static final String LIMIT = "limit";
     private static final String CURSOR = "cursor";
     private static final String INCLUDE_RETAINED_SIZE = "includeRetainedSize";
-    private static final String OPERATION_ID = "operationId";
 
     private static final String LINK_NOTE = "The OQL page opens without this query; paste the query there to "
             + "run it in the UI.";
@@ -128,9 +126,9 @@ public class HeapOqlMcpTools {
             + "1000). Rows carry an objectId, a decimal string heap_getInstanceDetail and "
             + "heap_getPathToGCRoot take, and a value cut to " + HeapLimits.VALUE_CHARS + " characters; a page "
             + "that continues hands back nextCursor. For table questions - grouping, counting, joining - "
-            + "heap_executeQuery runs SQL against the same index. With includeRetainedSize the call waits "
-            + "up to 45 s, then answers status RUNNING with an operationId for operations_status - a client "
-            + "that declared the MCP tasks extension gets a task after about 5 s instead.")
+            + "heap_executeQuery runs SQL against the same index. With includeRetainedSize the call runs "
+            + "on this call, streaming notifications/progress while it builds the dominator tree, and "
+            + "returns the rows when it finishes.")
     @McpOutputSchema(OqlAnswer.class)
     @McpToolHints(readOnly = false, idempotent = true)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.HEAP_DUMP_INDEXED)
@@ -147,8 +145,7 @@ public class HeapOqlMcpTools {
             String cursor,
             @ToolParam(required = false, description = "Compute the retained size of each result. Off by "
                     + "default because it builds the dominator tree first, which on a large dump takes "
-                    + "minutes; the call then waits up to 45 s and answers with an operationId, or with a "
-                    + "task after about 5 s for a client that declared the MCP tasks extension")
+                    + "minutes; the call then runs on this call and streams progress until it finishes")
             Boolean includeRetainedSize,
             McpCallContext call) {
 

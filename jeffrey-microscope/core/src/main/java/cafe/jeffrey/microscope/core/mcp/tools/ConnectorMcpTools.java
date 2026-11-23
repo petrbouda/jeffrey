@@ -60,7 +60,6 @@ import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
 import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
@@ -135,7 +134,7 @@ public class ConnectorMcpTools {
      */
     public static final String ASK_WINDOW_OVER_SIZE_PROPERTY = "jeffrey.microscope.mcp.connector.ask-window-over-size";
 
-    /** How long a connector_download or connector_fetchFile call waits before answering with an operationId. */
+    /** How long a connector_download or connector_fetchFile call spends on its preflight read of the session. */
     public static final String DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.connector.download-response-timeout";
 
     private static final String OMITTED_FAILURES_SCOPE = "additional connector scopes";
@@ -241,11 +240,8 @@ public class ConnectorMcpTools {
     /**
      * One transfer per session at a time, and no call waits longer than a client will.
      */
-    private final BoundedJobs<DownloadKey, String> downloads;
     private final ConnectorSessionScan scan;
     private final ConnectorSessionLocator locator;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
     private final DownloadWindowQuestion windowQuestion;
     private final AdvertisedFamilies advertised;
 
@@ -254,10 +250,6 @@ public class ConnectorMcpTools {
      *                               listing runs inside a synchronous tool call, so a connector that neither
      *                               answers nor refuses would otherwise hang the caller for good
      * @param downloadResponseBudget how long a download call waits on its preflight and its transfer
-     *                               together; a client that declared tasks waits on the transfer for
-     *                               less, see {@link OperationAnswers}
-     * @param operations             the registry operations_status reads
-     * @param answers                how a call that outlasts its wait answers, by what the client declared
      * @param windowQuestion         which whole-session downloads a client that renders forms is first
      *                               asked about, from the {@code ask-window-over-*} properties
      * @param advertised             the families this installation serves, so a next call never names a
@@ -265,19 +257,14 @@ public class ConnectorMcpTools {
      */
     public ConnectorMcpTools(ConnectorManager connectorManager, ProjectManagerResolver resolver,
             RecordingsManager recordingsManager, Clock clock, Duration scanBudget,
-            Duration downloadResponseBudget, McpOperationRegistry operations,
-            OperationAnswers answers, DownloadWindowQuestion windowQuestion, AdvertisedFamilies advertised) {
+            Duration downloadResponseBudget, DownloadWindowQuestion windowQuestion, AdvertisedFamilies advertised) {
         this.windowQuestion = Objects.requireNonNull(windowQuestion, "windowQuestion");
         this.advertised = Objects.requireNonNull(advertised, "advertised");
-        this.operations = operations;
-        this.answers = answers;
         this.connectorManager = connectorManager;
         this.resolver = resolver;
         this.recordingsManager = recordingsManager;
         this.clock = clock;
         this.downloadResponseBudget = requirePositive(downloadResponseBudget, "downloadResponseBudget");
-        this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
-                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.scan = new ConnectorSessionScan(connectorManager, scanBudget);
         this.locator = new ConnectorSessionLocator(resolver);
     }
@@ -590,11 +577,9 @@ public class ConnectorMcpTools {
             + "The answer reports the span actually covered, and what a window picked and why. A "
             + "session a newer one ended, already downloaded whole, is returned as it is; a copy of an "
             + "instance's newest session is downloaded again, and a part always makes a bundle of its "
-            + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the connector no longer holds the first "
-            + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
-            + "it. Every started transfer carries an operationId for operations_status and "
-            + "operations_cancel (a task after about 5 s for a client that declared tasks). A FAILED or CANCELLED outcome is kept in memory for one hour and "
-            + "reported rather than restarted unless retry=true.")
+            + "own. The transfer runs on this call, streaming notifications/progress by bytes, and "
+            + "returns status DOWNLOADED when it finishes, or STARTUP_NOT_RETAINED when the connector no "
+            + "longer holds the first chunk.")
     @McpOutputSchema(Download.class)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.CONNECTOR)
     public McpToolOutcome download(
@@ -759,14 +744,12 @@ public class ConnectorMcpTools {
 
     /**
      * Whether this call may be asked which part of the session to bring: only a client that renders
-     * forms, only for the whole session, and only when there is nothing to answer from already — no
-     * attempt under that key, running or retained, and no whole copy here. A large session is judged
-     * after the preflight has read it.
+     * forms, only for the whole session, and only when there is no whole copy here already. A large
+     * session is judged after the preflight has read it.
      */
     private boolean mayAskForWindow(DownloadKey key, McpCallContext call) {
         return call.canElicitForm()
                 && key.wholeSession()
-                && downloads.current(key).isEmpty()
                 && DownloadedSessionIndex.build(recordingsManager, locator.currentAddress()).find(key.ref())
                         .filter(DownloadedSessionIndex.LocalCopy::complete)
                         .isEmpty();
@@ -831,14 +814,6 @@ public class ConnectorMcpTools {
         return answer(key, chosen, landing.landed(recordingId), base);
     }
 
-    /**
-     * Registers the transfer with the call that retries it and, when it can finish, the answer a task
-     * following it completes with: the answer a caller that waited for it is given.
-     *
-     * @param landed what the finished transfer reports, or {@code null} for an attempt already ended
-     *               without a recording
-     * @return the operation id
-     */
     /**
      * The one answer every state of a download gives: the facts, the part asked for, what to call next
      * and the page for the user.
@@ -957,11 +932,6 @@ public class ConnectorMcpTools {
         ConnectorInfo connector = locator.connectorInfo(ref);
         ProjectManager project = locator.project(ref);
         return new DownloadPreflight(connector, project, preflight(project, ref, connector));
-    }
-
-    private static String transfer(ProjectManager project, DownloadKey key, BoundedJobs.JobControl control) {
-        control.checkCancellation();
-        return key.transfer(project.recordingsDownloadManager());
     }
 
     private static Duration requirePositive(Duration value, String name) {

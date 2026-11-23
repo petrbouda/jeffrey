@@ -55,8 +55,6 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.common.model.repository.StreamedFile;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -135,36 +133,25 @@ public class ConnectorArtifactsMcpTools {
     private final RecordingsManager recordings;
     private final Path artifactsDir;
     private final Path profilesDir;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
     private final Duration responseBudget;
-    private final BoundedJobs<ConnectorFileRef, Path> fetches;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param answers        how a call that outlasts its wait answers, by what the client declared
-     * @param responseBudget how long a fetch call waits on its preflight and its transfer together; a
-     *                       client that declared tasks waits on the transfer for less
+     * @param responseBudget how long a fetch call waits on its preflight and its transfer together
      */
     public ConnectorArtifactsMcpTools(
             ProjectManagerResolver resolver,
             RecordingsManager recordings,
             Path artifactsDir,
             Path profilesDir,
-            McpOperationRegistry operations,
-            OperationAnswers answers,
             Clock clock,
             Duration responseBudget,
             AdvertisedFamilies advertised) {
-        this.answers = answers;
         this.locator = new ConnectorSessionLocator(resolver);
         this.recordings = recordings;
         this.artifactsDir = artifactsDir.toAbsolutePath();
         this.profilesDir = profilesDir.toAbsolutePath();
-        this.operations = operations;
         this.responseBudget = responseBudget;
-        this.fetches = new BoundedJobs<>(responseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
-                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.advertised = advertised;
     }
 
@@ -320,12 +307,9 @@ public class ConnectorArtifactsMcpTools {
             + "row and the fileId of a connector_files row whose `fetch` is FETCH. Returns the file's "
             + "absolute path on the machine Jeffrey runs on; Jeffrey hands the file over rather than "
             + "parsing it, and a heap dump's path goes to recordings_analyzeFile. A file already "
-            + "fetched is answered from disk without asking the connector. status FETCHED, or RUNNING when a "
-            + "large file outlasts the call - the same call again returns the path once it lands. "
-            + "Every started transfer carries an operationId for operations_status and "
-            + "operations_cancel, and a client that declared the MCP tasks extension gets a task after "
-            + "about 5 s instead. A failed or cancelled transfer starts again on the same call; there "
-            + "is no retry flag.")
+            + "fetched is answered from disk rather than transferred again. The transfer runs on this "
+            + "call, streaming notifications/progress by bytes, and returns status FETCHED with the path "
+            + "when it finishes.")
     @McpOutputSchema(Fetch.class)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.CONNECTOR)
     public McpToolOutcome fetchFile(
@@ -342,15 +326,6 @@ public class ConnectorArtifactsMcpTools {
         // Read here, where the request is bound: an answer is rendered wherever the finished transfer is
         // first seen, and that need not be a request thread.
         String uiLink = UiLinks.page(MicroscopePage.CONNECTOR);
-
-        // Before the connector is touched at all: a file this call already fetched is a file on this disk,
-        // and a disk does not need a round trip to be read. It also means an artifact stays reachable
-        // while the connector that held it is down or its session has been retired - the answer is the path,
-        // and the path is still good.
-        Optional<RetainedFetch> retained = retainedLocally(key);
-        if (retained.isPresent()) {
-            return answer(key, retained.get().facts(), uiLink);
-        }
 
         Preflight preflight = preflight(ref, fileId);
         RepositoryFile file = preflight.file();
@@ -645,61 +620,8 @@ public class ConnectorArtifactsMcpTools {
         return local.recording() == null ? null : "recording:" + local.recording().id();
     }
 
-    /**
-     * The answer for a file this instance fetched before and which is still where it put it, built
-     * without asking the connector anything.
-     * <p>
-     * The retained operation is the only thing that maps a {@code fileId} back to a file name, which
-     * is why this reaches no further back than {@link BoundedJobs#COMPLETED_RETENTION}: past that the
-     * name has to come from {@code connector_files} again. It is deliberately not a catalogue — nothing is
-     * written down, and an empty answer here simply costs the round trip it would have saved.
-     * <p>
-     * A retained path that is no longer the path this session resolves to means the recording has
-     * been analysed since, so the fetch proper runs and moves the file beside its profile.
-     */
-    private Optional<RetainedFetch> retainedLocally(ConnectorFileRef key) {
-        ConnectorSessionRef ref = key.session();
-        Optional<OperationHandle<Path>> retained = fetches.current(key)
-                .filter(handle -> handle.snapshot().state() == OperationState.COMPLETED);
-        if (retained.isEmpty()) {
-            return Optional.empty();
-        }
-        OperationHandle<Path> operation = retained.get();
-        Path path = operation.snapshot().result();
-        if (path == null || !Files.isRegularFile(path)) {
-            return Optional.empty();
-        }
-
-        String filename = path.getFileName().toString();
-        LocalSession local = localSession(ref);
-        if (!path.equals(targetOf(ref, filename, local))) {
-            return Optional.empty();
-        }
-        Long size;
-        try {
-            size = Files.size(path);
-        } catch (IOException e) {
-            // It was a regular file a moment ago. Whatever changed, the connector knows more than we do.
-            LOG.debug("A retained connector artifact could not be sized: path={} reason={}", path, e.getMessage());
-            return Optional.empty();
-        }
-        LOG.debug("Answering a connector artifact fetch from this disk: session_id={} file_id={} path={}",
-                ref.sessionId(), key.fileId(), path);
-        return Optional.of(new RetainedFetch(
-                operation, facts(FetchStatus.FETCHED, filename, ManagedFile.of(filename), size, path, true, local)));
-    }
-
-    /** A fetch answered off this disk: the operation it was, and what it reports. */
-    private record RetainedFetch(OperationHandle<Path> operation, FetchFacts facts) {
-    }
-
     private static FetchFacts fetched(RepositoryFile file, Path path, boolean alreadyHere, LocalSession local) {
         return facts(FetchStatus.FETCHED, file.name(), RepositoryFiles.typeOf(file), file.size(), path, alreadyHere,
-                local);
-    }
-
-    private static FetchFacts running(RepositoryFile file, Path target, LocalSession local) {
-        return facts(FetchStatus.RUNNING, file.name(), RepositoryFiles.typeOf(file), file.size(), target, false,
                 local);
     }
 

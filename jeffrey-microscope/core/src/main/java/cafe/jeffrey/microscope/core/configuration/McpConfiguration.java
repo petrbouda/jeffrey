@@ -44,25 +44,19 @@ import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
 import org.springframework.ai.mcp.customizer.McpServerCustomizer;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.core.Ordered;
-import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationAnswers;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationTasks;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.microscope.core.utils.Schedulers;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -167,27 +161,15 @@ public class McpConfiguration {
      * Turns a recording file into a profile. Built unconditionally: the assembler decides whether the
      * {@code recordings} family is advertised, from the families and preset, and a bean that exists
      * but is never registered costs nothing next to a conditional bean the reader has to go looking for.
-     *
-     * @param maxConcurrentImports how many {@code recordings_analyzeFile} imports run together, from
-     *                             {@code jeffrey.microscope.mcp.recordings.max-concurrent-imports};
-     *                             the rest wait as queued operations. The analysis jobs wait the standard
-     *                             budget and keep their outcomes for the standard hour
      */
     @Bean
     public RecordingsMcpTools recordingsMcpTools(
             RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> profileInitRunRegistry, McpOperationRegistry operations,
-            OperationAnswers operationAnswers,
-            @Value("${" + RecordingsMcpTools.MAX_CONCURRENT_IMPORTS_PROPERTY + ":"
-                    + RecordingsMcpTools.DEFAULT_MAX_CONCURRENT_IMPORTS + "}") int maxConcurrentImports,
-            Clock applicationClock,
+            PipelineRunRegistry<String> profileInitRunRegistry,
             AdvertisedFamilies advertisedFamilies,
             RecordingCommitResolver recordingCommitResolver) {
-        BoundedJobs<String, String> analyses = new BoundedJobs<>(
-                BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, applicationClock,
-                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
-        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, analyses, operations,
-                operationAnswers, maxConcurrentImports, applicationClock, advertisedFamilies, recordingCommitResolver);
+        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry,
+                advertisedFamilies, recordingCommitResolver);
     }
 
     /**
@@ -209,12 +191,10 @@ public class McpConfiguration {
             @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
             @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
-            McpOperationRegistry operations,
-            OperationAnswers operationAnswers,
             AdvertisedFamilies advertisedFamilies) {
         return new ConnectorMcpTools(
                 connectorManager, projectManagerResolver, recordingsManager, applicationClock,
-                scanTimeout, responseTimeout, operations, operationAnswers,
+                scanTimeout, responseTimeout,
                 new DownloadWindowQuestion(askWindowOverDuration, askWindowOverSize.toBytes()), advertisedFamilies);
     }
 
@@ -238,14 +218,12 @@ public class McpConfiguration {
             ProjectManagerResolver projectManagerResolver,
             RecordingsManager recordingsManager,
             MicroscopeJeffreyDirs jeffreyDirs,
-            McpOperationRegistry operations,
-            OperationAnswers operationAnswers,
             Clock applicationClock,
             @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             AdvertisedFamilies advertisedFamilies) {
         return new ConnectorArtifactsMcpTools(
-                projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(), operations,
-                operationAnswers, applicationClock, responseTimeout, advertisedFamilies);
+                projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(),
+                applicationClock, responseTimeout, advertisedFamilies);
     }
 
     @Bean
@@ -262,44 +240,12 @@ public class McpConfiguration {
             ExternalMcpProperties properties,
             AdvertisedFamilies advertisedFamilies,
             ConnectorArtifactsMcpTools connectorArtifactsMcpTools,
-            McpOperationRegistry operations, OperationAnswers operationAnswers, Clock applicationClock) {
+            Clock applicationClock) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, connectorMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties, advertisedFamilies, connectorArtifactsMcpTools, operations, operationAnswers,
+                properties, advertisedFamilies, connectorArtifactsMcpTools,
                 applicationClock);
-    }
-
-    /**
-     * The process-local catalogue of background operations the {@code operations_} tools poll and
-     * cancel. Shared by every family that starts one, so an id handed out by one tool is the id the
-     * generic tools answer for.
-     */
-    @Bean
-    public McpOperationRegistry mcpOperationRegistry(Clock applicationClock) {
-        return new McpOperationRegistry(applicationClock);
-    }
-
-    /**
-     * How every tool that waits on an operation answers once its wait is over: a client that declared
-     * the tasks extension waits {@code BoundedJobs.TASK_WAIT_BUDGET} and is handed a task, every other
-     * caller waits the tool's standard budget and is handed the {@code operationId}.
-     */
-    @Bean
-    public OperationAnswers operationAnswers() {
-        return new OperationAnswers(BoundedJobs.TASK_WAIT_BUDGET);
-    }
-
-    /**
-     * The operation registry served over the MCP tasks extension, behind the same family gate as
-     * {@code operations_status}: a client that declared the extension follows a long call as a task
-     * rather than through an {@code operationId}. {@link McpTaskProvider#NONE} -- and no extension
-     * declared at {@code server/discover} -- when no family that starts an operation (recordings, connector,
-     * heap, jvm) is served.
-     */
-    @Bean
-    public McpTaskProvider mcpTaskProvider(McpOperationRegistry operations, ExternalMcpProperties properties) {
-        return OperationTasks.of(operations, kind -> McpToolsetAssembler.reachable(kind, properties));
     }
 
     /**

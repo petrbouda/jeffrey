@@ -204,13 +204,13 @@ public final class ConnectorAnswers {
     public enum DownloadStatus {
         /** The recording is here: recordingId names it, and profileId too once it is analysed. */
         DOWNLOADED,
-        /** The transfer outlasted the call; operationId follows it. */
+        /** The transfer is still in progress. */
         RUNNING,
         /** The user chose not to bring any part of the session; nothing was transferred. */
         NOT_DOWNLOADED,
-        /** The transfer failed; the same call with retry=true starts a new one. */
+        /** The transfer failed. */
         FAILED,
-        /** The transfer was cancelled; the same call with retry=true starts a new one. */
+        /** The transfer was cancelled. */
         CANCELLED,
         /**
          * STARTUP was asked for and the connector no longer holds the session's first chunk; nothing was
@@ -345,7 +345,7 @@ public final class ConnectorAnswers {
     public enum FetchStatus {
         /** The file is at path. */
         FETCHED,
-        /** The transfer outlasted the call; the file will land at path, and operationId follows it. */
+        /** The transfer is still in progress; the file will land at path. */
         RUNNING
     }
 

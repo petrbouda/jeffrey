@@ -35,7 +35,6 @@ import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.common.model.RecordingEventSource;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.pipeline.PipelineState;
@@ -47,7 +46,6 @@ import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.common.model.recording.ManagedFile;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import org.slf4j.Logger;
@@ -65,7 +63,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The family that brings recordings in: it takes a recording Jeffrey has never seen and turns it into
@@ -92,8 +89,7 @@ public class RecordingsMcpTools {
     private static final String RECORDING_VANISHED = "Recording vanished while being analyzed: ";
     private static final String PIPELINE_FAILED = "The analysis this attempt joined failed: ";
     private static final String INTERRUPTED_JOINING_PIPELINE = "Interrupted while waiting for the running analysis";
-    private static final String IMPORT_FAILED =
-            "Importing and analysing the file failed; operations_status has the same detail: ";
+    private static final String IMPORT_FAILED = "Importing and analysing the file failed: ";
     private static final Logger LOG = LoggerFactory.getLogger(RecordingsMcpTools.class);
 
     private static final String DIRTY_WITHOUT_COMMIT = "dirty describes the commit's working tree; pass commit "
@@ -122,11 +118,9 @@ public class RecordingsMcpTools {
     private static final String LIST_TOOL = "recordings_list";
     private static final String STATUS_TOOL = "recordings_status";
     private static final String ANALYZE_RECORDING_TOOL = "recordings_analyzeRecording";
-    private static final String OPERATIONS_STATUS = "operations_status";
     private static final String PROFILES_SUMMARY = "profiles_summary";
     private static final String RECORDING_ID = "recordingId";
     private static final String PROFILE_ID = "profileId";
-    private static final String OPERATION_ID = "operationId";
     private static final String RETRY = "retry";
     private static final String LIMIT = "limit";
     private static final String CURSOR = "cursor";
@@ -183,40 +177,20 @@ public class RecordingsMcpTools {
 
     private final RecordingsManager recordingsManager;
     private final PipelineRunRegistry<String> runRegistry;
-    private final BoundedJobs<String, String> jobs;
-    private final BoundedJobs<ImportKey, ImportedProfile> imports;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
     private final AdvertisedFamilies advertised;
     private final RecordingCommitResolver revisions;
 
     /**
-     * @param runRegistry          the profile-init pipeline, so a poll can report which stage the parse
-     *                             is on rather than only that it has not finished
-     * @param jobs                 the analysis jobs, keyed by recording id; their wait budget is the
-     *                             import jobs' too
-     * @param operations           the registry operations_status reads, so every attempt started here
-     *                             can be followed there
-     * @param answers              how a call that outlasts its wait answers, by what the client declared
-     * @param maxConcurrentImports how many {@code recordings_analyzeFile} imports may run together,
-     *                             from {@link #MAX_CONCURRENT_IMPORTS_PROPERTY}
-     * @param clock                what the import jobs stamp their attempts with; the analysis jobs
-     *                             carry their own
-     * @param advertised           the families a next call may route to
+     * @param runRegistry the profile-init pipeline, so a running parse reports which stage it is on
+     * @param advertised  the families a next call may route to
      */
     public RecordingsMcpTools(RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> runRegistry, BoundedJobs<String, String> jobs,
-            McpOperationRegistry operations, OperationAnswers answers, int maxConcurrentImports, Clock clock,
+            PipelineRunRegistry<String> runRegistry,
             AdvertisedFamilies advertised, RecordingCommitResolver revisions) {
-        this.operations = operations;
         this.revisions = revisions;
-        this.answers = answers;
         this.advertised = advertised;
-        this.imports = new BoundedJobs<>(jobs.waitBudget(), BoundedJobs.COMPLETED_RETENTION, clock,
-                Schedulers.sharedVirtual(), maxConcurrentImports, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.recordingsManager = recordingsManager;
         this.runRegistry = runRegistry;
-        this.jobs = jobs;
     }
 
     @Tool(description = "Analyses a recording file - a .jfr, .jfr.lz4, .hprof, .hprof.gz, .hsperfdata, "
@@ -226,10 +200,9 @@ public class RecordingsMcpTools {
             + "Jeffrey runs on. A file whose name and size match a stored recording is not imported "
             + "again: its profile comes back with reused=true, or the stored recording is analysed "
             + "when it has none yet; force=true imports it anyway. Perf counters (.hsperfdata) are always "
-            + "imported: every JVM's file has the same name and size. A small recording answers with "
-            + "status READY and its profileId; a large one with status RUNNING and an operationId, "
-            + "which operations_status follows through the copy and the analysis - or, for a client "
-            + "that declared the MCP tasks extension, with a task after about 5 s. commit (and dirty) "
+            + "imported: every JVM's file has the same name and size. The call imports and analyses on "
+            + "this call, streaming notifications/progress through the copy and the parse, and returns "
+            + "status READY with the profileId when it finishes. commit (and dirty) "
             + "record which source the recording measured, for a build made from the repository you are in; "
             + "profiles_get reports it back. They apply to a fresh import, not a reused one.")
     @McpOutputSchema(RecordingAnalysis.class)
@@ -288,29 +261,6 @@ public class RecordingsMcpTools {
     }
 
     /**
-     * The stages of the analysis an import is running, as that analysis reports them; none until the
-     * parse has a profile to report them for.
-     */
-    private static List<PipelineStage> stagesOf(OperationHandle<String> analysis) {
-        return analysis.snapshot().progress() instanceof OperationDetails details ? details.stages() : List.of();
-    }
-
-    /**
-     * The recording an import stored, for {@code recordings_status} to find the operation by. The
-     * call that started the import learns it the moment the copy lands; a call that joined it — and
-     * registered the operation first — learns it only from the finished result.
-     */
-    private static String importedRecordingOf(
-            OperationHandle<ImportedProfile> operation, AtomicReference<String> startedHere) {
-        String recordingId = startedHere.get();
-        if (recordingId != null) {
-            return recordingId;
-        }
-        ImportedProfile done = operation.lifecycleSnapshot().result();
-        return done == null ? null : done.recordingId();
-    }
-
-    /**
      * The recording already in the store of a file with this file's name and size. The size is read
      * at the moment of the call, so a file a new run rewrote to a different length never matches the
      * import of the old one; a rewrite to the very same length does.
@@ -338,13 +288,10 @@ public class RecordingsMcpTools {
 
     @Tool(description = "Analyses a recording that is already in Jeffrey's Quick Analysis store but has "
             + "no profile yet - one uploaded through the web UI, one pulled in by connector_download, or "
-            + "one recordings_list shows without a profileId. Returns status READY with the profile "
-            + "id every other tool takes, or status RUNNING when parsing outlasts the call, which "
-            + "recordings_status follows - a client that declared the MCP tasks extension gets a task "
-            + "after about 5 s instead. A recording that already has a profile is returned as it "
-            + "is. Results include an operationId for operations_status and operations_cancel; a "
-            + "retained failure starts again only with retry=true, and outcomes are held in memory "
-            + "for one hour and forgotten on restart.")
+            + "one recordings_list shows without a profileId. Parses on this call, streaming "
+            + "notifications/progress, and returns status READY with the profile id every other tool "
+            + "takes when it finishes. A recording that already has a profile is returned as it is. A "
+            + "concurrent analyze of the same recording joins the one run rather than starting a second.")
     @McpOutputSchema(RecordingAnalysis.class)
     @McpToolMeta(cost = McpToolCost.SLOW)
     public McpToolOutcome analyzeRecording(
@@ -439,7 +386,7 @@ public class RecordingsMcpTools {
             throw new IllegalArgumentException("Profile " + recording.profileId()
                     + " is still being built from recording " + id + ", and deleting it now would leave the "
                     + "parse writing into storage that is no longer there. Poll recordings_status until it "
-                    + "finishes, or stop it with operations_cancel, then delete.");
+                    + "finishes, then delete.");
         }
         return recording;
     }
@@ -548,15 +495,13 @@ public class RecordingsMcpTools {
      */
     @McpToolHints
     @Tool(description = "Reports how far the analysis of a recording has got, stage by stage, and the "
-            + "profile id once it is ready (status READY) - for a recordings_analyzeFile or "
-            + "recordings_analyzeRecording call that answered with status RUNNING because parsing "
-            + "a large recording outlasts a tool call. Also FAILED, INTERRUPTED (Jeffrey restarted "
-            + "mid-parse) and NOT_STARTED.")
+            + "profile id once it is ready (status READY). Useful when an analysis is still being built "
+            + "by a concurrent call. Also RUNNING, FAILED, INTERRUPTED (Jeffrey restarted mid-parse) and "
+            + "NOT_STARTED.")
     @McpOutputSchema(RecordingAnalysis.class)
     @McpToolMeta(cost = McpToolCost.CHEAP)
     public McpToolResult status(
-            @ToolParam(required = true, description = "Recording id, as returned by the analyze tool "
-                    + "that reported the analysis was still running")
+            @ToolParam(required = true, description = "Recording id, as returned by recordings_list")
             String recordingId) {
         AnalysisFacts facts = statusOf(recordingId);
         return McpToolResult.of(analysis(facts, UiLinks.base()));
@@ -572,13 +517,10 @@ public class RecordingsMcpTools {
                 .orElseThrow(() -> new IllegalArgumentException("No such recording: " + id));
 
         if (!recording.hasProfile()) {
-            Optional<BoundedJobs.Outcome<String>> outcome = jobs.outcome(id);
-            if (outcome.isPresent() && outcome.get().failure() != null) {
-                return AnalysisFacts.failed(id, null, List.of(), null, outcome.get().failure().getMessage());
-            }
-            return jobs.isRunning(id)
-                    ? AnalysisFacts.running(id, null, null)
-                    : AnalysisFacts.of(AnalysisStatus.NOT_STARTED, id, null, List.of(), NOT_STARTED_NOTE);
+            // Analysis runs synchronously inside the analyze call and creates the profile row before it
+            // parses; a recording with no profile row has had no analysis begun. A synchronous failure is
+            // raised to the caller, never retained, so there is no failed-before-profile state to report.
+            return AnalysisFacts.of(AnalysisStatus.NOT_STARTED, id, null, List.of(), NOT_STARTED_NOTE);
         }
 
         // A profile row appears before the parse begins — it is inserted first so the recordings list
@@ -592,24 +534,18 @@ public class RecordingsMcpTools {
             return AnalysisFacts.failed(id, profileId, stages, progress.errorCode(), progress.errorMessage());
         }
 
-        // The parser can have completed while post-parse work in this bounded job (notably an MCP
-        // requested rename) is still running. The profile is not the job's result until all of that
-        // finalization has finished.
-        if (jobs.isRunning(id) || progress.isRunning()) {
+        // The run registry is the one source of truth now: the parse and every post-parse stage report
+        // through it, and the profile is not ready until all of that finalization has finished.
+        if (progress.isRunning()) {
             return AnalysisFacts.of(AnalysisStatus.RUNNING, id, profileId, stages, NOT_READY_YET);
         }
 
-        // A live profile outranks a retained failure. The failure this process remembers is about an
-        // attempt it made; the profile can have been built since by another one — the UI, or an
-        // earlier attempt whose outcome expired — and a reader told "failed" about a profile every
-        // other tool answers from would start a third build of it.
+        // A profile row with no enabled profile and no run in flight is one a parse began and never
+        // finished — Jeffrey restarted mid-parse. A synchronous failure never reaches here: it is raised
+        // to the caller, and the manager leaves no half-built profile row behind.
         Optional<ProfileInfo> profileInfo = recordingsManager.profile(profileId)
                 .map(profile -> profile.info());
         if (profileInfo.isEmpty() || !profileInfo.get().enabled()) {
-            Optional<BoundedJobs.Outcome<String>> outcome = jobs.outcome(id);
-            if (outcome.isPresent() && outcome.get().failure() != null) {
-                return AnalysisFacts.failed(id, profileId, stages, null, outcome.get().failure().getMessage());
-            }
             return AnalysisFacts.of(AnalysisStatus.INTERRUPTED, id, profileId, stages, INTERRUPTED_NOTE);
         }
 
@@ -1014,15 +950,4 @@ public class RecordingsMcpTools {
         }
     }
 
-    /** What an import leaves behind: the recording it stored and the profile built from it. */
-    private record ImportedProfile(String recordingId, String profileId) {
-    }
-
-    /** A finished import's result, as operations_status reports it. */
-    private record ImportResult(String profileId) {
-    }
-
-    /** A finished analysis's result, as operations_status reports it. */
-    private record AnalysisResult(String profileId, String recordingId) {
-    }
 }
