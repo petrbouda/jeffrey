@@ -369,14 +369,16 @@ public class McpConfiguration {
     }
 
     /**
-     * The {@code jeffrey://} resources and templates, reading through the toolset. Diagnostics are not
-     * wired yet (the tool-metrics feed moved with the old controller), so the {@code jeffrey://diagnostics}
-     * resource is omitted until the metrics are re-collected in the bridge.
+     * The {@code jeffrey://} resources and templates, reading through the toolset. {@code jeffrey://diagnostics}
+     * is a health snapshot read afresh on every read: the server block, profile readiness and a bounded
+     * connector-reachability probe.
      */
     @Bean
     public McpResources mcpResources(
-            McpToolsetAssembler assembler, ExternalMcpProperties properties, McpSkillCatalogue skills) {
-        return new McpResources(assembler.toolset(), assembler::documents, properties, null, skills.servesAny());
+            McpToolsetAssembler assembler, ExternalMcpProperties properties, McpSkillCatalogue skills,
+            McpDiagnostics diagnostics) {
+        return new McpResources(assembler.toolset(), assembler::documents, properties,
+                () -> diagnostics.json(assembler.toolset()), skills.servesAny());
     }
 
     /** Serves resources/list, resources/templates/list and resources/read, including {@code skill://} files. */

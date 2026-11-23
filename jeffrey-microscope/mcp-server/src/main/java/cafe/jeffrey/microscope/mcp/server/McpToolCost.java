@@ -22,7 +22,7 @@ package cafe.jeffrey.microscope.mcp.server;
  * tools that answer the same question and knows which call to make only once.
  * <p>
  * A scale, not a measurement: the same tool is faster on a small recording than on a large one, and
- * the figures {@link McpToolMetrics} keeps are what a call actually took on this installation.
+ * what a call actually took on this installation is the per-call JFR span {@link ToolInvocation} emits.
  */
 public enum McpToolCost {
 

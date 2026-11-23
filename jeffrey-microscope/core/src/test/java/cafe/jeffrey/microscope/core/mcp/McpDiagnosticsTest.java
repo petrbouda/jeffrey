@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.connector.azure.AzureFilesAuth;
 import cafe.jeffrey.microscope.connector.azure.AzureFilesProtocol;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.mcp.server.McpToolMetrics;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.core.utils.Json;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
@@ -66,13 +65,13 @@ class McpDiagnosticsTest {
         when(repositories.findAllProfiles()).thenReturn(List.of(ready, building));
         when(connectorManager.current()).thenThrow(new AssertionError("Connector access is disabled"));
         var diagnostics = diagnostics(McpTestProperties.of(true, false, false, Set.of(), "jfr"));
-        String text = diagnostics.json(tools, List.of(new McpToolMetrics.Sample("profiles_read", 2, 1, 40, 30, 60, 40)), 0);
+        String text = diagnostics.json(tools);
         var result = Json.readTree(text);
         assertEquals(2, result.path("profileReadiness").path("total").asInt());
         assertEquals(1, result.path("profileReadiness").path("ready").asInt());
         assertEquals(1, result.path("profileReadiness").path("building").asInt());
         assertFalse(result.path("connector").path("enabled").asBoolean());
-        assertEquals(2, result.path("toolMetrics").get(0).path("calls").asInt());
+        assertFalse(result.has("toolMetrics"));
         assertEquals("jfr", result.path("server").path("preset").asText());
         assertFalse(result.has("environment"));
     }
@@ -110,7 +109,7 @@ class McpDiagnosticsTest {
         when(connector.infoOrThrow()).thenThrow(
                 new JeffreyException(ErrorType.INTERNAL, ErrorCode.CONNECTOR_UNAVAILABLE, "credential-secret"));
 
-        String text = diagnostics(McpTestProperties.of(true, true, false, Set.of())).json(tools, List.of(), 0);
+        String text = diagnostics(McpTestProperties.of(true, true, false, Set.of())).json(tools);
         var result = Json.readTree(text).path("connector");
 
         assertFalse(result.path("reachable").asBoolean(true));
@@ -131,7 +130,7 @@ class McpDiagnosticsTest {
         });
 
         String text = diagnostics(McpTestProperties.of(true, true, false, Set.of()), Duration.ofMillis(50))
-                .json(tools, List.of(), 0);
+                .json(tools);
         var result = Json.readTree(text).path("connector");
 
         assertFalse(result.path("unreachable").asBoolean(true));
@@ -175,7 +174,7 @@ class McpDiagnosticsTest {
     }
 
     private JsonNode connectorStatus() {
-        String text = diagnostics(McpTestProperties.of(true, true, false, Set.of())).json(tools, List.of(), 0);
+        String text = diagnostics(McpTestProperties.of(true, true, false, Set.of())).json(tools);
         return Json.readTree(text).path("connector");
     }
 
