@@ -21,6 +21,7 @@ import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
+import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
 import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
 import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
@@ -170,43 +171,23 @@ public class HeapComputeMcpTools {
 
         HeapDumpManager heapDumpManager = requireHeapDump();
         String profileId = profileManager.info().id();
-        AutoCloseable lease = backgroundLease.get();
-        boolean started = false;
-        HeapDumpInitService.Preparation preparation;
-        try {
-            preparation = initService.startPreparation(profileId, heapDumpManager,
-                    report == null ? null : report.stageId(), null, () -> release(lease), Boolean.TRUE.equals(retry));
-            started = preparation.started();
-        } finally {
-            // A joined or rejected request handed no work to the service, so it still owns its lease.
-            if (!started) {
-                release(lease);
-            }
-        }
-
-        OperationState state = preparation.operation().snapshot().state();
+        HeapDumpInitService.Preparation preparation = initService.startPreparation(profileId, heapDumpManager,
+                report == null ? null : report.stageId(), null, () -> { }, Boolean.TRUE.equals(retry));
         String link = UiLinks.view(profileId, HEAP_VIEW);
         List<HeapReport> computing = reports(preparation.reports());
         McpNextTool retryCall = retryCall(profileId, computing);
-        Optional<String> operationId = register(profileId, preparation, started, link, retryCall);
-        if (operationId.isEmpty()) {
-            PipelineProgress progress = initService.progress(profileId);
-            return McpToolResult.of(new PrepareAnswer(profileId, started, computing, Stage.of(progress), null, null,
-                    true, expiredSteps(profileId, progress, retryCall), link));
+        // Prepares on this call and streams progress. PipelineRunRegistry is single-flight per profile,
+        // so a concurrent prepare joins the one run; await its completion, then answer with the stages.
+        call.reportProgress(0.0, 1.0, "Preparing the heap dump: index, dominator tree and reports");
+        try {
+            initService.awaitPreparation(profileId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ToolExecutionException("Interrupted while preparing the heap dump");
         }
-        String id = operationId.get();
-        boolean startedHere = started;
-        McpFollowUp followUp = prepareSteps(profileId, startedHere, state, computing, retryCall);
-        Supplier<McpToolResult> answer = () -> McpToolResult.of(new PrepareAnswer(profileId, startedHere, computing,
-                Stage.of(initService.progress(profileId)), id, operations.status(id), false,
-                followUp, link));
-        // Answered at once whatever the client declared. A client that can follow a task is handed the
-        // preparation as one while it runs, and the task answers once it has finished; a run already
-        // finished -- completed, or failed or cancelled with its retry call -- has nothing to follow.
-        if (state.terminal()) {
-            return answer.get();
-        }
-        return answers.stillRunning(call, id, answer);
+        PipelineProgress progress = initService.progress(profileId);
+        return McpToolResult.of(new PrepareAnswer(profileId, preparation.started(), computing, Stage.of(progress),
+                null, null, true, expiredSteps(profileId, progress, retryCall), link));
     }
 
     /**

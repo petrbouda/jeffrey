@@ -223,6 +223,14 @@ public final class HeapDumpInitService {
         return Optional.ofNullable(preparations.get(profileId));
     }
 
+    /**
+     * Blocks until the preparation pipeline for this profile finishes, for a synchronous caller that
+     * streams progress and returns the result on this call rather than deferring to an operation.
+     */
+    public Optional<PipelineProgress> awaitPreparation(String profileId) throws InterruptedException {
+        return registry.awaitCompletion(profileId);
+    }
+
     public record Preparation(boolean started, OperationHandle<PipelineProgress> operation, List<String> reports) {
     }
 

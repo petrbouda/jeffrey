@@ -349,14 +349,9 @@ public class ConnectorArtifactsMcpTools {
         // and the path is still good.
         Optional<RetainedFetch> retained = retainedLocally(key);
         if (retained.isPresent()) {
-            FetchFacts facts = retained.get().facts();
-            String operationId = register(key, retained.get().operation(), path -> facts, uiLink);
-            return answer(key, facts, operationId, uiLink);
+            return answer(key, retained.get().facts(), null, uiLink);
         }
 
-        // The preflight has the whole response budget, whatever the client declared: only the wait
-        // on the transfer below is shortened for a client that can follow a task.
-        McpDeadline responseDeadline = McpDeadline.after(responseBudget);
         Preflight preflight = preflight(ref, fileId);
         RepositoryFile file = preflight.file();
         LocalSession local = localSession(ref);
@@ -364,34 +359,16 @@ public class ConnectorArtifactsMcpTools {
 
         Optional<Path> here = alreadyHere(ref, file.name(), local, target);
         if (here.isPresent()) {
-            OperationHandle<Path> operation = fetches.rememberCompleted(key, here.get());
-            FetchFacts facts = fetched(file, here.get(), true, local);
-            String operationId = register(key, operation, path -> facts, uiLink);
-            return answer(key, facts, operationId, uiLink);
+            return answer(key, fetched(file, here.get(), true, local), null, uiLink);
         }
 
         LOG.info("Fetching a connector artifact over MCP: project_id={} session_id={} file_id={} name={}",
                 ref.projectId(), ref.sessionId(), fileId, file.name());
-        // retryFailure is true: a fetch is one file, and a transfer that failed on a blip must be
-        // startable again by calling this tool - which is the retry its operation names. reuseSuccess
-        // pins the retained path to the one this call resolved, so a session analysed since the last
-        // fetch is not answered with the copy under artifacts/.
-        OperationHandle<Path> operation = fetches.startOrJoin(key, true,
-                previous -> previous.equals(target) && Files.isRegularFile(previous),
-                control -> {
-                    control.phase(OperationPhase.FETCHING);
-                    control.progress(OperationDetails.connectorFetch(
-                            ref.encode(), fileId, file.name(), file.size(), target.toString()));
-                    return transfer(preflight.project(), ref, fileId, target, control);
-                });
-        String operationId = register(key, operation, path -> fetched(file, path, false, local), uiLink);
-        Optional<Path> transferred = fetches.awaitWithin(operation, responseDeadline.remainingWithin(
-                answers.waitBudget(call, responseBudget), RESPONSE_DEADLINE_ELAPSED));
-        if (transferred.isEmpty()) {
-            return answers.stillRunning(call, operationId, () -> answer(key,
-                    running(file, target, local), operationId, uiLink));
-        }
-        return answer(key, fetched(file, transferred.get(), false, local), operationId, uiLink);
+        // Fetches on this call and streams progress; the file is streamed to a .part sibling and renamed,
+        // so a concurrent fetch of the same file cannot leave a half-written target.
+        call.reportProgress(0.0, file.size(), "Fetching the connector artifact");
+        Path fetchedPath = transfer(preflight.project(), ref, fileId, target);
+        return answer(key, fetched(file, fetchedPath, false, local), null, uiLink);
     }
 
     /**
@@ -565,9 +542,7 @@ public class ConnectorArtifactsMcpTools {
         return file;
     }
 
-    private static Path transfer(
-            ProjectManager project, ConnectorSessionRef ref, String fileId, Path target, BoundedJobs.JobControl control) {
-        control.checkCancellation();
+    private static Path transfer(ProjectManager project, ConnectorSessionRef ref, String fileId, Path target) {
         return place(project.repositoryManager().streamFile(ref.sessionId(), fileId), target);
     }
 

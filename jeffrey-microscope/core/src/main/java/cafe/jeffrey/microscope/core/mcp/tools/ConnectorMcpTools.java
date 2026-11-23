@@ -827,15 +827,7 @@ public class ConnectorMcpTools {
         // reader may not need a second recording at all.
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager, locator.currentAddress()).find(ref);
-        Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
-        if (prior.isPresent() && prior.get().failure() != null && !retryFailed) {
-            throw prior.get().failure();
-        }
 
-        // The preflight has the whole response budget, whatever the client declared: only the wait
-        // on the transfer below is shortened for a client that can follow a task.
-        McpDeadline responseDeadline = read.map(SessionRead::responseDeadline)
-                .orElseGet(() -> McpDeadline.after(downloadResponseBudget));
         DownloadPreflight preflight = read.map(SessionRead::preflight)
                 .orElseGet(() -> preflight(ref));
         ProjectManager project = preflight.project();
@@ -844,27 +836,10 @@ public class ConnectorMcpTools {
         Landing landing = new Landing(key, preflight, selection, alreadyHere);
         boolean mayHaveChanged = key.mayHaveChanged(session, selection);
 
-        // A complete chunk set says nothing about missing artifacts or logs that grew. Read the
-        // session first, and let the download manager reconcile any requested artifacts in place.
+        // A complete whole-session copy already on disk is handed back without re-downloading.
         if (key.wholeSession() && !mayHaveChanged
                 && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
-            DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
-            OperationHandle<String> operation = downloads.rememberCompleted(key, copy.recordingId());
-            DownloadFacts facts = DownloadFacts.here(copy.recordingId());
-            String operationId = registerDownload(key, chosen, operation, recordingId -> facts, base);
-            return answer(key, chosen, facts, operationId, base);
-        }
-
-        // Handing back the recording an identical call already made, unless the answer may have moved
-        // on since: the newest recording or any requested artifacts. The manager reuses unchanged
-        // files while recovering missing artifacts and refreshing logs. A transfer still in flight
-        // is joined either way.
-        if (prior.isPresent() && !mayHaveChanged) {
-            String recordingId = prior.get().value();
-            if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
-                String operationId = registerDownload(key, chosen, downloads.current(key).orElseThrow(), landing::landed, base);
-                return answer(key, chosen, landing.landed(recordingId), operationId, base);
-            }
+            return answer(key, chosen, DownloadFacts.here(alreadyHere.get().recordingId()), null, base);
         }
 
         LOG.info("Downloading a connector session over MCP: project_id={} session_id={} window={} file_ids={}",
@@ -872,23 +847,11 @@ public class ConnectorMcpTools {
         long transferBytes = selection == null
                 ? session.totalSizeBytes()
                 : selection.files().stream().mapToLong(RepositoryFile::size).sum();
-        OperationHandle<String> operation = downloads.startOrJoin(key, retryFailed,
-                recordingId -> !mayHaveChanged && recordingsManager.findRecording(recordingId).isPresent(),
-                control -> {
-                    control.phase(OperationPhase.DOWNLOADING);
-                    control.progress(OperationDetails.connectorDownload(ref.encode(), ref.sessionId(), transferBytes));
-                    return transfer(project, key, control);
-                });
-        String operationId = registerDownload(key, chosen, operation, landing::landed, base);
-        Optional<String> transferred = downloads.awaitWithin(operation, responseDeadline.remainingWithin(
-                answers.waitBudget(call, downloadResponseBudget), RESPONSE_DEADLINE_ELAPSED));
-        if (transferred.isEmpty()) {
-            // Nothing to poll but this tool and the operation: the tool answers from the local store
-            // first, so calling it again with the same part reports the finished copy once it lands.
-            return answers.stillRunning(call, operationId,
-                    () -> answer(key, chosen, DownloadFacts.running(preflight, transferBytes), operationId, base));
-        }
-        return answer(key, chosen, landing.landed(transferred.get()), operationId, base);
+        // Transfers on this call and streams progress; the download manager writes to an isolated temp
+        // dir and mints a fresh recording id, so concurrent transfers cannot collide on disk.
+        call.reportProgress(0.0, transferBytes, "Downloading the connector session");
+        String recordingId = key.transfer(project.recordingsDownloadManager());
+        return answer(key, chosen, landing.landed(recordingId), null, base);
     }
 
     /**
