@@ -62,14 +62,11 @@ import java.util.stream.IntStream;
 import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
 import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.core.utils.Json;
@@ -1447,11 +1444,10 @@ class RecordingsMcpToolsTest {
         }
     }
 
-    /** What the recordings, operations and profiles families advertise, for following a next call. */
+    /** What the recordings and profiles families advertise, for following a next call. */
     private List<McpToolSpec> recordingsSpecs() {
         return CatalogueSpecs.of(
                 CatalogueSpecs.served(tools, "recordings"),
-                CatalogueSpecs.served(new OperationsMcpTools(operations, kind -> true), "operations"),
                 CatalogueSpecs.profileScoped(ProfileMcpTools.class, "profiles"));
     }
 

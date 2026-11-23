@@ -200,16 +200,9 @@ const resourcesCall = `curl -s -X POST http://localhost:8585/api/mcp \\
     }
   }'`;
 
-// The same envelope from a client that declared the tasks extension; indented for "params".
-const TASKS_META = `"_meta": {
-        "io.modelcontextprotocol/protocolVersion": "2026-07-28",
-        "io.modelcontextprotocol/clientCapabilities": {
-          "extensions": { "io.modelcontextprotocol/tasks": {} }
-        }
-      }`;
-
-const taskCall = `curl -s -X POST http://localhost:8585/api/mcp \\
+const streamingCall = `curl -sN -X POST http://localhost:8585/api/mcp \\
   -H 'Content-Type: application/json' \\
+  -H 'Accept: application/json, text/event-stream' \\
   -H 'MCP-Protocol-Version: 2026-07-28' \\
   -H 'Mcp-Method: tools/call' \\
   -H 'Mcp-Name: recordings_analyzeFile' \\
@@ -220,70 +213,36 @@ const taskCall = `curl -s -X POST http://localhost:8585/api/mcp \\
     "params": {
       "name": "recordings_analyzeFile",
       "arguments": { "path": "/home/dev/project/target/app.jfr" },
-      ${TASKS_META}
+      ${META}
     }
   }'`;
 
-const taskCreated = `{
-  "jsonrpc": "2.0",
-  "id": 6,
-  "result": {
-    "taskId": "5f0c1d7e-...",
-    "status": "working",
-    "statusMessage": "analyzing",
-    "createdAt": "2026-09-26T09:14:03.120Z",
-    "lastUpdatedAt": "2026-09-26T09:14:03.120Z",
-    "ttlMs": 3600000,
-    "pollIntervalMs": 5000,
-    "resultType": "task",
-    "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "jeffrey", "version": "..." } }
-  }
-}`;
+// A long tool answers over text/event-stream: progress notifications while it runs,
+// then the final result as the last event on the same stream.
+const streamingResponse = `HTTP/1.1 200 OK
+Content-Type: text/event-stream
 
-const taskGet = `curl -s -X POST http://localhost:8585/api/mcp \\
-  -H 'Content-Type: application/json' \\
-  -H 'MCP-Protocol-Version: 2026-07-28' \\
-  -H 'Mcp-Method: tasks/get' \\
-  -H 'Mcp-Name: 5f0c1d7e-...' \\
-  -d '{
-    "jsonrpc": "2.0",
-    "id": 7,
-    "method": "tasks/get",
-    "params": {
-      "taskId": "5f0c1d7e-...",
-      ${TASKS_META}
-    }
-  }'`;
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"...","progress":0.0,"total":1.0,"message":"Importing the recording"}}
 
-const taskCompleted = `{
-  "jsonrpc": "2.0",
-  "id": 7,
-  "result": {
-    "taskId": "5f0c1d7e-...",
-    "status": "completed",
-    "createdAt": "2026-09-26T09:14:03.120Z",
-    "lastUpdatedAt": "2026-09-26T09:15:41.806Z",
-    "ttlMs": 3600000,
-    "pollIntervalMs": 5000,
-    "result": {
-      "content": [ { "type": "text", "text": "{\\"status\\":\\"READY\\",\\"recordingId\\":\\"0195f0a1-...\\",\\"profileId\\":\\"0195f0a2-...\\", ...}" } ],
-      "structuredContent": {
-        "status": "READY",
-        "recordingId": "0195f0a1-...",
-        "profileId": "0195f0a2-...",
-        "name": "app.jfr",
-        "reused": false,
-        ...
-        "uiLink": "http://localhost:8585/profiles/0195f0a2-..."
-      },
-      "isError": false,
-      "resultType": "complete",
-      "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "jeffrey", "version": "..." } }
-    },
-    "resultType": "complete",
-    "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "jeffrey", "version": "..." } }
-  }
-}`;
+event: message
+data: {"jsonrpc":"2.0","method":"notifications/progress","params":{"progressToken":"...","progress":0.5,"total":1.0,"message":"Analyzing the recording"}}
+
+event: message
+data: {"jsonrpc":"2.0","id":6,"result":{
+  "content": [ { "type": "text", "text": "{\\"status\\":\\"READY\\",\\"profileId\\":\\"0195f0a2-...\\", ...}" } ],
+  "structuredContent": {
+    "status": "READY",
+    "recordingId": "0195f0a1-...",
+    "profileId": "0195f0a2-...",
+    "name": "app.jfr",
+    "reused": false,
+    "uiLink": "http://localhost:8585/profiles/0195f0a2-..."
+  },
+  "isError": false,
+  "resultType": "complete",
+  "_meta": { "io.modelcontextprotocol/serverInfo": { "name": "jeffrey", "version": "..." } }
+}}`;
 
 // The same envelope from a client that declared form elicitation; indented for "params".
 const ELICIT_META = `"_meta": {
