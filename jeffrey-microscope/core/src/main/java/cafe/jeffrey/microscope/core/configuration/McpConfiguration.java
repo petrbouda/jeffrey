@@ -45,7 +45,11 @@ import io.modelcontextprotocol.modern.server.feature.McpSyncResourceRepository;
 import io.modelcontextprotocol.modern.server.feature.McpSyncToolRepository;
 import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
 import org.springframework.ai.mcp.customizer.McpServerCustomizer;
+import org.springframework.ai.mcp.server.webmvc.transport.WebMvcModernServerTransport;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.core.Ordered;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
@@ -85,6 +89,30 @@ public class McpConfiguration {
      * that drives the eviction itself turns it off.
      */
     private static final boolean SWEEP_IDLE_PROFILE_CONTEXTS = true;
+
+    /** Spring AI's auto-configured lifecycle bean for the modern MCP server transport. */
+    private static final String MODERN_TRANSPORT_LIFECYCLE_BEAN = "webMvcModernServerTransportLifecycle";
+
+    /**
+     * Wraps Spring AI's modern MCP server lifecycle so it survives a stop/restart. See
+     * {@link RestartSafeMcpServerLifecycle}: the auto-configured lifecycle leaves the transport
+     * permanently {@code 503 "Server is shutting down"} once Spring stops and restarts it, which it does
+     * whenever the test context cache reuses a booted context (and an in-process restart would in
+     * production). The transport is supplied lazily so this post-processor forces nothing to start early.
+     */
+    @Bean
+    static BeanPostProcessor modernMcpServerLifecycleRestartFix(
+            ObjectProvider<WebMvcModernServerTransport> transport) {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if (bean instanceof SmartLifecycle delegate && MODERN_TRANSPORT_LIFECYCLE_BEAN.equals(beanName)) {
+                    return new RestartSafeMcpServerLifecycle(delegate, transport.getObject());
+                }
+                return bean;
+            }
+        };
+    }
 
     /**
      * @param enabled     whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
