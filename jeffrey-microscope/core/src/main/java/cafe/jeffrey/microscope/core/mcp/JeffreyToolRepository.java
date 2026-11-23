@@ -24,6 +24,7 @@ import io.modelcontextprotocol.modern.server.McpRequestContext;
 import io.modelcontextprotocol.modern.server.feature.McpSyncTool;
 import io.modelcontextprotocol.modern.server.feature.McpSyncToolRepository;
 import io.modelcontextprotocol.modern.server.feature.ToolsPage;
+import tools.jackson.databind.JsonNode;
 
 import java.util.List;
 
@@ -42,6 +43,10 @@ import java.util.List;
  * {@code tools/list} does not paginate.
  */
 public final class JeffreyToolRepository implements McpSyncToolRepository {
+
+    /** The {@code _meta} key carrying a tool's cost hint, and the value that marks long-running work. */
+    private static final String COST_META_KEY = "jeffrey/cost";
+    private static final String SLOW_COST = "SLOW";
 
     private final McpToolsetAssembler assembler;
 
@@ -67,8 +72,16 @@ public final class JeffreyToolRepository implements McpSyncToolRepository {
         if (spec == null) {
             return null;
         }
-        return McpSyncTool.of(
-                McpToolBridge.toTool(spec),
-                (requestContext, request) -> McpToolBridge.handle(toolset, requestContext, request));
+        // A SLOW tool runs long work on this call; it is served over a streaming response so it can
+        // report notifications/progress. Every other tool answers a plain single-POST JSON result.
+        McpSyncTool.Handler handler = isSlow(spec)
+                ? (requestContext, request) -> McpToolBridge.handleStreaming(toolset, requestContext, request)
+                : (requestContext, request) -> McpToolBridge.handle(toolset, requestContext, request);
+        return McpSyncTool.of(McpToolBridge.toTool(spec), handler);
+    }
+
+    private static boolean isSlow(McpToolSpec spec) {
+        JsonNode cost = spec.meta().get(COST_META_KEY);
+        return cost != null && SLOW_COST.equals(cost.asString(""));
     }
 }

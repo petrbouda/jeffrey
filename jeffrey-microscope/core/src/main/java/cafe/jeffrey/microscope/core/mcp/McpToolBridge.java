@@ -23,6 +23,7 @@ import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
 import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputRequest;
 import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.protocol.McpProgressSink;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
@@ -81,25 +82,39 @@ final class McpToolBridge {
      */
     static McpSyncResponse<McpSchema.CallToolOutcome> handle(
             McpToolProvider toolset, McpRequestContext context, McpSchema.CallToolRequest request) {
+        return McpSyncResponse.result(callAndMap(toolset, context, request, McpProgressSink.NONE));
+    }
+
+    /**
+     * A SLOW tool runs on the streaming thread and its {@link McpCallContext#reportProgress} calls are
+     * relayed to the client as {@code notifications/progress} over SSE; the final result closes the stream.
+     */
+    static McpSyncResponse<McpSchema.CallToolOutcome> handleStreaming(
+            McpToolProvider toolset, McpRequestContext context, McpSchema.CallToolRequest request) {
+        return McpSyncResponse.streaming(notifier -> callAndMap(toolset, context, request,
+                (progress, total, message) -> notifier.progress(progress, total > 0 ? total : null, message)));
+    }
+
+    private static McpSchema.CallToolOutcome callAndMap(
+            McpToolProvider toolset, McpRequestContext context, McpSchema.CallToolRequest request,
+            McpProgressSink sink) {
         JsonNode arguments = Json.toTree(request.arguments());
-        McpCallContext callContext = toCallContext(context, request);
+        McpCallContext callContext = toCallContext(context, request, sink);
         McpToolOutcome outcome;
         try {
             outcome = toolset.call(request.name(), arguments, callContext);
         } catch (ToolDispatchException e) {
             // UnknownToolException is a ToolDispatchException; both are caller errors (bad name / argument).
-            return McpSyncResponse.<McpSchema.CallToolOutcome>result(errorResult(e.getMessage()));
+            return errorResult(e.getMessage());
         }
         return switch (outcome) {
-            case McpToolResult result ->
-                    McpSyncResponse.<McpSchema.CallToolOutcome>result(toCallToolResult(result));
-            case McpToolOutcome.InputRequired inputRequired ->
-                    McpSyncResponse.<McpSchema.CallToolOutcome>result(toInputRequired(inputRequired, request.name()));
-            // Long-running tools stream notifications/progress on the modern server instead of deferring to
-            // an operation; the streaming handler is wired in task #12, when Deferred is removed.
-            case McpToolOutcome.Deferred deferred -> throw new UnsupportedOperationException(
-                    "Tool " + request.name() + " deferred to operation " + deferred.taskId()
-                            + "; long work streams progress on the modern server (wired in task #12)");
+            case McpToolResult result -> toCallToolResult(result);
+            case McpToolOutcome.InputRequired inputRequired -> toInputRequired(inputRequired, request.name());
+            // Temporary: a tool not yet rewritten to synchronous streaming still defers. Removed with the
+            // long-work engine once all SLOW tools run inline.
+            case McpToolOutcome.Deferred deferred -> errorResult(
+                    "Tool " + request.name() + " is mid-migration to streaming progress (operation "
+                            + deferred.taskId() + ").");
         };
     }
 
@@ -135,11 +150,13 @@ final class McpToolBridge {
                 .build();
     }
 
-    private static McpCallContext toCallContext(McpRequestContext context, McpSchema.CallToolRequest request) {
+    private static McpCallContext toCallContext(
+            McpRequestContext context, McpSchema.CallToolRequest request, McpProgressSink sink) {
         return new McpCallContext(
                 clientCapabilities(context),
                 inputResponses(request.inputResponses()),
-                McpTraceContext.from(Json.toTree(context.meta())));
+                McpTraceContext.from(Json.toTree(context.meta())),
+                sink);
     }
 
     private static McpClientCapabilities clientCapabilities(McpRequestContext context) {

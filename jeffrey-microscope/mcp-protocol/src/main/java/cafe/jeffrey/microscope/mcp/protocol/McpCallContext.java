@@ -37,19 +37,33 @@ import java.util.Optional;
 public record McpCallContext(
         McpClientCapabilities client,
         Map<String, McpInputResponse> inputResponses,
-        Optional<McpTraceContext> trace) {
+        Optional<McpTraceContext> trace,
+        McpProgressSink progress) {
 
     /**
      * A tool run to answer {@code resources/read} or another server-side caller: there is no result to
-     * put a question or a task into, no answers to hand over, and no caller's trace to continue.
+     * put a question or a task into, no answers to hand over, no caller's trace to continue, and nothing
+     * listening for progress.
      */
     public static final McpCallContext RESOURCE_READ =
-            new McpCallContext(McpClientCapabilities.NONE, Map.of(), Optional.empty());
+            new McpCallContext(McpClientCapabilities.NONE, Map.of(), Optional.empty(), McpProgressSink.NONE);
 
     public McpCallContext {
         Objects.requireNonNull(client, "client");
         inputResponses = Map.copyOf(inputResponses);
         Objects.requireNonNull(trace, "trace");
+        progress = progress == null ? McpProgressSink.NONE : progress;
+    }
+
+    /** A call with no progress channel: a fast tool, or one served over a plain (non-streaming) response. */
+    public McpCallContext(
+            McpClientCapabilities client, Map<String, McpInputResponse> inputResponses, Optional<McpTraceContext> trace) {
+        this(client, inputResponses, trace, McpProgressSink.NONE);
+    }
+
+    /** Reports progress to whatever is streaming this call, or nowhere when nothing is. */
+    public void reportProgress(double done, double total, String message) {
+        progress.progress(done, total, message);
     }
 
     /** Whether the tool may answer with a form elicitation. */

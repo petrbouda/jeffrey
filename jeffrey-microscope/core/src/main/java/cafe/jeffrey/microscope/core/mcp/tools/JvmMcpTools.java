@@ -233,24 +233,15 @@ public class JvmMcpTools {
     private final ContainerSection containerSection;
     private final ConfigurationSection configurationSection;
     private final ProfileManager profileManager;
-    private final BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns;
-    private final Supplier<? extends AutoCloseable> backgroundLease;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param autoAnalysisRuns shared by every call, so a second compute request for the same profile
-     *                         joins the run in flight and operations_status can follow it
-     * @param backgroundLease  holds this profile open while a run outlives the call that started it
-     * @param advertised       the families a next step may route to
+     * @param advertised the families a next step may route to
      */
     public JvmMcpTools(
             ProfileManager profileManager,
-            BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns,
-            Supplier<? extends AutoCloseable> backgroundLease,
             AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
-        this.autoAnalysisRuns = autoAnalysisRuns;
-        this.backgroundLease = backgroundLease;
         this.advertised = advertised;
         this.sections = JvmSections.standard(profileManager);
         // Taken from the registry rather than built again, so there is one instance of each and the
@@ -309,8 +300,6 @@ public class JvmMcpTools {
             Boolean compute,
             McpCallContext call) {
 
-        String profileId = profileId();
-        // Read here, where the request is bound; the worker thread and a task's answer have none.
         String link = viewLink(autoAnalysisSection.view());
         AutoAnalysisStatus status = autoAnalysisSection.status();
         if (status == AutoAnalysisStatus.COMPUTED) {
@@ -319,19 +308,11 @@ public class JvmMcpTools {
         if (status == AutoAnalysisStatus.CANNOT_COMPUTE || !Boolean.TRUE.equals(compute)) {
             return McpToolResult.of(notComputed(status, link));
         }
-        return autoAnalysisRuns.run(new BoundedOperation.Work<>(
-                        profileId,
-                        backgroundLease,
-                        () -> {
-                            profileManager.autoAnalysisManager().generate();
-                            return reachable(autoAnalysisSection);
-                        },
-                        dashboard -> dashboard,
-                        onProfile(AUTO_ANALYSIS_TOOL).with(COMPUTE, true).why(RETRY_WHY)),
-                call,
-                new BoundedOperation.Replies<>(
-                        (dashboard, operation) -> computed(dashboard, operation, link),
-                        operation -> computing(operation, link)));
+        // Runs on this call and streams progress; AutoAnalysisManager is single-flight internally, so a
+        // concurrent compute for the same profile joins the one run rather than starting a second.
+        call.reportProgress(0.0, 1.0, "Running Auto Analysis over the recording");
+        profileManager.autoAnalysisManager().generate();
+        return McpToolResult.of(computed(reachable(autoAnalysisSection), null, link));
     }
 
     @Tool(description = "Returns one of the garbage-collection pages beneath the jvm_gc overview: "

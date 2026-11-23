@@ -185,7 +185,7 @@ public class McpToolsetAssembler {
                         scope.profileManager(), scope::profileManager, clock, advertised)),
                 onProfile.onManager(TracesMcpTools.class, TRACES, TracesMcpTools::new),
                 onProfile.of(JvmMcpTools.class, JVM, (scope, profileId) -> new JvmMcpTools(
-                        scope.profileManager(), autoAnalysisRuns, () -> contextCache.acquire(profileId), advertised)),
+                        scope.profileManager(), advertised)),
                 onProfile.onManager(HttpMcpTools.class, HTTP, HttpMcpTools::new),
                 onProfile.onManager(JdbcMcpTools.class, JDBC, JdbcMcpTools::new),
                 onProfile.onManager(GrpcMcpTools.class, GRPC, GrpcMcpTools::new),
