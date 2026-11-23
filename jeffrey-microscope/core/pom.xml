@@ -69,6 +69,18 @@
             <groupId>${project.groupId}</groupId>
             <artifactId>mcp-server</artifactId>
         </dependency>
+        <!--
+          Spring AI's modern (stateless 2026-07-28) MCP server over Spring MVC: the io.modelcontextprotocol
+          SDK (mcp-core 2.2.0), the mcp-spring-webmvc transport and the modern auto-configuration. The
+          server is driven programmatically through a custom McpSyncToolRepository over McpToolsetAssembler,
+          so Jeffrey keeps its closed schema, jeffrey/* hints and McpToolResult conventions. Version from the
+          spring-ai BOM imported in the root pom. Auto-config stays off (spring.ai.mcp.server.enabled=false)
+          until the endpoint is wired onto /api/mcp.
+        -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-mcp-server-webmvc</artifactId>
+        </dependency>
 
         <!-- Third-party -->
         <!--
