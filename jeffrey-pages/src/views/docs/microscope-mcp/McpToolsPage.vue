@@ -1329,7 +1329,7 @@ const exPeak = `connector_download { "sessionRef": "h1Y2ZnLX...", "window": "PEA
 
       <p>Discovery shares a twenty-second deadline across connector calls and cancels the share requests still outstanding when it expires. Completed project results remain available even if another project or workspace stalls. Incomplete scopes and their reasons appear under the table, including when no rows returned. An unreachable connector, expired deadlines and missing sessions produce distinct explanations.</p>
 
-      <p>The family is advertised only while <code>jeffrey.microscope.mcp.connector.enabled</code> is on, and only while <code>connector</code> is among the families the <code>families</code> list or the active <code>preset</code> selects; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>. Keep <code>operations</code> selected alongside it &mdash; that is how a download is polled and cancelled.</p>
+      <p>The family is advertised only while <code>jeffrey.microscope.mcp.connector.enabled</code> is on, and only while <code>connector</code> is among the families the <code>families</code> list or the active <code>preset</code> selects; see <router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link>. Keep <code>recordings</code> selected alongside it &mdash; that is how a downloaded session becomes a profile.</p>
 
       <p><strong>Example.</strong></p>
       <DocsCodeBlock :code="exConnector" language="json" />
