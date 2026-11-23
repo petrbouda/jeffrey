@@ -262,68 +262,29 @@ public class RecordingsMcpTools {
             throw new IllegalArgumentException(DIRTY_WITHOUT_COMMIT);
         }
 
-        ImportKey key;
-        if (Boolean.TRUE.equals(force) || !ImportKey.identifiedByNameAndSize(recordingPath)) {
-            key = ImportKey.Unshared.fresh();
-        } else {
-            ImportKey.SourceFile source = ImportKey.SourceFile.of(recordingPath);
-            Optional<Recording> imported = importedBefore(source);
+        if (!Boolean.TRUE.equals(force) && ImportKey.identifiedByNameAndSize(recordingPath)) {
+            Optional<Recording> imported = importedBefore(ImportKey.SourceFile.of(recordingPath));
             if (imported.isPresent()) {
                 return fromEarlierImport(imported.get(), name, call);
             }
-            key = source;
         }
 
         LOG.info("Importing a recording over MCP: path={}", recordingPath);
-        AtomicReference<String> importedRecording = new AtomicReference<>();
-        // Keyed on the file's identity, so a call arriving while this copy is still landing — which
-        // the reuse check above cannot see yet — joins it rather than importing the file twice. A
-        // failed or cancelled attempt is not held against the file: the next call imports it again.
-        // A finished one is joined only while what it built still stands; otherwise the store has
-        // lost that recording and the file is imported afresh.
-        OperationHandle<ImportedProfile> operation = imports.startOrJoin(key, true,
-                done -> profileStillAvailable(done.recordingId(), done.profileId()), control -> {
-                    control.phase(OperationPhase.IMPORTING);
-                    String recordingId = recordingsManager.importRecordingFromPath(recordingPath);
-                    importedRecording.set(recordingId);
-                    if (revision != null) {
-                        revisions.record(recordingId, revision, dirty);
-                    }
-                    control.progress(OperationDetails.recording(recordingId, List.of()));
-                    control.checkCancellation();
-                    control.phase(OperationPhase.ANALYZING);
-                    OperationHandle<String> analysis = analysisOperation(recordingId, name, true);
-                    control.onCancellation(analysis::cancel);
-                    control.progressFrom(() -> OperationDetails.recording(recordingId, stagesOf(analysis)));
-                    return new ImportedProfile(recordingId, jobs.awaitCompletion(analysis));
-                });
-        String operationId = operation.operationId();
-        // Read here, where the request is bound: the answer is rendered wherever the finished import is
-        // first seen, and that need not be a request thread.
         String base = UiLinks.base();
-        // The ids the import handed over, not a read of the progress: a progress supplier that failed
-        // leaves the progress saying so instead of naming a recording. A call that joined an import in
-        // flight never ran its work, so only the result can tell it which recording it is.
-        Function<ImportedProfile, McpToolResult> answer = imported -> McpToolResult.of(analysis(
-                profileOf(imported.recordingId(), imported.profileId(), base), operationId, base));
-        operations.register(OperationKind.RECORDING_IMPORT, operation,
-                done -> new ImportResult(done.profileId()), () -> importedRecordingOf(operation, importedRecording),
-                answer);
-        Optional<ImportedProfile> finished;
+        String recordingId;
         try {
-            finished = imports.awaitWithin(operation, answers.waitBudget(call, imports.waitBudget()));
+            call.reportProgress(0.0, 1.0, "Importing the recording");
+            recordingId = recordingsManager.importRecordingFromPath(recordingPath);
         } catch (RuntimeException failure) {
-            // A failure is the call's answer, not a status beside a success: thrown so the envelope
-            // marks the result isError, carrying the operation so it can still be inspected.
-            throw new ToolExecutionException(
-                    IMPORT_FAILED + Json.toString(operations.status(operationId)), failure);
+            throw new ToolExecutionException(IMPORT_FAILED + recordingPath, failure);
         }
-        if (finished.isEmpty()) {
-            return answers.stillRunning(call, operationId, () -> McpToolResult.of(analysis(
-                    AnalysisFacts.running(importedRecordingOf(operation, importedRecording), null, null),
-                    operationId, base)));
+        if (revision != null) {
+            revisions.record(recordingId, revision, dirty);
         }
-        return answer.apply(finished.get());
+        // Import then analyse, both on this call, streaming progress. The analysis is single-flight per
+        // recording in the manager; the import reuse check above handles the already-imported case.
+        String profileId = runAnalysis(recordingId, name, call);
+        return McpToolResult.of(analysis(profileOf(recordingId, profileId, base), null, base));
     }
 
     /**
@@ -660,25 +621,21 @@ public class RecordingsMcpTools {
      * Builds the profile and renders what the model needs next: the id the other families take, and a
      * link for the reader who wants to look at the interactive version.
      */
-    private OperationHandle<String> analysisOperation(String recordingId, String name, boolean retry) {
+    /**
+     * Builds the profile on this call and streams progress. The manager is single-flight per recording
+     * ({@code ProfileRecordingsManager.once()} + the {@code PipelineRunRegistry}), so a concurrent analyze
+     * of the same recording joins the one run rather than starting a second.
+     */
+    private String runAnalysis(String recordingId, String name, McpCallContext call) {
         String requestedName = name == null || name.isBlank() ? null : name.trim();
-        return jobs.startOrJoin(recordingId, retry, profileId -> profileStillAvailable(recordingId, profileId), control -> {
-            control.phase(OperationPhase.ANALYZING);
-            control.progressFrom(() -> OperationDetails.recording(recordingId, parseStages(recordingId)));
-            control.checkCancellation();
-            String profileId = recordingsManager.analyzeRecording(recordingId);
-            joinRunningPipeline(recordingId, profileId);
-            // A durable profile is already produced. Finish the short, accepted naming step and
-            // preserve that result even if the analysis could not honour a cancellation request.
-            if (control.cancellationRequested()) {
-                Thread.interrupted();
-            }
-            control.phase(OperationPhase.FINALIZING);
-            if (requestedName != null) {
-                recordingsManager.updateProfileName(profileId, requestedName);
-            }
-            return profileId;
-        });
+        call.reportProgress(0.0, 1.0, "Analyzing the recording");
+        String profileId = recordingsManager.analyzeRecording(recordingId);
+        joinRunningPipeline(recordingId, profileId);
+        call.reportProgress(1.0, 1.0, "Finalizing the profile");
+        if (requestedName != null) {
+            recordingsManager.updateProfileName(profileId, requestedName);
+        }
+        return profileId;
     }
 
     /** The stages of the parse building this recording's profile; none until its profile row exists. */
@@ -743,24 +700,14 @@ public class RecordingsMcpTools {
                 return McpToolResult.of(analysis(profileOf(recordingId, live.get(), base), null, base));
             }
         }
-        OperationHandle<String> operation = analysisOperation(recordingId, name, retry);
-        String operationId = operation.operationId();
-        Function<String, McpToolResult> answer = profileId -> McpToolResult.of(
-                analysis(profileOf(recordingId, profileId, base), operationId, base));
-        operations.register(OperationKind.RECORDING_ANALYSIS, operation,
-                profileId -> new AnalysisResult(profileId, recordingId), () -> recordingId, answer);
-        Optional<String> finished;
+        String profileId;
         try {
-            finished = jobs.awaitWithin(operation, answers.waitBudget(call, jobs.waitBudget()));
+            profileId = runAnalysis(recordingId, name, call);
         } catch (RuntimeException failure) {
             return McpToolResult.of(analysis(
-                    AnalysisFacts.failed(recordingId, null, List.of(), null, failure.getMessage()), operationId, base));
+                    AnalysisFacts.failed(recordingId, null, List.of(), null, failure.getMessage()), null, base));
         }
-        if (finished.isEmpty()) {
-            return answers.stillRunning(call, operationId, () -> McpToolResult.of(
-                    analysis(AnalysisFacts.running(recordingId, null, null), operationId, base)));
-        }
-        return answer.apply(finished.get());
+        return McpToolResult.of(analysis(profileOf(recordingId, profileId, base), null, base));
     }
 
     /**
