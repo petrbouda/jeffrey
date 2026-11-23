@@ -860,9 +860,8 @@ class ConnectorMcpToolsTest {
     @Nested
     class Download {
 
-        @ParameterizedTest
-        @ValueSource(booleans = {false, true})
-        void aCompleteCopyStillReconcilesMissingArtifacts(boolean retry) {
+        @Test
+        void aCompleteCopyStillReconcilesMissingArtifacts() {
             localRecording("rec-existing", null, REF);
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-existing");
@@ -870,14 +869,13 @@ class ConnectorMcpToolsTest {
                     file("f-1", "recording.jfr", ManagedFile.JFR),
                     file("heap", "heap.hprof", ManagedFile.HEAP_DUMP)), downloads));
 
-            complete(tools.download(REF.encode(), null, null, null, null, null, null, retry, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             verify(downloads).downloadSession(SESSION_ID);
         }
 
-        @ParameterizedTest
-        @ValueSource(booleans = {false, true})
-        void namedFilesReconcileAGrowingLogAfterASuccessfulDownload(boolean retry) {
+        @Test
+        void namedFilesReconcileAGrowingLogAfterASuccessfulDownload() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-existing");
             ProjectManager project = projectWith(session(SESSION_ID, NOW,
@@ -889,12 +887,12 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
             complete(tools.download(REF.encode(), null, null, null, null, null,
-                    List.of("f-1", "log"), null, RESOURCE_READ));
+                    List.of("f-1", "log"), RESOURCE_READ));
             when(project.repositoryManager().recordingSession(SESSION_ID)).thenReturn(session(SESSION_ID, NOW,
                     file("f-1", "recording.jfr", ManagedFile.JFR),
                     new RepositoryFile("log", "app.log", NOW, 2048L, false, null)));
             complete(tools.download(REF.encode(), null, null, null, null, null,
-                    List.of("f-1", "log"), retry, RESOURCE_READ));
+                    List.of("f-1", "log"), RESOURCE_READ));
 
             verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
         }
@@ -911,7 +909,7 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording("rec-existing")).thenReturn(Optional.of(stored));
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(answer.path("profileId").isNull(), answer.toString());
             assertEquals(List.of("recordings_analyzeRecording"), StructuredAnswers.nextTools(answer));
@@ -939,7 +937,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(project);
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(answer.path("profileId").isNull(), answer.toString());
             assertEquals(List.of("recordings_analyzeRecording"), StructuredAnswers.nextTools(answer));
@@ -986,7 +984,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
             verify(downloads).downloadSession(SESSION_ID);
@@ -999,7 +997,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ))
                     .contains("recordings_analyzeRecording"));
         }
 
@@ -1013,7 +1011,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(withHeapDump, downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingFiles\":1"), result);
             assertTrue(result.contains("\"artifactFiles\":1"), result);
@@ -1024,7 +1022,7 @@ class ConnectorMcpToolsTest {
             localRecording("rec-existing", null, REF);
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-existing"), result);
             verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
@@ -1041,7 +1039,7 @@ class ConnectorMcpToolsTest {
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
             verify(downloads).downloadSession(SESSION_ID);
@@ -1052,7 +1050,7 @@ class ConnectorMcpToolsTest {
             localRecording("rec-existing", "profile-1", REF);
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("profile-1"), result);
             verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
@@ -1061,7 +1059,7 @@ class ConnectorMcpToolsTest {
         @Test
         void rejectsAMalformedRefWithoutReachingTheConnector() {
             assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download("not-a-ref", null, null, null, null, null, null, null, RESOURCE_READ)));
+                    () -> complete(tools.download("not-a-ref", null, null, null, null, null, null, RESOURCE_READ)));
 
             verifyNoInteractions(resolver);
             verifyNoInteractions(recordingsManager);
@@ -1074,7 +1072,7 @@ class ConnectorMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             // A fresh listing cannot help while nothing is configured; the status says how to declare one.
             assertTrue(e.getMessage().contains("connector_status"), e.getMessage());
@@ -1092,7 +1090,7 @@ class ConnectorMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("retention"), e.getMessage());
         }
@@ -1107,7 +1105,7 @@ class ConnectorMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("no recording file"), e.getMessage());
             verify(downloads, never()).downloadSession(any());
@@ -1140,7 +1138,7 @@ class ConnectorMcpToolsTest {
 
             private JsonNode download(DownloadWindow window, Integer minutes, Long atEpochMs, McpCallContext call) {
                 return StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                        tools.download(REF.encode(), window, minutes, atEpochMs, null, null, null, null, call));
+                        tools.download(REF.encode(), window, minutes, atEpochMs, null, null, null, call));
             }
 
             @Test
@@ -1209,7 +1207,7 @@ class ConnectorMcpToolsTest {
             void theFormAnswerDownloadsWhatTheSameWindowNamedByTheCallDoes() {
                 RecordingsDownloadManager downloads = serving(threeHours());
 
-                McpToolOutcome asked = tools.download(REF.encode(), null, null, null, null, null, null, null,
+                McpToolOutcome asked = tools.download(REF.encode(), null, null, null, null, null, null,
                         answering(ELICITING, DownloadWindowQuestion.KEY, McpInputResponse.Action.ACCEPT,
                                 "{\"window\":\"PEAK\"}"));
 
@@ -1220,7 +1218,7 @@ class ConnectorMcpToolsTest {
             @Test
             void aWindowArgumentItDoesNotTakeIsRefusedBeforeTheConnectorIsRead() {
                 assertThrows(IllegalArgumentException.class, () -> tools.download(
-                        REF.encode(), DownloadWindow.PEAK, 10, null, null, null, null, null, RESOURCE_READ));
+                        REF.encode(), DownloadWindow.PEAK, 10, null, null, null, null, RESOURCE_READ));
                 verifyNoInteractions(resolver);
             }
         }
@@ -1255,7 +1253,7 @@ class ConnectorMcpToolsTest {
             }
 
             private McpToolOutcome wholeSession(McpCallContext call) {
-                return tools.download(REF.encode(), null, null, null, null, null, null, null, call);
+                return tools.download(REF.encode(), null, null, null, null, null, null, call);
             }
 
             private McpToolOutcome answered(McpInputResponse.Action action, String contentJson) {
@@ -1312,7 +1310,7 @@ class ConnectorMcpToolsTest {
                 resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
                 noLocalRecordings();
 
-                message(strict.download(REF.encode(), null, null, null, null, null, null, null, ELICITING));
+                message(strict.download(REF.encode(), null, null, null, null, null, null, ELICITING));
 
                 verifyNoInteractions(downloads);
             }
@@ -1322,7 +1320,7 @@ class ConnectorMcpToolsTest {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
                 McpToolOutcome outcome = tools.download(REF.encode(), null, null, null,
-                        NOW.minusSeconds(600).toEpochMilli(), null, null, null, ELICITING);
+                        NOW.minusSeconds(600).toEpochMilli(), null, null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
             }
@@ -1332,7 +1330,7 @@ class ConnectorMcpToolsTest {
                 RecordingsDownloadManager downloads = servingThreeHours();
                 when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-files");
 
-                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, ELICITING);
+                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-files"));
             }
@@ -1342,7 +1340,7 @@ class ConnectorMcpToolsTest {
             void doesNotAskWhenTheCallNamesTheWholeSession() {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
-                McpToolOutcome outcome = tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, null, null, ELICITING);
+                McpToolOutcome outcome = tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-whole"));
                 verify(downloads).downloadSession(SESSION_ID);
@@ -1353,9 +1351,9 @@ class ConnectorMcpToolsTest {
                 servingThreeHours();
 
                 assertThrows(IllegalArgumentException.class, () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null,
-                        NOW.minusSeconds(600).toEpochMilli(), null, null, null, ELICITING));
+                        NOW.minusSeconds(600).toEpochMilli(), null, null, ELICITING));
                 assertThrows(IllegalArgumentException.class,
-                        () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, List.of("c3"), null, ELICITING));
+                        () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, List.of("c3"), ELICITING));
             }
 
             @Test
@@ -1383,10 +1381,10 @@ class ConnectorMcpToolsTest {
                 noLocalRecordings();
                 ConnectorMcpTools impatient = toolsWithBudget(Duration.ofMillis(100));
                 try {
-                    complete(impatient.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    complete(impatient.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
                     assertTrue(started.await(5, TimeUnit.SECONDS));
 
-                    McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING);
+                    McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, null, null, ELICITING);
 
                     assertInstanceOf(McpToolOutcome.InputRequired.class, outcome);
                 } finally {
@@ -1469,7 +1467,7 @@ class ConnectorMcpToolsTest {
                 noLocalRecordings();
 
                 McpToolOutcome outcome = tools.download(REF.encode(), null, null, null,
-                        NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, null, ELICITING);
+                        NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
             }
@@ -1553,7 +1551,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             String result = complete(tools.download(REF.encode(), null, null, null,
-                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-window\""), result);
             assertTrue(result.contains("\"recordingFiles\":2"), result);
@@ -1584,7 +1582,7 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording("rec-window")).thenReturn(Optional.of(landed));
 
             String result = complete(tools.download(REF.encode(), null, null, null,
-                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
 
             assertTrue(result.contains("\"coveredStartEpochMs\":" + NOW.plusSeconds(151).toEpochMilli()), result);
             assertTrue(result.contains("\"coveredEndEpochMs\":" + NOW.plusSeconds(400).toEpochMilli()),
@@ -1611,7 +1609,7 @@ class ConnectorMcpToolsTest {
 
             JsonNode result = StructuredAnswers.json(ConnectorMcpTools.class, "download",
                     tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(),
-                            NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+                            NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
 
             assertEquals("profile-existing", result.path("profileId").asString());
             assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(result));
@@ -1626,7 +1624,7 @@ class ConnectorMcpToolsTest {
             localRecording("rec-existing", "profile-existing", REF);
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(), null, null, null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(), null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-window"), result);
             assertFalse(result.contains("rec-existing"), result);
@@ -1648,9 +1646,9 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
             long start = NOW.plusSeconds(200).toEpochMilli();
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, start, null, null, RESOURCE_READ))
                     .contains("rec-first"));
-            String second = complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ));
+            String second = complete(tools.download(REF.encode(), null, null, null, start, null, null, RESOURCE_READ));
 
             assertTrue(second.contains("rec-second"), second);
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
@@ -1671,8 +1669,8 @@ class ConnectorMcpToolsTest {
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             long end = NOW.plusSeconds(320).toEpochMilli();
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
 
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
@@ -1693,8 +1691,8 @@ class ConnectorMcpToolsTest {
 
             long start = NOW.plusSeconds(460).toEpochMilli();
             long end = NOW.plusSeconds(500).toEpochMilli();
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
-            String second = complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
+            String second = complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
 
             assertTrue(second.contains("rec-second"), second);
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
@@ -1709,8 +1707,8 @@ class ConnectorMcpToolsTest {
             Recording landed = landedRecording();
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
-            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), RESOURCE_READ));
 
             verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
         }
@@ -1730,8 +1728,8 @@ class ConnectorMcpToolsTest {
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             long end = NOW.plusSeconds(320).toEpochMilli();
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
 
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
@@ -1743,7 +1741,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, null, null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("started at " + NOW), e.getMessage());
             assertTrue(e.getMessage().contains("its recorded data ends at " + NOW.plusSeconds(600)), e.getMessage());
@@ -1753,7 +1751,7 @@ class ConnectorMcpToolsTest {
         @Test
         void aWindowWithItsEndBeforeItsStartIsRefusedBeforeTheConnectorIsAsked() {
             assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, null, null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null, null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null, RESOURCE_READ)));
             verifyNoInteractions(resolver);
         }
 
@@ -1765,7 +1763,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "log"), null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "log"), RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-files\""), result);
             assertTrue(result.contains("\"recordingFiles\":1"), result);
@@ -1781,7 +1779,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "nope"), null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "nope"), RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("[nope]"), e.getMessage());
             verifyNoInteractions(downloads);
@@ -1798,7 +1796,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c3"), null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c3"), RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
             assertTrue(e.getMessage().contains("startEpochMs"), e.getMessage());
@@ -1813,7 +1811,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c2", "log"), null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c2", "log"), RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingFiles\":2"), result);
             verify(downloads).downloadRecordings(SESSION_ID, List.of("c1", "c2", "log"));
@@ -1826,7 +1824,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("log"), null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("log"), RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("connector_fetchFile"), e.getMessage());
             verifyNoInteractions(downloads);
@@ -1863,7 +1861,7 @@ class ConnectorMcpToolsTest {
         @Test
         void aWindowAndFileIdsTogetherAreRefused() {
             assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, null, null, NOW.toEpochMilli(), null, List.of("c1"), null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.toEpochMilli(), null, List.of("c1"), RESOURCE_READ)));
             verifyNoInteractions(resolver);
         }
 
@@ -1882,9 +1880,9 @@ class ConnectorMcpToolsTest {
             ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(200));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(otherRef.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(otherRef.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
                 boolean bothStarted;
                 try {
@@ -1936,9 +1934,9 @@ class ConnectorMcpToolsTest {
             ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofSeconds(1));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
                 assertTrue(preflights.await(1, TimeUnit.SECONDS));
                 assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
@@ -1989,10 +1987,10 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> first = callers.submit(
-                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(transferStarted.await(2, TimeUnit.SECONDS));
                 Future<String> second = callers.submit(
-                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(first.get(3, TimeUnit.SECONDS).contains("rec-new"));
                 releasePreflight.countDown();
                 assertTrue(second.get(3, TimeUnit.SECONDS).contains("rec-new"));
@@ -2010,7 +2008,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertEquals("DOWNLOADED", answer.path("status").asString());
             assertTrue(answer.path("recordingFiles").isNull(), answer.toString());
@@ -2026,7 +2024,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertEquals("profile-1", answer.path("profileId").asString());
             assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(answer));
@@ -2044,9 +2042,9 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
             when(recordingsManager.findRecording("rec-deleted")).thenReturn(Optional.empty());
 
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ))
                     .contains("rec-deleted"));
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ))
                     .contains("rec-refetched"));
 
             verify(downloads, times(2)).downloadSession(SESSION_ID);
@@ -2064,7 +2062,7 @@ class ConnectorMcpToolsTest {
 
             JeffreyException exception = assertThrows(
                     JeffreyException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, exception.getCode());
             assertTrue(exception.getMessage().contains("connection refused"), exception.getMessage());

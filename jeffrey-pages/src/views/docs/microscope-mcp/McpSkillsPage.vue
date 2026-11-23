@@ -364,7 +364,7 @@ SELECT event_type, COUNT(*) FROM events_raw GROUP BY event_type`;
             <li>To read the <code>local</code> column before downloading anything. A session already here needs no transfer, and one already analysed needs no work at all.</li>
             <li>That an instance&rsquo;s newest session (<code>newest: true</code>), which may still grow, is a normal thing to download, not an error to wait out: the transfer takes the chunks it holds so far, each a whole file. &ldquo;What is recording right now&rdquo; is <code>connector_sessions</code> with a short <code>withinLastMinutes</code>, then the rows marked <code>newest</code>.</li>
             <li>That <code>STARTUP_NOT_RETAINED</code> is a fact to put to you, not a gap to fill: the connector no longer holds the session&rsquo;s first chunk, nothing was downloaded or substituted, and you are asked whether the oldest chunk kept, <code>LATEST</code>, <code>PEAK</code> or a window will do.</li>
-            <li>To follow the call a <code>RUNNING</code> answer&rsquo;s <code>followUp</code> names rather than repeat the window: it names the exact span or chunk the download resolved to, where <code>LATEST</code> asked again later could be a newer chunk and a second download.</li>
+            <li>To follow the call the download answer&rsquo;s <code>followUp</code> names rather than repeat the window: it names the exact span or chunk the download resolved to, where <code>LATEST</code> asked again later could be a newer chunk and a second download.</li>
           </ul>
         </section>
 

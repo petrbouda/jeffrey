@@ -40,7 +40,6 @@ public final class ConnectorCalls {
     public static final String FILE_IDS = "fileIds";
     public static final String START_EPOCH_MS = "startEpochMs";
     public static final String END_EPOCH_MS = "endEpochMs";
-    public static final String RETRY = "retry";
     public static final String WINDOW = "window";
     public static final String MINUTES = "minutes";
     public static final String AT_EPOCH_MS = "atEpochMs";

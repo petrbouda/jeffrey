@@ -200,18 +200,15 @@ public final class ConnectorAnswers {
             String uiLink) {
     }
 
-    /** Where a download stands. */
+    /**
+     * Where a download stands. The transfer runs on the call and streams progress, so a result is
+     * terminal: there is no RUNNING, and a failed transfer is a tool error, not a status.
+     */
     public enum DownloadStatus {
         /** The recording is here: recordingId names it, and profileId too once it is analysed. */
         DOWNLOADED,
-        /** The transfer is still in progress. */
-        RUNNING,
         /** The user chose not to bring any part of the session; nothing was transferred. */
         NOT_DOWNLOADED,
-        /** The transfer failed. */
-        FAILED,
-        /** The transfer was cancelled. */
-        CANCELLED,
         /**
          * STARTUP was asked for and the connector no longer holds the session's first chunk; nothing was
          * transferred, and chosen names the oldest chunk still kept.

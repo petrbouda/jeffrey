@@ -4023,9 +4023,6 @@
             "minimum": 1,
             "type": "integer"
           },
-          "retry": {
-            "type": "boolean"
-          },
           "sessionRef": {
             "type": "string"
           },
@@ -4295,10 +4292,7 @@
           "status": {
             "enum": [
               "DOWNLOADED",
-              "RUNNING",
               "NOT_DOWNLOADED",
-              "FAILED",
-              "CANCELLED",
               "STARTUP_NOT_RETAINED"
             ],
             "type": "string"
