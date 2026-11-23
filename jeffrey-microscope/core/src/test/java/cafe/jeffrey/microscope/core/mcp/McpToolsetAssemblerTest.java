@@ -31,13 +31,10 @@ import cafe.jeffrey.microscope.core.mcp.tools.HeapDumpMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.HeapOqlMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileFindings;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileManagerFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.ToolFixtures;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import cafe.jeffrey.microscope.mcp.protocol.McpPrompt;
 import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
@@ -121,7 +118,6 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -187,13 +183,11 @@ class McpToolsetAssemblerTest {
     }
 
     private McpToolsetAssembler assembler(ExternalMcpProperties properties) {
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
         return new McpToolsetAssembler(
                 new ProfilesMcpTools(coreRepositories, EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordingsManager, new PipelineRunRegistry<>(
-                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK), operations, CLOCK).build(),
-                ConnectorMcpToolsFixture.of(connectorManager, projectManagerResolver, recordingsManager, CLOCK)
-                        .withOperations(operations).build(),
+                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)).build(),
+                ConnectorMcpToolsFixture.of(connectorManager, projectManagerResolver, recordingsManager, CLOCK).build(),
                 contextCache,
                 jfrPanelProvider,
                 stackSamplePanelProvider,
@@ -203,8 +197,8 @@ class McpToolsetAssemblerTest {
                 properties,
                 AdvertisedFamilies.of(properties),
                 ConnectorArtifactsMcpToolsFixture.of(projectManagerResolver, recordingsManager, Path.of("artifacts"),
-                        Path.of("profiles"), operations, CLOCK, EVERY_FAMILY).build(),
-                operations, ToolFixtures.answers(), CLOCK);
+                        Path.of("profiles"), CLOCK, EVERY_FAMILY).build(),
+                CLOCK);
     }
 
     private List<String> toolNames(boolean connectorEnabled) {
@@ -619,7 +613,6 @@ class McpToolsetAssemblerTest {
                 "heap_prepare",
                 "connector_download",
                 "connector_fetchFile",
-                "operations_cancel",
                 "ide_link",
                 "ide_open",
                 "jvm_autoAnalysis",
@@ -643,7 +636,7 @@ class McpToolsetAssemblerTest {
          * and those numbers silently stopped being true. Adding a tool should fail here, with this
          * list in front of whoever added it.
          */
-        private static final int ADVERTISED_TOOLS = 116;
+        private static final int ADVERTISED_TOOLS = 114;
 
         @Test
         void advertisesTheDocumentedNumberOfTools() {
@@ -706,11 +699,11 @@ class McpToolsetAssemblerTest {
         void theInstructionsNameEveryToolThatWrites() {
             String text = McpInstructions.text(
                     AdvertisedFamilies.of(McpTestProperties.of(true, true, true, Set.of())));
-            assertTrue(text.contains("Eleven tools are not read-only"), text);
+            assertTrue(text.contains("Ten tools are not read-only"), text);
             for (String writer : WRITES) {
                 assertTrue(text.contains(writer), writer + " is missing from McpInstructions");
             }
-            assertTrue(text.contains("wait up to 45 s, then answer with an operationId"), text);
+            assertTrue(text.contains("stream notifications/progress"), text);
         }
 
         @Test
@@ -739,8 +732,6 @@ class McpToolsetAssemblerTest {
                     .filter(name -> OUTSIDE_PREFIXES.contains(McpToolNames.familyOf(name)))
                     .collect(Collectors.toSet());
 
-            connector.add("operations_cancel");
-            connector.add("operations_status");
             assertEquals(connector, declared);
         }
 
@@ -779,24 +770,21 @@ class McpToolsetAssemblerTest {
     /**
      * What each tool tells a host a call costs and needs, in {@code _meta["jeffrey/cost"]} and
      * {@code _meta["jeffrey/requires"]}. Both are claims about the code, so each is held to it: the slow
-     * tools are the ones that start an {@link OperationKind}, and a requirement is declared exactly where
+     * tools are the long-running ones that stream progress, and a requirement is declared exactly where
      * the code checks it.
      */
     @Nested
     class Hints {
 
-        /**
-         * The tool that starts each kind of operation. Keyed by the enum so a new kind without an entry
-         * here fails, rather than a new slow tool going unnoticed.
-         */
-        private static final Map<OperationKind, String> OPERATION_TOOLS = Map.of(
-                OperationKind.RECORDING_IMPORT, "recordings_analyzeFile",
-                OperationKind.RECORDING_ANALYSIS, "recordings_analyzeRecording",
-                OperationKind.CONNECTOR_DOWNLOAD, "connector_download",
-                OperationKind.CONNECTOR_FETCH, "connector_fetchFile",
-                OperationKind.HEAP_PREPARE, "heap_prepare",
-                OperationKind.HEAP_OQL, "heap_oql",
-                OperationKind.JVM_AUTO_ANALYSIS, "jvm_autoAnalysis");
+        /** The tools that run long and stream progress; cost SLOW is held to exactly this set. */
+        private static final Set<String> SLOW_TOOLS = Set.of(
+                "recordings_analyzeFile",
+                "recordings_analyzeRecording",
+                "connector_download",
+                "connector_fetchFile",
+                "heap_prepare",
+                "heap_oql",
+                "jvm_autoAnalysis");
 
         /** The status a heap report tool answers with until heap_prepare has computed its report. */
         private static final String NOT_RUN_YET = "NOT_RUN_YET";
@@ -885,15 +873,14 @@ class McpToolsetAssemblerTest {
         }
 
         @Test
-        void everyOperationKindIsStartedByATool() {
-            assertEquals(EnumSet.allOf(OperationKind.class), EnumSet.copyOf(OPERATION_TOOLS.keySet()));
-            assertTrue(Set.copyOf(toolNames(true)).containsAll(OPERATION_TOOLS.values()), OPERATION_TOOLS.toString());
+        void everySlowToolIsAdvertised() {
+            assertTrue(Set.copyOf(toolNames(true)).containsAll(SLOW_TOOLS), SLOW_TOOLS.toString());
         }
 
-        /** SLOW means "can hand back an operation or a task", which only the operation starters can. */
+        /** SLOW means "runs on the call and streams progress", which only the long tools do. */
         @Test
-        void slowIsExactlyTheToolsThatStartAnOperation() {
-            assertEquals(Set.copyOf(OPERATION_TOOLS.values()), costed(specs(), McpToolCost.SLOW));
+        void slowIsExactlyTheLongRunningTools() {
+            assertEquals(SLOW_TOOLS, costed(specs(), McpToolCost.SLOW));
         }
 
         @Test
@@ -1661,24 +1648,6 @@ class McpToolsetAssemblerTest {
             assertEquals(Set.of("profiles", "recordings", "connector", "operations"), families(preset("connector")));
         }
 
-        /**
-         * The default serves whatever the assembler builds, so a family missing from the registry is
-         * still advertised -- it just cannot be named or reached through a preset. Nothing about the
-         * served tool list would look wrong, which is why the two sets are compared here instead.
-         */
-        /**
-         * The operations family gates each operation by the family that started it, so a kind whose
-         * family is not a name the properties know would be reachable by nobody and unreachable for no
-         * reason anyone could read off the configuration.
-         */
-        @Test
-        void everyOperationKindBelongsToAKnownFamily() {
-            for (OperationKind kind : OperationKind.values()) {
-                assertTrue(ExternalMcpProperties.knownFamilies().contains(kind.family()),
-                        kind + " names family " + kind.family() + ", which ExternalMcpProperties does not know");
-            }
-        }
-
         @Test
         void everyBuiltFamilyIsANameAReaderCanSelect() {
             assertEquals(ExternalMcpProperties.knownFamilies(), families(assembler(true)),
@@ -1755,19 +1724,19 @@ class McpToolsetAssemblerTest {
             ExternalMcpProperties properties = McpTestProperties.of(
                     true, true, true, Set.of(), preset);
             McpToolsetAssembler assembler = assembler(properties);
-            ExternalMcpController controller = new ExternalMcpController(
-                    assembler, properties, McpTestGuards.loopback(),
-                    new McpPromptRegistry(McpSkillCatalogue.fromClasspath()), mock(McpDiagnostics.class),
-                    AdvertisedFamilies.of(properties), McpTaskProvider.NONE, McpSkillProvider.NONE);
-            McpTestRequests.Request toolsList = McpTestRequests.request("tools/list");
-            MockHttpServletRequest request = new MockHttpServletRequest();
-            toolsList.httpHeaders().forEach(request::addHeader);
-            JsonNode response = controller.handle(toolsList.body(), request).getBody();
-            assertTrue(response.path("result").path("tools").isArray());
-            int count = response.path("result").path("tools").size();
-            assertEquals(assembler.toolset().specs().size(), count);
-            int bytes = response.toString().getBytes(StandardCharsets.UTF_8).length;
-            System.out.printf("MCP preset=%s tools=%d tools/list UTF-8 bytes=%d%n", preset, count, bytes);
+            List<McpToolSpec> specs = assembler.toolset().specs();
+            StringBuilder payload = new StringBuilder();
+            for (McpToolSpec spec : specs) {
+                payload.append(spec.name()).append(spec.description());
+                if (spec.inputSchema() != null) {
+                    payload.append(spec.inputSchema());
+                }
+                if (spec.outputSchema() != null) {
+                    payload.append(spec.outputSchema());
+                }
+            }
+            int bytes = payload.toString().getBytes(StandardCharsets.UTF_8).length;
+            System.out.printf("MCP preset=%s tools=%d tools/list UTF-8 bytes=%d%n", preset, specs.size(), bytes);
             return bytes;
         }
 

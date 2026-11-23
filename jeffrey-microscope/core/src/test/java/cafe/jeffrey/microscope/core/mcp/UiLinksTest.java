@@ -44,7 +44,7 @@ class UiLinksTest {
         request.setServerName("localhost");
         request.setServerPort(8585);
         // A tool is invoked while the MCP endpoint is being served, so the builder sees that path.
-        request.setRequestURI(ExternalMcpController.PATH);
+        request.setRequestURI("/api/mcp");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
     }
 

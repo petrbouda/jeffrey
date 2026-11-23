@@ -190,9 +190,7 @@ class HeapDumpMcpToolsTest {
                 CatalogueSpecs.profileScoped(HeapDiffMcpTools.class, AdvertisedFamilies.HEAP),
                 CatalogueSpecs.profileScoped(ProfileMcpTools.class, AdvertisedFamilies.PROFILES),
                 CatalogueSpecs.served(new ProfilesMcpTools(mock(MicroscopeCoreRepositories.class), EVERY_FAMILY),
-                        AdvertisedFamilies.PROFILES),
-                CatalogueSpecs.served(new OperationsMcpTools(new McpOperationRegistry(Clock.systemUTC()), kind -> true),
-                        AdvertisedFamilies.OPERATIONS));
+                        AdvertisedFamilies.PROFILES));
     }
 
     private static Set<String> nextTools(JsonNode structured) {

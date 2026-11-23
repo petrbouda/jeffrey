@@ -294,8 +294,7 @@ class ProfilesMcpToolsTest {
             assertEquals("rec-p-2", next.get(1).path("arguments").path("recordingId").asString());
             assertEquals(2, McpNextToolConformance.assertFollowable(data, CatalogueSpecs.of(
                     CatalogueSpecs.served(tools, "profiles"),
-                    CatalogueSpecs.served(RecordingsMcpToolsFixture.of(null, null, new McpOperationRegistry(Clock.systemUTC()),
-                            Clock.systemUTC()).build(),
+                    CatalogueSpecs.served(RecordingsMcpToolsFixture.of(null, null).build(),
                             "recordings"))));
         }
 

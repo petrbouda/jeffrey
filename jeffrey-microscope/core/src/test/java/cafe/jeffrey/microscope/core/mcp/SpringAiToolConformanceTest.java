@@ -35,10 +35,8 @@ import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.MemoryMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
@@ -120,7 +118,7 @@ class SpringAiToolConformanceTest {
      * plus the two the Claude Code endpoint serves directly.
      */
     private static final List<Class<?>> TOOL_CLASSES = List.of(
-            ProfileEvidenceMcpTools.class, OperationsMcpTools.class,
+            ProfileEvidenceMcpTools.class,
             ProfilesMcpTools.class,
             ProfileMcpTools.class,
             EventTypeMcpTools.class,
@@ -164,15 +162,14 @@ class SpringAiToolConformanceTest {
 
     /**
      * The record components an output schema may leave open as {@code {"type":"object"}}: the plan's
-     * three genuinely polymorphic payloads. A next call's arguments differ per tool, a finding's
-     * evidence per source, and an operation's result per kind. They are allowed by the component they
-     * come from rather than listed per tool, since after the family batches most payloads carry one;
-     * a new open object anywhere else fails {@link Identity#openObjectsAppearOnlyWhereThePayloadIsGenuinelyPolymorphic}.
+     * two genuinely polymorphic payloads. A next call's arguments differ per tool and a finding's
+     * evidence per source. They are allowed by the component they come from rather than listed per
+     * tool, since after the family batches most payloads carry one; a new open object anywhere else
+     * fails {@link Identity#openObjectsAppearOnlyWhereThePayloadIsGenuinelyPolymorphic}.
      */
     private static final Set<SanctionedComponent> SANCTIONED_COMPONENTS = Set.of(
             new SanctionedComponent(McpNextTool.class, "arguments"),
-            new SanctionedComponent(McpFinding.class, "evidence"),
-            new SanctionedComponent(McpOperationRegistry.Snapshot.class, "result"));
+            new SanctionedComponent(McpFinding.class, "evidence"));
 
     /** One record component, by the record that declares it and its name. */
     private record SanctionedComponent(Class<?> owner, String name) {
@@ -422,13 +419,10 @@ class SpringAiToolConformanceTest {
                     "ProfileEvidenceMcpTools.evidence:findings[].evidence",
                     "ProfileEvidenceMcpTools.evidence:findings[].nextTool.arguments",
                     "ProfileMcpTools.summary:topFindings[].evidence",
-                    "CompareMcpTools.quality:followUp.nextTools[].arguments",
-                    "OperationsMcpTools.status:result",
-                    "RecordingsMcpTools.status:operation.result",
-                    "RecordingsMcpTools.status:operation.followUp.nextTools[].arguments")),
+                    "CompareMcpTools.quality:followUp.nextTools[].arguments")),
                     sanctioned.toString());
             assertTrue(sanctioned.stream().allMatch(path -> path.endsWith(".arguments")
-                    || path.endsWith(".evidence") || path.endsWith(":result") || path.endsWith(".result")),
+                    || path.endsWith(".evidence")),
                     sanctioned.toString());
         }
     }

@@ -122,7 +122,6 @@ class RecordingsMcpToolsTest {
 
     private RecordingsMcpTools tools;
     private PipelineRunRegistry<String> runRegistry;
-    private McpOperationRegistry operations;
 
     @TempDir
     Path tempDir;
@@ -131,8 +130,7 @@ class RecordingsMcpToolsTest {
     void setUp() {
         runRegistry = new PipelineRunRegistry<>(
                 ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK);
-        operations = new McpOperationRegistry(CLOCK);
-        tools = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry, operations, CLOCK).build();
+        tools = RecordingsMcpToolsFixture.of(recordingsManager, runRegistry).build();
         // The tools build a UI link off the incoming request, the way ProfileMcpTools#link does.
         RequestContextHolder.setRequestAttributes(
                 new ServletRequestAttributes(new MockHttpServletRequest()));
