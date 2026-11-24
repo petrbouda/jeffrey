@@ -18,9 +18,9 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools.heap;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullableElement;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpNullableElement;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 
 import java.util.List;

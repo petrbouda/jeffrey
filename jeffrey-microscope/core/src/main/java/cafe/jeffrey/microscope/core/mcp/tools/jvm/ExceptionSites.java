@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.microscope.core.mcp.tools.FramePrefixes;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrames;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;

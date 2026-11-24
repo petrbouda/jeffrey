@@ -33,14 +33,14 @@ Every analysis tool is **read-only**, and every tool says so in its MCP annotati
 leaving a client to infer it. Eleven do not read: `recordings_analyzeFile` and `recordings_analyzeRecording`, which create profiles
 rather than changing them, `recordings_delete`, the one destructive tool, which removes a recording and the
 profile built from it, `heap_prepare`, which writes only a cache, `heap_oql` with `includeRetainedSize`
-and `jvm_autoAnalysis` with `compute`, which fill the dominator tree and the Auto Analysis cache and run as
-operations for that reason, `connector_download`, which pulls a session or a
+and `jvm_autoAnalysis` with `compute`, which fill the dominator tree and the Auto Analysis cache and
+stream progress on the call for that reason, `connector_download`, which pulls a session or a
 window of it off the connector (the recording volume on an Azure file share), `connector_fetchFile`, which pulls one of a
 session's artifacts off it the same way,
-`operations_cancel`, which asks background work to stop, and `ide_link` and `ide_open`, which act on the
+and `ide_link` and `ide_open`, which act on the
 editor running beside Jeffrey rather than on any profile. Each declares itself, so the reading members
-of those same families - `recordings_list`, `recordings_status`, `heap_status`, `connector_files`,
-`operations_status` - are not swept up with them. Two families
+of those same families - `recordings_list`, `recordings_status`, `heap_status`, `connector_files` -
+are not swept up with them. Two families
 reach outside this server and have switches of their own —
 `jeffrey.microscope.mcp.connector.enabled=false` for the one that leaves the machine, and
 `jeffrey.microscope.mcp.ide.enabled=false` for the one that reaches into the developer's IntelliJ.
@@ -123,8 +123,8 @@ bearer_token_env_var = "JEFFREY_MCP_TOKEN"
 The skills keep working; only the server registration moves. `tool_timeout_sec = 120` matters more
 than it looks: Codex gives up on a tool call after 60 seconds by default, while a slow Jeffrey read
 (`jvm_autoAnalysis` with `compute`, `heap_oql` with `includeRetainedSize`, a large flamegraph export)
-waits up to 45 seconds before handing back an `operationId` and can take longer than that to render —
-at 60 seconds Codex reports a timeout for a call that was about to answer. The
+runs on the call and streams progress until it finishes, which can take longer than 60 seconds —
+at that point Codex reports a timeout for a call that was about to answer. The
 `bearer_token_env_var` line is harmless without a token; see below.
 
 **Gemini CLI has a setting, like Claude Code.** The extension declares one, and Gemini asks for it
@@ -176,12 +176,11 @@ the property to change).
 
 ## What you get
 
-**Tools**, in twenty families:
+**Tools**, in nineteen families:
 
 | Family | What it does |
 |---|---|
 | `profiles_` | The catalogue: which recordings are analysed, what each one can answer, deep links into the UI, and a versioned evidence snapshot of one profile to cite |
-| `operations_` | The work the writers start — an import, a connector download or file fetch, a heap preparation — followed by its `operationId`: where it has got to, and a request that it stop |
 | `flamegraph_` | Which graphs a profile supports, and the call tree as Markdown |
 | `code_` | Your own methods, asked about by the names in your source: which of them the samples are charged to, everything measured about the one you are reading, the lines that issue a statement or call (and how often one request does), and what the application did at runtime tied back to its code |
 | `compare_` | Two profiles against each other: whether they are comparable, whether their evidence supports a verdict at all, what moved, the methods your diff touched, and the differential call tree |
@@ -308,7 +307,7 @@ with the two per-family switches above.
 
 ## Permissions
 
-Every client asks before each tool the first time. Every Jeffrey tool reads except the eleven named
+Every client asks before each tool the first time. Every Jeffrey tool reads except the ten named
 above, so approving a family once is usually what you want — `connector_` and `ide_` are the two worth
 reading twice, since one moves data off the connector and the other acts on your editor.
 

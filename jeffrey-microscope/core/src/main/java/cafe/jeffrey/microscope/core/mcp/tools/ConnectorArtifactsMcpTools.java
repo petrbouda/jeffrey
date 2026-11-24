@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
@@ -37,13 +36,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorSessionLocator;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorSessionRef;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadedSessionIndex;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
-import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolCost;
 import cafe.jeffrey.microscope.mcp.server.McpToolHints;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
@@ -55,8 +53,6 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingFile;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 import cafe.jeffrey.microscope.common.model.repository.StreamedFile;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -66,15 +62,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * The files of a connector session one at a time: what a session holds beside its recording, and how to
@@ -98,7 +91,6 @@ public class ConnectorArtifactsMcpTools {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectorArtifactsMcpTools.class);
 
-    private static final String RESPONSE_DEADLINE_ELAPSED = "Connector fetch response deadline elapsed";
     private static final String PROFILE_ARTIFACTS_DIR = "artifacts";
 
     private static final int DEFAULT_FILES_LIMIT = 100;
@@ -119,7 +111,6 @@ public class ConnectorArtifactsMcpTools {
             "The DOWNLOAD rows come with connector_download, which brings the session - or a window of it - as one "
                     + "recording.";
 
-    private static final String JOIN_WHY = "returns the path once the transfer lands, without fetching the file twice";
     private static final String ANALYSE_HEAP_DUMP_WHY = "builds the heap profile the heap_ tools take from this dump";
     /** The recordings family is always served beside connector; the heap family need not be. */
     private static final String HEAP_NOT_SERVED_GUIDANCE =
@@ -129,42 +120,23 @@ public class ConnectorArtifactsMcpTools {
             "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on.";
     private static final String ZERO_POINT_GUIDANCE =
             "Its timestamps line up with profile %s, whose recording starts at profilingStartedAtEpochMs.";
-    private static final String RETRY_WHY = "fetches the file again after a failed or cancelled transfer";
 
     private final ConnectorSessionLocator locator;
     private final RecordingsManager recordings;
     private final Path artifactsDir;
     private final Path profilesDir;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
-    private final Duration responseBudget;
-    private final BoundedJobs<ConnectorFileRef, Path> fetches;
     private final AdvertisedFamilies advertised;
 
-    /**
-     * @param answers        how a call that outlasts its wait answers, by what the client declared
-     * @param responseBudget how long a fetch call waits on its preflight and its transfer together; a
-     *                       client that declared tasks waits on the transfer for less
-     */
     public ConnectorArtifactsMcpTools(
             ProjectManagerResolver resolver,
             RecordingsManager recordings,
             Path artifactsDir,
             Path profilesDir,
-            McpOperationRegistry operations,
-            OperationAnswers answers,
-            Clock clock,
-            Duration responseBudget,
             AdvertisedFamilies advertised) {
-        this.answers = answers;
         this.locator = new ConnectorSessionLocator(resolver);
         this.recordings = recordings;
         this.artifactsDir = artifactsDir.toAbsolutePath();
         this.profilesDir = profilesDir.toAbsolutePath();
-        this.operations = operations;
-        this.responseBudget = responseBudget;
-        this.fetches = new BoundedJobs<>(responseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
-                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.advertised = advertised;
     }
 
@@ -173,19 +145,6 @@ public class ConnectorArtifactsMcpTools {
      */
     record ConnectorFileRef(ConnectorSessionRef session, String fileId) {
 
-        private McpNextTool.Call call() {
-            return ConnectorCalls.onSession(ConnectorCalls.CONNECTOR_FETCH_FILE, session.encode()).with(ConnectorCalls.FILE_ID, fileId);
-        }
-
-        /** This fetch again: it joins the transfer in flight or answers from disk once it has landed. */
-        McpNextTool sameCall(String why) {
-            return call().why(why);
-        }
-
-        /** This fetch again after it failed or was cancelled, which starts a new transfer. */
-        McpNextTool retryCall() {
-            return call().why(RETRY_WHY);
-        }
     }
 
     /**
@@ -320,12 +279,9 @@ public class ConnectorArtifactsMcpTools {
             + "row and the fileId of a connector_files row whose `fetch` is FETCH. Returns the file's "
             + "absolute path on the machine Jeffrey runs on; Jeffrey hands the file over rather than "
             + "parsing it, and a heap dump's path goes to recordings_analyzeFile. A file already "
-            + "fetched is answered from disk without asking the connector. status FETCHED, or RUNNING when a "
-            + "large file outlasts the call - the same call again returns the path once it lands. "
-            + "Every started transfer carries an operationId for operations_status and "
-            + "operations_cancel, and a client that declared the MCP tasks extension gets a task after "
-            + "about 5 s instead. A failed or cancelled transfer starts again on the same call; there "
-            + "is no retry flag.")
+            + "fetched is answered from disk rather than transferred again. The transfer runs on this "
+            + "call, streaming notifications/progress by bytes, and returns status FETCHED with the path "
+            + "when it finishes.")
     @McpOutputSchema(Fetch.class)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.CONNECTOR)
     public McpToolOutcome fetchFile(
@@ -343,20 +299,6 @@ public class ConnectorArtifactsMcpTools {
         // first seen, and that need not be a request thread.
         String uiLink = UiLinks.page(MicroscopePage.CONNECTOR);
 
-        // Before the connector is touched at all: a file this call already fetched is a file on this disk,
-        // and a disk does not need a round trip to be read. It also means an artifact stays reachable
-        // while the connector that held it is down or its session has been retired - the answer is the path,
-        // and the path is still good.
-        Optional<RetainedFetch> retained = retainedLocally(key);
-        if (retained.isPresent()) {
-            FetchFacts facts = retained.get().facts();
-            String operationId = register(key, retained.get().operation(), path -> facts, uiLink);
-            return answer(key, facts, operationId, uiLink);
-        }
-
-        // The preflight has the whole response budget, whatever the client declared: only the wait
-        // on the transfer below is shortened for a client that can follow a task.
-        McpDeadline responseDeadline = McpDeadline.after(responseBudget);
         Preflight preflight = preflight(ref, fileId);
         RepositoryFile file = preflight.file();
         LocalSession local = localSession(ref);
@@ -364,34 +306,16 @@ public class ConnectorArtifactsMcpTools {
 
         Optional<Path> here = alreadyHere(ref, file.name(), local, target);
         if (here.isPresent()) {
-            OperationHandle<Path> operation = fetches.rememberCompleted(key, here.get());
-            FetchFacts facts = fetched(file, here.get(), true, local);
-            String operationId = register(key, operation, path -> facts, uiLink);
-            return answer(key, facts, operationId, uiLink);
+            return answer(key, fetched(file, here.get(), true, local), uiLink);
         }
 
         LOG.info("Fetching a connector artifact over MCP: project_id={} session_id={} file_id={} name={}",
                 ref.projectId(), ref.sessionId(), fileId, file.name());
-        // retryFailure is true: a fetch is one file, and a transfer that failed on a blip must be
-        // startable again by calling this tool - which is the retry its operation names. reuseSuccess
-        // pins the retained path to the one this call resolved, so a session analysed since the last
-        // fetch is not answered with the copy under artifacts/.
-        OperationHandle<Path> operation = fetches.startOrJoin(key, true,
-                previous -> previous.equals(target) && Files.isRegularFile(previous),
-                control -> {
-                    control.phase(OperationPhase.FETCHING);
-                    control.progress(OperationDetails.connectorFetch(
-                            ref.encode(), fileId, file.name(), file.size(), target.toString()));
-                    return transfer(preflight.project(), ref, fileId, target, control);
-                });
-        String operationId = register(key, operation, path -> fetched(file, path, false, local), uiLink);
-        Optional<Path> transferred = fetches.awaitWithin(operation, responseDeadline.remainingWithin(
-                answers.waitBudget(call, responseBudget), RESPONSE_DEADLINE_ELAPSED));
-        if (transferred.isEmpty()) {
-            return answers.stillRunning(call, operationId, () -> answer(key,
-                    running(file, target, local), operationId, uiLink));
-        }
-        return answer(key, fetched(file, transferred.get(), false, local), operationId, uiLink);
+        // Fetches on this call and streams progress; the file is streamed to a .part sibling and renamed,
+        // so a concurrent fetch of the same file cannot leave a half-written target.
+        call.reportProgress(0.0, file.size(), "Fetching the connector artifact");
+        Path fetchedPath = transfer(preflight.project(), ref, fileId, target);
+        return answer(key, fetched(file, fetchedPath, false, local), uiLink);
     }
 
     /**
@@ -475,46 +399,18 @@ public class ConnectorArtifactsMcpTools {
     }
 
     /**
-     * Registers the transfer with the call that retries it - this tool again, which starts a failed
-     * or cancelled fetch afresh - and the answer a task following it completes with.
-     *
-     * @return the operation id
+     * The one answer every state of a fetch gives: the file, what to do with it next and the page for
+     * the user.
      */
-    private String register(ConnectorFileRef key, OperationHandle<Path> operation, Function<Path, FetchFacts> landed,
-                            String uiLink) {
-        String operationId = operation.operationId();
-        return operations.register(OperationKind.CONNECTOR_FETCH, operation, fetchResult(key),
-                path -> answer(key, landed.apply(path), operationId, uiLink), key.retryCall());
-    }
-
-    private static Function<Path, FetchResult> fetchResult(ConnectorFileRef key) {
-        String sessionRef = key.session().encode();
-        return path -> new FetchResult(path.toString(), sessionRef, key.fileId());
-    }
-
-    /** What a finished fetch produced, as operations_status reports it. */
-    private record FetchResult(String path, String sessionRef, String fileId) {
-    }
-
-    /**
-     * The one answer every state of a fetch gives: the file, the transfer behind it, what to do with
-     * it next and the page for the user.
-     */
-    private McpToolResult answer(ConnectorFileRef key, FetchFacts facts, String operationId, String uiLink) {
-        McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+    private McpToolResult answer(ConnectorFileRef key, FetchFacts facts, String uiLink) {
         return McpToolResult.of(new Fetch(facts.status(), key.session().encode(), key.fileId(), facts.filename(),
                 facts.type(), facts.sizeBytes(), facts.path(), facts.alreadyHere(), facts.recordingId(),
-                facts.profileId(), facts.profilingStartedAtEpochMs(), operationId, operation,
-                followUp(key, facts, operationId), uiLink));
+                facts.profileId(), facts.profilingStartedAtEpochMs(),
+                followUp(key, facts), uiLink));
     }
 
-    private McpFollowUp followUp(ConnectorFileRef key, FetchFacts facts, String operationId) {
+    private McpFollowUp followUp(ConnectorFileRef key, FetchFacts facts) {
         NextSteps.Builder next = NextSteps.builder(advertised);
-        if (facts.status() == FetchStatus.RUNNING) {
-            return next.next(ConnectorCalls.poll(operationId))
-                    .next(key.sameCall(JOIN_WHY))
-                    .followUp();
-        }
         boolean heapDump = HEAP_DUMPS.contains(facts.type());
         boolean heapServed = advertised.has(AdvertisedFamilies.HEAP);
         return next
@@ -565,9 +461,7 @@ public class ConnectorArtifactsMcpTools {
         return file;
     }
 
-    private static Path transfer(
-            ProjectManager project, ConnectorSessionRef ref, String fileId, Path target, BoundedJobs.JobControl control) {
-        control.checkCancellation();
+    private static Path transfer(ProjectManager project, ConnectorSessionRef ref, String fileId, Path target) {
         return place(project.repositoryManager().streamFile(ref.sessionId(), fileId), target);
     }
 
@@ -688,61 +582,8 @@ public class ConnectorArtifactsMcpTools {
         return local.recording() == null ? null : "recording:" + local.recording().id();
     }
 
-    /**
-     * The answer for a file this instance fetched before and which is still where it put it, built
-     * without asking the connector anything.
-     * <p>
-     * The retained operation is the only thing that maps a {@code fileId} back to a file name, which
-     * is why this reaches no further back than {@link BoundedJobs#COMPLETED_RETENTION}: past that the
-     * name has to come from {@code connector_files} again. It is deliberately not a catalogue — nothing is
-     * written down, and an empty answer here simply costs the round trip it would have saved.
-     * <p>
-     * A retained path that is no longer the path this session resolves to means the recording has
-     * been analysed since, so the fetch proper runs and moves the file beside its profile.
-     */
-    private Optional<RetainedFetch> retainedLocally(ConnectorFileRef key) {
-        ConnectorSessionRef ref = key.session();
-        Optional<OperationHandle<Path>> retained = fetches.current(key)
-                .filter(handle -> handle.snapshot().state() == OperationState.COMPLETED);
-        if (retained.isEmpty()) {
-            return Optional.empty();
-        }
-        OperationHandle<Path> operation = retained.get();
-        Path path = operation.snapshot().result();
-        if (path == null || !Files.isRegularFile(path)) {
-            return Optional.empty();
-        }
-
-        String filename = path.getFileName().toString();
-        LocalSession local = localSession(ref);
-        if (!path.equals(targetOf(ref, filename, local))) {
-            return Optional.empty();
-        }
-        Long size;
-        try {
-            size = Files.size(path);
-        } catch (IOException e) {
-            // It was a regular file a moment ago. Whatever changed, the connector knows more than we do.
-            LOG.debug("A retained connector artifact could not be sized: path={} reason={}", path, e.getMessage());
-            return Optional.empty();
-        }
-        LOG.debug("Answering a connector artifact fetch from this disk: session_id={} file_id={} path={}",
-                ref.sessionId(), key.fileId(), path);
-        return Optional.of(new RetainedFetch(
-                operation, facts(FetchStatus.FETCHED, filename, ManagedFile.of(filename), size, path, true, local)));
-    }
-
-    /** A fetch answered off this disk: the operation it was, and what it reports. */
-    private record RetainedFetch(OperationHandle<Path> operation, FetchFacts facts) {
-    }
-
     private static FetchFacts fetched(RepositoryFile file, Path path, boolean alreadyHere, LocalSession local) {
         return facts(FetchStatus.FETCHED, file.name(), RepositoryFiles.typeOf(file), file.size(), path, alreadyHere,
-                local);
-    }
-
-    private static FetchFacts running(RepositoryFile file, Path target, LocalSession local) {
-        return facts(FetchStatus.RUNNING, file.name(), RepositoryFiles.typeOf(file), file.size(), target, false,
                 local);
     }
 

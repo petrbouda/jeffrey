@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 import java.util.Comparator;

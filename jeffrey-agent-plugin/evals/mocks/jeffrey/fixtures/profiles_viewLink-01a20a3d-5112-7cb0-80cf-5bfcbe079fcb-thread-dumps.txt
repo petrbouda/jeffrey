@@ -1,0 +1,1 @@
+{"profileId":"01a20a3d-5112-7cb0-80cf-5bfcbe079fcb","view":"thread-dumps","objectId":null,"uiLink":"http://localhost:8587/profiles/01a20a3d-5112-7cb0-80cf-5bfcbe079fcb/thread-dumps"}

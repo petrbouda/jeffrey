@@ -18,10 +18,9 @@
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.mcp.tools.CatalogueStatus;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpMinimum;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.common.model.recording.FileCategory;
@@ -32,8 +31,8 @@ import java.util.List;
 /**
  * What the {@code connector_} tools answer: one record per tool, each carrying the calls to make next and
  * the connector's page for the user. The sessions and files are listed as rows an agent reads;
- * a download or a fetch is reported in one shape whatever state its transfer is in, so a caller that
- * waited and one that polled parse the same record.
+ * a download or a fetch is reported in one shape: the transfer runs on the call and the answer is its
+ * finished result.
  */
 public final class ConnectorAnswers {
 
@@ -201,18 +200,15 @@ public final class ConnectorAnswers {
             String uiLink) {
     }
 
-    /** Where a download stands. */
+    /**
+     * Where a download stands. The transfer runs on the call and streams progress, so a result is
+     * terminal: there is no RUNNING, and a failed transfer is a tool error, not a status.
+     */
     public enum DownloadStatus {
         /** The recording is here: recordingId names it, and profileId too once it is analysed. */
         DOWNLOADED,
-        /** The transfer outlasted the call; operationId follows it. */
-        RUNNING,
         /** The user chose not to bring any part of the session; nothing was transferred. */
         NOT_DOWNLOADED,
-        /** The transfer failed; the same call with retry=true starts a new one. */
-        FAILED,
-        /** The transfer was cancelled; the same call with retry=true starts a new one. */
-        CANCELLED,
         /**
          * STARTUP was asked for and the connector no longer holds the session's first chunk; nothing was
          * transferred, and chosen names the oldest chunk still kept.
@@ -258,9 +254,8 @@ public final class ConnectorAnswers {
     }
 
     /**
-     * One download of a session on the connector, whatever state it is in. The part asked for is echoed as the
-     * arguments that name the same download again, so a later call joins this transfer or returns the
-     * recording it made.
+     * One download of a session on the connector. The part asked for is echoed as the arguments that
+     * name the same download again.
      */
     public record Download(
             DownloadStatus status,
@@ -305,7 +300,7 @@ public final class ConnectorAnswers {
             Integer artifactFiles,
             @McpNullable
             @McpMinimum(0)
-            @McpDescription("Bytes transferred, or to transfer while RUNNING; null when not counted")
+            @McpDescription("Bytes transferred; null when not counted")
             Long sizeBytes,
             @McpNullable
             @McpDescription("Where the downloaded recording's data starts, as UTC epoch milliseconds: read from "
@@ -322,12 +317,6 @@ public final class ConnectorAnswers {
             @McpDescription("What a predefined window picked and why; null when the call named the part itself or "
                     + "took the whole session without a window")
             ChosenWindow chosen,
-            @McpNullable
-            @McpDescription("The transfer behind this answer, for operations_status and operations_cancel")
-            String operationId,
-            @McpNullable
-            @McpDescription("That transfer as operations_status reports it")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription("The profile once analysed, else the recordings page once downloaded, else the connector "
                     + "browser, in the Microscope UI, for the user")
@@ -351,12 +340,10 @@ public final class ConnectorAnswers {
     /** Where a fetch stands. */
     public enum FetchStatus {
         /** The file is at path. */
-        FETCHED,
-        /** The transfer outlasted the call; the file will land at path, and operationId follows it. */
-        RUNNING
+        FETCHED
     }
 
-    /** One artifact of a session on the connector, fetched onto this machine or on its way. */
+    /** One artifact of a session on the connector, fetched onto this machine. */
     public record Fetch(
             FetchStatus status,
             String sessionRef,
@@ -366,8 +353,7 @@ public final class ConnectorAnswers {
             @McpNullable
             @McpMinimum(0)
             Long sizeBytes,
-            @McpDescription("The absolute path of the file on the machine Jeffrey runs on: where it is, or where "
-                    + "it lands while RUNNING. Read it with your own tools")
+            @McpDescription("The absolute path of the file on the machine Jeffrey runs on. Read it with your own tools")
             String path,
             @McpDescription("True when nothing was transferred because the file was already at path")
             boolean alreadyHere,
@@ -381,12 +367,6 @@ public final class ConnectorAnswers {
             @McpDescription("That profile's recording start, as UTC epoch milliseconds: an uptime in a GC log "
                     + "is this instant plus the uptime. Null without a profile or a start")
             Long profilingStartedAtEpochMs,
-            @McpNullable
-            @McpDescription("The transfer behind this answer, for operations_status and operations_cancel")
-            String operationId,
-            @McpNullable
-            @McpDescription("That transfer as operations_status reports it")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription("The connector's page in the Microscope UI, for the user")
             String uiLink) {

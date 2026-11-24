@@ -21,17 +21,17 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisFindings;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpMinimum;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.feature.FeatureType;
 import cafe.jeffrey.microscope.core.profile.feature.ProfileDisabledFeatures;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
-import cafe.jeffrey.microscope.mcp.server.AbstractMcpStreamableHttpController;
+import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpToolCost;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;
@@ -207,7 +207,7 @@ public class ProfileEvidenceMcpTools {
                         .with(PROFILE_ID, profileId).with(COMPUTE, true).why(COMPUTE_WHY))
                 .followUp();
         EvidenceDocument skeleton = new EvidenceDocument(SCHEMA_VERSION, FINDING_SCHEMA_VERSION, clock.millis(),
-                AbstractMcpStreamableHttpController.serverVersion(), SEMANTICS, ProfileEvidence.SETTINGS_SCOPE,
+                JeffreyMcpServer.serverVersion(), SEMANTICS, ProfileEvidence.SETTINGS_SCOPE,
                 ProfileEvidence.identity(manager.info(), commits.resolve(manager.info().recordingId()).orElse(null)),
                 new EvidenceFilters(ProfileEvidence.WHOLE_RECORDING, ALL, ALL, false, false),
                 followUp, ProfileEvidence.samplerHealth(manager), status,

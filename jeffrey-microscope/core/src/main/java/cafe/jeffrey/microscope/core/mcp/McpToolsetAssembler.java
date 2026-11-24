@@ -20,7 +20,6 @@ package cafe.jeffrey.microscope.core.mcp;
 import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.mcp.tools.BlockingMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.BoundedOperation;
 import cafe.jeffrey.microscope.core.mcp.tools.CodeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.CodeSurfaceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.CompareMcpTools;
@@ -40,12 +39,8 @@ import cafe.jeffrey.microscope.core.mcp.tools.IdeMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.IoMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JdbcMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.JvmMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.MemoryMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.MethodTracingMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationAnswers;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationKind;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileEvidenceMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileFindingsReader;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfileMcpTools;
@@ -57,10 +52,10 @@ import cafe.jeffrey.microscope.core.mcp.tools.TraceAttributesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.TracesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.AutoAnalysisSection.AutoAnalysisDashboard;
 import cafe.jeffrey.microscope.core.web.controllers.profile.HeapDumpManagerToolsDelegate;
-import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolAnnotations;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.CompositeToolset;
+import cafe.jeffrey.microscope.mcp.server.McpToolAnnotations;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
@@ -93,7 +88,6 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JFR;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JVM;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.MEMORY;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.METHOD_TRACING;
-import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.OPERATIONS;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.PROFILES;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.RECORDINGS;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TIMELINE;
@@ -127,8 +121,8 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TRACES;
  * marked {@link McpToolAnnotations#CREATES} so a client can tell them apart from their neighbours.
  * <p>
  * Two reads that can run for minutes — {@code jvm_autoAnalysis} with {@code compute} and
- * {@code heap_oql} with {@code includeRetainedSize} — run as operations the way the writers' long
- * work does, through one {@link BoundedOperation} each shared by every call, and say so per tool with
+ * {@code heap_oql} with {@code includeRetainedSize} — run synchronously on the call and stream
+ * {@code notifications/progress} the way the writers' long work does, and say so per tool with
  * {@code @McpToolHints}: they fill a cache rather than only reading one.
  * <p>
  * {@link ConnectorMcpTools} and {@link IdeMcpTools} are the two families gated by configuration, because
@@ -154,20 +148,11 @@ public class McpToolsetAssembler {
             ExternalMcpProperties properties,
             AdvertisedFamilies advertised,
             ConnectorArtifactsMcpTools connectorArtifactsMcpTools,
-            McpOperationRegistry operations,
-            OperationAnswers answers,
             Clock clock) {
-
-        // Shared by every call rather than built per call, so a second request joins the run in flight.
-        BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns =
-                BoundedOperation.standard(OperationKind.JVM_AUTO_ANALYSIS, operations, answers, clock);
-        BoundedOperation<OQLQueryResult> retainedOqlRuns =
-                BoundedOperation.standard(OperationKind.HEAP_OQL, operations, answers, clock);
 
         ProfileFamilies onProfile = new ProfileFamilies(contextCache, advertised);
         List<McpToolProvider> families = new ArrayList<>(List.of(
                 new ReflectiveToolset(profilesMcpTools, PROFILES),
-                new ReflectiveToolset(new OperationsMcpTools(operations, kind -> reachable(kind, properties)), OPERATIONS),
                 onProfile.of(ProfileEvidenceMcpTools.class, PROFILES, (scope, profileId) -> new ProfileEvidenceMcpTools(
                         scope.profileManager(), recordingCommitResolver, jfrPanelProvider,
                         stackSamplePanelProvider, clock, advertised)),
@@ -185,7 +170,7 @@ public class McpToolsetAssembler {
                         scope.profileManager(), scope::profileManager, clock, advertised)),
                 onProfile.onManager(TracesMcpTools.class, TRACES, TracesMcpTools::new),
                 onProfile.of(JvmMcpTools.class, JVM, (scope, profileId) -> new JvmMcpTools(
-                        scope.profileManager(), autoAnalysisRuns, () -> contextCache.acquire(profileId), advertised)),
+                        scope.profileManager(), advertised)),
                 onProfile.onManager(HttpMcpTools.class, HTTP, HttpMcpTools::new),
                 onProfile.onManager(JdbcMcpTools.class, JDBC, JdbcMcpTools::new),
                 onProfile.onManager(GrpcMcpTools.class, GRPC, GrpcMcpTools::new),
@@ -200,14 +185,12 @@ public class McpToolsetAssembler {
                 onProfile.of(HeapOqlMcpTools.class, HEAP, (scope, profileId) -> {
                     // OQL reads the same index, so it is refused on the same terms.
                     requireIndexedHeapDump(scope.profileManager(), profileId);
-                    return new HeapOqlMcpTools(scope.profileManager(), retainedOqlRuns,
-                            () -> contextCache.acquire(profileId), advertised);
+                    return new HeapOqlMcpTools(scope.profileManager(), advertised);
                 }),
                 onProfile.of(HeapDumpMcpTools.class, HEAP,
                         (scope, profileId) -> heapTools(scope.profileManager(), profileId, advertised)),
                 onProfile.of(HeapComputeMcpTools.class, HEAP, (scope, profileId) -> new HeapComputeMcpTools(
-                                scope.profileManager(), heapDumpInitService,
-                                () -> contextCache.acquire(profileId), operations, answers, advertised),
+                                scope.profileManager(), heapDumpInitService, advertised),
                         McpToolAnnotations.CREATES),
                 new ReflectiveToolset(recordingsMcpTools, RECORDINGS, McpToolAnnotations.CREATES)));
 
@@ -258,19 +241,6 @@ public class McpToolsetAssembler {
         try (ProfileCallScope scope = new ProfileCallScope(contextCache, profileId)) {
             return read.apply(scope);
         }
-    }
-
-    /**
-     * Whether {@code operations_status} and {@code operations_cancel} -- and the tasks extension, which
-     * reads the same operations -- may reach an operation of this kind: only when the family that
-     * started it is served, and -- for the two connector kinds -- only when the connector switch is on, since the
-     * family filter alone does not know about that switch.
-     */
-    public static boolean reachable(OperationKind kind, ExternalMcpProperties properties) {
-        if (kind.reachesConnector() && !properties.connectorEnabled()) {
-            return false;
-        }
-        return properties.advertises(kind.family());
     }
 
     /**

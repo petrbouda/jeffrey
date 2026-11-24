@@ -19,7 +19,6 @@ package cafe.jeffrey.microscope.core.profile.manager.heapdump;
 
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.LeakSuspectsAnalysis;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.core.pipeline.PipelineState;
 import cafe.jeffrey.microscope.core.pipeline.StageProgress;
 import cafe.jeffrey.microscope.core.pipeline.StageStatus;
@@ -47,7 +46,6 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -74,8 +72,7 @@ class HeapDumpInitServiceTest {
         HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
         var first = service.startPreparation(PROFILE_ID, manager,
                 previous.equals("all") ? null : previous, null, () -> {}, false);
-        await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
-        assertEquals(OperationState.COMPLETED, first.operation().snapshot().state());
+        await().atMost(5, SECONDS).until(() -> service.progress(PROFILE_ID).state() == PipelineState.COMPLETED);
 
         var second = service.startPreparation(PROFILE_ID, manager,
                 requested.equals("all") ? null : requested, null, () -> {}, false);
@@ -83,11 +80,8 @@ class HeapDumpInitServiceTest {
         assertEquals(shouldStart, second.started());
         if (shouldStart) {
             assertEquals(requested.equals("all") ? HeapDumpStages.REPORTS : List.of(requested), second.reports());
-            await().atMost(5, SECONDS).until(() -> second.operation().finishedAt() != null);
-            assertEquals(OperationState.COMPLETED, second.operation().snapshot().state());
-            verify(manager).runReport(new LeakSuspectsAnalysis());
+            await().atMost(5, SECONDS).untilAsserted(() -> verify(manager).runReport(new LeakSuspectsAnalysis()));
         } else {
-            assertSame(first.operation(), second.operation());
             assertEquals(first.reports(), second.reports());
         }
     }
@@ -102,17 +96,16 @@ class HeapDumpInitServiceTest {
             release.await();
             return null;
         });
-        var first = service.startPreparation(PROFILE_ID, manager, "dominator", null, () -> {}, false);
+        service.startPreparation(PROFILE_ID, manager, "dominator", null, () -> {}, false);
         try {
             assertTrue(entered.await(5, SECONDS));
             var second = service.startPreparation(PROFILE_ID, manager, "leaks", null, () -> {}, false);
             assertFalse(second.started());
-            assertSame(first.operation(), second.operation());
             assertEquals(List.of("dominator"), second.reports());
             verify(manager, never()).runReport(new LeakSuspectsAnalysis());
         } finally {
             release.countDown();
-            await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
+            await().atMost(5, SECONDS).until(() -> service.progress(PROFILE_ID).state() == PipelineState.COMPLETED);
         }
     }
 
@@ -120,14 +113,12 @@ class HeapDumpInitServiceTest {
     void differentReportDoesNotImplicitlyRetryFailedPreparation() {
         HeapDumpInitService service = new HeapDumpInitService(Clock.systemUTC());
         when(manager.initialize(eq(null), any())).thenThrow(new IllegalStateException("index failed"));
-        var first = service.startPreparation(PROFILE_ID, manager, "dominator", null, () -> {}, false);
-        await().atMost(5, SECONDS).until(() -> first.operation().finishedAt() != null);
-        assertEquals(OperationState.FAILED, first.operation().snapshot().state());
+        service.startPreparation(PROFILE_ID, manager, "dominator", null, () -> {}, false);
+        await().atMost(5, SECONDS).until(() -> service.progress(PROFILE_ID).state() == PipelineState.FAILED);
 
         var second = service.startPreparation(PROFILE_ID, manager, "leaks", null, () -> {}, false);
 
         assertFalse(second.started());
-        assertSame(first.operation(), second.operation());
         verify(manager, never()).runReport(new LeakSuspectsAnalysis());
     }
 

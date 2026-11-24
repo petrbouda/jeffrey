@@ -16,17 +16,6 @@
  */
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.CompositeToolset;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.tool.annotation.Tool;
@@ -414,9 +403,8 @@ class ToolMethodIndexTest {
     @Nested
     class CallContext {
 
-        private static final McpCallContext ELICITING_TASK_CLIENT = new McpCallContext(
-                McpClientCapabilities.parse(Json.readTree(
-                        "{\"elicitation\":{},\"extensions\":{\"io.modelcontextprotocol/tasks\":{}}}")),
+        private static final McpCallContext ELICITING_CLIENT = new McpCallContext(
+                McpClientCapabilities.parse(Json.readTree("{\"elicitation\":{}}")),
                 Map.of(), Optional.empty());
 
         private final ReflectiveToolset toolset = new ReflectiveToolset(new ContextTools(), "test");
@@ -432,15 +420,15 @@ class ToolMethodIndexTest {
         @Test
         void handsTheToolTheContextItWasCalledWith() {
             McpToolOutcome outcome = toolset.call(
-                    "test_describe", Json.createObject().put("label", "x"), ELICITING_TASK_CLIENT);
+                    "test_describe", Json.createObject().put("label", "x"), ELICITING_CLIENT);
 
-            assertEquals("x:true/true", outcome.requireComplete().text());
+            assertEquals("x:true", outcome.requireComplete().text());
         }
 
         /** The two-argument call is the text path every existing caller uses: nothing to ask, no task. */
         @Test
         void handsTheToolTheResourceReadContextWhenCalledWithoutOne() {
-            assertEquals("x:false/false", toolset.call("test_describe", Json.createObject().put("label", "x")));
+            assertEquals("x:false", toolset.call("test_describe", Json.createObject().put("label", "x")));
         }
 
         @Test
@@ -453,7 +441,7 @@ class ToolMethodIndexTest {
 
         @Test
         void passesAToolsQuestionThroughUnchanged() {
-            McpToolOutcome outcome = toolset.call("test_confirm", Json.createObject(), ELICITING_TASK_CLIENT);
+            McpToolOutcome outcome = toolset.call("test_confirm", Json.createObject(), ELICITING_CLIENT);
 
             McpToolOutcome.InputRequired asking = assertInstanceOf(McpToolOutcome.InputRequired.class, outcome);
             assertEquals(List.of("confirm"), List.copyOf(asking.requests().keySet()));
@@ -480,9 +468,9 @@ class ToolMethodIndexTest {
                     McpTestToolsets.unscoped(ContextTools.class, "test", profileId -> new ContextTools());
 
             McpToolOutcome outcome = scoped.call("test_describe",
-                    Json.createObject().put("profileId", "p-1").put("label", "y"), ELICITING_TASK_CLIENT);
+                    Json.createObject().put("profileId", "p-1").put("label", "y"), ELICITING_CLIENT);
 
-            assertEquals("y:true/true", outcome.requireComplete().text());
+            assertEquals("y:true", outcome.requireComplete().text());
             McpToolSpec describe = scoped.specs().stream()
                     .filter(spec -> spec.name().equals("test_describe"))
                     .findFirst()
@@ -496,9 +484,9 @@ class ToolMethodIndexTest {
             CompositeToolset composite = new CompositeToolset(List.of(toolset));
 
             McpToolOutcome outcome = composite.call(
-                    "test_describe", Json.createObject().put("label", "z"), ELICITING_TASK_CLIENT);
+                    "test_describe", Json.createObject().put("label", "z"), ELICITING_CLIENT);
 
-            assertEquals("z:true/true", outcome.requireComplete().text());
+            assertEquals("z:true", outcome.requireComplete().text());
         }
 
         @Test
@@ -736,7 +724,7 @@ class ToolMethodIndexTest {
         public String describe(
                 @ToolParam(required = false, description = "a label") String label,
                 McpCallContext call) {
-            return label + ":" + call.canElicitForm() + "/" + call.tasksSupported();
+            return label + ":" + call.canElicitForm();
         }
 
         @Tool(description = "Asks before it acts, when it can")
@@ -793,10 +781,10 @@ class ToolMethodIndexTest {
 
     static class StructuredOutcomeTools {
 
-        @Tool(description = "Answers with a structured result or a task")
+        @Tool(description = "Answers with a structured result")
         @McpOutputSchema(Numbered.class)
         public McpToolOutcome run(McpCallContext call) {
-            return new McpToolOutcome.Deferred("op-1");
+            return McpToolResult.text("structured");
         }
     }
 }

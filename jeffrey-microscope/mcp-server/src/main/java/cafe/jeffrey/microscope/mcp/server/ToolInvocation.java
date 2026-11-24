@@ -20,12 +20,6 @@ import cafe.jeffrey.jfr.events.trace.SpanKind;
 import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.jfr.events.trace.Tracer;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpMetaKeys;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 

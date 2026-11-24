@@ -26,17 +26,15 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcDetailPage;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.GcDetailPages;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SectionHeader;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
@@ -54,7 +52,6 @@ import cafe.jeffrey.microscope.core.profile.event.JITCompilationStats;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationMethodAggregate;
 import cafe.jeffrey.microscope.core.profile.event.JITDeoptimizationStats;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowFrame;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.core.profile.manager.AutoAnalysisManager;
 import cafe.jeffrey.microscope.core.profile.manager.ClassLoadingManager;
 import cafe.jeffrey.microscope.core.profile.manager.ContainerManager;
@@ -147,15 +144,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
-import static cafe.jeffrey.microscope.mcp.protocol.McpCallContext.RESOURCE_READ;
+import static cafe.jeffrey.microscope.mcp.server.McpCallContext.RESOURCE_READ;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -253,19 +246,11 @@ class JvmMcpToolsTest {
     @Mock
     FlagsManager flagsManager;
 
-    private final McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-
-    private final AtomicInteger leases = new AtomicInteger();
-
-    private Duration waitBudget = Duration.ofSeconds(5);
-
     /**
      * The sample types this recording can graph, which decide the event type a next call names: the
      * execution sampler and the allocation sampler unless a test says otherwise.
      */
     private List<String> sampled = List.of(EventTypeName.EXECUTION_SAMPLE, EventTypeName.OBJECT_ALLOCATION_SAMPLE);
-
-    private OperationAnswers answers = ToolFixtures.answers();
 
     private JvmMcpTools tools() {
         return tools(EVERY_FAMILY);
@@ -275,14 +260,7 @@ class JvmMcpToolsTest {
         when(profileManager.info()).thenReturn(new ProfileInfo(
                 PROFILE_ID, "Profile", RecordingEventSource.JFR,
                 START, START.plusSeconds(60), START, true, false, "recording-1"));
-        BoundedOperation<AutoAnalysisSection.AutoAnalysisDashboard> autoAnalysis = new BoundedOperation<>(
-                OperationKind.JVM_AUTO_ANALYSIS,
-                ToolFixtures.jobs(waitBudget, BoundedJobs.COMPLETED_RETENTION, CLOCK),
-                operations, answers);
-        return new JvmMcpTools(profileManager, autoAnalysis, () -> {
-            leases.incrementAndGet();
-            return leases::decrementAndGet;
-        }, advertised);
+        return new JvmMcpTools(profileManager, advertised);
     }
 
     /**
@@ -356,9 +334,7 @@ class JvmMcpToolsTest {
                 CatalogueSpecs.profileScoped(TracesMcpTools.class, AdvertisedFamilies.TRACES),
                 CatalogueSpecs.profileScoped(TimelineMcpTools.class, AdvertisedFamilies.TIMELINE),
                 CatalogueSpecs.profileScoped(MemoryMcpTools.class, AdvertisedFamilies.MEMORY),
-                CatalogueSpecs.profileScoped(HeapDumpMcpTools.class, AdvertisedFamilies.HEAP),
-                CatalogueSpecs.served(new OperationsMcpTools(new McpOperationRegistry(CLOCK), kind -> true),
-                        AdvertisedFamilies.OPERATIONS));
+                CatalogueSpecs.profileScoped(HeapDumpMcpTools.class, AdvertisedFamilies.HEAP));
     }
 
     private static Set<String> nextTools(JsonNode structured) {
@@ -580,7 +556,7 @@ class JvmMcpToolsTest {
             when(gcManager.garbageCollectorType()).thenReturn(Optional.of(GarbageCollectorType.G1));
             when(gcManager.overviewData()).thenReturn(overview());
 
-            JsonNode out = conforming("gc", tools(new AdvertisedFamilies(Set.of("jvm", "operations"))).gc());
+            JsonNode out = conforming("gc", tools(new AdvertisedFamilies(Set.of("jvm"))).gc());
 
             assertEquals(Set.of("jvm_safepoints"), nextTools(out));
         }
@@ -1513,7 +1489,6 @@ class JvmMcpToolsTest {
             assertEquals(0, out.get("dashboard").get("findings").size());
             assertEquals("{\"CRITICAL\":0,\"WARNING\":0,\"INFO\":0,\"OK\":0}",
                     out.get("dashboard").get("findingCounts").toString());
-            assertTrue(out.get("operationId").isNull());
             verify(autoAnalysisManager, never()).generate();
         }
 
@@ -1561,7 +1536,7 @@ class JvmMcpToolsTest {
                     null, "60", "lock_instances")));
 
             JsonNode out = conforming("autoAnalysis",
-                    tools(new AdvertisedFamilies(Set.of("jvm", "operations"))).autoAnalysis(null, RESOURCE_READ));
+                    tools(new AdvertisedFamilies(Set.of("jvm"))).autoAnalysis(null, RESOURCE_READ));
 
             Map<String, JsonNode> byId = new LinkedHashMap<>();
             out.get("dashboard").get("findings").forEach(finding -> byId.put(finding.get("id").asString(), finding));
@@ -1590,10 +1565,7 @@ class JvmMcpToolsTest {
             assertTrue(guidance(out).contains("notEvaluated"), guidance(out));
         }
 
-        /**
-         * Computing is asked for rather than assumed, and the answer carries the operation that ran it,
-         * in the snapshot shape operations_status reports.
-         */
+        /** Computing is asked for rather than assumed, and the findings come back on the same call. */
         @Test
         void computesItOnRequest() {
             recorded();
@@ -1611,56 +1583,10 @@ class JvmMcpToolsTest {
             verify(autoAnalysisManager).generate();
             assertEquals("COMPUTED", out.get("status").asString());
             assertEquals("Long GC Pauses", out.get("dashboard").get("findings").get(0).get("evidence").get("rule").asString());
-            assertEquals(out.get("operationId").asString(), out.get("operation").get("operationId").asString());
-            assertEquals("JVM_AUTO_ANALYSIS", out.get("operation").get("kind").asString());
-            assertEquals("COMPLETED", out.get("operation").get("status").asString());
-            assertTrue(out.get("operation").get("result").isNull(),
-                    "the findings are the answer's dashboard, not repeated as the operation's result");
-            assertTrue(Json.toString(operations.status(out.get("operationId").asString())).contains("Long GC Pauses"),
-                    "operations_status still carries them");
-            await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
-        }
-
-        /**
-         * The rule set reads the whole recording, which on a large one outlasts the point where a
-         * client gives up on a call. Past the wait budget the call answers NOT_COMPUTED with the
-         * running operation and the call that polls it.
-         */
-        @Test
-        void answersWithTheRunningOperationWhenComputingOutlastsTheWaitBudget() throws Exception {
-            recorded();
-            waitBudget = Duration.ofMillis(50);
-            CountDownLatch release = new CountDownLatch(1);
-            AtomicBoolean generated = new AtomicBoolean();
-            when(autoAnalysisManager.canGenerate()).thenReturn(true);
-            when(autoAnalysisManager.isComputed()).thenAnswer(invocation -> generated.get());
-            when(autoAnalysisManager.analysisResults()).thenReturn(List.of(longGcPauses()));
-            doAnswer(invocation -> {
-                assertTrue(release.await(5, TimeUnit.SECONDS));
-                generated.set(true);
-                return null;
-            }).when(autoAnalysisManager).generate();
-
-            JsonNode started = conforming("autoAnalysis", tools().autoAnalysis(true, RESOURCE_READ));
-            String operationId = started.path("operationId").asString();
-
-            assertEquals("NOT_COMPUTED", started.get("status").asString(), started.toString());
-            assertEquals("RUNNING", started.get("operation").get("status").asString());
-            assertEquals(operationId, call(started, "operations_status").get("operationId").asString());
-            assertEquals(2, McpNextToolConformance.assertFollowable(started, reachable()),
-                    "the answer's poll and the operation's own poll");
-            assertEquals(1, leases.get(), "the worker holds the profile open while it computes");
-
-            release.countDown();
-            await().atMost(5, TimeUnit.SECONDS)
-                    .until(() -> operations.status(operationId).status() == OperationState.COMPLETED);
-            String polled = Json.toString(operations.status(operationId));
-            assertTrue(polled.contains("\"rule\":\"Long GC Pauses\""), polled);
-            await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
         }
 
         @Test
-        void aFailedComputationIsAnErrorCarryingItsOperation() {
+        void aFailedComputationIsAnError() {
             rules(false, true, List.of());
             doThrow(new IllegalStateException("recording file is gone")).when(autoAnalysisManager).generate();
 
@@ -1668,24 +1594,6 @@ class JvmMcpToolsTest {
                     () -> tools().autoAnalysis(true, RESOURCE_READ));
 
             assertTrue(failure.getMessage().contains("recording file is gone"), failure.getMessage());
-            assertTrue(failure.getMessage().contains("operationId"), failure.getMessage());
-        }
-
-        /** A failed run's operation names the call that starts it again, rather than a retry sentence. */
-        @Test
-        void aFailedComputationNamesTheRetryCall() {
-            rules(false, true, List.of());
-            doThrow(new IllegalStateException("recording file is gone")).when(autoAnalysisManager).generate();
-
-            ToolExecutionException failure = assertThrows(ToolExecutionException.class,
-                    () -> tools().autoAnalysis(true, RESOURCE_READ));
-
-            String message = failure.getMessage();
-            JsonNode operation = Json.readTree(message.substring(message.indexOf("Operation: ") + "Operation: ".length()));
-            JsonNode retry = operation.get("followUp").get("nextTools").get(0);
-            assertEquals("jvm_autoAnalysis", retry.get("tool").asString());
-            assertTrue(retry.get("arguments").get("compute").asBoolean());
-            assertEquals(1, McpNextToolConformance.assertFollowable(operation, reachable()));
         }
 
         @Test
@@ -1697,76 +1605,6 @@ class JvmMcpToolsTest {
 
             assertFalse(spec.annotations().readOnly());
             assertTrue(spec.annotations().idempotent());
-        }
-    }
-
-    /**
-     * A client that declared the tasks extension is not held for the standard 45 s: past the task
-     * budget the computation is handed back as the task that follows it, and the task answers with
-     * what a caller that waited would have got.
-     */
-    @Nested
-    class TaskCapableClient {
-
-        @Test
-        void handsBackTheRunningComputationAsATaskWellBeforeTheStandardWait() throws Exception {
-            recorded();
-            waitBudget = BoundedJobs.WAIT_BUDGET;
-            answers = new OperationAnswers(SHORT_TASK_WAIT);
-            CountDownLatch release = new CountDownLatch(1);
-            AtomicBoolean generated = new AtomicBoolean();
-            when(autoAnalysisManager.canGenerate()).thenReturn(true);
-            when(autoAnalysisManager.isComputed()).thenAnswer(invocation -> generated.get());
-            when(autoAnalysisManager.analysisResults()).thenReturn(List.of(longGcPauses()));
-            doAnswer(invocation -> {
-                assertTrue(release.await(60, TimeUnit.SECONDS));
-                generated.set(true);
-                return null;
-            }).when(autoAnalysisManager).generate();
-            JvmMcpTools tools = tools();
-
-            McpToolOutcome outcome;
-            try {
-                outcome = assertTimeout(Duration.ofSeconds(20), () -> tools.autoAnalysis(true, TASKS));
-            } catch (AssertionError e) {
-                release.countDown();
-                throw e;
-            }
-
-            String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-            assertEquals(OperationKind.JVM_AUTO_ANALYSIS, operations.status(taskId).kind());
-            assertEquals(McpTaskStatus.WORKING, operations.task(taskId, kind -> true).status());
-
-            release.countDown();
-            await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                    McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-            McpToolResult answer = assertInstanceOf(McpTaskState.Completed.class,
-                    operations.task(taskId, kind -> true).state()).result();
-            JsonNode out = conforming("autoAnalysis", answer);
-            assertEquals("COMPUTED", out.get("status").asString());
-            assertEquals(taskId, out.get("operationId").asString());
-            assertEquals("COMPLETED", out.get("operation").get("status").asString());
-            await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
-        }
-
-        /** A computation that finishes inside the task budget is answered, not deferred. */
-        @Test
-        void answersAComputationThatFinishesInsideTheTaskBudget() {
-            recorded();
-            waitBudget = BoundedJobs.WAIT_BUDGET;
-            AtomicBoolean generated = new AtomicBoolean();
-            when(autoAnalysisManager.canGenerate()).thenReturn(true);
-            when(autoAnalysisManager.isComputed()).thenAnswer(invocation -> generated.get());
-            when(autoAnalysisManager.analysisResults()).thenReturn(List.of(longGcPauses()));
-            doAnswer(invocation -> {
-                generated.set(true);
-                return null;
-            }).when(autoAnalysisManager).generate();
-
-            JsonNode out = conforming("autoAnalysis", tools().autoAnalysis(true, TASKS));
-
-            assertEquals("COMPUTED", out.get("status").asString());
-            assertFalse(out.get("operationId").isNull());
         }
     }
 

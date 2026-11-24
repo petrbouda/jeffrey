@@ -31,7 +31,6 @@ public final class ConnectorCalls {
     public static final String CONNECTOR_FILES = "connector_files";
     public static final String CONNECTOR_DOWNLOAD = "connector_download";
     public static final String CONNECTOR_FETCH_FILE = "connector_fetchFile";
-    public static final String OPERATIONS_STATUS = "operations_status";
     public static final String RECORDINGS_ANALYZE_RECORDING = "recordings_analyzeRecording";
     public static final String RECORDINGS_ANALYZE_FILE = "recordings_analyzeFile";
     public static final String PROFILES_SUMMARY = "profiles_summary";
@@ -41,7 +40,6 @@ public final class ConnectorCalls {
     public static final String FILE_IDS = "fileIds";
     public static final String START_EPOCH_MS = "startEpochMs";
     public static final String END_EPOCH_MS = "endEpochMs";
-    public static final String RETRY = "retry";
     public static final String WINDOW = "window";
     public static final String MINUTES = "minutes";
     public static final String AT_EPOCH_MS = "atEpochMs";
@@ -51,12 +49,10 @@ public final class ConnectorCalls {
     public static final String PROJECT = "project";
     public static final String WITHIN_LAST_MINUTES = "withinLastMinutes";
     public static final String STATUS = "status";
-    public static final String OPERATION_ID = "operationId";
     public static final String RECORDING_ID = "recordingId";
     public static final String PROFILE_ID = "profileId";
     public static final String PATH = "path";
 
-    private static final String POLL_WHY = "reports the transfer's progress, and its result once it lands";
     private static final String ANALYSE_WHY = "builds the profile every analysis tool takes from the downloaded "
             + "recording";
     private static final String SUMMARY_WHY = "the profile is already built: its summary is where an analysis starts";
@@ -67,11 +63,6 @@ public final class ConnectorCalls {
     /** A call to one of the connector tools on a session; add the rest of its arguments and a why. */
     public static McpNextTool.Call onSession(String tool, String sessionRef) {
         return NextCalls.to(tool).with(SESSION_REF, sessionRef);
-    }
-
-    /** The poll of a transfer still running. */
-    public static McpNextTool poll(String operationId) {
-        return NextCalls.to(OPERATIONS_STATUS).with(OPERATION_ID, operationId).why(POLL_WHY);
     }
 
     /** The analysis of a recording a download brought and nothing has analysed yet. */

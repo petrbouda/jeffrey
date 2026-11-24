@@ -20,13 +20,13 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.core.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.pipeline.StageStatus;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
@@ -46,8 +46,6 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
 /**
  * Builds what a heap dump has to have before it can be asked anything.
@@ -102,15 +100,6 @@ public class HeapComputeMcpTools {
     private static final String DOMINATOR_FIRST_GUIDANCE =
             "Retained sizes come from the dominator stage. Until it completes they are missing rather "
                     + "than zero, so a ranking by retained size before then is empty for a reason.";
-    private static final String ALREADY_RUNNING_GUIDANCE =
-            "A run was already in flight for this profile, so this call joined it rather than starting "
-                    + "a second one. The progress below is that run's.";
-    private static final String ALREADY_COMPLETED_GUIDANCE =
-            "The preparation already completed, so nothing was restarted: the stages below are that "
-                    + "run's history.";
-    private static final String REBUILD_GUIDANCE =
-            "heap_prepare with retry=true rebuilds it from scratch, which is worth its minutes only when the "
-                    + "cached reports are suspect.";
     private static final String RETRY_FAILED_GUIDANCE =
             "The prior attempt failed or was cancelled; the retry call starts a new one.";
     private static final String PREPARED_GUIDANCE =
@@ -126,21 +115,13 @@ public class HeapComputeMcpTools {
 
     private final ProfileManager profileManager;
     private final HeapDumpInitService initService;
-    private final Supplier<? extends AutoCloseable> backgroundLease;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param answers    how a preparation still running is answered, by what the client declared
      * @param advertised the families this installation serves, which gate the next calls
      */
     public HeapComputeMcpTools(ProfileManager profileManager, HeapDumpInitService initService,
-            Supplier<? extends AutoCloseable> backgroundLease, McpOperationRegistry operations,
-            OperationAnswers answers, AdvertisedFamilies advertised) {
-        this.operations = operations;
-        this.answers = answers;
-        this.backgroundLease = backgroundLease;
+            AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
         this.initService = initService;
         this.advertised = advertised;
@@ -149,13 +130,10 @@ public class HeapComputeMcpTools {
     @Tool(description = "Builds what this profile's heap dump needs before the reading tools can "
             + "answer: the index, the dominator tree that retained sizes come from, and the cached "
             + "reports (leak suspects, biggest objects, class-loader analysis, top consumers, string "
-            + "and collection analysis). Answers at once with the stage list and an operationId for "
-            + "operations_status and operations_cancel, or with a task for a client that declared the "
-            + "MCP tasks extension; the work continues in the background and "
-            + "heap_status reports it. A report name computes just that one on a dump that is "
-            + "already indexed. Completed work that covers the requested reports is reused and an "
-            + "active run is joined; a retained failed or cancelled run starts again only with "
-            + "retry=true. What it writes is a cache.")
+            + "and collection analysis). Runs on this call, streaming notifications/progress stage by "
+            + "stage, and returns the stage list when it finishes; heap_status also reports it. A report "
+            + "name computes just that one on a dump that is already indexed. Completed work that covers "
+            + "the requested reports is reused and an active run is joined. What it writes is a cache.")
     @McpOutputSchema(PrepareAnswer.class)
     @McpToolHints(readOnly = false)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.HEAP_DUMP)
@@ -170,79 +148,23 @@ public class HeapComputeMcpTools {
 
         HeapDumpManager heapDumpManager = requireHeapDump();
         String profileId = profileManager.info().id();
-        AutoCloseable lease = backgroundLease.get();
-        boolean started = false;
-        HeapDumpInitService.Preparation preparation;
-        try {
-            preparation = initService.startPreparation(profileId, heapDumpManager,
-                    report == null ? null : report.stageId(), null, () -> release(lease), Boolean.TRUE.equals(retry));
-            started = preparation.started();
-        } finally {
-            // A joined or rejected request handed no work to the service, so it still owns its lease.
-            if (!started) {
-                release(lease);
-            }
-        }
-
-        OperationState state = preparation.operation().snapshot().state();
+        HeapDumpInitService.Preparation preparation = initService.startPreparation(profileId, heapDumpManager,
+                report == null ? null : report.stageId(), null, () -> { }, Boolean.TRUE.equals(retry));
         String link = UiLinks.view(profileId, HEAP_VIEW);
         List<HeapReport> computing = reports(preparation.reports());
         McpNextTool retryCall = retryCall(profileId, computing);
-        Optional<String> operationId = register(profileId, preparation, started, link, retryCall);
-        if (operationId.isEmpty()) {
-            PipelineProgress progress = initService.progress(profileId);
-            return McpToolResult.of(new PrepareAnswer(profileId, started, computing, Stage.of(progress), null, null,
-                    true, expiredSteps(profileId, progress, retryCall), link));
-        }
-        String id = operationId.get();
-        boolean startedHere = started;
-        McpFollowUp followUp = prepareSteps(profileId, startedHere, state, computing, retryCall);
-        Supplier<McpToolResult> answer = () -> McpToolResult.of(new PrepareAnswer(profileId, startedHere, computing,
-                Stage.of(initService.progress(profileId)), id, operations.status(id), false,
-                followUp, link));
-        // Answered at once whatever the client declared. A client that can follow a task is handed the
-        // preparation as one while it runs, and the task answers once it has finished; a run already
-        // finished -- completed, or failed or cancelled with its retry call -- has nothing to follow.
-        if (state.terminal()) {
-            return answer.get();
-        }
-        return answers.stillRunning(call, id, answer);
-    }
-
-    /**
-     * @param started whether the call registering it started the run; heap_status passes false, since
-     *                it only ever reads a run someone else started
-     * @param link    the heap view, read now because the request is bound here and may not be where
-     *                the answer is rendered
-     * @param retry   the call that starts the same preparation again, which a failed run's operation names
-     */
-    private Optional<String> register(String profileId, HeapDumpInitService.Preparation preparation,
-            boolean started, String link, McpNextTool retry) {
-        List<HeapReport> computing = reports(preparation.reports());
-        String operationId = preparation.operation().operationId();
-        // What a task following the preparation completes with: the stage list heap_prepare renders,
-        // read again now that the stages have run.
-        Function<PipelineProgress, McpToolResult> prepared = progress -> McpToolResult.of(new PrepareAnswer(
-                profileId, started, computing, Stage.of(initService.progress(profileId)),
-                operationId, operations.status(operationId), false,
-                readerSteps(profileId, computing).guidance(PREPARED_GUIDANCE).followUp(), link));
-        return operations.registerIfRetained(OperationKind.HEAP_PREPARE, preparation.operation(),
-                progress -> new PreparedHeap(profileId, computing), prepared, retry);
-    }
-
-    /**
-     * Reported rather than thrown, because of where this runs: the background run calls it from the
-     * {@code finally} that follows storing its result, so an exception here would replace whatever
-     * that storage threw — losing the failure worth reading to report the cleanup that followed it.
-     * A lease that will not release is a leaked pool entry, which is a thing to find in the log, not
-     * a reason to lose the diagnosis.
-     */
-    private static void release(AutoCloseable lease) {
+        // Prepares on this call and streams progress. PipelineRunRegistry is single-flight per profile,
+        // so a concurrent prepare joins the one run; await its completion, then answer with the stages.
+        call.reportProgress(0.0, 1.0, "Preparing the heap dump: index, dominator tree and reports");
         try {
-            lease.close();
-        } catch (Exception e) {
-            LOG.warn("Cannot release the heap preparation lease: message={}", e.getMessage(), e);
+            initService.awaitPreparation(profileId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ToolExecutionException("Interrupted while preparing the heap dump");
         }
+        PipelineProgress progress = initService.progress(profileId);
+        return McpToolResult.of(new PrepareAnswer(profileId, preparation.started(), computing, Stage.of(progress),
+                readerSteps(profileId, computing).guidance(PREPARED_GUIDANCE).followUp(), link));
     }
 
     /*
@@ -266,17 +188,8 @@ public class HeapComputeMcpTools {
         List<HeapReport> requested = preparation.map(run -> reports(run.reports())).orElse(ALL_REPORTS);
         McpNextTool retryCall = retryCall(profileId, requested);
         McpFollowUp followUp = statusSteps(profileId, progress, retryCall).followUp();
-        if (preparation.isEmpty()) {
-            return McpToolResult.of(new StatusAnswer(profileId, state, progress.isRunning(), progress.errorMessage(),
-                    stages, null, null, false, followUp, link));
-        }
-        Optional<String> operationId = register(profileId, preparation.get(), false, link, retryCall);
-        if (operationId.isEmpty()) {
-            return McpToolResult.of(new StatusAnswer(profileId, state, progress.isRunning(), progress.errorMessage(),
-                    stages, null, null, true, expiredSteps(profileId, progress, retryCall), link));
-        }
         return McpToolResult.of(new StatusAnswer(profileId, state, progress.isRunning(), progress.errorMessage(),
-                stages, operationId.get(), operations.status(operationId.get()), false, followUp, link));
+                stages, followUp, link));
     }
 
     /**
@@ -303,33 +216,6 @@ public class HeapComputeMcpTools {
                 .with(REPORT, computing.size() == 1 ? computing.getFirst() : null)
                 .with(RETRY, true)
                 .why(WHY_RETRY);
-    }
-
-    /**
-     * A joined call reads differently depending on what it joined: a run still going, a run that
-     * already finished (which an omitted {@code retry} deliberately does not restart), or one that
-     * failed and is waiting for an explicit retry.
-     */
-    private McpFollowUp prepareSteps(String profileId, boolean started, OperationState joined,
-            List<HeapReport> computing, McpNextTool retryCall) {
-        if (!started && joined == OperationState.COMPLETED) {
-            return readerSteps(profileId, computing)
-                    .guidance(ALREADY_COMPLETED_GUIDANCE)
-                    .guidance(REBUILD_GUIDANCE)
-                    .followUp();
-        }
-        if (!started && joined.terminal()) {
-            return NextSteps.builder(advertised)
-                    .next(retryCall)
-                    .next(onProfile(STATUS_TOOL, profileId).why(WHY_STATUS))
-                    .guidance(RETRY_FAILED_GUIDANCE)
-                    .followUp();
-        }
-        return NextSteps.builder(advertised)
-                .next(onProfile(STATUS_TOOL, profileId).why(WHY_STATUS))
-                .guidanceWhen(!started, ALREADY_RUNNING_GUIDANCE)
-                .guidance(DOMINATOR_FIRST_GUIDANCE)
-                .followUp();
     }
 
     /**
@@ -403,15 +289,6 @@ public class HeapComputeMcpTools {
             List<HeapReport> computing,
             @McpDescription("Every stage of the pipeline, in order")
             List<Stage> stages,
-            @McpNullable
-            @McpDescription("The preparation's operation; null when its retention expired")
-            String operationId,
-            @McpNullable
-            @McpDescription("That operation as operations_status reports it; null when its retention expired")
-            McpOperationRegistry.Snapshot operation,
-            @McpDescription("Whether the operation expired an hour after it finished, leaving only the pipeline's "
-                    + "history")
-            boolean operationExpired,
             McpFollowUp followUp,
             @McpDescription("The heap-dump overview page in the Microscope UI, for the user")
             String uiLink) {
@@ -426,14 +303,6 @@ public class HeapComputeMcpTools {
             String errorMessage,
             @McpDescription("Every stage of the pipeline, in order")
             List<Stage> stages,
-            @McpNullable
-            @McpDescription("The last preparation's operation; null when there was none in this process or it expired")
-            String operationId,
-            @McpNullable
-            McpOperationRegistry.Snapshot operation,
-            @McpDescription("Whether the operation expired an hour after it finished, leaving only the pipeline's "
-                    + "history")
-            boolean operationExpired,
             McpFollowUp followUp,
             @McpDescription("The heap-dump overview page in the Microscope UI, for the user")
             String uiLink) {
@@ -462,9 +331,5 @@ public class HeapComputeMcpTools {
                             stage.status(), stage.durationMs()))
                     .toList();
         }
-    }
-
-    /** What a finished preparation produced, as operations_status reports it. */
-    private record PreparedHeap(String profileId, List<HeapReport> reports) {
     }
 }

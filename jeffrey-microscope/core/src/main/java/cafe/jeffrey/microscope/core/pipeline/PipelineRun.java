@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.core.notification.Notifications;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.CancellationException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,8 +52,6 @@ public final class PipelineRun {
     private final Clock clock;
     private final Instant startedAt;
     private final Map<String, StageProgress> stages = new LinkedHashMap<>();
-
-    private volatile boolean cancellationRequested;
 
     private volatile PipelineState state = PipelineState.RUNNING;
     private volatile Instant completedAt;
@@ -92,17 +89,6 @@ public final class PipelineRun {
     /** When the run reached a terminal state, or {@code null} while it is still going. */
     public Instant completedAt() {
         return completedAt;
-    }
-
-    public void requestCancellation() {
-        cancellationRequested = true;
-    }
-
-    /** Cooperative boundary between stages; a running stage may need time to unwind. */
-    public void checkCancellation() {
-        if (cancellationRequested) {
-            throw new CancellationException("Cancelled");
-        }
     }
 
     public boolean isRunning() {
@@ -169,13 +155,8 @@ public final class PipelineRun {
      */
     /**
      * Opens a stage and starts the live timer on it — unless the run has already ended.
-     *
-     * <p>A cancellation request is acknowledged at this boundary before another stage starts.
-     * Work already in progress can still finish successfully; requesting cancellation alone does
-     * not mark the run terminal or erase a completed result.</p>
      */
     public synchronized void beginStage(String id) {
-        checkCancellation();
         if (state != PipelineState.RUNNING) {
             return;
         }
@@ -243,8 +224,7 @@ public final class PipelineRun {
      * returns; public because a run is a complete object in its own right, and a caller that schedules
      * its own work should not have to go through the registry to say the work finished.
      *
-     * <p>The first terminal transition wins. A prior failure cannot be overwritten, while a
-     * cancellation request that the work did not acknowledge does not erase successful completion.</p>
+     * <p>The first terminal transition wins: a prior failure cannot be overwritten.</p>
      *
      * @return true when this call ended the run, false when it was already terminal
      */

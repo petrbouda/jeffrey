@@ -27,7 +27,7 @@
     </parent>
 
     <artifactId>mcp-server</artifactId>
-    <description>Jeffrey's MCP adapter over mcp-protocol: the Spring MVC boundary, @Tool reflection, profile scoping, tool hints and findings</description>
+    <description>Jeffrey's MCP module: the 2026-07-28 protocol types and SPI, and the @Tool adapter over them (reflection, profile scoping, tool hints and findings)</description>
 
     <dependencies>
         <dependency>
@@ -62,25 +62,22 @@
             <artifactId>spring-web</artifactId>
         </dependency>
 
-        <!-- Jeffrey dependencies -->
-        <!-- The protocol itself: validation, the dispatcher, the SPI and the extensions. -->
+        <!-- JSON: the protocol types are the wire itself. Jackson annotations come with databind. -->
         <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>mcp-protocol</artifactId>
+            <groupId>tools.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
         </dependency>
 
         <!-- Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <!-- McpTestRequests, McpSchemaConformance and McpTestFeatures: the protocol's generic test helpers. -->
-        <dependency>
-            <groupId>${project.groupId}</groupId>
-            <artifactId>mcp-protocol</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -18,8 +18,8 @@
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
 import org.junit.jupiter.api.Nested;

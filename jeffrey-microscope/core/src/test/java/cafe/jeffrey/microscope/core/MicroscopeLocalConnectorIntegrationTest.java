@@ -194,23 +194,20 @@ class MicroscopeLocalConnectorIntegrationTest extends LocalVolumeMicroscope {
         }
 
         /**
-         * The profiler was killed mid-write: the copy is checked on arrival, the transfer fails as an
-         * outcome the agent may retry, and the volume is left as it is.
+         * The profiler was killed mid-write: the copy is checked on arrival, the transfer fails on the
+         * call as a tool error carrying the reason (there is no retained operation to poll), and the
+         * volume is left as it is.
          */
         @Test
         void aChunkCutShortFailsTheTransferAndIsLeftOnTheVolume() {
             String ref = sessionRow(Json.createObject(), CUT_SHORT_SESSION).path("sessionRef").asString();
 
-            JsonNode answer = microscope.answer(CONNECTOR_DOWNLOAD,
+            String reason = microscope.refusal(CONNECTOR_DOWNLOAD,
                     Json.createObject().put("sessionRef", ref).put("window", "WHOLE"));
 
-            assertEquals("FAILED", answer.path("status").asString());
             // The sentence the agent reads, with no Java class name in front of it
             String chunk = VolumeWriter.recordingName(CUT_SHORT_START, ZoneOffset.UTC);
-            assertTrue(answer.path("reason").asString().startsWith("Recording " + chunk + " arrived incomplete"),
-                    answer::toString);
-            assertTrue(answer.path("operation").path("retryable").asBoolean());
-            assertTrue(answer.path("recordingId").isNull());
+            assertTrue(reason.contains("Recording " + chunk + " arrived incomplete"), reason);
             assertTrue(Files.exists(PROJECT_DIR.resolve(CUT_SHORT_POD).resolve(CUT_SHORT_SESSION).resolve(chunk)));
         }
     }

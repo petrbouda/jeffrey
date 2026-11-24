@@ -61,7 +61,7 @@ class McpToolNamesTest {
             "traces_spanFlamegraphExport, 'Traces: Span Flamegraph Export'",
             "heap_getClassHistogram,      'Heap: Get Class Histogram'",
             "timeline_hotWindows,         'Timeline: Hot Windows'",
-            "operations_cancel,           'Operations: Cancel'"
+            "connector_fetchFile,         'Connector: Fetch File'"
     })
     void readsAToolNameAsWords(String name, String expected) {
         assertEquals(expected, titleOf(name));

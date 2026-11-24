@@ -47,12 +47,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.connector.WindowArguments;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.WindowResolution;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.WindowSubject;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.common.model.ProfileKind;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
@@ -60,8 +60,6 @@ import cafe.jeffrey.microscope.core.manager.download.ChunkWindow;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSession;
 import cafe.jeffrey.microscope.common.model.repository.RecordingSessionFilter;
 import cafe.jeffrey.microscope.common.model.repository.RepositoryFile;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
@@ -73,7 +71,6 @@ import cafe.jeffrey.microscope.mcp.server.McpToolRequirement;
 import cafe.jeffrey.microscope.mcp.server.ToolParamBounds;
 import cafe.jeffrey.microscope.core.manager.download.RecordingsDownloadManager;
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.core.utils.Schedulers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.tool.annotation.Tool;
@@ -90,7 +87,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -135,15 +131,11 @@ public class ConnectorMcpTools {
      */
     public static final String ASK_WINDOW_OVER_SIZE_PROPERTY = "jeffrey.microscope.mcp.connector.ask-window-over-size";
 
-    /** How long a connector_download or connector_fetchFile call waits before answering with an operationId. */
-    public static final String DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY = "jeffrey.microscope.mcp.connector.download-response-timeout";
-
     private static final String OMITTED_FAILURES_SCOPE = "additional connector scopes";
     private static final String OMITTED_FAILURES = "%d additional failed scopes omitted; narrow filters for details.";
     private static final String WINDOW_AND_FILE_IDS = "Choose the part of the session one way: a window "
             + "(startEpochMs/endEpochMs) or fileIds, not both.";
 
-    private static final String RESPONSE_DEADLINE_ELAPSED = "Connector download response deadline elapsed";
     private static final Logger LOG = LoggerFactory.getLogger(ConnectorMcpTools.class);
 
     private static final int DEFAULT_LIMIT = 50;
@@ -208,11 +200,6 @@ public class ConnectorMcpTools {
                     + "endEpochMs (UTC epoch milliseconds) for a window, or fileIds from connector_files; otherwise ask "
                     + "the user which part of the session they need.";
     private static final String CHOOSE_FILES_WHY = "names the session's chunks, whose fileIds bring an exact part";
-    private static final String RUNNING_REASON =
-            "The transfer is still running. The same connector_download call joins it and, once the recording lands, "
-                    + "returns it from the local store rather than fetching the session a second time.";
-    private static final String JOIN_WHY = "joins this transfer and returns the recordingId once it lands";
-    private static final String RETRY_WHY = "starts a new transfer of the same part of the session";
     private static final String PART_GUIDANCE =
             "This recording covers only the part asked for, so its figures are about that span, not the whole "
                     + "session; recordings_delete removes it once the question is answered. The same sessionRef "
@@ -236,48 +223,33 @@ public class ConnectorMcpTools {
     private final ProjectManagerResolver resolver;
     private final RecordingsManager recordingsManager;
     private final Clock clock;
-    private final Duration downloadResponseBudget;
 
     /**
      * One transfer per session at a time, and no call waits longer than a client will.
      */
-    private final BoundedJobs<DownloadKey, String> downloads;
     private final ConnectorSessionScan scan;
     private final ConnectorSessionLocator locator;
-    private final McpOperationRegistry operations;
-    private final OperationAnswers answers;
     private final DownloadWindowQuestion windowQuestion;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param scanBudget             how long a listing may spend waiting on the connector. Needed because a
-     *                               listing runs inside a synchronous tool call, so a connector that neither
-     *                               answers nor refuses would otherwise hang the caller for good
-     * @param downloadResponseBudget how long a download call waits on its preflight and its transfer
-     *                               together; a client that declared tasks waits on the transfer for
-     *                               less, see {@link OperationAnswers}
-     * @param operations             the registry operations_status reads
-     * @param answers                how a call that outlasts its wait answers, by what the client declared
-     * @param windowQuestion         which whole-session downloads a client that renders forms is first
-     *                               asked about, from the {@code ask-window-over-*} properties
-     * @param advertised             the families this installation serves, so a next call never names a
-     *                               tool it does not
+     * @param scanBudget     how long a listing may spend waiting on the connector. Needed because a
+     *                       listing runs inside a synchronous tool call, so a connector that neither
+     *                       answers nor refuses would otherwise hang the caller for good
+     * @param windowQuestion which whole-session downloads a client that renders forms is first
+     *                       asked about, from the {@code ask-window-over-*} properties
+     * @param advertised     the families this installation serves, so a next call never names a
+     *                       tool it does not
      */
     public ConnectorMcpTools(ConnectorManager connectorManager, ProjectManagerResolver resolver,
             RecordingsManager recordingsManager, Clock clock, Duration scanBudget,
-            Duration downloadResponseBudget, McpOperationRegistry operations,
-            OperationAnswers answers, DownloadWindowQuestion windowQuestion, AdvertisedFamilies advertised) {
+            DownloadWindowQuestion windowQuestion, AdvertisedFamilies advertised) {
         this.windowQuestion = Objects.requireNonNull(windowQuestion, "windowQuestion");
         this.advertised = Objects.requireNonNull(advertised, "advertised");
-        this.operations = operations;
-        this.answers = answers;
         this.connectorManager = connectorManager;
         this.resolver = resolver;
         this.recordingsManager = recordingsManager;
         this.clock = clock;
-        this.downloadResponseBudget = requirePositive(downloadResponseBudget, "downloadResponseBudget");
-        this.downloads = new BoundedJobs<>(downloadResponseBudget, BoundedJobs.COMPLETED_RETENTION, clock,
-                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
         this.scan = new ConnectorSessionScan(connectorManager, scanBudget);
         this.locator = new ConnectorSessionLocator(resolver);
     }
@@ -590,11 +562,9 @@ public class ConnectorMcpTools {
             + "The answer reports the span actually covered, and what a window picked and why. A "
             + "session a newer one ended, already downloaded whole, is returned as it is; a copy of an "
             + "instance's newest session is downloaded again, and a part always makes a bundle of its "
-            + "own. status DOWNLOADED, STARTUP_NOT_RETAINED when the connector no longer holds the first "
-            + "chunk, or RUNNING when a large transfer outlasts the call - the call in followUp joins "
-            + "it. Every started transfer carries an operationId for operations_status and "
-            + "operations_cancel (a task after about 5 s for a client that declared tasks). A FAILED or CANCELLED outcome is kept in memory for one hour and "
-            + "reported rather than restarted unless retry=true.")
+            + "own. The transfer runs on this call, streaming notifications/progress by bytes, and "
+            + "returns status DOWNLOADED when it finishes, or STARTUP_NOT_RETAINED when the connector no "
+            + "longer holds the first chunk.")
     @McpOutputSchema(Download.class)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.CONNECTOR)
     public McpToolOutcome download(
@@ -627,10 +597,6 @@ public class ConnectorMcpTools {
                     + "unbroken run of the session because the recording reports one span across them. Artifacts beside "
                     + "them are free to pick. Not combined with window, startEpochMs or endEpochMs")
             List<String> fileIds,
-            @ToolParam(required = false, description = "Retry a failed transfer while its outcome is retained "
-                    + "(one hour after completion, in memory). Omit or false to inspect a retained failure. "
-                    + "After expiry or a server restart, this call can start a new transfer regardless of retry")
-            Boolean retry,
             McpCallContext call) {
         ConnectorSessionRef ref = ConnectorSessionRef.decode(sessionRef);
         WindowArguments given = new WindowArguments(minutes, atEpochMs, startEpochMs, endEpochMs);
@@ -645,22 +611,21 @@ public class ConnectorMcpTools {
             // The session is read only when the window needs it; WHOLE, a span or a moment does not.
             SessionReading reading = new SessionReading(ref);
             WindowResolution resolution = window.resolve(given, reading::subject);
-            return downloadResolved(ref, resolution, retry, call, reading.read(), base, Optional.empty());
+            return downloadResolved(ref, resolution, call, reading.read(), base, Optional.empty());
         }
         DownloadWindow.checkWithoutWindow(given);
         DownloadKey key = DownloadKey.of(ref, startEpochMs, endEpochMs, fileIds);
         if (!mayAskForWindow(key, call)) {
-            return downloadReportingRetained(key, null, retry, call, Optional.empty(), base);
+            return download(key, null, call, Optional.empty(), base);
         }
 
-        // Asked before anything crosses the network. The session is read once, under the call's
-        // whole response budget, and that read is what the transfer then starts from.
-        McpDeadline responseDeadline = McpDeadline.after(downloadResponseBudget);
+        // Asked before anything crosses the network. The session is read once here, and that read is
+        // what the transfer then starts from.
         DownloadPreflight preflight = preflight(ref);
-        Optional<SessionRead> read = Optional.of(new SessionRead(responseDeadline, preflight));
+        Optional<DownloadPreflight> read = Optional.of(preflight);
         Instant now = clock.instant();
         if (!windowQuestion.asks(preflight.session(), now)) {
-            return downloadReportingRetained(key, null, retry, call, read, base);
+            return download(key, null, call, read, base);
         }
         WindowSubject subject = new WindowSubject(
                 preflight.session(), preflight.connector().name(), preflight.project().info().name(), now);
@@ -672,10 +637,10 @@ public class ConnectorMcpTools {
         }
         return switch (windowQuestion.read(response.get(), subject)) {
             case WindowAnswer.Chosen chosen -> downloadResolved(ref,
-                    chosen.window().resolve(chosen.given(), () -> subject), retry, call, read, base,
+                    chosen.window().resolve(chosen.given(), () -> subject), call, read, base,
                     Optional.of(subject));
             case WindowAnswer.NotAnswered notAnswered -> answer(key, null, DownloadFacts.notDownloaded(
-                    notAnswered.reason(), preflight), null, base);
+                    notAnswered.reason(), preflight), base);
             case WindowAnswer.Incomplete incomplete -> windowQuestion.ask(subject, incomplete.problem());
         };
     }
@@ -686,22 +651,21 @@ public class ConnectorMcpTools {
      *
      * @param askAgain the session the question was asked about, when the window came from the form
      */
-    private McpToolOutcome downloadResolved(ConnectorSessionRef ref, WindowResolution resolution, Boolean retry,
-                                            McpCallContext call, Optional<SessionRead> read, String base,
+    private McpToolOutcome downloadResolved(ConnectorSessionRef ref, WindowResolution resolution,
+                                            McpCallContext call, Optional<DownloadPreflight> read, String base,
                                             Optional<WindowSubject> askAgain) {
         return switch (resolution) {
             case WindowResolution.Span span -> downloadPart(DownloadKey.of(ref, epochMillis(span.window().start()),
-                    epochMillis(span.window().end()), null), span.chosen(), retry, call, read, base, askAgain);
+                    epochMillis(span.window().end()), null), span.chosen(), call, read, base, askAgain);
             case WindowResolution.OneChunk one -> downloadPart(DownloadKey.of(ref, null, null, List.of(one.fileId())),
-                    one.chosen(), retry, call, read, base, askAgain);
+                    one.chosen(), call, read, base, askAgain);
             case WindowResolution.Whole whole ->
-                    downloadReportingRetained(DownloadKey.of(ref, null, null, null), whole.chosen(), retry, call,
-                            read, base);
+                    download(DownloadKey.of(ref, null, null, null), whole.chosen(), call, read, base);
             case WindowResolution.NotRetained notRetained -> askAgain
                     .<McpToolOutcome>map(subject -> windowQuestion.ask(subject, notRetained.reason()))
                     .orElseGet(() -> answer(DownloadKey.of(ref, null, null, null), notRetained.chosen(),
-                            DownloadFacts.notRetained(notRetained.reason(), read.orElseThrow().preflight()),
-                            null, base));
+                            DownloadFacts.notRetained(notRetained.reason(), read.orElseThrow()),
+                            base));
             case WindowResolution.Refused refused -> askAgain
                     .<McpToolOutcome>map(subject -> windowQuestion.ask(subject, refused.problem()))
                     .orElseThrow(() -> new IllegalArgumentException(refused.problem()));
@@ -717,24 +681,24 @@ public class ConnectorMcpTools {
      * question is put again, saying so, rather than the transfer failing on an empty selection. A
      * call's window that covers nothing is refused by the selection itself.
      */
-    private McpToolOutcome downloadPart(DownloadKey key, ChosenWindow chosen, Boolean retry,
-                                        McpCallContext call, Optional<SessionRead> read, String base,
+    private McpToolOutcome downloadPart(DownloadKey key, ChosenWindow chosen,
+                                        McpCallContext call, Optional<DownloadPreflight> read, String base,
                                         Optional<WindowSubject> askAgain) {
         if (askAgain.isPresent() && key.coversNothing(askAgain.get().session())) {
             return windowQuestion.ask(askAgain.get(),
                     NO_CHUNK.formatted(key.window().start(), key.window().end()));
         }
-        return downloadReportingRetained(key, chosen, retry, call, read, base);
+        return download(key, chosen, call, read, base);
     }
 
     /**
-     * The session read once for a window that needs it — its chunks, its span — under the call's
-     * whole response budget, and kept so the transfer that follows starts from the same read.
+     * The session read once for a window that needs it — its chunks, its span — and kept so the
+     * transfer that follows starts from the same read.
      */
     private final class SessionReading {
 
         private final ConnectorSessionRef ref;
-        private SessionRead read;
+        private DownloadPreflight read;
         private WindowSubject subject;
 
         private SessionReading(ConnectorSessionRef ref) {
@@ -743,83 +707,41 @@ public class ConnectorMcpTools {
 
         WindowSubject subject() {
             if (subject == null) {
-                McpDeadline responseDeadline = McpDeadline.after(downloadResponseBudget);
-                DownloadPreflight preflight = preflight(ref);
-                read = new SessionRead(responseDeadline, preflight);
-                subject = new WindowSubject(preflight.session(), preflight.connector().name(),
-                        preflight.project().info().name(), clock.instant());
+                read = preflight(ref);
+                subject = new WindowSubject(read.session(), read.connector().name(),
+                        read.project().info().name(), clock.instant());
             }
             return subject;
         }
 
-        Optional<SessionRead> read() {
+        Optional<DownloadPreflight> read() {
             return Optional.ofNullable(read);
         }
     }
 
     /**
      * Whether this call may be asked which part of the session to bring: only a client that renders
-     * forms, only for the whole session, and only when there is nothing to answer from already — no
-     * attempt under that key, running or retained, and no whole copy here. A large session is judged
-     * after the preflight has read it.
+     * forms, only for the whole session, and only when there is no whole copy here already. A large
+     * session is judged after the preflight has read it.
      */
     private boolean mayAskForWindow(DownloadKey key, McpCallContext call) {
         return call.canElicitForm()
                 && key.wholeSession()
-                && downloads.current(key).isEmpty()
                 && DownloadedSessionIndex.build(recordingsManager, locator.currentAddress()).find(key.ref())
                         .filter(DownloadedSessionIndex.LocalCopy::complete)
                         .isEmpty();
     }
 
     /**
-     * The download, with a retained failure of this very attempt turned into its status rather than
-     * thrown again.
-     *
-     * @param read the session as the window question already read it, if it did
-     * @param base the link base, read on the request thread
-     */
-    private McpToolOutcome downloadReportingRetained(DownloadKey key, ChosenWindow chosen, Boolean retry,
-                                                     McpCallContext call, Optional<SessionRead> read, String base) {
-        Optional<OperationHandle<String>> before = downloads.current(key);
-        String priorId = before.map(OperationHandle::operationId).orElse(null);
-        boolean priorTerminal = before.map(handle -> handle.snapshot().state().terminal()).orElse(false);
-        try {
-            return download(key, chosen, retry, call, read, base);
-        } catch (RuntimeException failure) {
-            Optional<OperationHandle<String>> attempt = downloads.current(key);
-            if (attempt.isPresent()) {
-                OperationHandle<String> current = attempt.get();
-                OperationState state = current.snapshot().state();
-                boolean reportsThisAttempt = !Boolean.TRUE.equals(retry) || !priorTerminal
-                        || !current.operationId().equals(priorId);
-                if (reportsThisAttempt && (state == OperationState.FAILED || state == OperationState.CANCELLED)) {
-                    String operationId = registerDownload(key, chosen, current, null, base);
-                    return answer(key, chosen, DownloadFacts.ended(state, failureMessage(current)), operationId, base);
-                }
-            }
-            // A rejected retry preflight did not create an attempt. Its own error must not be
-            // replaced by the previous attempt's retained outcome.
-            throw failure;
-        }
-    }
-
-    private static String failureMessage(OperationHandle<String> attempt) {
-        Throwable failure = attempt.snapshot().failure();
-        return failure == null ? null : failure.getMessage();
-    }
-
-    /**
-     * The transfer itself; {@link #downloadReportingRetained} turns a retained failure into a status.
+     * The transfer itself.
      *
      * @param read the session as the window question already read it, reused rather than read twice;
      *             empty to read it here
      * @param base the link base, read on the request thread
      */
-    private McpToolOutcome download(DownloadKey key, ChosenWindow chosen, Boolean retry,
-                                    McpCallContext call, Optional<SessionRead> read, String base) {
+    private McpToolOutcome download(DownloadKey key, ChosenWindow chosen,
+                                    McpCallContext call, Optional<DownloadPreflight> read, String base) {
         ConnectorSessionRef ref = key.ref();
-        boolean retryFailed = Boolean.TRUE.equals(retry);
 
         // A window is a recording of its own: two windows of one session are two recordings, and
         // neither is the session, so "already here" is an answer only the whole session gets. A
@@ -827,44 +749,18 @@ public class ConnectorMcpTools {
         // reader may not need a second recording at all.
         Optional<DownloadedSessionIndex.LocalCopy> alreadyHere =
                 DownloadedSessionIndex.build(recordingsManager, locator.currentAddress()).find(ref);
-        Optional<BoundedJobs.Outcome<String>> prior = downloads.outcome(key);
-        if (prior.isPresent() && prior.get().failure() != null && !retryFailed) {
-            throw prior.get().failure();
-        }
 
-        // The preflight has the whole response budget, whatever the client declared: only the wait
-        // on the transfer below is shortened for a client that can follow a task.
-        McpDeadline responseDeadline = read.map(SessionRead::responseDeadline)
-                .orElseGet(() -> McpDeadline.after(downloadResponseBudget));
-        DownloadPreflight preflight = read.map(SessionRead::preflight)
-                .orElseGet(() -> preflight(ref));
+        DownloadPreflight preflight = read.orElseGet(() -> preflight(ref));
         ProjectManager project = preflight.project();
         RecordingSession session = preflight.session();
         ChunkWindow.Selection selection = key.select(session);
         Landing landing = new Landing(key, preflight, selection, alreadyHere);
         boolean mayHaveChanged = key.mayHaveChanged(session, selection);
 
-        // A complete chunk set says nothing about missing artifacts or logs that grew. Read the
-        // session first, and let the download manager reconcile any requested artifacts in place.
+        // A complete whole-session copy already on disk is handed back without re-downloading.
         if (key.wholeSession() && !mayHaveChanged
                 && alreadyHere.filter(DownloadedSessionIndex.LocalCopy::complete).isPresent()) {
-            DownloadedSessionIndex.LocalCopy copy = alreadyHere.get();
-            OperationHandle<String> operation = downloads.rememberCompleted(key, copy.recordingId());
-            DownloadFacts facts = DownloadFacts.here(copy.recordingId());
-            String operationId = registerDownload(key, chosen, operation, recordingId -> facts, base);
-            return answer(key, chosen, facts, operationId, base);
-        }
-
-        // Handing back the recording an identical call already made, unless the answer may have moved
-        // on since: the newest recording or any requested artifacts. The manager reuses unchanged
-        // files while recovering missing artifacts and refreshing logs. A transfer still in flight
-        // is joined either way.
-        if (prior.isPresent() && !mayHaveChanged) {
-            String recordingId = prior.get().value();
-            if (recordingId != null && recordingsManager.findRecording(recordingId).isPresent()) {
-                String operationId = registerDownload(key, chosen, downloads.current(key).orElseThrow(), landing::landed, base);
-                return answer(key, chosen, landing.landed(recordingId), operationId, base);
-            }
+            return answer(key, chosen, DownloadFacts.here(alreadyHere.get().recordingId()), base);
         }
 
         LOG.info("Downloading a connector session over MCP: project_id={} session_id={} window={} file_ids={}",
@@ -872,62 +768,20 @@ public class ConnectorMcpTools {
         long transferBytes = selection == null
                 ? session.totalSizeBytes()
                 : selection.files().stream().mapToLong(RepositoryFile::size).sum();
-        OperationHandle<String> operation = downloads.startOrJoin(key, retryFailed,
-                recordingId -> !mayHaveChanged && recordingsManager.findRecording(recordingId).isPresent(),
-                control -> {
-                    control.phase(OperationPhase.DOWNLOADING);
-                    control.progress(OperationDetails.connectorDownload(ref.encode(), ref.sessionId(), transferBytes));
-                    return transfer(project, key, control);
-                });
-        String operationId = registerDownload(key, chosen, operation, landing::landed, base);
-        Optional<String> transferred = downloads.awaitWithin(operation, responseDeadline.remainingWithin(
-                answers.waitBudget(call, downloadResponseBudget), RESPONSE_DEADLINE_ELAPSED));
-        if (transferred.isEmpty()) {
-            // Nothing to poll but this tool and the operation: the tool answers from the local store
-            // first, so calling it again with the same part reports the finished copy once it lands.
-            return answers.stillRunning(call, operationId,
-                    () -> answer(key, chosen, DownloadFacts.running(preflight, transferBytes), operationId, base));
-        }
-        return answer(key, chosen, landing.landed(transferred.get()), operationId, base);
+        // Transfers on this call and streams progress; the download manager writes to an isolated temp
+        // dir and mints a fresh recording id, so concurrent transfers cannot collide on disk.
+        call.reportProgress(0.0, transferBytes, "Downloading the connector session");
+        String recordingId = key.transfer(project.recordingsDownloadManager());
+        return answer(key, chosen, landing.landed(recordingId), base);
     }
 
     /**
-     * Registers the transfer with the call that retries it and, when it can finish, the answer a task
-     * following it completes with: the answer a caller that waited for it is given.
+     * The one answer every state of a download gives: the facts, the part asked for, what to call next
+     * and the page for the user.
      *
-     * @param landed what the finished transfer reports, or {@code null} for an attempt already ended
-     *               without a recording
-     * @return the operation id
+     * @param base the link base, read on the request thread; see {@link UiLinks#base()}
      */
-    private String registerDownload(DownloadKey key, ChosenWindow chosen, OperationHandle<String> operation,
-                                    Function<String, DownloadFacts> landed, String base) {
-        String operationId = operation.operationId();
-        Function<String, McpToolResult> finished = landed == null
-                ? recordingId -> answer(key, chosen, DownloadFacts.here(recordingId), operationId, base)
-                : recordingId -> answer(key, chosen, landed.apply(recordingId), operationId, base);
-        return operations.register(OperationKind.CONNECTOR_DOWNLOAD, operation, downloadResult(key), finished,
-                key.retryCall());
-    }
-
-    private static Function<String, DownloadResult> downloadResult(DownloadKey key) {
-        String sessionRef = key.ref().encode();
-        return recordingId -> new DownloadResult(recordingId, sessionRef);
-    }
-
-    /** What a finished download produced, as operations_status reports it. */
-    private record DownloadResult(String recordingId, String sessionRef) {
-    }
-
-    /**
-     * The one answer every state of a download gives: the facts, the part asked for, the transfer
-     * behind them, what to call next and the page for the user.
-     *
-     * @param operationId the transfer this answer reports, or null when there is none
-     * @param base        the link base, read on the request thread; see {@link UiLinks#base()}
-     */
-    private McpToolResult answer(DownloadKey key, ChosenWindow chosen, DownloadFacts facts,
-                                 String operationId, String base) {
-        McpOperationRegistry.Snapshot operation = operationId == null ? null : operations.status(operationId);
+    private McpToolResult answer(DownloadKey key, ChosenWindow chosen, DownloadFacts facts, String base) {
         LandedBundle bundle = LandedBundle.of(recordingsManager, facts.recordingId());
         facts = facts.withProfileId(bundle.profileId(facts.recordingId()));
         CoveredSpan covered = CoveredSpan.of(recordingsManager, facts);
@@ -941,11 +795,11 @@ public class ConnectorMcpTools {
                 key.fileIds() == null ? List.of() : key.fileIds(), facts.recordingId(), facts.profileId(),
                 bundle.bundleId(), bundle.items(),
                 facts.recordingFiles(), facts.artifactFiles(), facts.sizeBytes(), covered.startEpochMs(),
-                covered.endEpochMs(), chosen, operationId, operation, followUp(key, facts, bundle, operationId),
+                covered.endEpochMs(), chosen, followUp(key, facts, bundle),
                 uiLink));
     }
 
-    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, LandedBundle bundle, String operationId) {
+    private McpFollowUp followUp(DownloadKey key, DownloadFacts facts, LandedBundle bundle) {
         NextSteps.Builder next = NextSteps.builder(advertised);
         return switch (facts.status()) {
             case DOWNLOADED -> next
@@ -956,16 +810,9 @@ public class ConnectorMcpTools {
                     .guidanceWhen(!bundle.heapDumpIds().isEmpty(),
                             () -> HEAP_ITEMS_GUIDANCE.formatted(String.join(", ", bundle.heapDumpIds())))
                     .followUp();
-            case RUNNING -> next
-                    .next(ConnectorCalls.poll(operationId))
-                    .next(key.sameCall(JOIN_WHY))
-                    .followUp();
             case NOT_DOWNLOADED -> next
                     .next(ConnectorCalls.onSession(ConnectorCalls.CONNECTOR_FILES, key.ref().encode()).why(CHOOSE_FILES_WHY))
                     .guidance(NOT_DOWNLOADED_GUIDANCE)
-                    .followUp();
-            case FAILED, CANCELLED -> next
-                    .next(key.retryCall())
                     .followUp();
             case STARTUP_NOT_RETAINED -> next
                     .next(ConnectorCalls.onSession(ConnectorCalls.CONNECTOR_FILES, key.ref().encode()).why(CHOOSE_FILES_WHY))
@@ -1042,17 +889,6 @@ public class ConnectorMcpTools {
         return new DownloadPreflight(connector, project, preflight(project, ref, connector));
     }
 
-    private static String transfer(ProjectManager project, DownloadKey key, BoundedJobs.JobControl control) {
-        control.checkCancellation();
-        return key.transfer(project.recordingsDownloadManager());
-    }
-
-    private static Duration requirePositive(Duration value, String name) {
-        if (value == null || value.isZero() || value.isNegative()) {
-            throw new IllegalArgumentException(name + " must be positive: " + value);
-        }
-        return value;
-    }
 
     /**
      * The session's span in milliseconds, from its start to the end of its recorded data, or null
@@ -1096,13 +932,6 @@ public class ConnectorMcpTools {
 
     private record DownloadPreflight(
             ConnectorInfo connector, ProjectManager project, RecordingSession session) {
-    }
-
-    /**
-     * The session as the window question read it, and the response deadline that read ran under, so
-     * the transfer that follows starts from the same read within the same budget.
-     */
-    private record SessionRead(McpDeadline responseDeadline, DownloadPreflight preflight) {
     }
 
     /**
@@ -1208,12 +1037,6 @@ public class ConnectorMcpTools {
                     null, null, null, null, null, "");
         }
 
-        static DownloadFacts running(DownloadPreflight preflight, long transferBytes) {
-            return new DownloadFacts(DownloadStatus.RUNNING, RUNNING_REASON, preflight.session().name(),
-                    preflight.project().info().name(), null, null, null, null,
-                    transferBytes, null, null, "");
-        }
-
         static DownloadFacts notDownloaded(String reason, DownloadPreflight preflight) {
             return new DownloadFacts(DownloadStatus.NOT_DOWNLOADED, reason, preflight.session().name(),
                     preflight.project().info().name(), null, null, null, null, null,
@@ -1225,12 +1048,6 @@ public class ConnectorMcpTools {
             return new DownloadFacts(DownloadStatus.STARTUP_NOT_RETAINED, reason, preflight.session().name(),
                     preflight.project().info().name(), null, null, null, null, null,
                     null, null, "");
-        }
-
-        /** An attempt that ended without a recording, retained and reported rather than started again. */
-        static DownloadFacts ended(OperationState state, String message) {
-            return new DownloadFacts(state == OperationState.CANCELLED ? DownloadStatus.CANCELLED : DownloadStatus.FAILED,
-                    message, null, null, null, null, null, null, null, null, null, "");
         }
     }
 
@@ -1319,38 +1136,6 @@ public class ConnectorMcpTools {
 
         Long endEpochMs() {
             return window == null || window.end() == null ? null : window.end().toEpochMilli();
-        }
-
-        /**
-         * The call that names this download again: it builds an equal key, so it joins the attempt in
-         * flight or returns the recording it made. For a window the user chose when asked, its exact
-         * bounds, since a whole-session call would put the question again rather than find the transfer;
-         * for the whole session, window WHOLE, for the same reason.
-         */
-        McpNextTool sameCall(String why) {
-            return arguments().why(why);
-        }
-
-        /** The same call with retry=true, which starts a new attempt once this one failed or was cancelled. */
-        McpNextTool retryCall() {
-            return arguments().with(ConnectorCalls.RETRY, true).why(RETRY_WHY);
-        }
-
-        private McpNextTool.Call arguments() {
-            McpNextTool.Call call = ConnectorCalls.onSession(ConnectorCalls.CONNECTOR_DOWNLOAD, ref.encode());
-            Long start = startEpochMs();
-            Long end = endEpochMs();
-            if (start != null) {
-                call.with(ConnectorCalls.START_EPOCH_MS, start.longValue());
-            }
-            if (end != null) {
-                call.with(ConnectorCalls.END_EPOCH_MS, end.longValue());
-            }
-            if (wholeSession()) {
-                // The whole session is already decided, so naming it again never asks which part.
-                call.with(ConnectorCalls.WINDOW, DownloadWindow.WHOLE);
-            }
-            return call.with(ConnectorCalls.FILE_IDS, fileIds);
         }
 
         /** Whether this is a window no chunk of the session covers. */

@@ -28,8 +28,7 @@ import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.DuplicateD
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.BiggestObjectsAnalysis;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.analysis.BiggestCollectionsAnalysis;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
-import cafe.jeffrey.microscope.core.operation.OperationState;
+import cafe.jeffrey.microscope.core.pipeline.PipelineState;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRun;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
@@ -197,7 +196,7 @@ public final class HeapDumpInitService {
         Preparation previous = preparations.get(profileId);
         boolean needsAdditionalReports = previous != null
                 && !previous.reports().containsAll(requestedReports)
-                && previous.operation().lifecycleSnapshot().state() == OperationState.COMPLETED;
+                && registry.progress(profileId).state() == PipelineState.COMPLETED;
         PipelineRunRegistry.StartResult result = registry.startOrJoin(new PipelineRunRequest<>(
                 profileId, "", run -> {
                     if (selected == null) {
@@ -213,17 +212,25 @@ public final class HeapDumpInitService {
                     }
                 }), retryFailure || needsAdditionalReports);
         if (result.started()) {
-            preparations.put(profileId, new Preparation(true, result.operation(), requestedReports));
+            preparations.put(profileId, new Preparation(true, requestedReports));
         }
         Preparation current = preparations.get(profileId);
-        return new Preparation(result.started(), result.operation(), current.reports());
+        return new Preparation(result.started(), current.reports());
     }
 
     public Optional<Preparation> operation(String profileId) {
         return Optional.ofNullable(preparations.get(profileId));
     }
 
-    public record Preparation(boolean started, OperationHandle<PipelineProgress> operation, List<String> reports) {
+    /**
+     * Blocks until the preparation pipeline for this profile finishes, for a synchronous caller that
+     * streams progress and returns the result on this call rather than deferring to an operation.
+     */
+    public Optional<PipelineProgress> awaitPreparation(String profileId) throws InterruptedException {
+        return registry.awaitCompletion(profileId);
+    }
+
+    public record Preparation(boolean started, List<String> reports) {
     }
 
     private static void runSingleReport(

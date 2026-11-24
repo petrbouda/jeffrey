@@ -23,12 +23,10 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpToolsFixture;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpToolsFixture;
-import cafe.jeffrey.microscope.core.mcp.tools.ToolFixtures;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
@@ -60,15 +58,13 @@ final class AdvertisedTools {
 
     static List<McpToolSpec> all() {
         ExternalMcpProperties properties = McpTestProperties.of(true, true, true, Set.of());
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
         RecordingsManager recordingsManager = mock(RecordingsManager.class);
         ProjectManagerResolver resolver = mock(ProjectManagerResolver.class);
         McpToolsetAssembler assembler = new McpToolsetAssembler(
                 new ProfilesMcpTools(mock(MicroscopeCoreRepositories.class), EVERY_FAMILY),
                 RecordingsMcpToolsFixture.of(recordingsManager, new PipelineRunRegistry<>(
-                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK), operations, CLOCK).build(),
-                ConnectorMcpToolsFixture.of(mock(ConnectorManager.class), resolver, recordingsManager, CLOCK)
-                        .withOperations(operations).build(),
+                        ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)).build(),
+                ConnectorMcpToolsFixture.of(mock(ConnectorManager.class), resolver, recordingsManager, CLOCK).build(),
                 mock(McpProfileContextCache.class),
                 mock(JfrFlamegraphPanelProvider.class),
                 mock(StackSampleFlamegraphPanelProvider.class),
@@ -78,8 +74,8 @@ final class AdvertisedTools {
                 properties,
                 AdvertisedFamilies.of(properties),
                 ConnectorArtifactsMcpToolsFixture.of(resolver, recordingsManager, Path.of("artifacts"),
-                        Path.of("profiles"), operations, CLOCK, EVERY_FAMILY).build(),
-                operations, ToolFixtures.answers(), CLOCK);
+                        Path.of("profiles"), EVERY_FAMILY).build(),
+                CLOCK);
         return assembler.toolset().specs();
     }
 }

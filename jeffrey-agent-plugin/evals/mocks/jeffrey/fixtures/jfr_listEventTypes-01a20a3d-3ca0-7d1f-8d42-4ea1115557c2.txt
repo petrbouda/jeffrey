@@ -1,0 +1,1 @@
+{"eventTypes":[],"followUp":{"nextTools":[],"guidance":[]},"uiLink":"http://localhost:8587/profiles/01a20a3d-3ca0-7d1f-8d42-4ea1115557c2/events"}

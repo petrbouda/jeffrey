@@ -19,10 +19,10 @@ package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.McpTestProperties;
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
@@ -294,8 +294,7 @@ class ProfilesMcpToolsTest {
             assertEquals("rec-p-2", next.get(1).path("arguments").path("recordingId").asString());
             assertEquals(2, McpNextToolConformance.assertFollowable(data, CatalogueSpecs.of(
                     CatalogueSpecs.served(tools, "profiles"),
-                    CatalogueSpecs.served(RecordingsMcpToolsFixture.of(null, null, new McpOperationRegistry(Clock.systemUTC()),
-                            Clock.systemUTC()).build(),
+                    CatalogueSpecs.served(RecordingsMcpToolsFixture.of(null, null).build(),
                             "recordings"))));
         }
 

@@ -25,7 +25,6 @@ import cafe.jeffrey.microscope.core.manager.project.ProjectManager;
 import cafe.jeffrey.microscope.core.manager.project.ProjectsManager;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.manager.workspace.WorkspaceManager;
-import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
 import cafe.jeffrey.microscope.core.mcp.MicroscopePage;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindow;
@@ -34,14 +33,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindowQuestion;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorAnswers;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorSessionRef;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.core.persistence.api.RecordingTag;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
@@ -108,16 +105,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.ELICITING_TASKS;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.answering;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
-import static cafe.jeffrey.microscope.mcp.protocol.McpCallContext.RESOURCE_READ;
+import static cafe.jeffrey.microscope.mcp.server.McpCallContext.RESOURCE_READ;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -865,9 +858,8 @@ class ConnectorMcpToolsTest {
     @Nested
     class Download {
 
-        @ParameterizedTest
-        @ValueSource(booleans = {false, true})
-        void aCompleteCopyStillReconcilesMissingArtifacts(boolean retry) {
+        @Test
+        void aCompleteCopyStillReconcilesMissingArtifacts() {
             localRecording("rec-existing", null, REF);
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-existing");
@@ -875,14 +867,13 @@ class ConnectorMcpToolsTest {
                     file("f-1", "recording.jfr", ManagedFile.JFR),
                     file("heap", "heap.hprof", ManagedFile.HEAP_DUMP)), downloads));
 
-            complete(tools.download(REF.encode(), null, null, null, null, null, null, retry, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             verify(downloads).downloadSession(SESSION_ID);
         }
 
-        @ParameterizedTest
-        @ValueSource(booleans = {false, true})
-        void namedFilesReconcileAGrowingLogAfterASuccessfulDownload(boolean retry) {
+        @Test
+        void namedFilesReconcileAGrowingLogAfterASuccessfulDownload() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-existing");
             ProjectManager project = projectWith(session(SESSION_ID, NOW,
@@ -894,12 +885,12 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
             complete(tools.download(REF.encode(), null, null, null, null, null,
-                    List.of("f-1", "log"), null, RESOURCE_READ));
+                    List.of("f-1", "log"), RESOURCE_READ));
             when(project.repositoryManager().recordingSession(SESSION_ID)).thenReturn(session(SESSION_ID, NOW,
                     file("f-1", "recording.jfr", ManagedFile.JFR),
                     new RepositoryFile("log", "app.log", NOW, 2048L, false, null)));
             complete(tools.download(REF.encode(), null, null, null, null, null,
-                    List.of("f-1", "log"), retry, RESOURCE_READ));
+                    List.of("f-1", "log"), RESOURCE_READ));
 
             verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
         }
@@ -916,7 +907,7 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording("rec-existing")).thenReturn(Optional.of(stored));
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(answer.path("profileId").isNull(), answer.toString());
             assertEquals(List.of("recordings_analyzeRecording"), StructuredAnswers.nextTools(answer));
@@ -944,7 +935,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(project);
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(answer.path("profileId").isNull(), answer.toString());
             assertEquals(List.of("recordings_analyzeRecording"), StructuredAnswers.nextTools(answer));
@@ -977,85 +968,6 @@ class ConnectorMcpToolsTest {
             when(resolver.resolve(ref.workspaceId(), ref.projectId())).thenReturn(project);
         }
 
-        private ConnectorMcpTools toolsWithBudget(Duration responseBudget) {
-            return ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                    .withBudgets(Duration.ofSeconds(1), responseBudget)
-                    .build();
-        }
-
-        /**
-         * A client that declared the tasks extension is handed a long transfer as a task after the
-         * task budget. Only the wait on the transfer is shortened: the preflight that reads the
-         * session from the connector keeps the whole response budget.
-         */
-        @Nested
-        class TaskCapableClient {
-
-            @Test
-            void handsBackARunningTransferAsATask() throws Exception {
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools standard = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
-                        .withOperations(operations).withAnswers(new OperationAnswers(SHORT_TASK_WAIT))
-                        .build();
-                RepositoryManager repo = mock(RepositoryManager.class);
-                when(repo.recordingSession(SESSION_ID)).thenReturn(jfrSession(SESSION_ID, NOW));
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
-                    assertTrue(release.await(60, TimeUnit.SECONDS));
-                    return "rec-new";
-                });
-                ProjectManager project = mock(ProjectManager.class);
-                when(project.repositoryManager()).thenReturn(repo);
-                when(project.info()).thenReturn(new ProjectInfo(
-                        PROJECT_ID, "origin", "checkout", "ns", WORKSPACE_ID, NOW, NOW, Map.of()));
-                when(project.recordingsDownloadManager()).thenReturn(downloads);
-                resolvesTo(project);
-                noLocalRecordings();
-
-                McpToolOutcome outcome;
-                try {
-                    outcome = assertTimeout(Duration.ofSeconds(20),
-                            () -> standard.download(REF.encode(), null, null, null, null, null, null, null, TASKS));
-                } catch (AssertionError e) {
-                    release.countDown();
-                    throw e;
-                }
-
-                String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-                assertEquals(OperationKind.CONNECTOR_DOWNLOAD, operations.status(taskId).kind());
-
-                release.countDown();
-                await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                        McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-                JsonNode answer = Json.readTree(assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-                assertEquals("rec-new", answer.path("recordingId").asString(), answer.toString());
-                assertEquals(taskId, answer.path("operationId").asString(), answer.toString());
-            }
-
-            /** A transfer that lands inside the task budget answers the call with the task's own text. */
-            @Test
-            void answersATransferThatLandsInsideTheTaskBudgetWithTheTasksOwnAnswer() {
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools standard = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
-                        .withOperations(operations).build();
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
-                resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-                noLocalRecordings();
-
-                McpToolOutcome outcome = standard.download(REF.encode(), null, null, null, null, null, null, null, TASKS);
-
-                String answer = assertInstanceOf(McpToolResult.class, outcome).text();
-                String taskId = Json.readTree(answer).path("operationId").asString();
-                assertEquals(answer, assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-            }
-        }
-
         @Test
         void downloadsTheSessionTheRefNamesAndReturnsTheRecordingId() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
@@ -1063,7 +975,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
             verify(downloads).downloadSession(SESSION_ID);
@@ -1076,7 +988,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
             noLocalRecordings();
 
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ))
                     .contains("recordings_analyzeRecording"));
         }
 
@@ -1090,7 +1002,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(withHeapDump, downloads));
             noLocalRecordings();
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingFiles\":1"), result);
             assertTrue(result.contains("\"artifactFiles\":1"), result);
@@ -1101,7 +1013,7 @@ class ConnectorMcpToolsTest {
             localRecording("rec-existing", null, REF);
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-existing"), result);
             verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
@@ -1118,7 +1030,7 @@ class ConnectorMcpToolsTest {
             when(downloads.downloadSession(SESSION_ID)).thenReturn("rec-new");
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-new\""), result);
             verify(downloads).downloadSession(SESSION_ID);
@@ -1129,7 +1041,7 @@ class ConnectorMcpToolsTest {
             localRecording("rec-existing", "profile-1", REF);
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
-            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+            String result = complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertTrue(result.contains("profile-1"), result);
             verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
@@ -1138,7 +1050,7 @@ class ConnectorMcpToolsTest {
         @Test
         void rejectsAMalformedRefWithoutReachingTheConnector() {
             assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download("not-a-ref", null, null, null, null, null, null, null, RESOURCE_READ)));
+                    () -> complete(tools.download("not-a-ref", null, null, null, null, null, null, RESOURCE_READ)));
 
             verifyNoInteractions(resolver);
             verifyNoInteractions(recordingsManager);
@@ -1151,7 +1063,7 @@ class ConnectorMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             // A fresh listing cannot help while nothing is configured; the status says how to declare one.
             assertTrue(e.getMessage().contains("connector_status"), e.getMessage());
@@ -1169,7 +1081,7 @@ class ConnectorMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("retention"), e.getMessage());
         }
@@ -1184,7 +1096,7 @@ class ConnectorMcpToolsTest {
 
             IllegalArgumentException e = assertThrows(
                     IllegalArgumentException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("no recording file"), e.getMessage());
             verify(downloads, never()).downloadSession(any());
@@ -1217,7 +1129,7 @@ class ConnectorMcpToolsTest {
 
             private JsonNode download(DownloadWindow window, Integer minutes, Long atEpochMs, McpCallContext call) {
                 return StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                        tools.download(REF.encode(), window, minutes, atEpochMs, null, null, null, null, call));
+                        tools.download(REF.encode(), window, minutes, atEpochMs, null, null, null, call));
             }
 
             @Test
@@ -1286,7 +1198,7 @@ class ConnectorMcpToolsTest {
             void theFormAnswerDownloadsWhatTheSameWindowNamedByTheCallDoes() {
                 RecordingsDownloadManager downloads = serving(threeHours());
 
-                McpToolOutcome asked = tools.download(REF.encode(), null, null, null, null, null, null, null,
+                McpToolOutcome asked = tools.download(REF.encode(), null, null, null, null, null, null,
                         answering(ELICITING, DownloadWindowQuestion.KEY, McpInputResponse.Action.ACCEPT,
                                 "{\"window\":\"PEAK\"}"));
 
@@ -1297,7 +1209,7 @@ class ConnectorMcpToolsTest {
             @Test
             void aWindowArgumentItDoesNotTakeIsRefusedBeforeTheConnectorIsRead() {
                 assertThrows(IllegalArgumentException.class, () -> tools.download(
-                        REF.encode(), DownloadWindow.PEAK, 10, null, null, null, null, null, RESOURCE_READ));
+                        REF.encode(), DownloadWindow.PEAK, 10, null, null, null, null, RESOURCE_READ));
                 verifyNoInteractions(resolver);
             }
         }
@@ -1332,7 +1244,7 @@ class ConnectorMcpToolsTest {
             }
 
             private McpToolOutcome wholeSession(McpCallContext call) {
-                return tools.download(REF.encode(), null, null, null, null, null, null, null, call);
+                return tools.download(REF.encode(), null, null, null, null, null, null, call);
             }
 
             private McpToolOutcome answered(McpInputResponse.Action action, String contentJson) {
@@ -1383,15 +1295,13 @@ class ConnectorMcpToolsTest {
             @Test
             void asksAboutASessionOverTheSizeThresholdAlone() {
                 RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools strict = new ConnectorMcpTools(connectorManager, resolver, recordingsManager, CLOCK,
-                        Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET, operations,
-                        ToolFixtures.answers(), new DownloadWindowQuestion(Duration.ofHours(1), 1000),
-                        AdvertisedFamiliesFixture.EVERY_FAMILY);
+                ConnectorMcpTools strict = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
+                        .withWindowQuestion(new DownloadWindowQuestion(Duration.ofHours(1), 1000))
+                        .build();
                 resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
                 noLocalRecordings();
 
-                message(strict.download(REF.encode(), null, null, null, null, null, null, null, ELICITING));
+                message(strict.download(REF.encode(), null, null, null, null, null, null, ELICITING));
 
                 verifyNoInteractions(downloads);
             }
@@ -1401,7 +1311,7 @@ class ConnectorMcpToolsTest {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
                 McpToolOutcome outcome = tools.download(REF.encode(), null, null, null,
-                        NOW.minusSeconds(600).toEpochMilli(), null, null, null, ELICITING);
+                        NOW.minusSeconds(600).toEpochMilli(), null, null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
             }
@@ -1411,7 +1321,7 @@ class ConnectorMcpToolsTest {
                 RecordingsDownloadManager downloads = servingThreeHours();
                 when(downloads.downloadRecordings(eq(SESSION_ID), any())).thenReturn("rec-files");
 
-                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, ELICITING);
+                McpToolOutcome outcome = tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-files"));
             }
@@ -1421,7 +1331,7 @@ class ConnectorMcpToolsTest {
             void doesNotAskWhenTheCallNamesTheWholeSession() {
                 RecordingsDownloadManager downloads = servingThreeHours();
 
-                McpToolOutcome outcome = tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, null, null, ELICITING);
+                McpToolOutcome outcome = tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-whole"));
                 verify(downloads).downloadSession(SESSION_ID);
@@ -1432,9 +1342,9 @@ class ConnectorMcpToolsTest {
                 servingThreeHours();
 
                 assertThrows(IllegalArgumentException.class, () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null,
-                        NOW.minusSeconds(600).toEpochMilli(), null, null, null, ELICITING));
+                        NOW.minusSeconds(600).toEpochMilli(), null, null, ELICITING));
                 assertThrows(IllegalArgumentException.class,
-                        () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, List.of("c3"), null, ELICITING));
+                        () -> tools.download(REF.encode(), DownloadWindow.WHOLE, null, null, null, null, List.of("c3"), ELICITING));
             }
 
             @Test
@@ -1446,28 +1356,6 @@ class ConnectorMcpToolsTest {
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-existing"));
                 verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
-            }
-
-            /** A transfer already running for the whole session is joined, not questioned. */
-            @Test
-            void doesNotAskWhileAnAttemptIsInFlight() throws Exception {
-                CountDownLatch started = new CountDownLatch(1);
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = blockingDownload("rec-whole", started, release);
-                resolvesTo(projectWith(threeHours(), downloads));
-                noLocalRecordings();
-                ConnectorMcpTools impatient = toolsWithBudget(Duration.ofMillis(100));
-                try {
-                    complete(impatient.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
-                    assertTrue(started.await(5, TimeUnit.SECONDS));
-
-                    McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING);
-
-                    assertInstanceOf(McpToolResult.class, outcome);
-                } finally {
-                    release.countDown();
-                }
-                verify(downloads, times(1)).downloadSession(SESSION_ID);
             }
 
             @Test
@@ -1493,46 +1381,6 @@ class ConnectorMcpToolsTest {
                 assertTrue(StructuredAnswers.guidance(answer).contains("recordings_delete"), answer.toString());
             }
 
-            /**
-             * The still-running answer to a chosen window names that window, and following it to the
-             * letter joins the same transfer: no second question, no second download.
-             */
-            @Test
-            void followingTheStillRunningAnswerToAChosenWindowJoinsItsTransfer() {
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenAnswer(_ -> {
-                    assertTrue(release.await(10, TimeUnit.SECONDS));
-                    return "rec-window";
-                });
-                resolvesTo(projectWith(threeHours(), downloads));
-                noLocalRecordings();
-                ConnectorMcpTools impatient = toolsWithBudget(Duration.ofMillis(200));
-                JsonNode first;
-                JsonNode followed;
-                try {
-                    message(impatient.download(REF.encode(), null, null, null, null, null, null, null, ELICITING));
-                    first = StructuredAnswers.json(ConnectorMcpTools.class, "download", impatient.download(
-                            REF.encode(), null, null, null, null, null, null, null, answering(ELICITING, KEY,
-                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}")));
-                    assertEquals("RUNNING", first.path("status").asString(), first.toString());
-                    assertEquals(List.of("operations_status", "connector_download"), StructuredAnswers.nextTools(first));
-                    JsonNode join = StructuredAnswers.call(first, "connector_download");
-                    assertEquals(NOW.minus(Duration.ofHours(1)).toEpochMilli(), join.path("startEpochMs").asLong(), join.toString());
-                    assertEquals(NOW.toEpochMilli(), join.path("endEpochMs").asLong(), join.toString());
-                    assertFalse(join.has("retry"), "joining is not a retry");
-
-                    McpToolOutcome followUp = impatient.download(REF.encode(), null, null, null,
-                            join.path("startEpochMs").asLong(), join.path("endEpochMs").asLong(), null, null, ELICITING);
-
-                    followed = Json.readTree(assertInstanceOf(McpToolResult.class, followUp).text());
-                } finally {
-                    release.countDown();
-                }
-                assertFalse(first.path("operationId").asString().isBlank(), first.toString());
-                assertEquals(first.path("operationId").asString(), followed.path("operationId").asString());
-                verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
-            }
 
             /** A window no chunk covers is asked about again, not turned into an error. */
             @Test
@@ -1584,7 +1432,7 @@ class ConnectorMcpToolsTest {
                 noLocalRecordings();
 
                 McpToolOutcome outcome = tools.download(REF.encode(), null, null, null,
-                        NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, null, ELICITING);
+                        NOW.minusSeconds(600).toEpochMilli(), NOW.toEpochMilli(), null, ELICITING);
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-window"));
             }
@@ -1641,40 +1489,6 @@ class ConnectorMcpToolsTest {
                 verifyNoInteractions(downloads);
             }
 
-            /** Asked first, then on the retry the transfer runs as it would have: here, as a task. */
-            @Test
-            void aClientWithTasksIsAskedAndThenHandedATask() throws Exception {
-                McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-                ConnectorMcpTools standard = ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                        .withBudgets(Duration.ofSeconds(1), BoundedJobs.WAIT_BUDGET)
-                        .withOperations(operations).withAnswers(new OperationAnswers(SHORT_TASK_WAIT))
-                        .build();
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-                when(downloads.downloadWindow(eq(SESSION_ID), any())).thenAnswer(_ -> {
-                    assertTrue(release.await(60, TimeUnit.SECONDS));
-                    return "rec-window";
-                });
-                resolvesTo(projectWith(threeHours(), downloads));
-                noLocalRecordings();
-
-                message(standard.download(REF.encode(), null, null, null, null, null, null, null, ELICITING_TASKS));
-                McpToolOutcome outcome;
-                try {
-                    outcome = assertTimeout(Duration.ofSeconds(20), () -> standard.download(
-                            REF.encode(), null, null, null, null, null, null, null, answering(ELICITING_TASKS, KEY,
-                                    McpInputResponse.Action.ACCEPT, "{\"window\":\"LAST_MINUTES\"}")));
-                } finally {
-                    release.countDown();
-                }
-
-                String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-                await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                        McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-                JsonNode answer = Json.readTree(assertInstanceOf(McpTaskState.Completed.class,
-                        operations.task(taskId, kind -> true).state()).result().text());
-                assertEquals("rec-window", answer.path("recordingId").asString(), answer.toString());
-            }
         }
 
         private RecordingSession fourChunks() {
@@ -1702,7 +1516,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             String result = complete(tools.download(REF.encode(), null, null, null,
-                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-window\""), result);
             assertTrue(result.contains("\"recordingFiles\":2"), result);
@@ -1733,7 +1547,7 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording("rec-window")).thenReturn(Optional.of(landed));
 
             String result = complete(tools.download(REF.encode(), null, null, null,
-                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+                    NOW.plusSeconds(200).toEpochMilli(), NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
 
             assertTrue(result.contains("\"coveredStartEpochMs\":" + NOW.plusSeconds(151).toEpochMilli()), result);
             assertTrue(result.contains("\"coveredEndEpochMs\":" + NOW.plusSeconds(400).toEpochMilli()),
@@ -1760,7 +1574,7 @@ class ConnectorMcpToolsTest {
 
             JsonNode result = StructuredAnswers.json(ConnectorMcpTools.class, "download",
                     tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(),
-                            NOW.plusSeconds(320).toEpochMilli(), null, null, RESOURCE_READ));
+                            NOW.plusSeconds(320).toEpochMilli(), null, RESOURCE_READ));
 
             assertEquals("profile-existing", result.path("profileId").asString());
             assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(result));
@@ -1775,7 +1589,7 @@ class ConnectorMcpToolsTest {
             localRecording("rec-existing", "profile-existing", REF);
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(), null, null, null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, NOW.plusSeconds(200).toEpochMilli(), null, null, RESOURCE_READ));
 
             assertTrue(result.contains("rec-window"), result);
             assertFalse(result.contains("rec-existing"), result);
@@ -1797,17 +1611,20 @@ class ConnectorMcpToolsTest {
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
             long start = NOW.plusSeconds(200).toEpochMilli();
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, start, null, null, RESOURCE_READ))
                     .contains("rec-first"));
-            String second = complete(tools.download(REF.encode(), null, null, null, start, null, null, null, RESOURCE_READ));
+            String second = complete(tools.download(REF.encode(), null, null, null, start, null, null, RESOURCE_READ));
 
             assertTrue(second.contains("rec-second"), second);
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
 
-        /** A closed window is settled, so asking twice costs one transfer. */
+        /**
+         * With no retained-download cache, an identical repeat call is not served from the recording the
+         * first made: each closed-window call transfers its own part again.
+         */
         @Test
-        void aClosedWindowIsAnsweredFromTheRecordingItAlreadyMade() {
+        void anIdenticalClosedWindowCallTransfersAgain() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
             resolvesTo(projectWith(fourChunks(), downloads));
@@ -1817,10 +1634,10 @@ class ConnectorMcpToolsTest {
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             long end = NOW.plusSeconds(320).toEpochMilli();
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
 
-            verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
+            verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
 
         /**
@@ -1839,8 +1656,8 @@ class ConnectorMcpToolsTest {
 
             long start = NOW.plusSeconds(460).toEpochMilli();
             long end = NOW.plusSeconds(500).toEpochMilli();
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
-            String second = complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
+            String second = complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
 
             assertTrue(second.contains("rec-second"), second);
             verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
@@ -1855,15 +1672,18 @@ class ConnectorMcpToolsTest {
             Recording landed = landedRecording();
             when(recordingsManager.findRecording(any())).thenReturn(Optional.of(landed));
 
-            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c3"), RESOURCE_READ));
 
             verify(downloads, times(2)).downloadRecordings(eq(SESSION_ID), any());
         }
 
-        /** Only the newest recording is in doubt: a closed window before it is settled on the newest session too. */
+        /**
+         * The same on the newest session: with no retained-download cache, an identical closed-window
+         * call before the newest recording transfers again rather than being served from the first.
+         */
         @Test
-        void aClosedWindowBeforeTheNewestRecordingIsAnsweredFromTheRecordingItAlreadyMade() {
+        void anIdenticalClosedWindowCallBeforeTheNewestRecordingTransfersAgain() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
             when(downloads.downloadWindow(eq(SESSION_ID), any())).thenReturn("rec-window");
             resolvesTo(projectWith(newestFourChunks(), downloads));
@@ -1873,10 +1693,10 @@ class ConnectorMcpToolsTest {
 
             long start = NOW.plusSeconds(200).toEpochMilli();
             long end = NOW.plusSeconds(320).toEpochMilli();
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
-            complete(tools.download(REF.encode(), null, null, null, start, end, null, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
+            complete(tools.download(REF.encode(), null, null, null, start, end, null, RESOURCE_READ));
 
-            verify(downloads, times(1)).downloadWindow(eq(SESSION_ID), any());
+            verify(downloads, times(2)).downloadWindow(eq(SESSION_ID), any());
         }
 
         @Test
@@ -1886,7 +1706,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, null, null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.plusSeconds(3600).toEpochMilli(), NOW.plusSeconds(7200).toEpochMilli(), null, RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("started at " + NOW), e.getMessage());
             assertTrue(e.getMessage().contains("its recorded data ends at " + NOW.plusSeconds(600)), e.getMessage());
@@ -1896,7 +1716,7 @@ class ConnectorMcpToolsTest {
         @Test
         void aWindowWithItsEndBeforeItsStartIsRefusedBeforeTheConnectorIsAsked() {
             assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, null, null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null, null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.plusSeconds(300).toEpochMilli(), NOW.plusSeconds(200).toEpochMilli(), null, RESOURCE_READ)));
             verifyNoInteractions(resolver);
         }
 
@@ -1908,7 +1728,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "log"), null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "log"), RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingId\":\"rec-files\""), result);
             assertTrue(result.contains("\"recordingFiles\":1"), result);
@@ -1924,7 +1744,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "nope"), null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c2", "nope"), RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("[nope]"), e.getMessage());
             verifyNoInteractions(downloads);
@@ -1941,7 +1761,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c3"), null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c3"), RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("profile-2.jfr"), e.getMessage());
             assertTrue(e.getMessage().contains("startEpochMs"), e.getMessage());
@@ -1956,7 +1776,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             String result =
-                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c2", "log"), null, RESOURCE_READ));
+                    complete(tools.download(REF.encode(), null, null, null, null, null, List.of("c1", "c2", "log"), RESOURCE_READ));
 
             assertTrue(result.contains("\"recordingFiles\":2"), result);
             verify(downloads).downloadRecordings(SESSION_ID, List.of("c1", "c2", "log"));
@@ -1969,7 +1789,7 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
 
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("log"), null, RESOURCE_READ)));
+                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, List.of("log"), RESOURCE_READ)));
 
             assertTrue(e.getMessage().contains("connector_fetchFile"), e.getMessage());
             verifyNoInteractions(downloads);
@@ -2006,7 +1826,7 @@ class ConnectorMcpToolsTest {
         @Test
         void aWindowAndFileIdsTogetherAreRefused() {
             assertThrows(IllegalArgumentException.class, () -> complete(tools.download(
-                    REF.encode(), null, null, null, NOW.toEpochMilli(), null, List.of("c1"), null, RESOURCE_READ)));
+                    REF.encode(), null, null, null, NOW.toEpochMilli(), null, List.of("c1"), RESOURCE_READ)));
             verifyNoInteractions(resolver);
         }
 
@@ -2022,12 +1842,11 @@ class ConnectorMcpToolsTest {
             resolvesTo(otherRef, projectWith(jfrSession(SESSION_ID, NOW), second));
             noLocalRecordings();
 
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(200));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(otherRef.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(otherRef.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
                 boolean bothStarted;
                 try {
@@ -2042,8 +1861,13 @@ class ConnectorMcpToolsTest {
             }
         }
 
+        /**
+         * No tool-level single-flight any more: two concurrent calls for the same ref each run their own
+         * transfer. Both succeed and return a recording - duplicate work is fail-safe (isolated temp dirs,
+         * fresh ids), never corruption.
+         */
         @Test
-        void concurrentCallsWithTheSameFullRefJoinOneTransfer() throws Exception {
+        void concurrentCallsWithTheSameFullRefEachRunTheirOwnTransfer() throws Exception {
             CountDownLatch preflights = new CountDownLatch(2);
             CountDownLatch transferStarted = new CountDownLatch(1);
             CountDownLatch release = new CountDownLatch(1);
@@ -2071,12 +1895,11 @@ class ConnectorMcpToolsTest {
             resolvesTo(project);
             noLocalRecordings();
 
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofSeconds(1));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
                 assertTrue(preflights.await(1, TimeUnit.SECONDS));
                 assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
@@ -2084,14 +1907,18 @@ class ConnectorMcpToolsTest {
 
                 assertTrue(firstCall.get(2, TimeUnit.SECONDS).contains("rec-new"));
                 assertTrue(secondCall.get(2, TimeUnit.SECONDS).contains("rec-new"));
-                assertEquals(1, transfers.get());
+                assertEquals(2, transfers.get());
             } finally {
                 release.countDown();
             }
         }
 
+        /**
+         * A transfer that finished while another call was still in its preflight is not reused: the second
+         * call runs its own transfer. Both return a recording.
+         */
         @Test
-        void reusesTransferCompletedWhileAnotherCallWasStillInPreflight() throws Exception {
+        void aSecondCallRunsItsOwnTransferEvenAfterTheFirstCompleted() throws Exception {
             CountDownLatch secondPreflight = new CountDownLatch(1);
             CountDownLatch releasePreflight = new CountDownLatch(1);
             CountDownLatch transferStarted = new CountDownLatch(1);
@@ -2123,97 +1950,19 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> first = callers.submit(
-                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(transferStarted.await(2, TimeUnit.SECONDS));
                 Future<String> second = callers.submit(
-                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 assertTrue(first.get(3, TimeUnit.SECONDS).contains("rec-new"));
                 releasePreflight.countDown();
                 assertTrue(second.get(3, TimeUnit.SECONDS).contains("rec-new"));
-                assertEquals(1, transfers.get());
+                assertEquals(2, transfers.get());
             } finally {
                 releasePreflight.countDown();
             }
         }
 
-        /**
-         * What connector_download answers once the attempt under its key has failed, until retry=true: the
-         * failed attempt's status, not the failure again and not a new transfer.
-         */
-        private static void assertReportsARetainedFailure(String answer) {
-            assertEquals("FAILED", Json.mapper().readTree(answer).path("status").asString(), answer);
-        }
-
-        @Test
-        void retryPreflightFailureIsNotReplacedByThePreviousAttemptFailure() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID)).thenThrow(new IllegalStateException("old failure"));
-            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
-            when(project.repositoryManager().recordingSession(SESSION_ID))
-                    .thenReturn(jfrSession(SESSION_ID, NOW))
-                    .thenThrow(new JeffreyInternalException(ErrorCode.CONNECTOR_UNAVAILABLE, "new preflight failure"));
-            resolvesTo(project);
-            noLocalRecordings();
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            JeffreyException failure = assertThrows(JeffreyException.class,
-                    () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
-            assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, failure.getCode());
-            assertTrue(failure.getMessage().contains("new preflight failure"), failure.getMessage());
-            verify(downloads, times(1)).downloadSession(SESSION_ID);
-        }
-
-        @Test
-        void mcpFailuresReturnAnOperationIdAndRequireAnExplicitRetry() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID))
-                    .thenThrow(new IllegalStateException("connection lost"))
-                    .thenReturn("rec-retried");
-            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-            noLocalRecordings();
-            var first =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, false, RESOURCE_READ)));
-            String operationId = first.path("operationId").asString();
-            assertFalse(operationId.isBlank());
-            assertEquals("FAILED", first.path("status").asString());
-            var retained =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, false, RESOURCE_READ)));
-            assertEquals(operationId, retained.path("operationId").asString());
-            verify(downloads, times(1)).downloadSession(SESSION_ID);
-            var retry =
-                    Json.mapper().readTree(complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ)));
-            assertFalse(operationId.equals(retry.path("operationId").asString()));
-            assertEquals("COMPLETED", retry.path("operation").path("status").asString());
-        }
-
-        /**
-         * A failed transfer is reported with the call that starts it again - the same session and the
-         * same part, with retry=true - and its operation, as operations_status reports it, names the
-         * very same call rather than a sentence.
-         */
-        @Test
-        void aFailedTransferHandsBackTheCallThatRetriesIt() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadWindow(eq(SESSION_ID), any())).thenThrow(new IllegalStateException("connection lost"));
-            resolvesTo(projectWith(fourChunks(), downloads));
-            noLocalRecordings();
-            long start = NOW.plusSeconds(200).toEpochMilli();
-            long end = NOW.plusSeconds(320).toEpochMilli();
-
-            JsonNode failed = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, start, end, null, false, RESOURCE_READ));
-
-            assertEquals("FAILED", failed.path("status").asString(), failed.toString());
-            assertTrue(failed.path("reason").asString().contains("connection lost"), failed.toString());
-            JsonNode retry = StructuredAnswers.call(failed, "connector_download");
-            assertEquals(REF.encode(), retry.path("sessionRef").asString());
-            assertEquals(start, retry.path("startEpochMs").asLong());
-            assertEquals(end, retry.path("endEpochMs").asLong());
-            assertTrue(retry.path("retry").asBoolean());
-            JsonNode operationRetry = failed.path("operation").path("followUp").path("nextTools").get(0);
-            assertEquals("connector_download", operationRetry.path("tool").asString());
-            assertEquals(retry, operationRetry.path("arguments"));
-            assertTrue(failed.path("uiLink").asString().endsWith("/connector"), failed.toString());
-        }
 
         /** A whole session already here is a DOWNLOADED answer that counts nothing it did not count. */
         @Test
@@ -2222,7 +1971,7 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertEquals("DOWNLOADED", answer.path("status").asString());
             assertTrue(answer.path("recordingFiles").isNull(), answer.toString());
@@ -2238,64 +1987,13 @@ class ConnectorMcpToolsTest {
             resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), null));
 
             JsonNode answer = StructuredAnswers.json(ConnectorMcpTools.class, "download",
-                    tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
+                    tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
 
             assertEquals("profile-1", answer.path("profileId").asString());
             assertEquals(List.of("profiles_summary"), StructuredAnswers.nextTools(answer));
             assertTrue(answer.path("uiLink").asString().endsWith("/profiles/profile-1"), answer.toString());
         }
 
-        @Test
-        void failedTransferCanBeRetriedWithTheSameFullRef() {
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID))
-                    .thenThrow(new IllegalStateException("connection lost"))
-                    .thenReturn("rec-retried");
-            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-            noLocalRecordings();
-
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-
-            assertReportsARetainedFailure(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ))
-                    .contains("rec-retried"));
-        }
-
-        @Test
-        void lateFailureIsRetainedAcrossPollsUntilRetryIsExplicit() throws Exception {
-            CountDownLatch transferStarted = new CountDownLatch(1);
-            CountDownLatch release = new CountDownLatch(1);
-            CountDownLatch failed = new CountDownLatch(1);
-            AtomicInteger attempts = new AtomicInteger();
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
-                int attempt = attempts.incrementAndGet();
-                if (attempt == 1) {
-                    transferStarted.countDown();
-                    release.await(1, TimeUnit.SECONDS);
-                    failed.countDown();
-                    throw new IllegalStateException("late connection loss");
-                }
-                return "rec-retried";
-            });
-            resolvesTo(projectWith(jfrSession(SESSION_ID, NOW), downloads));
-            noLocalRecordings();
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
-
-            String first = complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ));
-            assertTrue(first.contains("still running"), first);
-            assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
-            release.countDown();
-            assertTrue(failed.await(1, TimeUnit.SECONDS));
-
-            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            assertReportsARetainedFailure(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-            verify(downloads, times(1)).downloadSession(SESSION_ID);
-
-            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, true, RESOURCE_READ))
-                    .contains("rec-retried"));
-            verify(downloads, times(2)).downloadSession(SESSION_ID);
-        }
 
         @Test
         void refetchesACompletedSessionWhenItsRetainedRecordingWasDeleted() {
@@ -2307,61 +2005,14 @@ class ConnectorMcpToolsTest {
             noLocalRecordings();
             when(recordingsManager.findRecording("rec-deleted")).thenReturn(Optional.empty());
 
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ))
                     .contains("rec-deleted"));
-            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
+            assertTrue(complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ))
                     .contains("rec-refetched"));
 
             verify(downloads, times(2)).downloadSession(SESSION_ID);
         }
 
-        @Test
-        void failureDuringAPollPreflightDoesNotSilentlyRestartTheTransfer() throws Exception {
-            CountDownLatch transferStarted = new CountDownLatch(1);
-            CountDownLatch releaseTransfer = new CountDownLatch(1);
-            CountDownLatch failurePublished = new CountDownLatch(1);
-            CountDownLatch secondPreflight = new CountDownLatch(1);
-            CountDownLatch releasePreflight = new CountDownLatch(1);
-            AtomicInteger preflightCalls = new AtomicInteger();
-
-            RepositoryManager repository = mock(RepositoryManager.class);
-            when(repository.recordingSession(SESSION_ID)).thenAnswer(_ -> {
-                if (preflightCalls.incrementAndGet() == 2) {
-                    secondPreflight.countDown();
-                    releasePreflight.await(2, TimeUnit.SECONDS);
-                }
-                return jfrSession(SESSION_ID, NOW);
-            });
-            RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
-            when(downloads.downloadSession(SESSION_ID)).thenAnswer(_ -> {
-                transferStarted.countDown();
-                releaseTransfer.await(2, TimeUnit.SECONDS);
-                throw new PublishedFailure(failurePublished);
-            });
-            ProjectManager project = projectWith(jfrSession(SESSION_ID, NOW), downloads);
-            when(project.repositoryManager()).thenReturn(repository);
-            resolvesTo(project);
-            noLocalRecordings();
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(50));
-
-            assertTrue(complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ))
-                    .contains("still running"));
-            assertTrue(transferStarted.await(1, TimeUnit.SECONDS));
-            try (ExecutorService callers = Executors.newSingleThreadExecutor()) {
-                Future<String> poll = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
-                assertTrue(secondPreflight.await(1, TimeUnit.SECONDS));
-                releaseTransfer.countDown();
-                assertTrue(failurePublished.await(1, TimeUnit.SECONDS));
-                releasePreflight.countDown();
-
-                assertReportsARetainedFailure(poll.get(1, TimeUnit.SECONDS));
-                verify(downloads, times(1)).downloadSession(SESSION_ID);
-            } finally {
-                releaseTransfer.countDown();
-                releasePreflight.countDown();
-            }
-        }
 
         @Test
         void unavailableProjectLookupIsNotReportedAsAStaleRef() {
@@ -2374,7 +2025,7 @@ class ConnectorMcpToolsTest {
 
             JeffreyException exception = assertThrows(
                     JeffreyException.class,
-                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, null, RESOURCE_READ)));
+                            () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
             assertEquals(ErrorCode.CONNECTOR_UNAVAILABLE, exception.getCode());
             assertTrue(exception.getMessage().contains("connection refused"), exception.getMessage());

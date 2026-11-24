@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.mcp.server.finding;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpJsonObject;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpJsonObject;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 
 import java.util.LinkedHashMap;

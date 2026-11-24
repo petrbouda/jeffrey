@@ -19,11 +19,10 @@ package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorManager;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.ConnectorSessionScan;
-import cafe.jeffrey.microscope.mcp.protocol.McpSkillProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpSkillProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
-import cafe.jeffrey.microscope.mcp.server.McpToolMetrics;
 import cafe.jeffrey.microscope.core.utils.Json;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -63,7 +62,7 @@ public final class McpDiagnostics {
         this.scan = new ConnectorSessionScan(connectorManager, probeBudget);
     }
 
-    public String json(McpToolProvider tools, List<McpToolMetrics.Sample> metrics, long omittedMetricCalls) {
+    public String json(McpToolProvider tools) {
         ObjectNode result = Json.createObject().put("schemaVersion", 1).put("observedAt", clock.instant().toString());
         result.set("server", Json.readTree(new McpServerInfo(properties, tools, servesSkills).json()));
         List<ProfileInfo> profiles = repositories.findAllProfiles();
@@ -84,11 +83,8 @@ public final class McpDiagnostics {
                         .put("deadlineExceeded", failedAs(probe, ConnectorSessionScan.Failure.Kind.DEADLINE_EXCEEDED));
             });
         }
-        result.set("toolMetrics", Json.toTree(metrics));
-        result.put("metricsCapped", omittedMetricCalls > 0).put("omittedMetricCalls", omittedMetricCalls);
-        result.put("metricsScope", "This endpoint process; completed dispatched calls only, aggregated per advertised tool. Duration is nanoseconds; output size is UTF-8 bytes of the MCP result envelope. At most 256 tool names are retained.");
-        // Bounded by construction - counts, and at most 256 tool metrics, with metricsCapped and
-        // omittedMetricCalls declaring the cut - so it is written whole, like every structured answer.
+        // Counts and a bounded reachability probe only - no tool arguments, payloads or secrets - so it
+        // is written whole, like every structured answer.
         return Json.toString(result);
     }
 

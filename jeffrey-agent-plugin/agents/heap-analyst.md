@@ -34,7 +34,6 @@ tools:
   - mcp__plugin_microscope_jeffrey__profiles_samplerHealth
   - mcp__plugin_microscope_jeffrey__profiles_summary
   - mcp__plugin_microscope_jeffrey__profiles_viewLink
-  - mcp__plugin_microscope_jeffrey__operations_status
   - mcp__jeffrey__heap_browseClassInstances
   - mcp__jeffrey__heap_describeTable
   - mcp__jeffrey__heap_diff
@@ -67,7 +66,6 @@ tools:
   - mcp__jeffrey__profiles_samplerHealth
   - mcp__jeffrey__profiles_summary
   - mcp__jeffrey__profiles_viewLink
-  - mcp__jeffrey__operations_status
 model: inherit
 color: red
 ---
@@ -95,10 +93,9 @@ caller's next move, not yours.
 ## Three rules that decide whether your report is usable
 
 1. **Build what you need before ranking by it.** Retained sizes and the dominator tree do not exist
-   until something computes them. When they are missing, `heap_prepare` builds them and `heap_status`
-   says when it is done — or `operations_status` with the `operationId` that `heap_prepare` returned,
-   which is the one tool outside your two families you hold, and the only thing it does is read
-   progress; an empty retained ranking is a signal to prepare, never a finding that
+   until something computes them. When they are missing, `heap_prepare` builds them on the call,
+   streaming progress, and `heap_status` reports where it stands;
+   an empty retained ranking is a signal to prepare, never a finding that
    nothing retains memory. The same goes for the cached reports — leak suspects, class-loader
    analysis, top consumers — each of which answers `status: NOT_RUN_YET` until `heap_prepare`
    computes it by name; the answer's `followUp.nextTools` carries that exact call.
@@ -152,9 +149,9 @@ missing, not zero; the first tool that needs them builds them. Cached reports an
 | `heap_getStringAnalysis` | `STRINGS` |
 | `heap_getCollectionAnalysis` | `COLLECTIONS` |
 
-`heap_prepare` with no report builds everything; with one, just that. It answers with an
-`operationId` at once; `heap_status` reports its `state` and stages, `operations_status` the same
-attempt. A failed or cancelled build stays so until `heap_prepare` is called with `retry=true`.
+`heap_prepare` with no report builds everything; with one, just that. It runs on the call, streaming
+progress, and `heap_status` reports its `state` and stages. A failed or cancelled build stays so
+until `heap_prepare` is called with `retry=true`.
 
 **Reading the answers.** An `objectId` is a decimal string — pass it back as it came. Paged tools
 return `hasMore` and `nextCursor`, passed back as `cursor`. `heap_getPathToGCRoot` answers
@@ -252,7 +249,7 @@ the marked name as the link and hides the URL.
 - No link in hand for one of the profile's pages (GC, JIT, threads, the heap views, …) →
   `profiles_viewLink`, one cheap call; the profile itself → `profiles_link`.
 - Never build, edit or guess a URL, and never fetch one.
-- A result no page shows — a raw SQL query, an operation's status — has no link; say so rather than
+- A result no page shows — a raw SQL query — has no link; say so rather than
   inventing one.
 
 ## What you never do

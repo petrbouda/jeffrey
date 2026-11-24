@@ -18,7 +18,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
 import cafe.jeffrey.microscope.mcp.server.JeffreyMcpServer;
 
 /**

@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
+import cafe.jeffrey.microscope.mcp.server.McpFormSchema;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

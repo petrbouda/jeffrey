@@ -17,18 +17,15 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.microscope.core.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import tools.jackson.databind.JsonNode;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.core.profile.model.ProfileInfo;
 import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
@@ -61,11 +58,8 @@ import java.util.function.Supplier;
 import cafe.jeffrey.microscope.core.utils.Json;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.NO_TASKS;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
-import static cafe.jeffrey.microscope.mcp.protocol.McpCallContext.RESOURCE_READ;
+import static cafe.jeffrey.microscope.mcp.server.McpCallContext.RESOURCE_READ;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
@@ -107,198 +101,50 @@ class HeapComputeMcpToolsTest {
                 new ServletRequestAttributes(new MockHttpServletRequest()));
     }
 
-    /** The tools over {@code operations}, answering a client that declared tasks after the standard wait. */
-    private static HeapComputeMcpTools withStandardAnswers(ProfileManager profileManager,
-            HeapDumpInitService initService, Supplier<? extends AutoCloseable> backgroundLease,
-            McpOperationRegistry operations) {
-        return new HeapComputeMcpTools(
-                profileManager, initService, backgroundLease, operations, ToolFixtures.answers(), EVERY_FAMILY);
-    }
-
     private HeapComputeMcpTools tools() {
-        return withStandardAnswers(profileManager, initService, () -> () -> {}, new McpOperationRegistry(CLOCK));
+        return new HeapComputeMcpTools(profileManager, initService, EVERY_FAMILY);
     }
 
+    /** A second preparation without retry reuses the completed work rather than rebuilding it. */
     @Test
-    void preparationExposesAnAttemptIdentity() {
+    void omittingRetryDoesNotRestartACompletedPreparation() {
         when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        String result = complete(tools().prepare(HeapReport.LEAKS, true, RESOURCE_READ));
-        assertTrue(result.contains("\"operationId\""), result);
-        assertTrue(result.contains("\"operation\""), result);
-    }
-
-    @Test
-    void cancelledPreparationRetainsItsLeaseAndReportsTheWorkActuallyJoined() throws Exception {
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        CountDownLatch entered = new CountDownLatch(1);
-        CountDownLatch release = new CountDownLatch(1);
-        AtomicInteger leases = new AtomicInteger();
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, initService, () -> {
-            leases.incrementAndGet();
-            return leases::decrementAndGet;
-        }, operations);
-        when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
-            entered.countDown();
-            while (release.getCount() != 0) {
-                try {
-                    release.await();
-                } catch (InterruptedException ignored) {
-                    // A native index operation may finish its current work before observing cancellation.
-                }
-            }
-            return null;
-        });
-        String firstId = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                .path("operationId").asString();
-        try {
-            assertTrue(entered.await(5, TimeUnit.SECONDS));
-            assertEquals(OperationState.CANCEL_REQUESTED, operations.cancel(firstId, kind -> true).status());
-            var joined = Json.mapper().readTree(complete(tools.prepare(HeapReport.DOMINATOR, true, RESOURCE_READ)));
-            assertEquals(firstId, joined.path("operationId").asString());
-            assertEquals("LEAKS", joined.path("computing").get(0).asString());
-            assertEquals(1, leases.get());
-            assertFalse(operations.status(firstId).retryable());
-        } finally {
-            release.countDown();
-        }
-        await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
-        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(firstId).status() == OperationState.CANCELLED);
-        String retained = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                .path("operationId").asString();
-        assertEquals(firstId, retained);
-        String retry = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, true, RESOURCE_READ)))
-                .path("operationId").asString();
-        assertFalse(firstId.equals(retry));
-        assertEquals(OperationState.CANCELLED, operations.cancel(firstId, kind -> true).status());
-    }
-
-    /**
-     * "Omit to inspect it without restarting" has to hold for a preparation that completed, not only
-     * for one that failed: the registry used to keep a failed run and replace a completed one, so an
-     * inspection call rebuilt a dominator tree that was already there.
-     */
-    @Test
-    void omittingRetryDoesNotRestartACompletedPreparation() throws Exception {
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, initService, () -> () -> {}, operations);
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        String first = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                .path("operationId").asString();
-        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status() == OperationState.COMPLETED);
+        HeapComputeMcpTools tools = tools();
+        complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ));
 
         var inspected = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, null, RESOURCE_READ)));
 
-        assertFalse(inspected.path("started").asBoolean());
-        assertEquals(first, inspected.path("operationId").asString());
-        assertTrue(inspected.path("followUp").path("guidance").get(0).asString().contains("already completed"),
-                inspected.toString());
+        assertFalse(inspected.path("started").asBoolean(), inspected.toString());
         assertEquals("heap_getLeakSuspects",
                 inspected.path("followUp").path("nextTools").get(0).path("tool").asString(), inspected.toString());
         assertNoRebuildOffered(inspected);
-        assertTrue(inspected.path("followUp").path("guidance").toString().contains("retry=true"), inspected.toString());
         verify(heapDumpManager, times(1)).initialize(eq(null), any());
 
-        String retried = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, true, RESOURCE_READ)))
-                .path("operationId").asString();
-        assertFalse(first.equals(retried), "an explicit retry is what restarts a finished run");
+        complete(tools.prepare(HeapReport.LEAKS, true, RESOURCE_READ));
+        verify(heapDumpManager, times(2)).initialize(eq(null), any());
     }
 
     /**
-     * The registry is keyed by profile, not by report, so "the preparation already completed" must
-     * mean the report the caller asked for. Read the other way, one finished report answered for
-     * every other one and the reader was told a report was ready that had never been computed.
+     * The registry is keyed by profile, not by report, so a report the last run never computed starts
+     * its own preparation rather than reusing another report's finished run.
      */
     @Test
-    void aReportTheLastRunNeverComputedStartsItsOwnPreparation() throws Exception {
-        McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, initService, () -> () -> {}, operations);
+    void aReportTheLastRunNeverComputedStartsItsOwnPreparation() {
         when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        String first = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                .path("operationId").asString();
-        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status() == OperationState.COMPLETED);
+        HeapComputeMcpTools tools = tools();
+        complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ));
 
         var other = Json.mapper().readTree(complete(tools.prepare(HeapReport.STRINGS, null, RESOURCE_READ)));
 
         assertTrue(other.path("started").asBoolean(), other.toString());
-        assertFalse(first.equals(other.path("operationId").asString()));
         assertEquals(List.of("STRINGS"), Json.mapper().convertValue(other.path("computing"), List.class),
                 other.toString());
-    }
-
-    @Test
-    void heapHistoryRemainsReadableAfterOperationRetentionExpires() {
-        MutableClock clock = new MutableClock();
-        HeapDumpInitService service = new HeapDumpInitService(clock);
-        McpOperationRegistry operations = new McpOperationRegistry(clock);
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, service, () -> () -> {}, operations);
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        when(heapDumpManager.initialize(eq(null), any())).thenThrow(new IllegalStateException("index failed"));
-        String operationId = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                .path("operationId").asString();
-        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(operationId).finishedAtEpochMs() != null);
-        clock.now = clock.now.plusSeconds(7200);
-        String history = assertDoesNotThrow(() -> tools.status().text());
-        assertTrue(history.contains("index failed"), history);
-        JsonNode expired = Json.readTree(history);
-        assertTrue(expired.path("operationExpired").asBoolean(), history);
-        assertTrue(expired.path("operation").isNull(), history);
-        assertTrue(expired.path("followUp").path("nextTools").get(0).path("arguments").path("retry").asBoolean(), history);
-        String retained = assertDoesNotThrow(() -> complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)));
-        JsonNode retry = Json.readTree(retained).path("followUp").path("nextTools").get(0);
-        assertEquals("heap_prepare", retry.path("tool").asString(), retained);
-        assertTrue(retry.path("arguments").path("retry").asBoolean(), retained);
-        verify(heapDumpManager, times(1)).initialize(eq(null), any());
     }
 
     /** A success is never offered as a rebuild: a retry call belongs to a failure alone. */
     private static void assertNoRebuildOffered(JsonNode answer) {
         for (JsonNode call : answer.path("followUp").path("nextTools")) {
             assertFalse(call.path("arguments").path("retry").asBoolean(), answer.toString());
-        }
-    }
-
-    /**
-     * A completed run whose operation expired is still a success: its history routes to the reports it
-     * built, and nothing offers to build them again.
-     */
-    @Test
-    void aCompletedRunThatExpiredRoutesToItsReportsRatherThanARebuild() {
-        MutableClock clock = new MutableClock();
-        HeapDumpInitService service = new HeapDumpInitService(clock);
-        McpOperationRegistry operations = new McpOperationRegistry(clock);
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, service, () -> () -> {}, operations);
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        String operationId = Json.readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                .path("operationId").asString();
-        await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(operationId).status() == OperationState.COMPLETED);
-        clock.now = clock.now.plusSeconds(7200);
-
-        JsonNode status = Json.readTree(tools.status().text());
-        JsonNode prepared = Json.readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)));
-
-        for (JsonNode answer : List.of(status, prepared)) {
-            assertTrue(answer.path("operationExpired").asBoolean(), answer.toString());
-            assertNoRebuildOffered(answer);
-            assertEquals("heap_getLeakSuspects",
-                    answer.path("followUp").path("nextTools").get(0).path("tool").asString(), answer.toString());
-            assertTrue(answer.path("followUp").path("guidance").toString().contains("expired"), answer.toString());
-        }
-    }
-
-    private static final class MutableClock extends Clock {
-        private Instant now = Instant.parse("2026-09-12T12:00:00Z");
-        @Override
-        public ZoneId getZone() {
-            return ZoneOffset.UTC;
-        }
-        @Override
-        public Clock withZone(ZoneId zone) {
-            return this;
-        }
-        @Override
-        public Instant instant() {
-            return now;
         }
     }
 
@@ -362,196 +208,15 @@ class HeapComputeMcpToolsTest {
             assertEquals("LEAKS", again.path("computing").get(0).asString());
         }
 
-        /**
-         * Returning immediately is the point: a dominator build over a large heap runs for minutes,
-         * well past the point where a client abandons the call.
-         */
+        /** The answer lists the stages; the heavy work runs on the call. */
         @Test
-        void returnsTheStageListWithoutWaitingForTheWork() {
+        void returnsTheStageList() {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
 
             String result = complete(tools().prepare(null, true, RESOURCE_READ));
 
             assertTrue(result.contains("\"stages\""));
             assertTrue(result.contains("dominator"));
-            assertTrue(result.contains("heap_status"));
-        }
-    }
-
-    @Test
-    void holdsABackgroundLeaseUntilPreparationFinishesAndReleasesJoinedCalls() throws Exception {
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        CountDownLatch entered = new CountDownLatch(1);
-        CountDownLatch finish = new CountDownLatch(1);
-        AtomicInteger active = new AtomicInteger();
-        when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
-            entered.countDown();
-            assertTrue(finish.await(5, TimeUnit.SECONDS));
-            return null;
-        });
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, initService, () -> {
-            active.incrementAndGet();
-            return () -> active.decrementAndGet();
-        }, new McpOperationRegistry(CLOCK));
-        try {
-            complete(tools.prepare(null, true, RESOURCE_READ));
-            assertTrue(entered.await(5, TimeUnit.SECONDS));
-            assertEquals(1, active.get());
-            complete(tools.prepare(null, true, RESOURCE_READ));
-            assertEquals(1, active.get(), "a joined call must release its unused background lease");
-        } finally {
-            finish.countDown();
-        }
-        await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(0, active.get()));
-    }
-
-    @Test
-    void releasesABackgroundLeaseWhenTheReportIsRejected() {
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        AtomicInteger active = new AtomicInteger();
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, rejecting(), () -> {
-            active.incrementAndGet();
-            return () -> active.decrementAndGet();
-        }, new McpOperationRegistry(CLOCK));
-        assertThrows(IllegalArgumentException.class, () -> complete(tools.prepare(HeapReport.LEAKS, true, RESOURCE_READ)));
-        assertEquals(0, active.get());
-    }
-
-    /** A preparation service that refuses every request, as it refuses a report it does not know. */
-    private static HeapDumpInitService rejecting() {
-        HeapDumpInitService service = mock(HeapDumpInitService.class);
-        when(service.startPreparation(any(), any(), any(), any(), any(), anyBoolean()))
-                .thenThrow(new IllegalArgumentException("Unknown report: unknown"));
-        return service;
-    }
-
-    /**
-     * A cleanup path must not become the failure it was cleaning up after. The background run calls
-     * the release from the {@code finally} that follows storing its result, so a release that threw
-     * would replace whatever that storage threw.
-     */
-    @Test
-    void reportsRatherThanThrowsWhenABackgroundLeaseWillNotRelease() {
-        when(heapDumpManager.heapDumpExists()).thenReturn(true);
-        HeapComputeMcpTools tools = withStandardAnswers(profileManager, rejecting(), () -> () -> {
-            throw new IllegalStateException("pool already closed");
-        }, new McpOperationRegistry(CLOCK));
-
-        // The report is rejected, so prepare() releases the lease it never handed over.
-        IllegalArgumentException rejected =
-                assertThrows(IllegalArgumentException.class,
-                        () -> complete(tools.prepare(HeapReport.LEAKS, true, RESOURCE_READ)));
-
-        assertTrue(rejected.getMessage().contains("unknown"),
-                "the caller must still be told what it got wrong: " + rejected.getMessage());
-    }
-
-    /**
-     * heap_prepare answers at once, so a client that declared the tasks extension is handed the
-     * preparation as a task whenever it has not completed -- no wait at all -- and the task answers
-     * with the stages once it has.
-     */
-    @Nested
-    class TaskCapableClient {
-
-        private final McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-
-        private HeapComputeMcpTools tools() {
-            return new HeapComputeMcpTools(profileManager, initService, () -> () -> {}, operations,
-                    new OperationAnswers(SHORT_TASK_WAIT), EVERY_FAMILY);
-        }
-
-        @Test
-        void handsBackARunningPreparationAsATaskAtOnce() throws Exception {
-            when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            CountDownLatch release = new CountDownLatch(1);
-            when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
-                assertTrue(release.await(60, TimeUnit.SECONDS));
-                return null;
-            });
-            HeapComputeMcpTools tools = tools();
-
-            McpToolOutcome outcome;
-            try {
-                outcome = assertTimeout(BoundedJobs.TASK_WAIT_BUDGET.dividedBy(2),
-                        () -> tools.prepare(HeapReport.LEAKS, false, TASKS));
-            } catch (AssertionError e) {
-                release.countDown();
-                throw e;
-            }
-
-            String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-            assertEquals(OperationKind.HEAP_PREPARE, operations.status(taskId).kind());
-            assertEquals(McpTaskStatus.WORKING, operations.task(taskId, kind -> true).status());
-
-            release.countDown();
-            await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                    McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-            var answer = Json.mapper().readTree(assertInstanceOf(McpTaskState.Completed.class,
-                    operations.task(taskId, kind -> true).state()).result().text());
-            assertTrue(answer.path("started").asBoolean(), answer.toString());
-            assertEquals("LEAKS", answer.path("computing").get(0).asString(), answer.toString());
-            assertTrue(answer.path("stages").size() > 0, answer.toString());
-            assertEquals(taskId, answer.path("operationId").asString(), answer.toString());
-            assertFalse(answer.path("followUp").toString().contains("Until it completes"), answer.toString());
-        }
-
-        @Test
-        void answersACompletedPreparationDirectly() {
-            when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            HeapComputeMcpTools tools = tools();
-            String first = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                    .path("operationId").asString();
-            await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status() == OperationState.COMPLETED);
-
-            McpToolOutcome outcome = tools.prepare(HeapReport.LEAKS, null, TASKS);
-
-            assertEquals(complete(tools.prepare(HeapReport.LEAKS, null, RESOURCE_READ)), assertInstanceOf(McpToolResult.class, outcome).text());
-        }
-
-        /**
-         * A retained failure has nothing left to follow, so it is answered, with the guidance on how to
-         * start again, rather than handed back as a task.
-         */
-        @Test
-        void answersARetainedFailureWithTheRetryGuidance() {
-            when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            when(heapDumpManager.initialize(eq(null), any())).thenThrow(new IllegalStateException("index failed"));
-            HeapComputeMcpTools tools = tools();
-            String first = Json.mapper().readTree(complete(tools.prepare(HeapReport.LEAKS, false, RESOURCE_READ)))
-                    .path("operationId").asString();
-            await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).finishedAtEpochMs() != null);
-
-            McpToolOutcome outcome = tools.prepare(HeapReport.LEAKS, null, TASKS);
-
-            var answer = Json.mapper().readTree(assertInstanceOf(McpToolResult.class, outcome).text());
-            assertEquals(first, answer.path("operationId").asString(), answer.toString());
-            JsonNode retry = answer.path("followUp").path("nextTools").get(0);
-            assertEquals("heap_prepare", retry.path("tool").asString(), answer.toString());
-            assertTrue(retry.path("arguments").path("retry").asBoolean(), answer.toString());
-            assertEquals("LEAKS", retry.path("arguments").path("report").asString(), answer.toString());
-            JsonNode operationRetry = answer.path("operation").path("followUp").path("nextTools").get(0);
-            assertEquals(retry, operationRetry, "the operation names the same typed retry");
-            conforming("prepare", assertInstanceOf(McpToolResult.class, outcome));
-        }
-
-        @Test
-        void aClientWithoutTheExtensionGetsTodaysAnswer() throws Exception {
-            when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            CountDownLatch release = new CountDownLatch(1);
-            when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
-                assertTrue(release.await(60, TimeUnit.SECONDS));
-                return null;
-            });
-            try {
-                McpToolOutcome outcome = tools().prepare(HeapReport.LEAKS, false, NO_TASKS);
-
-                var answer = Json.mapper().readTree(assertInstanceOf(McpToolResult.class, outcome).text());
-                assertTrue(answer.path("started").asBoolean(), answer.toString());
-                assertFalse(answer.path("operationId").asString().isBlank(), answer.toString());
-            } finally {
-                release.countDown();
-            }
         }
     }
 
@@ -572,21 +237,17 @@ class HeapComputeMcpToolsTest {
 
             assertEquals("IDLE", out.path("state").asString());
             assertEquals(PROFILE_ID, call(out, "heap_prepare").path("profileId").asString());
-            assertTrue(out.path("operationId").isNull());
         }
 
         @Test
         void aCompletedPreparationRoutesToTheReportsItBuilt() {
-            McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-            HeapComputeMcpTools tools = withStandardAnswers(profileManager, initService, () -> () -> {}, operations);
+            HeapComputeMcpTools tools = tools();
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            String first = Json.readTree(complete(tools.prepare(null, false, RESOURCE_READ))).path("operationId").asString();
-            await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status() == OperationState.COMPLETED);
+            complete(tools.prepare(null, false, RESOURCE_READ));
 
             JsonNode out = conforming("status", tools.status());
 
             assertEquals("COMPLETED", out.path("state").asString());
-            assertEquals(first, out.path("operationId").asString());
             assertEquals(Set.of("heap_getHeapSummary", "heap_getLeakSuspects", "heap_getDominatorTreeRoots"),
                     nextTools(out));
         }
@@ -597,37 +258,25 @@ class HeapComputeMcpToolsTest {
     class StructuredAnswers {
 
         @Test
-        void aStartedPreparationListsItsStagesAndThePollingCall() {
+        void aPreparationListsItsStagesAndRoutesToItsReport() {
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            CountDownLatch release = new CountDownLatch(1);
-            when(heapDumpManager.initialize(eq(null), any())).thenAnswer(invocation -> {
-                assertTrue(release.await(5, TimeUnit.SECONDS));
-                return null;
-            });
-            try {
-                JsonNode out = conforming("prepare", tools().prepare(HeapReport.LEAKS, false, NO_TASKS));
 
-                assertTrue(out.path("started").asBoolean(), out.toString());
-                assertEquals("LEAKS", out.path("computing").get(0).asString());
-                assertEquals(PROFILE_ID, call(out, "heap_status").path("profileId").asString());
-                assertEquals("HEAP_PREPARE", out.path("operation").path("kind").asString());
-                assertTrue(out.path("uiLink").asString().endsWith("/heap-dump/overview"), out.toString());
-                assertEquals("LEAKS", stage(out, "leaks").path("report").asString(), out.toString());
-                assertTrue(stage(out, "load").path("report").isNull(), out.toString());
-            } finally {
-                release.countDown();
-            }
+            JsonNode out = conforming("prepare", tools().prepare(HeapReport.LEAKS, false, RESOURCE_READ));
+
+            assertTrue(out.path("started").asBoolean(), out.toString());
+            assertEquals("LEAKS", out.path("computing").get(0).asString());
+            assertEquals("heap_getLeakSuspects",
+                    out.path("followUp").path("nextTools").get(0).path("tool").asString(), out.toString());
+            assertTrue(out.path("uiLink").asString().endsWith("/heap-dump/overview"), out.toString());
+            assertEquals("LEAKS", stage(out, "leaks").path("report").asString(), out.toString());
+            assertTrue(stage(out, "load").path("report").isNull(), out.toString());
         }
 
-        /** A task that follows a run answers with the tool's own record once the run has finished. */
         @Test
         void aFinishedRunRoutesToTheReportItComputed() {
-            McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-            HeapComputeMcpTools tools = withStandardAnswers(profileManager, initService, () -> () -> {}, operations);
+            HeapComputeMcpTools tools = tools();
             when(heapDumpManager.heapDumpExists()).thenReturn(true);
-            String first = Json.readTree(complete(tools.prepare(HeapReport.BIGGEST, false, RESOURCE_READ)))
-                    .path("operationId").asString();
-            await().atMost(5, TimeUnit.SECONDS).until(() -> operations.status(first).status() == OperationState.COMPLETED);
+            complete(tools.prepare(HeapReport.BIGGEST, false, RESOURCE_READ));
 
             JsonNode out = conforming("prepare", tools.prepare(HeapReport.BIGGEST, null, RESOURCE_READ));
 

@@ -21,14 +21,14 @@ import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.UiLinks;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapLimits;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapObjectIds;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryRequest;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLQueryResult;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.OQLResultEntry;
@@ -83,13 +83,11 @@ public class HeapOqlMcpTools {
     private static final String OQL_TOOL = "heap_oql";
     private static final String PATH_TO_ROOT_TOOL = "heap_getPathToGCRoot";
     private static final String INSTANCE_DETAIL_TOOL = "heap_getInstanceDetail";
-    private static final String OPERATIONS_STATUS_TOOL = "operations_status";
     private static final String PROFILE_ID = "profileId";
     private static final String QUERY = "query";
     private static final String LIMIT = "limit";
     private static final String CURSOR = "cursor";
     private static final String INCLUDE_RETAINED_SIZE = "includeRetainedSize";
-    private static final String OPERATION_ID = "operationId";
 
     private static final String LINK_NOTE = "The OQL page opens without this query; paste the query there to "
             + "run it in the UI.";
@@ -108,24 +106,15 @@ public class HeapOqlMcpTools {
             "One OQL row is larger than an answer can carry; select fewer or smaller fields.";
 
     private final ProfileManager profileManager;
-    private final BoundedOperation<OQLQueryResult> retainedRuns;
-    private final Supplier<? extends AutoCloseable> backgroundLease;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param retainedRuns    shared by every call, so a query that builds the dominator tree is run
-     *                        once however often it is asked, and operations_status can follow it
-     * @param backgroundLease holds this profile open while such a query outlives the call
-     * @param advertised      the families this installation serves, which gate the next calls
+     * @param advertised the families this installation serves, which gate the next calls
      */
     public HeapOqlMcpTools(
             ProfileManager profileManager,
-            BoundedOperation<OQLQueryResult> retainedRuns,
-            Supplier<? extends AutoCloseable> backgroundLease,
             AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
-        this.retainedRuns = retainedRuns;
-        this.backgroundLease = backgroundLease;
         this.advertised = advertised;
     }
 
@@ -137,9 +126,9 @@ public class HeapOqlMcpTools {
             + "1000). Rows carry an objectId, a decimal string heap_getInstanceDetail and "
             + "heap_getPathToGCRoot take, and a value cut to " + HeapLimits.VALUE_CHARS + " characters; a page "
             + "that continues hands back nextCursor. For table questions - grouping, counting, joining - "
-            + "heap_executeQuery runs SQL against the same index. With includeRetainedSize the call waits "
-            + "up to 45 s, then answers status RUNNING with an operationId for operations_status - a client "
-            + "that declared the MCP tasks extension gets a task after about 5 s instead.")
+            + "heap_executeQuery runs SQL against the same index. With includeRetainedSize the call runs "
+            + "on this call, streaming notifications/progress while it builds the dominator tree, and "
+            + "returns the rows when it finishes.")
     @McpOutputSchema(OqlAnswer.class)
     @McpToolHints(readOnly = false, idempotent = true)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.HEAP_DUMP_INDEXED)
@@ -156,8 +145,7 @@ public class HeapOqlMcpTools {
             String cursor,
             @ToolParam(required = false, description = "Compute the retained size of each result. Off by "
                     + "default because it builds the dominator tree first, which on a large dump takes "
-                    + "minutes; the call then waits up to 45 s and answers with an operationId, or with a "
-                    + "task after about 5 s for a client that declared the MCP tasks extension")
+                    + "minutes; the call then runs on this call and streams progress until it finishes")
             Boolean includeRetainedSize,
             McpCallContext call) {
 
@@ -178,22 +166,15 @@ public class HeapOqlMcpTools {
                 UiLinks.view(profileId, HEAP_OQL_VIEW));
 
         if (!retained) {
-            return McpToolResult.of(present(page, succeeded(profileManager.heapDumpManager().executeQuery(request)),
-                    null, null));
+            return McpToolResult.of(present(page, succeeded(profileManager.heapDumpManager().executeQuery(request))));
         }
 
-        return retainedRuns.run(new BoundedOperation.Work<>(
-                        String.join(KEY_SEPARATOR, profileId, statement,
-                                String.valueOf(pageSize), start.key()),
-                        backgroundLease,
-                        () -> succeeded(profileManager.heapDumpManager().executeQuery(request)),
-                        result -> present(page, result, null, null),
-                        page.call(OQL_TOOL).with(CURSOR, cursor == null || cursor.isBlank() ? null : cursor.trim())
-                                .why(WHY_RETRY)),
-                call,
-                new BoundedOperation.Replies<>(
-                        (result, operation) -> present(page, result, operation.operationId(), operation),
-                        operation -> running(page, operation)));
+        // Runs on this call and streams progress. HeapDumpSessionCache serialises work on a per-dump lock
+        // and buildDominatorTreeIfNeeded is idempotent, so a concurrent retained query on the same dump
+        // waits for and reuses the one tree rather than building a second.
+        call.reportProgress(0.0, 1.0, "Building the dominator tree and computing retained sizes");
+        OQLQueryResult result = succeeded(profileManager.heapDumpManager().executeQuery(request));
+        return McpToolResult.of(present(page, result));
     }
 
     /**
@@ -212,17 +193,15 @@ public class HeapOqlMcpTools {
      * The rows as the largest page that fits an answer, and the cursor that continues after the last
      * row it carries — which is fewer than the engine returned only when the rows are that large.
      */
-    private OqlAnswer present(Page page, OQLQueryResult result, String operationId,
-            McpOperationRegistry.Snapshot operation) {
+    private OqlAnswer present(Page page, OQLQueryResult result) {
         List<OqlRow> rows = result.results().stream().map(OqlRow::of).toList();
         return FittingPage.largest(rows.size(),
-                        shown -> page(page, result, rows.subList(0, shown), shown < rows.size(), operationId, operation),
+                        shown -> page(page, result, rows.subList(0, shown), shown < rows.size()),
                         answer -> Json.toString(answer).length() <= McpToolOutput.UNDECLARED_MAX_CHARS)
                 .orElseThrow(() -> new ToolExecutionException(ROW_TOO_LARGE));
     }
 
-    private OqlAnswer page(Page page, OQLQueryResult result, List<OqlRow> rows, boolean cut, String operationId,
-            McpOperationRegistry.Snapshot operation) {
+    private OqlAnswer page(Page page, OQLQueryResult result, List<OqlRow> rows, boolean cut) {
         McpCursor.Next next = next(page, result, rows.size(), cut);
         Optional<String> first = rows.stream().map(OqlRow::objectId).filter(Objects::nonNull).findFirst();
         McpFollowUp followUp = NextSteps.builder(advertised)
@@ -235,8 +214,8 @@ public class HeapOqlMcpTools {
         // row has been, and before that it is unknown rather than this page's size.
         Integer totalCount = next.hasMore() ? null : page.start().rowsBefore() + rows.size();
         return new OqlAnswer(OqlStatus.OK, null, page.profileId(), page.query(), page.retained(), rows,
-                totalCount, next.hasMore(), next.nextCursor(), result.executionTimeMs(), operationId,
-                operation, followUp, page.link(), LINK_NOTE);
+                totalCount, next.hasMore(), next.nextCursor(), result.executionTimeMs(),
+                followUp, page.link(), LINK_NOTE);
     }
 
     /**
@@ -258,16 +237,6 @@ public class HeapOqlMcpTools {
             return Start.resuming(page.filters(), start.resumeAfter().passingOver(shown), rowsBefore);
         }
         return OffsetPaging.next(page.filters(), start.offset(), shown, true);
-    }
-
-    private OqlAnswer running(Page page, McpOperationRegistry.Snapshot operation) {
-        McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(NextCalls.to(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
-                        .why(WHY_POLL))
-                .followUp();
-        return new OqlAnswer(OqlStatus.RUNNING, RUNNING_REASON, page.profileId(), page.query(), page.retained(),
-                List.of(), null, false, null, null, operation.operationId(), operation, followUp, page.link(),
-                LINK_NOTE);
     }
 
     /** What one call asked for, read on the request thread for whichever thread renders the answer. */
@@ -369,13 +338,6 @@ public class HeapOqlMcpTools {
             String nextCursor,
             @McpNullable
             Long executionTimeMs,
-            @McpNullable
-            @McpDescription("The operation computing retained sizes; null for a query that did not need one")
-            String operationId,
-            @McpNullable
-            @McpDescription("That operation as operations_status reports it, without its result, which is the "
-                    + "rows here; null for a query that did not need one")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription("The OQL page in the Microscope UI, for the user")
             String uiLink,

@@ -13,10 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Jeffrey Microscope serves a hand-written MCP server at POST /api/mcp (no framework, no
-# session state) that speaks MCP 2026-07-28 only: every request carries its version and client
-# capabilities in params._meta plus the MCP-Protocol-Version and Mcp-Method headers, and there
-# is no initialize handshake. This job boots the packaged jar and then runs two gates against it:
+# Jeffrey Microscope serves Spring AI's modern (stateless) MCP server at POST /api/mcp that speaks
+# MCP 2026-07-28 only: every request carries its version and client capabilities in params._meta
+# plus the MCP-Protocol-Version and Mcp-Method headers, and there is no initialize handshake. This
+# job boots the packaged jar and then runs two gates against it:
 #
 #  1. tools/list snapshot: diffs the normalised tool list against a checked-in snapshot, so a
 #     change to a tool's parameters (name/required/enum/type/bounds dropped or added) fails CI

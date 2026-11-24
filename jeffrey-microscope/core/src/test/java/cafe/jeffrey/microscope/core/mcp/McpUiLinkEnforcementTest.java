@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.mcp.tools.UiLinkRoutes;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.server.McpToolNames;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,10 +53,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class McpUiLinkEnforcementTest {
 
-    private static final String OPERATION_HAS_NO_PAGE =
-            "An operation is process-local state of one attempt, which no Microscope page shows; the profile "
-                    + "a finished recording operation built is linked from the recordings tools' own answers.";
-
     private static final String HEAP_SQL_HAS_NO_PAGE =
             "The heap-dump index's tables have no Microscope page: the UI reads the dump through its "
                     + "reports and the OQL page, which asks object questions, not table ones.";
@@ -72,8 +68,6 @@ class McpUiLinkEnforcementTest {
 
     /** The advertised tools whose subject has no Microscope page, and why. */
     private static final Map<String, String> NO_PAGE = Map.ofEntries(
-            Map.entry("operations_status", OPERATION_HAS_NO_PAGE),
-            Map.entry("operations_cancel", OPERATION_HAS_NO_PAGE),
             Map.entry("heap_listTables", HEAP_SQL_HAS_NO_PAGE),
             Map.entry("heap_describeTable", HEAP_SQL_HAS_NO_PAGE),
             Map.entry("heap_executeQuery", HEAP_SQL_HAS_NO_PAGE),

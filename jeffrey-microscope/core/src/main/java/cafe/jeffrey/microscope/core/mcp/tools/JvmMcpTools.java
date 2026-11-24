@@ -42,14 +42,15 @@ import cafe.jeffrey.microscope.core.mcp.tools.jvm.SectionStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SecuritySection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.SystemSection;
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.ThreadsSection;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpMinimum;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.exceptions.ThrowOrigin;
 import cafe.jeffrey.microscope.core.profile.manager.FlagsData;
@@ -112,7 +113,6 @@ public class JvmMcpTools {
 
     private static final String PROFILE_ID = "profileId";
     private static final String COMPUTE = "compute";
-    private static final String OPERATION_ID = "operationId";
     private static final String INDEX = "index";
     private static final String STATE = "state";
     private static final String LIMIT = "limit";
@@ -120,6 +120,7 @@ public class JvmMcpTools {
 
     private static final String SECTIONS_TOOL = "jvm_sections";
     private static final String AUTO_ANALYSIS_TOOL = "jvm_autoAnalysis";
+    private static final String AUTO_ANALYSIS_FAILED = "Running Auto Analysis over the recording failed: ";
     private static final String RETRY_WHY = "runs the rule set again, as a new attempt";
     private static final String CONFIGURATION_TOOL = "jvm_configuration";
     private static final String THREADS_TOOL = "jvm_threads";
@@ -128,7 +129,6 @@ public class JvmMcpTools {
     private static final String GC_TOOL = "jvm_gc";
     private static final String JIT_TOOL = "jvm_jit";
     private static final String BLOCKING_MONITORS_TOOL = "blocking_monitors";
-    private static final String OPERATIONS_STATUS_TOOL = "operations_status";
     private static final String EXCEPTION_SITES_TOOL = "jvm_exceptionSites";
     private static final String FRAME_PREFIXES = "framePrefixes";
     private static final String THROWN_CLASS = "thrownClass";
@@ -166,7 +166,6 @@ public class JvmMcpTools {
             + "and it may hand back an operation to follow";
     private static final String OTHER_SECTIONS_WHY =
             "lists the dashboards that answer the same subsystems directly from the parsed events";
-    private static final String POLL_WHY = "reports the run's progress, and its findings once it completes";
 
     /** How many threads one dump answers with unless asked for fewer or more. */
     private static final int DEFAULT_DUMP_THREADS = 50;
@@ -233,24 +232,15 @@ public class JvmMcpTools {
     private final ContainerSection containerSection;
     private final ConfigurationSection configurationSection;
     private final ProfileManager profileManager;
-    private final BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns;
-    private final Supplier<? extends AutoCloseable> backgroundLease;
     private final AdvertisedFamilies advertised;
 
     /**
-     * @param autoAnalysisRuns shared by every call, so a second compute request for the same profile
-     *                         joins the run in flight and operations_status can follow it
-     * @param backgroundLease  holds this profile open while a run outlives the call that started it
-     * @param advertised       the families a next step may route to
+     * @param advertised the families a next step may route to
      */
     public JvmMcpTools(
             ProfileManager profileManager,
-            BoundedOperation<AutoAnalysisDashboard> autoAnalysisRuns,
-            Supplier<? extends AutoCloseable> backgroundLease,
             AdvertisedFamilies advertised) {
         this.profileManager = profileManager;
-        this.autoAnalysisRuns = autoAnalysisRuns;
-        this.backgroundLease = backgroundLease;
         this.advertised = advertised;
         this.sections = JvmSections.standard(profileManager);
         // Taken from the registry rather than built again, so there is one instance of each and the
@@ -294,9 +284,8 @@ public class JvmMcpTools {
             + "status is COMPUTED, NOT_COMPUTED or CANNOT_COMPUTE (no JFR recording file). Computed and "
             + "cached at import, so normally a cache read. For a profile that missed that, compute=true "
             + "runs it - slow and unbounded in memory, since it reads the whole recording through the "
-            + "rule set. A compute run waits up to 45 s, then answers NOT_COMPUTED with an operationId "
-            + "for operations_status - a client that declared the MCP tasks extension gets a task after "
-            + "about 5 s instead; the findings arrive in that operation's result.")
+            + "rule set. A compute run runs on this call, streaming notifications/progress, and returns "
+            + "the findings with status COMPUTED when it finishes.")
     @McpToolHints(readOnly = false, idempotent = true)
     @McpToolMeta(cost = McpToolCost.SLOW, requires = McpToolRequirement.AUTO_ANALYSIS)
     @McpOutputSchema(AutoAnalysisSection.Answer.class)
@@ -309,29 +298,23 @@ public class JvmMcpTools {
             Boolean compute,
             McpCallContext call) {
 
-        String profileId = profileId();
-        // Read here, where the request is bound; the worker thread and a task's answer have none.
         String link = viewLink(autoAnalysisSection.view());
         AutoAnalysisStatus status = autoAnalysisSection.status();
         if (status == AutoAnalysisStatus.COMPUTED) {
-            return McpToolResult.of(computed(reachable(autoAnalysisSection), null, link));
+            return McpToolResult.of(computed(reachable(autoAnalysisSection), link));
         }
         if (status == AutoAnalysisStatus.CANNOT_COMPUTE || !Boolean.TRUE.equals(compute)) {
             return McpToolResult.of(notComputed(status, link));
         }
-        return autoAnalysisRuns.run(new BoundedOperation.Work<>(
-                        profileId,
-                        backgroundLease,
-                        () -> {
-                            profileManager.autoAnalysisManager().generate();
-                            return reachable(autoAnalysisSection);
-                        },
-                        dashboard -> dashboard,
-                        onProfile(AUTO_ANALYSIS_TOOL).with(COMPUTE, true).why(RETRY_WHY)),
-                call,
-                new BoundedOperation.Replies<>(
-                        (dashboard, operation) -> computed(dashboard, operation, link),
-                        operation -> computing(operation, link)));
+        // Runs on this call and streams progress; AutoAnalysisManager is single-flight internally, so a
+        // concurrent compute for the same profile joins the one run rather than starting a second.
+        call.reportProgress(0.0, 1.0, "Running Auto Analysis over the recording");
+        try {
+            profileManager.autoAnalysisManager().generate();
+        } catch (RuntimeException failure) {
+            throw new ToolExecutionException(AUTO_ANALYSIS_FAILED + failure.getMessage(), failure);
+        }
+        return McpToolResult.of(computed(reachable(autoAnalysisSection), link));
     }
 
     @Tool(description = "Returns one of the garbage-collection pages beneath the jvm_gc overview: "
@@ -849,13 +832,11 @@ public class JvmMcpTools {
         return section.reachable(section.render(), advertised::servesTool);
     }
 
-    private AutoAnalysisSection.Answer computed(
-            AutoAnalysisDashboard dashboard, McpOperationRegistry.Snapshot operation, String link) {
+    private AutoAnalysisSection.Answer computed(AutoAnalysisDashboard dashboard, String link) {
         NextSteps.Builder next = NextSteps.builder(advertised);
         autoAnalysisSection.followUp(next, dashboard);
         return new AutoAnalysisSection.Answer(AutoAnalysisStatus.COMPUTED, null, profileId(),
-                autoAnalysisSection.id(), autoAnalysisSection.title(), dashboard,
-                operation == null ? null : operation.operationId(), operation, next.followUp(), link);
+                autoAnalysisSection.id(), autoAnalysisSection.title(), dashboard, next.followUp(), link);
     }
 
     private AutoAnalysisSection.Answer notComputed(AutoAnalysisStatus status, String link) {
@@ -865,17 +846,7 @@ public class JvmMcpTools {
                 .next(onProfile(SECTIONS_TOOL).why(OTHER_SECTIONS_WHY))
                 .followUp();
         return new AutoAnalysisSection.Answer(status, computable ? NOT_COMPUTED : CANNOT_COMPUTE, profileId(),
-                autoAnalysisSection.id(), autoAnalysisSection.title(), null, null, null, followUp, link);
-    }
-
-    private AutoAnalysisSection.Answer computing(McpOperationRegistry.Snapshot operation, String link) {
-        McpFollowUp followUp = NextSteps.builder(advertised)
-                .next(NextCalls.to(OPERATIONS_STATUS_TOOL).with(OPERATION_ID, operation.operationId())
-                        .why(POLL_WHY))
-                .followUp();
-        return new AutoAnalysisSection.Answer(AutoAnalysisStatus.NOT_COMPUTED, COMPUTING, profileId(),
-                autoAnalysisSection.id(), autoAnalysisSection.title(), null, operation.operationId(), operation,
-                followUp, link);
+                autoAnalysisSection.id(), autoAnalysisSection.title(), null, followUp, link);
     }
 
     private McpFollowUp exceptionSitesFollowUp(ExceptionSites.Selection selection, int limit, McpCursor.Next next) {

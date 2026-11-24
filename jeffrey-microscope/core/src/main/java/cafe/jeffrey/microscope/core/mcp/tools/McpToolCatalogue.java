@@ -38,7 +38,6 @@ public final class McpToolCatalogue {
             new ToolClass(ProfilesMcpTools.class, AdvertisedFamilies.PROFILES),
             new ToolClass(ProfileEvidenceMcpTools.class, AdvertisedFamilies.PROFILES),
             new ToolClass(ProfileMcpTools.class, AdvertisedFamilies.PROFILES),
-            new ToolClass(OperationsMcpTools.class, AdvertisedFamilies.OPERATIONS),
             new ToolClass(EventTypeMcpTools.class, AdvertisedFamilies.JFR),
             new ToolClass(DuckDbMcpTools.class, AdvertisedFamilies.JFR),
             new ToolClass(FlamegraphMcpTools.class, AdvertisedFamilies.FLAMEGRAPH),

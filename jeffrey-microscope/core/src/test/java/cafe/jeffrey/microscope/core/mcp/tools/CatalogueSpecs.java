@@ -17,7 +17,7 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.server.McpTestToolsets;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 

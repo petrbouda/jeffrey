@@ -22,12 +22,12 @@ import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.core.profile.ProfileInitStages;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunOptions;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
@@ -196,13 +196,11 @@ public final class StructuredAnswers {
                             mock(RecordingsManager.class), CLOCK).build(), AdvertisedFamilies.CONNECTOR),
                     CatalogueSpecs.served(ConnectorArtifactsMcpToolsFixture.of(mock(ProjectManagerResolver.class),
                             mock(RecordingsManager.class), Path.of("artifacts"), Path.of("profiles"),
-                            new McpOperationRegistry(CLOCK), CLOCK, AdvertisedFamiliesFixture.EVERY_FAMILY).build(),
+                            AdvertisedFamiliesFixture.EVERY_FAMILY).build(),
                             AdvertisedFamilies.CONNECTOR),
                     CatalogueSpecs.served(RecordingsMcpToolsFixture.of(mock(RecordingsManager.class),
-                            new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK),
-                            new McpOperationRegistry(CLOCK), CLOCK).build(), AdvertisedFamilies.RECORDINGS),
-                    CatalogueSpecs.served(new OperationsMcpTools(new McpOperationRegistry(CLOCK), kind -> true),
-                            AdvertisedFamilies.OPERATIONS));
+                            new PipelineRunRegistry<>(ProfileInitStages.DEFINITION, PipelineRunOptions.unbounded(), CLOCK)).build(),
+                            AdvertisedFamilies.RECORDINGS));
         }
     }
 

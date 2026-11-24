@@ -32,13 +32,14 @@
 # scenario -- above all its wire-schema-valid check, which validates every message Jeffrey sent
 # against the 2026-07-28 JSON schema -- stays enforced.
 #
-# Every entry below is the same case: the scenario calls a fixture the suite's own reference server
+# Most entries below are the same case: the scenario calls a fixture the suite's own reference server
 # carries (a test_* tool or prompt, a test://* resource) and Jeffrey, a real server, does not. Jeffrey
 # answers each with a well-formed -32602 naming the unknown tool, prompt or resource, which is why
 # the scenario's wire-schema check passes while its fixture check fails. The server-stateless entries
 # are the suite reporting such a check as "Not testable"; every check in that scenario that tests
 # Jeffrey's own behaviour (_meta and version refusals, header mismatch, 404 for removed methods,
-# error ids) passes and stays enforced.
+# error ids) passes and stays enforced. The two list-changed-on-subscription entries are the one
+# exception -- a SHOULD-level warning, explained where they sit, not a fixture call.
 #
 # The suite exits non-zero when a listed check starts passing, so a stale entry cannot linger.
 # Bumping the pinned suite version means regenerating this file from a fresh run.
@@ -55,9 +56,8 @@ server:
   - tools-call-mixed-content:tools-call-mixed-content
   # Calls the fixture tool test_error_handling; Jeffrey has no such tool.
   - tools-call-error:tools-call-error
-  # Calls the fixture tool test_tool_with_progress; Jeffrey has no such tool, and it sends no
-  # notifications/progress anyway (long work is polled through operations_*, or followed as a task
-  # by a client that declared the tasks extension).
+  # Calls the fixture tool test_tool_with_progress; Jeffrey has no such tool. (Jeffrey's own long tools
+  # do stream notifications/progress over the response, but only for a real tool with a profile to work on.)
   - tools-call-with-progress:tools-call-with-progress
   # Reads the fixture resource test://static-text; Jeffrey serves jeffrey:// URIs only.
   - resources-read-text:resources-read-text
@@ -82,3 +82,10 @@ server:
   - server-stateless:sep-2575-http-server-no-independent-requests-on-stream
   # Not testable: calls the fixture tool test_logging_tool. Jeffrey sends no notifications/message.
   - server-stateless:sep-2575-server-no-log-without-loglevel
+  # SHOULD, not MUST. The Spring AI modern server advertises listChanged for its tool and prompt
+  # repositories (its default, with no knob to turn off), so the suite then expects a notification on a
+  # listen stream when the list changes. Jeffrey is stateless and keeps no session, so it never pushes
+  # one -- a client re-lists instead. No MUST is violated (the wire-schema check for the scenario passes);
+  # the list is never actually modified at runtime, so nothing is missed.
+  - server-stateless:sep-2575-server-sends-prompts-list-changed-on-subscription
+  - server-stateless:sep-2575-server-sends-tools-list-changed-on-subscription

@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpMinimum;
+import cafe.jeffrey.microscope.mcp.server.McpMinimum;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutput;
 
 import java.util.ArrayList;

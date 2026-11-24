@@ -93,7 +93,7 @@ const excludeWriters = `{
       "excludeTools": [
         "recordings_analyzeFile", "recordings_analyzeRecording", "recordings_delete",
         "connector_download", "connector_fetchFile", "heap_prepare",
-        "operations_cancel", "ide_link", "ide_open"
+        "ide_link", "ide_open"
       ]
     }
   }
@@ -152,7 +152,7 @@ const update = `gemini extensions update microscope`;
       <p>Gemini asks for the endpoint while installing &mdash; keep the default unless your Jeffrey is elsewhere. <code>--skip-settings</code> skips the question. The part of the manifest behind it:</p>
       <DocsCodeBlock :code="manifest" language="json" />
 
-      <p><code>httpUrl</code> is one of <strong>three spellings Gemini accepts</strong> for the same Streamable HTTP server, and the shorthand for &ldquo;this is HTTP, do not guess&rdquo;. <code>url</code> with <code>&quot;type&quot;: &quot;http&quot;</code> is the same thing &mdash; it is what <code>gemini mcp add --transport http</code> writes &mdash; and a bare <code>url</code> with no <code>type</code> also works, because Gemini tries HTTP first and only falls back to SSE when that fails. Only <code>&quot;type&quot;: &quot;sse&quot;</code> is wrong here, since this server offers no SSE stream. <code>/mcp</code> prints the transport it settled on.</p>
+      <p><code>httpUrl</code> is one of <strong>three spellings Gemini accepts</strong> for the same Streamable HTTP server, and the shorthand for &ldquo;this is HTTP, do not guess&rdquo;. <code>url</code> with <code>&quot;type&quot;: &quot;http&quot;</code> is the same thing &mdash; it is what <code>gemini mcp add --transport http</code> writes &mdash; and a bare <code>url</code> with no <code>type</code> also works, because Gemini tries HTTP first and only falls back to SSE when that fails. Only <code>&quot;type&quot;: &quot;sse&quot;</code> is wrong here: this is a Streamable HTTP server &mdash; a long tool&rsquo;s progress rides the response to its POST &mdash; not the legacy standalone SSE transport, which opens a separate stream the server does not offer. <code>/mcp</code> prints the transport it settled on.</p>
 
       <h2 id="pointing-it-elsewhere">Pointing It Elsewhere</h2>
       <p><strong>Gemini has a setting, as Claude Code does</strong> &mdash; unlike Codex, where the endpoint really is fixed. The extension declares one, and the manifest reads it with a default, so <code>localhost:8585</code> stands until you give it something else. Answer the question at install time, or export the variable the setting is named after:</p>
@@ -187,7 +187,7 @@ const update = `gemini extensions update microscope`;
       </DocsCallout>
 
 
-      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>jfr-analyst</code> off the three <code>recordings_</code> writers, the whole <code>connector_</code> family, the whole <code>heap_</code> family, <code>operations_cancel</code> and all five <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep the nine tools that write away from the whole session instead:</p>
+      <p>One more difference worth knowing. The Claude Code subagents are <em>denied</em> the writing tools by their own definitions, so they cannot import a recording even if they tried. Gemini subagents take an allow-list with no deny-list, so what keeps <code>jfr-analyst</code> off the three <code>recordings_</code> writers, the whole <code>connector_</code> family, the whole <code>heap_</code> family and all five <code>ide_</code> tools there is the <em>No writing</em> rule in its own instructions &mdash; the same footing it has in Codex. If that distinction matters to you, keep the eight tools that write away from the whole session instead:</p>
       <DocsCodeBlock :code="excludeWriters" language="json" />
 
       <h2 id="tool-names">Tool Names Are Spelled Differently</h2>
@@ -200,10 +200,10 @@ const update = `gemini extensions update microscope`;
       <p>Gemini asks before each tool the first time, and its answers &mdash; <em>Proceed once</em>, <em>Always allow this tool</em>, <em>Always allow this server</em> &mdash; build the allow-list as you go. Only <router-link to="/docs/microscope-mcp/clients#what-writes">eleven tools write</router-link>, so allowing the server once is usually what you want. To decide up front instead:</p>
       <DocsCodeBlock :code="trustServer" language="json" />
 
-      <p><code>trust</code> covers every tool on the server, the two <code>connector_</code> writers, <code>operations_cancel</code> and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
+      <p><code>trust</code> covers every tool on the server, the two <code>connector_</code> writers and the <code>ide_</code> pair included, which is why <code>excludeTools</code> above is the sharper instrument when you want a strictly read-only Jeffrey on one machine.</p>
 
       <h2 id="timeouts">Timeouts on Long Calls</h2>
-      <p>Gemini abandons a tool call after ten minutes by default; the extension asks for <strong>fifteen</strong> (<code>timeout</code> is milliseconds), which the <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link> never need, since they hand back <code>RUNNING</code> and an <code>operationId</code> well inside a minute.</p>
+      <p>Gemini abandons a tool call after ten minutes by default; the extension asks for <strong>fifteen</strong> (<code>timeout</code> is milliseconds), ample for the <router-link to="/docs/microscope-mcp/clients#long-calls">long tools</router-link>, which stream their progress and answer when the work finishes.</p>
 
       <h2 id="the-tool-list">The Size of the Tool List</h2>
       <p>Gemini declares every enabled tool to the model on each turn. On its own Jeffrey's list is comfortably inside the API's ceiling on function declarations; stacked with several other MCP servers it stops being comfortable, and the symptom is a request rejected for declaring too many functions rather than anything that looks like Jeffrey. Two ways to narrow it compose: <router-link to="/docs/microscope-mcp/clients#the-tool-list">fewer families on the Jeffrey side</router-link>, and <code>includeTools</code> or <code>excludeTools</code> on the server entry, which narrows what this client sees without touching what Jeffrey serves to anything else.</p>

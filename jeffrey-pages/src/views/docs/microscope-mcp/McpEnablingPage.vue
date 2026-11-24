@@ -47,9 +47,8 @@ const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
 const connectorToggle = `jeffrey.microscope.mcp.connector.enabled=false`;
 
-const connectorTimeouts = `# Positive ISO-8601 durations; defaults shown
-jeffrey.microscope.mcp.connector.scan-timeout=PT20S
-jeffrey.microscope.mcp.connector.download-response-timeout=PT45S`;
+const connectorScanTimeout = `# Positive ISO-8601 duration; default shown
+jeffrey.microscope.mcp.connector.scan-timeout=PT20S`;
 
 const windowQuestion = `# A whole-session connector_download of a session longer than this, or holding more than
 # that, first asks a client that declared form elicitation which part to bring; defaults shown.
@@ -152,8 +151,8 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>connector_</code> tool means it is off. The switch takes <code>connector_files</code> and <code>connector_fetchFile</code> with it.</p>
 
-      <p>Connector discovery has a shared deadline across all connector calls. Downloads &mdash; and single-file fetches, which share the setting &mdash; have a response deadline, including session lookup; a transfer that outlasts it carries on in the background, and calling the tool again with the same arguments reports the finished copy:</p>
-      <DocsCodeBlock :code="connectorTimeouts" language="properties" />
+      <p>Connector discovery has a shared deadline across all connector calls: a project that stops answering is abandoned rather than waited out, and the sessions other projects already returned are still reported:</p>
+      <DocsCodeBlock :code="connectorScanTimeout" language="properties" />
 
       <p>A client that declared MCP form elicitation is asked which part of a <em>large</em> session to bring before a whole-session <code>connector_download</code> moves it &mdash; the last N minutes, its startup, its latest or busiest chunk, the minutes before or around a moment, a window of the user&rsquo;s own, or all of it; the <router-link to="/docs/microscope-mcp/tools#window-question">Tool Reference</router-link> has the question and its answers. Two properties say what large means: a session that runs longer than the duration &mdash; measured to the end of its recorded data &mdash; or holds more than the size. Anything smaller comes down whole without a question, and so does every session for a client that did not declare form elicitation, and a call that already names a <code>window</code>, bounds or <code>fileIds</code>. The duration is ISO-8601; the size is a data size such as <code>500MB</code> or <code>2GB</code>, where <code>1GB</code> is 1024<sup>3</sup> bytes. <code>PT0S</code> or <code>0B</code> means always ask. Both are read at startup.</p>
       <DocsCodeBlock :code="windowQuestion" language="properties" />
@@ -162,7 +161,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
         <code>heap_prepare</code> builds the heap index and its dominator tree, and <code>jvm_autoAnalysis</code> takes a <code>compute</code> flag to run the rule set &mdash; each can occupy a core for minutes. They used to be withheld by a property of their own, which was dropped: it never bounded what it claimed to, since a single <code>jfr_executeQuery</code> can cost as much, and withholding them left the heap family telling a reader to go and open the browser instead. What they write is a cache &mdash; the same artefacts the <strong>Initialize</strong> button produces, so a run started from a session shows up in the browser and the other way round. No dump is altered and nothing is deleted.
       </DocsCallout>
 
-      <p>Two further bounds have properties of their own. An import is a file copy followed by a full parse, so a client that points at several recordings in one turn would otherwise start all of them together; the ones beyond the limit are queued rather than refused, and <code>operations_status</code> shows them so. The diagnostics probe is short on purpose &mdash; <code>jeffrey://diagnostics</code> is a health check rather than a scan, and a connector that cannot answer within it is exactly what the reachability figure reports.</p>
+      <p>Two further bounds have properties of their own. An import is a file copy followed by a full parse, so a client that points at several recordings in one turn would otherwise start all of them together; the ones beyond the limit wait for a slot rather than being refused. The diagnostics probe is short on purpose &mdash; <code>jeffrey://diagnostics</code> is a health check rather than a scan, and a connector that cannot answer within it is exactly what the reachability figure reports.</p>
       <DocsCodeBlock :code="otherLimits" language="properties" />
 
       <h2 id="turning-ide-access-off">Turning IDE Access Off</h2>
@@ -188,7 +187,7 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
       <p>For a custom selection, set <code>families</code>. A nonempty list overrides the preset; the connector and IDE switches still apply. Names use lowercase, and unknown preset or family names fail startup with an explanation.</p>
       <DocsCodeBlock :code="familiesProperty" language="properties" />
 
-      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>connector</code>, <code>ide</code>, <code>operations</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions. The dynamic <code>jeffrey://diagnostics</code> resource adds readiness, bounded connector probes and aggregate tool measurements. A custom selection that keeps a family with a writer &mdash; <code>recordings</code>, <code>heap</code>, <code>connector</code>, <code>ide</code> or <code>jvm</code> &mdash; must keep <code>operations</code> too, or startup fails naming the rule: it is how a client polls and cancels the work those families start. For the same reason a list that keeps <code>connector</code> must keep <code>recordings</code>: a downloaded session becomes a profile through <code>recordings_analyzeRecording</code>.</p>
+      <p>Families are named by the prefix their tools carry: <code>profiles</code>, <code>jfr</code>, <code>flamegraph</code>, <code>code</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>, <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>, <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>, <code>heap</code>, <code>recordings</code>, <code>connector</code>, <code>ide</code>. Skills may route to families beyond a narrow preset; use <code>all</code> for unrestricted analysis workflows. Read <code>jeffrey://server</code> through <code>resources/read</code> to see the effective families, tool count, build version and supported protocol revisions. The dynamic <code>jeffrey://diagnostics</code> resource adds readiness and bounded connector probes. A custom selection that keeps <code>connector</code> must keep <code>recordings</code>: a downloaded session becomes a profile through <code>recordings_analyzeRecording</code>.</p>
 
       <h2 id="what-a-session-holds-open">What a Session Holds Open</h2>
       <p>Each profile is its own DuckDB database, and Jeffrey's connection pools evict idle databases after a few minutes. That is right for the UI, where a reader moves on, and wrong for an interactive session that may spend twenty minutes on one profile with long pauses for reading.</p>

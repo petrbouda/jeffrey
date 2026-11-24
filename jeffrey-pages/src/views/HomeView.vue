@@ -59,7 +59,7 @@ const cosmosNodes: CosmosNode[] = [
   },
   {
     id: 'mcp', name: 'Microscope MCP', sub: 'for your coding agent', icon: 'bi-stars', tier: 'core',
-    tip: '116 tools over MCP for Claude Code, Codex and any MCP 2026-07-28 client. Jeffrey never calls a model itself.',
+    tip: '114 tools over MCP for Claude Code, Codex and any MCP 2026-07-28 client. Jeffrey never calls a model itself.',
     to: '/docs/microscope-mcp', x: 76, y: 21, color: 'var(--mcp)', delay: 1.4
   },
   {
@@ -316,7 +316,7 @@ const productTabs: ProductTab[] = [
     oneLiner: 'The same analysis you see in the UI, served over MCP 2026-07-28 to Claude Code, Codex and any other 2026-07-28 client — next to your source code.',
     features: [
       { icon: 'bi-speedometer2', title: 'Runtime, not compile-time', desc: 'Real CPU, allocation and lock profiles from your running JVM — not lint rules or static-analysis guesses. Every recommendation is backed by what actually happened under load.' },
-      { icon: 'bi-fire', title: 'Flamegraphs, traces, heap dumps', desc: 'Differential flamegraphs, wall-clock traces, GC analysis, thread states, dominator trees, OQL — 116 tools your agent navigates programmatically.' },
+      { icon: 'bi-fire', title: 'Flamegraphs, traces, heap dumps', desc: 'Differential flamegraphs, wall-clock traces, GC analysis, thread states, dominator trees, OQL — 114 tools your agent navigates programmatically.' },
       { icon: 'bi-code-slash', title: 'Charged to your source code', desc: 'Every hotspot is mapped to the method in your checkout. The agent sees the cost per frame, opens the file and reads the line — runtime names matched to your source spelling.' },
       { icon: 'bi-stars', title: 'Skills that know the method', desc: 'analyze-jfr, optimize-code, regression-check, profile-run — 13 skills and 2 sub-agents that return typed findings, not raw data.' },
       { icon: 'bi-check2-square', title: 'Findings carry evidence', desc: 'Each finding is typed with its evidence and a next-tool pointer. The agent follows the chain: hotspot, call sites, source and recommendation.' },

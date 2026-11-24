@@ -18,7 +18,7 @@
 package cafe.jeffrey.microscope.core.mcp.tools;
 
 import cafe.jeffrey.microscope.core.mcp.tools.jvm.JvmSections;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.common.model.ProfileKind;
 import cafe.jeffrey.microscope.common.model.RecordingEventSource;
 import cafe.jeffrey.microscope.core.profile.model.Type;

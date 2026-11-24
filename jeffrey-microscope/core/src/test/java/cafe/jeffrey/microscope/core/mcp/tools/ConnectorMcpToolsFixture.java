@@ -30,6 +30,7 @@ import java.time.Duration;
 /**
  * Builds {@link ConnectorMcpTools} for a test: the collaborators it names, and the defaults the
  * {@code jeffrey.microscope.mcp.connector.*} properties give production for everything it leaves out.
+ * Transfers run synchronously on the call.
  */
 public record ConnectorMcpToolsFixture(
         ConnectorManager connectorManager,
@@ -37,61 +38,36 @@ public record ConnectorMcpToolsFixture(
         RecordingsManager recordingsManager,
         Clock clock,
         Duration scanBudget,
-        Duration downloadResponseBudget,
-        McpOperationRegistry operations,
-        OperationAnswers answers,
         DownloadWindowQuestion windowQuestion,
         AdvertisedFamilies advertised) {
 
     public static final Duration SCAN_BUDGET = Duration.ofSeconds(20);
-    public static final Duration DOWNLOAD_RESPONSE_BUDGET = BoundedJobs.WAIT_BUDGET;
 
     /** The defaults of the two {@code ask-window-over-*} properties: an hour or a gibibyte. */
     public static final DownloadWindowQuestion WINDOW_QUESTION =
             new DownloadWindowQuestion(Duration.ofHours(1), 1024L * 1024 * 1024);
 
-    /**
-     * The production budgets and window thresholds, an operation registry of their own, and every
-     * family served.
-     */
+    /** The production scan budget and window thresholds, and every family served. */
     public static ConnectorMcpToolsFixture of(
             ConnectorManager connectorManager, ProjectManagerResolver resolver, RecordingsManager recordingsManager,
             Clock clock) {
-        McpOperationRegistry operations = new McpOperationRegistry(clock);
         return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, SCAN_BUDGET,
-                DOWNLOAD_RESPONSE_BUDGET, operations, ToolFixtures.answers(),
                 WINDOW_QUESTION, AdvertisedFamiliesFixture.EVERY_FAMILY);
-    }
-
-    public ConnectorMcpToolsFixture withBudgets(Duration scan, Duration downloadResponse) {
-        return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scan, downloadResponse,
-                operations, answers, windowQuestion, advertised);
-    }
-
-    /** Another registry, and the standard answers over it. */
-    public ConnectorMcpToolsFixture withOperations(McpOperationRegistry registry) {
-        return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, registry, ToolFixtures.answers(), windowQuestion, advertised);
-    }
-
-    public ConnectorMcpToolsFixture withAnswers(OperationAnswers replacement) {
-        return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, operations, replacement, windowQuestion, advertised);
     }
 
     /** Only the families an installation serves, so a next call to a withheld one is left out. */
     public ConnectorMcpToolsFixture withAdvertised(AdvertisedFamilies replacement) {
         return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, operations, answers, windowQuestion, replacement);
+                windowQuestion, replacement);
     }
 
     public ConnectorMcpToolsFixture withWindowQuestion(DownloadWindowQuestion replacement) {
         return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, operations, answers, replacement, advertised);
+                replacement, advertised);
     }
 
     public ConnectorMcpTools build() {
-        return new ConnectorMcpTools(connectorManager, resolver, recordingsManager, clock, scanBudget, downloadResponseBudget,
-                operations, answers, windowQuestion, advertised);
+        return new ConnectorMcpTools(connectorManager, resolver, recordingsManager, clock, scanBudget,
+                windowQuestion, advertised);
     }
 }

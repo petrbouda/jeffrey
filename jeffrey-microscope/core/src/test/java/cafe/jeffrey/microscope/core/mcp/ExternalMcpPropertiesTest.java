@@ -112,40 +112,6 @@ class ExternalMcpPropertiesTest {
     }
 
     /**
-     * A writer's long work is followed through operations_status and stopped through
-     * operations_cancel; an explicit list that serves a writer without them hands out operationIds
-     * nobody can poll.
-     */
-    @Nested
-    class OperationsRule {
-
-        @ParameterizedTest
-        @ValueSource(strings = {"recordings", "heap", "connector", "ide", "jvm"})
-        void refusesAWriterFamilyWithoutOperations(String writer) {
-            IllegalArgumentException failure =
-                    assertThrows(IllegalArgumentException.class, () -> withFamilies(Set.of(writer)));
-
-            assertTrue(failure.getMessage().contains("operations"), failure.getMessage());
-            assertTrue(failure.getMessage().contains(writer), failure.getMessage());
-        }
-
-        @Test
-        void acceptsAWriterFamilyThatKeepsOperations() {
-            ExternalMcpProperties properties = withFamilies(Set.of(HEAP, "operations"));
-
-            assertTrue(properties.advertises(HEAP));
-            assertTrue(properties.advertises("operations"));
-        }
-
-        @Test
-        void acceptsReadOnlyFamiliesWithoutOperations() {
-            ExternalMcpProperties properties = withFamilies(Set.of(JFR, "flamegraph"));
-
-            assertFalse(properties.advertises("operations"));
-        }
-    }
-
-    /**
      * A connector download is a recording nobody can analyse unless recordings_analyzeRecording is served
      * too, so an explicit list with connector has to keep recordings.
      */
@@ -155,7 +121,7 @@ class ExternalMcpPropertiesTest {
         @Test
         void refusesConnectorWithoutRecordings() {
             IllegalArgumentException failure = assertThrows(IllegalArgumentException.class,
-                    () -> withFamilies(Set.of("connector", "operations")));
+                    () -> withFamilies(Set.of("connector")));
 
             assertTrue(failure.getMessage().contains("recordings"), failure.getMessage());
             assertTrue(failure.getMessage().contains("connector"), failure.getMessage());
@@ -163,7 +129,7 @@ class ExternalMcpPropertiesTest {
 
         @Test
         void acceptsConnectorWithRecordings() {
-            ExternalMcpProperties properties = withFamilies(Set.of("connector", "recordings", "operations"));
+            ExternalMcpProperties properties = withFamilies(Set.of("connector", "recordings"));
 
             assertTrue(properties.advertises("connector"));
             assertTrue(properties.advertises("recordings"));
@@ -179,7 +145,7 @@ class ExternalMcpPropertiesTest {
         ExternalMcpProperties jfr = McpTestProperties.of(true, true, true, Set.of(), JFR);
 
         for (String family : Set.of("profiles", "recordings", "jfr", "flamegraph", "jvm", "compare",
-                "operations", "traces", "http", "jdbc", "grpc", "methodtracing", "io", "blocking",
+                "traces", "http", "jdbc", "grpc", "methodtracing", "io", "blocking",
                 "timeline", "memory")) {
             assertTrue(jfr.advertises(family), family);
         }
@@ -193,7 +159,7 @@ class ExternalMcpPropertiesTest {
         ExternalMcpProperties heap = McpTestProperties.of(true, true, true, Set.of(), HEAP);
 
         for (String family : ExternalMcpProperties.knownFamilies()) {
-            assertEquals(Set.of("profiles", "recordings", HEAP, "operations").contains(family),
+            assertEquals(Set.of("profiles", "recordings", HEAP).contains(family),
                     heap.advertises(family), family);
         }
     }

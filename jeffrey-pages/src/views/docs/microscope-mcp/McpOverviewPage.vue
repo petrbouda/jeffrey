@@ -53,7 +53,7 @@ onMounted(() => {
       </DocsCallout>
 
       <DocsCallout type="info" title="Reading is read-only">
-        Every analysis tool hands out data and nothing more &mdash; it cannot modify or rename a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the eleven <router-link to="/docs/microscope-mcp/clients#what-writes">writers</router-link>: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create profiles rather than changing them; <code>recordings_delete</code>, the one destructive tool, which removes a recording together with the profile built from it; <code>connector_download</code> and <code>connector_fetchFile</code>, which pull a session window or one of its files off the configured connector; <code>heap_prepare</code>, which builds a heap dump&rsquo;s index, and <code>heap_oql</code> with <code>includeRetainedSize</code> and <code>jvm_autoAnalysis</code> with <code>compute</code>, which only fill a cache; <code>operations_cancel</code>, which requests cancellation of background work, and the <code>ide_</code> family, which can link an IDE window to a profile and open a file in your editor. The two that reach outside this server, <code>connector_</code> and <code>ide_</code>, can each be switched off on their own.
+        Every analysis tool hands out data and nothing more &mdash; it cannot modify or rename a profile, so data cleanup and frame renaming stay in the Jeffrey UI. The exceptions are the ten <router-link to="/docs/microscope-mcp/clients#what-writes">writers</router-link>: <code>recordings_analyzeFile</code> and <code>recordings_analyzeRecording</code>, which create profiles rather than changing them; <code>recordings_delete</code>, the one destructive tool, which removes a recording together with the profile built from it; <code>connector_download</code> and <code>connector_fetchFile</code>, which pull a session window or one of its files off the configured connector; <code>heap_prepare</code>, which builds a heap dump&rsquo;s index, and <code>heap_oql</code> with <code>includeRetainedSize</code> and <code>jvm_autoAnalysis</code> with <code>compute</code>, which only fill a cache; and the <code>ide_</code> family, which can link an IDE window to a profile and open a file in your editor. The two that reach outside this server, <code>connector_</code> and <code>ide_</code>, can each be switched off on their own.
       </DocsCallout>
 
       <h2 id="why-it-exists">Why It Exists</h2>
@@ -71,7 +71,7 @@ onMounted(() => {
       <p>A call arrives naming a tool and a <code>profileId</code>. Jeffrey resolves that id to the profile's own DuckDB database, holds a lease on it for the duration of the call, runs the tool, and returns a typed result, with Markdown where the agent reads prose. The heavy machinery &mdash; the flamegraph builder, the trace analysis, the heap-dump index &mdash; is the same code the UI renders from, so what the model reads and what you see on screen cannot drift apart.</p>
 
       <h2 id="what-it-can-read">What It Can Read</h2>
-      <p>A hundred and sixteen tools in twenty families:</p>
+      <p>A hundred and fourteen tools in nineteen families:</p>
       <table>
         <thead>
           <tr>
@@ -172,11 +172,6 @@ onMounted(() => {
             <td>The recordings still on the configured connector: lists the sessions across its every workspace and project, pulls one in to be analysed &mdash; the whole session, the recording files covering a time window, or files named from the listing &mdash; and, for the files a JVM writes beside its recording, lists what a session holds and fetches one of them on its own, as a path the agent reads with its own tools</td>
           </tr>
           <tr>
-            <td><code>operations_</code></td>
-            <td>2</td>
-            <td>The work the writers start &mdash; an import, a connector download or file fetch, a heap preparation &mdash; followed by its <code>operationId</code>: where it has got to, and a request that it stop</td>
-          </tr>
-          <tr>
             <td><code>ide_</code></td>
             <td>5</td>
             <td>Where a frame lives in your checkout, answered by your running IntelliJ: the file and line for a class and method, a class&rsquo;s source, which windows are open and on what commit, and opening a location in the editor</td>
@@ -204,7 +199,7 @@ onMounted(() => {
       <h2 id="where-to-go-next">Where to Go Next</h2>
       <ul>
         <li><router-link to="/docs/microscope-mcp/enabling">Enabling the Server</router-link> &mdash; the endpoint URL, the security posture, and how to switch it off</li>
-        <li><router-link to="/docs/microscope-mcp/clients">Every Client</router-link> &mdash; what the plugin brings to any coding agent: the skills, the agents, the eleven tools that write, and how a long call behaves</li>
+        <li><router-link to="/docs/microscope-mcp/clients">Every Client</router-link> &mdash; what the plugin brings to any coding agent: the skills, the agents, the ten tools that write, and how a long call behaves</li>
         <li><router-link to="/docs/microscope-mcp/claude-code">Claude Code</router-link> &mdash; the v2 MCP runtime it needs, installing the plugin, pointing it at this Jeffrey, and the two subagents only that client can carry</li>
         <li><router-link to="/docs/microscope-mcp/codex">Codex</router-link> &mdash; the version and feature flag it needs, then the same plugin through the portable Agent Plugins format, and what changes with it</li>
         <li><router-link to="/docs/microscope-mcp/gemini">Gemini CLI</router-link> &mdash; cannot connect until it supports MCP <code>2026-07-28</code>; the package as a Gemini extension, ready for when it does</li>

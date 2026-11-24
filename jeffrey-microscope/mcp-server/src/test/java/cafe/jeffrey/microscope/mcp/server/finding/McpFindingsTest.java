@@ -17,8 +17,8 @@
 
 package cafe.jeffrey.microscope.mcp.server.finding;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.mcp.server.Json;
 import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolWeight;

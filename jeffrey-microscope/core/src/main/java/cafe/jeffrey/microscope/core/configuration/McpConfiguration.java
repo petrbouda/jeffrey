@@ -23,35 +23,50 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.CompletionsFeature;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
+import cafe.jeffrey.microscope.core.mcp.JeffreyPromptRepository;
+import cafe.jeffrey.microscope.core.mcp.JeffreyResourceRepository;
+import cafe.jeffrey.microscope.core.mcp.JeffreyToolRepository;
+import cafe.jeffrey.microscope.core.mcp.McpCompletions;
 import cafe.jeffrey.microscope.core.mcp.McpDiagnostics;
+import cafe.jeffrey.microscope.core.mcp.McpGuardFilter;
+import cafe.jeffrey.microscope.core.mcp.McpInstructions;
 import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
+import cafe.jeffrey.microscope.core.mcp.McpResources;
 import cafe.jeffrey.microscope.core.mcp.McpSkillCatalogue;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
-import cafe.jeffrey.microscope.core.mcp.tools.BoundedJobs;
+import cafe.jeffrey.microscope.core.mcp.SkillsFeature;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationAnswers;
-import cafe.jeffrey.microscope.core.mcp.tools.OperationTasks;
 import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
 import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindowQuestion;
-import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskProvider;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
 import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
 import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
 import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
 import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileDatabases;
-import cafe.jeffrey.microscope.core.utils.Schedulers;
+import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
+import io.modelcontextprotocol.modern.server.McpServer;
+import io.modelcontextprotocol.modern.server.feature.McpSyncPromptRepository;
+import io.modelcontextprotocol.modern.server.feature.McpSyncResourceRepository;
+import io.modelcontextprotocol.modern.server.feature.McpSyncToolRepository;
+import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
+import org.springframework.ai.mcp.customizer.McpServerCustomizer;
+import org.springframework.ai.mcp.server.webmvc.transport.WebMvcModernServerTransport;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.util.unit.DataSize;
 
 import java.time.Clock;
@@ -74,6 +89,30 @@ public class McpConfiguration {
      * that drives the eviction itself turns it off.
      */
     private static final boolean SWEEP_IDLE_PROFILE_CONTEXTS = true;
+
+    /** Spring AI's auto-configured lifecycle bean for the modern MCP server transport. */
+    private static final String MODERN_TRANSPORT_LIFECYCLE_BEAN = "webMvcModernServerTransportLifecycle";
+
+    /**
+     * Wraps Spring AI's modern MCP server lifecycle so it survives a stop/restart. See
+     * {@link RestartSafeMcpServerLifecycle}: the auto-configured lifecycle leaves the transport
+     * permanently {@code 503 "Server is shutting down"} once Spring stops and restarts it, which it does
+     * whenever the test context cache reuses a booted context (and an in-process restart would in
+     * production). The transport is supplied lazily so this post-processor forces nothing to start early.
+     */
+    @Bean
+    static BeanPostProcessor modernMcpServerLifecycleRestartFix(
+            ObjectProvider<WebMvcModernServerTransport> transport) {
+        return new BeanPostProcessor() {
+            @Override
+            public Object postProcessAfterInitialization(Object bean, String beanName) {
+                if (bean instanceof SmartLifecycle delegate && MODERN_TRANSPORT_LIFECYCLE_BEAN.equals(beanName)) {
+                    return new RestartSafeMcpServerLifecycle(delegate, transport.getObject());
+                }
+                return bean;
+            }
+        };
+    }
 
     /**
      * @param enabled     whether the endpoint serves, from {@code jeffrey.microscope.mcp.enabled}
@@ -153,27 +192,15 @@ public class McpConfiguration {
      * Turns a recording file into a profile. Built unconditionally: the assembler decides whether the
      * {@code recordings} family is advertised, from the families and preset, and a bean that exists
      * but is never registered costs nothing next to a conditional bean the reader has to go looking for.
-     *
-     * @param maxConcurrentImports how many {@code recordings_analyzeFile} imports run together, from
-     *                             {@code jeffrey.microscope.mcp.recordings.max-concurrent-imports};
-     *                             the rest wait as queued operations. The analysis jobs wait the standard
-     *                             budget and keep their outcomes for the standard hour
      */
     @Bean
     public RecordingsMcpTools recordingsMcpTools(
             RecordingsManager recordingsManager,
-            PipelineRunRegistry<String> profileInitRunRegistry, McpOperationRegistry operations,
-            OperationAnswers operationAnswers,
-            @Value("${" + RecordingsMcpTools.MAX_CONCURRENT_IMPORTS_PROPERTY + ":"
-                    + RecordingsMcpTools.DEFAULT_MAX_CONCURRENT_IMPORTS + "}") int maxConcurrentImports,
-            Clock applicationClock,
+            PipelineRunRegistry<String> profileInitRunRegistry,
             AdvertisedFamilies advertisedFamilies,
             RecordingCommitResolver recordingCommitResolver) {
-        BoundedJobs<String, String> analyses = new BoundedJobs<>(
-                BoundedJobs.WAIT_BUDGET, BoundedJobs.COMPLETED_RETENTION, applicationClock,
-                Schedulers.sharedVirtual(), BoundedJobs.UNBOUNDED_CONCURRENCY, BoundedJobs.DEFAULT_MAX_RETAINED);
-        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry, analyses, operations,
-                operationAnswers, maxConcurrentImports, applicationClock, advertisedFamilies, recordingCommitResolver);
+        return new RecordingsMcpTools(recordingsManager, profileInitRunRegistry,
+                advertisedFamilies, recordingCommitResolver);
     }
 
     /**
@@ -192,15 +219,11 @@ public class McpConfiguration {
             RecordingsManager recordingsManager,
             Clock applicationClock,
             @Value("${jeffrey.microscope.mcp.connector.scan-timeout:PT20S}") Duration scanTimeout,
-            @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
             @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
-            McpOperationRegistry operations,
-            OperationAnswers operationAnswers,
             AdvertisedFamilies advertisedFamilies) {
         return new ConnectorMcpTools(
-                connectorManager, projectManagerResolver, recordingsManager, applicationClock,
-                scanTimeout, responseTimeout, operations, operationAnswers,
+                connectorManager, projectManagerResolver, recordingsManager, applicationClock, scanTimeout,
                 new DownloadWindowQuestion(askWindowOverDuration, askWindowOverSize.toBytes()), advertisedFamilies);
     }
 
@@ -224,14 +247,10 @@ public class McpConfiguration {
             ProjectManagerResolver projectManagerResolver,
             RecordingsManager recordingsManager,
             MicroscopeJeffreyDirs jeffreyDirs,
-            McpOperationRegistry operations,
-            OperationAnswers operationAnswers,
-            Clock applicationClock,
-            @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             AdvertisedFamilies advertisedFamilies) {
         return new ConnectorArtifactsMcpTools(
-                projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(), operations,
-                operationAnswers, applicationClock, responseTimeout, advertisedFamilies);
+                projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(),
+                advertisedFamilies);
     }
 
     @Bean
@@ -248,44 +267,12 @@ public class McpConfiguration {
             ExternalMcpProperties properties,
             AdvertisedFamilies advertisedFamilies,
             ConnectorArtifactsMcpTools connectorArtifactsMcpTools,
-            McpOperationRegistry operations, OperationAnswers operationAnswers, Clock applicationClock) {
+            Clock applicationClock) {
         return new McpToolsetAssembler(
                 profilesMcpTools, recordingsMcpTools, connectorMcpTools, contextCache, jfrPanelProvider,
                 stackSamplePanelProvider, recordingCommitResolver, heapDumpInitService, ideBridge,
-                properties, advertisedFamilies, connectorArtifactsMcpTools, operations, operationAnswers,
+                properties, advertisedFamilies, connectorArtifactsMcpTools,
                 applicationClock);
-    }
-
-    /**
-     * The process-local catalogue of background operations the {@code operations_} tools poll and
-     * cancel. Shared by every family that starts one, so an id handed out by one tool is the id the
-     * generic tools answer for.
-     */
-    @Bean
-    public McpOperationRegistry mcpOperationRegistry(Clock applicationClock) {
-        return new McpOperationRegistry(applicationClock);
-    }
-
-    /**
-     * How every tool that waits on an operation answers once its wait is over: a client that declared
-     * the tasks extension waits {@code BoundedJobs.TASK_WAIT_BUDGET} and is handed a task, every other
-     * caller waits the tool's standard budget and is handed the {@code operationId}.
-     */
-    @Bean
-    public OperationAnswers operationAnswers() {
-        return new OperationAnswers(BoundedJobs.TASK_WAIT_BUDGET);
-    }
-
-    /**
-     * The operation registry served over the MCP tasks extension, behind the same family gate as
-     * {@code operations_status}: a client that declared the extension follows a long call as a task
-     * rather than through an {@code operationId}. {@link McpTaskProvider#NONE} -- and no extension
-     * declared at {@code server/discover} -- when no family that starts an operation (recordings, connector,
-     * heap, jvm) is served.
-     */
-    @Bean
-    public McpTaskProvider mcpTaskProvider(McpOperationRegistry operations, ExternalMcpProperties properties) {
-        return OperationTasks.of(operations, kind -> McpToolsetAssembler.reachable(kind, properties));
     }
 
     /**
@@ -322,5 +309,101 @@ public class McpConfiguration {
     @Bean
     public McpPromptRegistry mcpPromptRegistry(McpSkillCatalogue skills) {
         return new McpPromptRegistry(skills);
+    }
+
+    // --- Spring AI modern MCP server (2026-07-28) wiring ---
+    // The programmatic bridge: Jeffrey's hand-written toolset, skills, resources, prompts and guard
+    // served through the SDK's SPI, so the modern server owns /api/mcp with no feature loss.
+
+    /** Where the endpoint lives; must match spring.ai.mcp.server.modern.mcp-endpoint. */
+    private static final String MCP_ENDPOINT_PATH = "/api/mcp";
+
+    /**
+     * Routes the modern server's tools/list and tools/call through Jeffrey's {@link McpToolsetAssembler}
+     * instead of the SDK's default in-memory tool repository (which is {@code @ConditionalOnMissingBean}).
+     */
+    @Bean
+    public McpSyncToolRepository jeffreyToolRepository(McpToolsetAssembler assembler) {
+        return new JeffreyToolRepository(assembler);
+    }
+
+    /** Registers the {@code skills/*} extension as a custom {@code McpFeature} on the modern server. */
+    @Bean
+    public McpServerCustomizer<McpServer.Builder> jeffreySkillsCustomizer(McpSkillCatalogue skills) {
+        SkillsFeature skillsFeature = new SkillsFeature(skills);
+        return builder -> builder.feature(skillsFeature);
+    }
+
+    /**
+     * The agent-facing {@code instructions} {@code server/discover} returns: how to use the advertised
+     * families — start at {@code profiles_list}, the call order, the result conventions, the writers.
+     */
+    @Bean
+    public McpServerCustomizer<McpServer.Builder> jeffreyInstructionsCustomizer(AdvertisedFamilies advertisedFamilies) {
+        String instructions = McpInstructions.text(advertisedFamilies);
+        return builder -> builder.instructions(instructions);
+    }
+
+    /**
+     * Jeffrey's host/origin/bearer guard is the single authority, so the SDK transport's own header
+     * validator is {@code NOOP}.
+     */
+    @Bean
+    public ServerHttpHeaderValidator mcpHeaderValidator() {
+        return ServerHttpHeaderValidator.NOOP;
+    }
+
+    /** Runs {@link McpGuardFilter} (host/origin/bearer + the enabled toggle) in front of the endpoint. */
+    @Bean
+    public FilterRegistrationBean<McpGuardFilter> mcpGuardFilterRegistration(
+            ExternalMcpProperties properties, McpRequestGuard guard) {
+        FilterRegistrationBean<McpGuardFilter> registration =
+                new FilterRegistrationBean<>(new McpGuardFilter(properties, guard));
+        registration.addUrlPatterns(MCP_ENDPOINT_PATH);
+        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
+        return registration;
+    }
+
+    /**
+     * The {@code jeffrey://} resources and templates, reading through the toolset. {@code jeffrey://diagnostics}
+     * is a health snapshot read afresh on every read: the server block, profile readiness and a bounded
+     * connector-reachability probe.
+     */
+    @Bean
+    public McpResources mcpResources(
+            McpToolsetAssembler assembler, ExternalMcpProperties properties, McpSkillCatalogue skills,
+            McpDiagnostics diagnostics) {
+        return new McpResources(assembler.toolset(), assembler::documents, properties,
+                () -> diagnostics.json(assembler.toolset()), skills.servesAny());
+    }
+
+    /** Serves resources/list, resources/templates/list and resources/read, including {@code skill://} files. */
+    @Bean
+    public McpSyncResourceRepository jeffreyResourceRepository(McpResources resources, McpSkillCatalogue skills) {
+        return new JeffreyResourceRepository(resources, skills);
+    }
+
+    /** Serves prompts/list and prompts/get — the skill bodies. */
+    @Bean
+    public McpSyncPromptRepository jeffreyPromptRepository(McpPromptRegistry prompts) {
+        return new JeffreyPromptRepository(prompts);
+    }
+
+    /**
+     * Completes {@code profileId}/{@code baselineProfileId}. The toolset arrives as a supplier because
+     * {@code isAvailable()} is read while answering {@code server/discover}, which must not resolve the
+     * toolset.
+     */
+    @Bean
+    public McpCompletions mcpCompletions(
+            McpToolsetAssembler assembler, McpPromptRegistry prompts, ExternalMcpProperties properties) {
+        return new McpCompletions(assembler::toolset, prompts, properties);
+    }
+
+    /** Registers {@code completion/complete} as a custom {@code McpFeature} on the modern server. */
+    @Bean
+    public McpServerCustomizer<McpServer.Builder> jeffreyCompletionsCustomizer(McpCompletions completions) {
+        CompletionsFeature completionsFeature = new CompletionsFeature(completions);
+        return builder -> builder.feature(completionsFeature);
     }
 }

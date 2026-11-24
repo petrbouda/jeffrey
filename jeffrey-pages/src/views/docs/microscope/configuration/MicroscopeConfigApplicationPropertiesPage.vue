@@ -276,18 +276,6 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>download-response-timeout</code></td>
-            <td><code>PT45S</code></td>
-            <td>
-              How long <code>connector_download</code> &mdash; and <code>connector_fetchFile</code>, which shares
-              this setting &mdash; waits before it answers that the transfer is still running, session
-              lookup included. It bounds the <em>answer</em>, not the work: a transfer that outlasts it
-              carries on, and calling the tool again with the same arguments reports the finished copy. Sized under the shortest client timeout worth designing for, so raising it
-              mostly buys a client that has already given up. A positive ISO-8601 duration. Read at
-              startup.
-            </td>
-          </tr>
-          <tr>
             <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>ask-window-over-duration</code></td>
             <td><code>PT1H</code></td>
             <td>
@@ -316,9 +304,8 @@ onMounted(() => {
             <td><code>2</code></td>
             <td>
               How many <code>recordings_analyzeFile</code> imports run at once. A call beyond that
-              number is not refused: it is reported as <code>QUEUED</code> by
-              <code>operations_status</code> and starts when a slot frees, and
-              <code>operations_cancel</code> on a queued attempt means it never starts. A positive
+              number is not refused: it waits for a slot before it begins its work, streaming
+              progress once it starts. A positive
               integer. Read at startup.
             </td>
           </tr>
@@ -349,9 +336,9 @@ onMounted(() => {
             <td><code>all</code></td>
             <td>
               A named selection of tool families: <code>all</code>, <code>jfr</code>, <code>heap</code> or
-              <code>connector</code>. Each focused preset keeps <code>profiles</code>, <code>recordings</code>
-              and <code>operations</code> beside the families it is named for, so a profile can still be
-              found, created and followed. A non-empty <code>families</code> list wins over it; an unknown
+              <code>connector</code>. Each focused preset keeps <code>profiles</code> and <code>recordings</code>
+              beside the families it is named for, so a profile can still be
+              found and created. A non-empty <code>families</code> list wins over it; an unknown
               preset name rejects startup. Read at startup.
             </td>
           </tr>
@@ -361,16 +348,13 @@ onMounted(() => {
             <td>
               Which tool families to advertise, comma-separated; empty means whatever the preset selects,
               all of them by default. Families are
-              named by their tool prefix: <code>profiles</code>, <code>operations</code>, <code>jfr</code>,
+              named by their tool prefix: <code>profiles</code>, <code>jfr</code>,
               <code>flamegraph</code>, <code>code</code>, <code>compare</code>, <code>traces</code>, <code>jvm</code>,
               <code>http</code>, <code>jdbc</code>, <code>grpc</code>, <code>methodtracing</code>,
               <code>io</code>, <code>blocking</code>, <code>timeline</code>, <code>memory</code>,
               <code>heap</code>, <code>recordings</code>, <code>connector</code>, <code>ide</code>. Keep
-              <code>operations</code> in any list that keeps <code>recordings</code>, <code>heap</code>,
-              <code>connector</code>, <code>ide</code> or <code>jvm</code> &mdash; startup fails otherwise &mdash;
-              since it is how a client follows and cancels the work those start; and keep
-              <code>recordings</code> in any list that keeps <code>connector</code>, since a downloaded
-              session is analysed with <code>recordings_analyzeRecording</code>. Worth setting
+              <code>recordings</code> in any list that keeps <code>connector</code> &mdash; startup fails otherwise &mdash;
+              since a downloaded session is analysed with <code>recordings_analyzeRecording</code>. Worth setting
               only for a
               client that pays for the whole tool list on every turn &mdash; Codex loads every schema
               each time, where Claude Code fetches them on demand. A family named here but not built

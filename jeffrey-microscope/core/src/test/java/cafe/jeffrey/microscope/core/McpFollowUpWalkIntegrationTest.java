@@ -60,13 +60,12 @@ class McpFollowUpWalkIntegrationTest extends LocalVolumeMicroscope {
     void everyCallAnAnswerSuggestsAnswersInItsTurn() {
         profileOf(download(lastHalfHour()));
         // Which part of a session to bring is the user's choice, so no answer suggests a download
-        // as a call: these two are the choices an agent makes after asking.
-        String cutShortRef = sessionRow(Json.createObject(), CUT_SHORT_SESSION).path("sessionRef").asString();
+        // as a call: this is a choice an agent makes after asking. A cut-short session is not seeded:
+        // its transfer now fails on the call as a tool error with no walkable follow-up (there is no
+        // retained FAILED status to continue from).
         FollowUpWalk walk = new FollowUpWalk(microscope)
                 .seed(CONNECTOR_STATUS, Json.createObject(), "the walk's start")
-                .seed(CONNECTOR_DOWNLOAD, lastHalfHour().put("sessionRef", recordedSessionRef()), "the user's window")
-                .seed(CONNECTOR_DOWNLOAD, Json.createObject().put("sessionRef", cutShortRef).put("window", "WHOLE"),
-                        "the user's choice of a session cut short");
+                .seed(CONNECTOR_DOWNLOAD, lastHalfHour().put("sessionRef", recordedSessionRef()), "the user's window");
 
         assertEquals(new TreeSet<>(REACHED), walk.run());
     }

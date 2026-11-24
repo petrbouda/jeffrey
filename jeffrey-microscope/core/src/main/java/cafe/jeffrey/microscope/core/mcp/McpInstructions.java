@@ -40,7 +40,6 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JFR;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.JVM;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.MEMORY;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.METHOD_TRACING;
-import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.OPERATIONS;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.PROFILES;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.RECORDINGS;
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TIMELINE;
@@ -68,7 +67,7 @@ import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies.TRACES;
  * that is withheld would send the reader after tools that do not exist, and the writer count is the
  * count of the writers that are actually served.
  */
-final class McpInstructions {
+public final class McpInstructions {
 
     private static final String PARAGRAPH_BREAK = "\n\n";
     private static final String LIST_SEPARATOR = ", ";
@@ -98,7 +97,7 @@ final class McpInstructions {
     private static final String FAMILIES_SUFFIX = " families";
 
     /** The families whose tools take no profileId, in the order the sentence names them. */
-    private static final List<String> UNSCOPED_FAMILIES = List.of(RECORDINGS, CONNECTOR, OPERATIONS);
+    private static final List<String> UNSCOPED_FAMILIES = List.of(RECORDINGS, CONNECTOR);
 
     private static final String FAMILY_GUIDE = "Which family answers what: %s.";
 
@@ -126,8 +125,7 @@ final class McpInstructions {
             new FamilyGuide(JFR, "jfr_ DuckDB SQL over the profile database when no dashboard answers"),
             new FamilyGuide(RECORDINGS, "recordings_ turning a file into a profile"),
             new FamilyGuide(CONNECTOR, "connector_ recordings and the files beside them on the connector recording volume"),
-            new FamilyGuide(IDE, "ide_ where a frame lives in the developer's editor"),
-            new FamilyGuide(OPERATIONS, "operations_ the work the writers start"));
+            new FamilyGuide(IDE, "ide_ where a frame lives in the developer's editor"));
 
     private static final String ORDER_INTRODUCTION = "Call order that matters:";
     private static final String SENTENCE_SEPARATOR = " ";
@@ -177,8 +175,8 @@ final class McpInstructions {
                     + "ranking by retained size comes back empty, and heap_status is polled after it rather "
                     + "than the report retried. heap_listTables and heap_describeTable come before "
                     + "heap_executeQuery, and heap_diff takes the earlier dump as its baseline."),
-            new OrderRule(Set.of(RECORDINGS), "A recordings_analyzeFile or recordings_analyzeRecording that "
-                    + "answered with a running operationId or a task is followed, not called again; "
+            new OrderRule(Set.of(RECORDINGS), "A recordings_analyzeFile or recordings_analyzeRecording "
+                    + "streams progress and returns the profile when it finishes; "
                     + "recordings_delete clears a recording once its question is answered."),
             new OrderRule(Set.of(RECORDINGS, PROFILES), "After a recordings_delete, profiles_list is the "
                     + "catalogue to trust: the deleted profile id no longer works."),
@@ -188,7 +186,7 @@ final class McpInstructions {
                     + "minutes, the startup, latest or peak chunk, the minutes before or around a moment) or "
                     + "the span its started and duration columns allow, and recordings_analyzeRecording turns "
                     + "the recordingId into a profile; a transfer still running is joined by calling "
-                    + "connector_download with the arguments its followUp names, or by following its task."),
+                    + "connector_download with the arguments its followUp names."),
             new OrderRule(Set.of(IDE), "ide_resolve comes before a finding names a file or a line - the "
                     + "exports carry call paths, never file paths; ide_windows settles a window ide_resolve "
                     + "calls ambiguous and ide_link pins it; ide_open is for when the reader asked to be "
@@ -222,30 +220,20 @@ final class McpInstructions {
             Writer.slow(CONNECTOR, "connector_download", "connector_download"),
             Writer.slow(CONNECTOR, "connector_fetchFile", "connector_fetchFile"),
             Writer.slow(JVM, "jvm_autoAnalysis", "jvm_autoAnalysis with compute"),
-            Writer.quick(OPERATIONS, "operations_cancel"),
             Writer.quick(IDE, "ide_link"),
             Writer.quick(IDE, "ide_open"));
 
     private static final String ALL_READ_ONLY = "Every tool here is read-only.";
     private static final String WRITERS_ONE = "%s tool is not read-only: %s. It does not alter an analysed profile.";
     private static final String WRITERS_MANY = "%s tools are not read-only: %s. None of them alters an analysed profile.";
-    /**
-     * The other way to follow the same work. One text serves every client, so it names both paths; every
-     * slow writer's family starts an operation, and a served operation is what declares the extension.
-     */
-    private static final String TASK_PATH = " A client that declared the MCP tasks extension gets a standard "
-            + "task after about 5 s instead, whose taskId is that operationId: follow it with tasks/get and "
-            + "stop it with tasks/cancel.%s The rest answer straight away and have no operationId to poll.";
-    private static final String SLOW_ONE = " The one that can take a while - %s - waits up to 45 s, then "
-            + "answers with an operationId; poll operations_status until it completes, and "
-            + "operations_cancel to stop it." + TASK_PATH;
-    private static final String SLOW_MANY = " The %s that can take a while - %s - wait up to 45 s, then "
-            + "answer with an operationId; poll operations_status until it completes, and "
-            + "operations_cancel to stop it." + TASK_PATH;
-    private static final String NONE_SLOW = " They all answer straight away and have no operationId to poll.";
-    /** Which handle comes back is the client's declaration, not the server's choice; neither waits. */
-    private static final String HEAP_PREPARE_AT_ONCE = " heap_prepare does not wait: a client that declared the "
-            + "tasks extension gets its task at once, any other client its operationId.";
+    private static final String SLOW_ONE = " The one that can take a while - %s - runs on the call and streams "
+            + "notifications/progress over the response's SSE stream, then returns its result on the same "
+            + "stream when it finishes.%s";
+    private static final String SLOW_MANY = " The %s that can take a while - %s - run on the call and stream "
+            + "notifications/progress over the response's SSE stream, then return their result on the same "
+            + "stream when they finish.%s";
+    private static final String NONE_SLOW = " They all answer straight away.";
+    private static final String HEAP_PREPARE_AT_ONCE = "";
     private static final String NO_NOTE = "";
 
     private static final Map<Integer, String> NUMBER_WORDS = Map.ofEntries(
@@ -288,7 +276,7 @@ final class McpInstructions {
             + "such as %s.";
     private static final String COST_SCALE = "CHEAP, MODERATE or EXPENSIVE";
     private static final String COST_SCALE_WITH_SLOW = "CHEAP, MODERATE, EXPENSIVE, or "
-            + McpToolCost.SLOW.name() + " for one that may finish its work in the background";
+            + McpToolCost.SLOW.name() + " for one that runs on the call and streams progress until it finishes";
     private static final String EXAMPLE_SEPARATOR = " or ";
 
     /** How many requirement examples the sentence gives at most. */
@@ -323,7 +311,7 @@ final class McpInstructions {
     /**
      * The instructions for an installation that advertises these families.
      */
-    static String text(AdvertisedFamilies advertised) {
+    public static String text(AdvertisedFamilies advertised) {
         List<String> paragraphs = new ArrayList<>();
         paragraphs.add(INTRODUCTION);
         if (advertised.has(PROFILES)) {

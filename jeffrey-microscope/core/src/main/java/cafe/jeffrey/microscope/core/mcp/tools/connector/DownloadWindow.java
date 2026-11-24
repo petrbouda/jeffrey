@@ -16,7 +16,7 @@
  */
 package cafe.jeffrey.microscope.core.mcp.tools.connector;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
+import cafe.jeffrey.microscope.mcp.server.McpFormSchema;
 
 import java.util.Arrays;
 import java.util.List;

@@ -19,10 +19,9 @@ package cafe.jeffrey.microscope.core.mcp.tools.jvm;
 
 import cafe.jeffrey.microscope.core.mcp.MicroscopeView;
 import cafe.jeffrey.microscope.core.mcp.tools.AutoAnalysisStatus;
-import cafe.jeffrey.microscope.core.mcp.tools.McpOperationRegistry;
 import cafe.jeffrey.microscope.core.mcp.tools.NextSteps;
-import cafe.jeffrey.microscope.mcp.protocol.McpDescription;
-import cafe.jeffrey.microscope.mcp.protocol.McpNullable;
+import cafe.jeffrey.microscope.mcp.server.McpDescription;
+import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.core.profile.model.Type;
 import cafe.jeffrey.microscope.core.profile.analysis.AutoAnalysisResult;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
@@ -134,8 +133,6 @@ public record AutoAnalysisSection(ProfileManager profileManager)
      * operation a compute request started or joined.
      *
      * @param status      whether the rules have run; NOT_COMPUTED while a compute request is still running
-     * @param operationId the compute run behind this answer; null when the result was read from the cache
-     * @param operation   that run as operations_status reports it, less its result; null when there is none
      */
     public record Answer(
             AutoAnalysisStatus status,
@@ -149,12 +146,6 @@ public record AutoAnalysisSection(ProfileManager profileManager)
             @McpNullable
             @McpDescription("The rules' findings; null until they have run")
             AutoAnalysisDashboard dashboard,
-            @McpNullable
-            String operationId,
-            @McpNullable
-            @McpDescription("The compute run as operations_status reports it, without its result, which is "
-                    + "the dashboard here; null when the answer was read from the cache")
-            McpOperationRegistry.Snapshot operation,
             McpFollowUp followUp,
             @McpDescription(SectionHeader.UI_LINK)
             String uiLink) {

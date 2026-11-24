@@ -17,11 +17,11 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpInputResponse;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpCallContext;
+import cafe.jeffrey.microscope.mcp.server.McpFormElicitation;
+import cafe.jeffrey.microscope.mcp.server.McpFormSchema;
+import cafe.jeffrey.microscope.mcp.server.McpInputResponse;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import cafe.jeffrey.microscope.core.manager.recordings.Recording;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;

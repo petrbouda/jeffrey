@@ -92,7 +92,7 @@ AREAS = [
      "families": ["heap"]},
     {"name": "shared", "label": "Shared", "agent": None,
      "skills": ["analyze-connector", "help", "report"],
-     "families": ["connector", "operations", "profiles", "recordings"]},
+     "families": ["connector", "profiles", "recordings"]},
 ]
 # The agents the plugin ships, under their current and their historical names. A run may also hand work to
 # one of the client's own (Claude Code's Explore, general-purpose): that is a call like any other tool's,

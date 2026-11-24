@@ -17,9 +17,6 @@
 
 package cafe.jeffrey.microscope.mcp.server;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpText;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 
 /**
  * Jeffrey's ceiling on what one tool hands back to the model, and the capping helpers that apply it.

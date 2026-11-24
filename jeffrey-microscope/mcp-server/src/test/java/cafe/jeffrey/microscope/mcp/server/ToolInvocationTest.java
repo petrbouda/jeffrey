@@ -17,16 +17,6 @@
 package cafe.jeffrey.microscope.mcp.server;
 
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
-import cafe.jeffrey.microscope.mcp.protocol.McpCallContext;
-import cafe.jeffrey.microscope.mcp.protocol.McpClientCapabilities;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormElicitation;
-import cafe.jeffrey.microscope.mcp.protocol.McpFormSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpTraceContext;
-import cafe.jeffrey.microscope.mcp.protocol.ToolDispatchException;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
 import jdk.jfr.Recording;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
@@ -180,13 +170,6 @@ class ToolInvocationTest {
         }
 
         @Test
-        void passesATaskThroughAsItself() {
-            McpToolOutcome.Deferred deferred = assertInstanceOf(McpToolOutcome.Deferred.class, invokeOutcome("defer"));
-
-            assertEquals("op-7", deferred.taskId());
-        }
-
-        @Test
         void passesAResultThroughAsItself() {
             assertEquals("answered", invokeOutcome("answer").requireComplete().text());
         }
@@ -196,11 +179,10 @@ class ToolInvocationTest {
             assertEquals("", invokeOutcome("nothing").requireComplete().text());
         }
 
-        /** The schema promises structured data on a result; a task has no result yet to hold it. */
+        /** A tool that declares an output schema must return structured content. */
         @Test
         void holdsOnlyAResultToItsDeclaredOutputSchema() {
             assertThrows(IllegalStateException.class, () -> invokeOutcome("plainButDeclared"));
-            assertInstanceOf(McpToolOutcome.Deferred.class, invokeOutcome("deferDeclared"));
         }
     }
 
@@ -371,10 +353,6 @@ class ToolInvocationTest {
             return QUESTION;
         }
 
-        public McpToolOutcome defer() {
-            return new McpToolOutcome.Deferred("op-7");
-        }
-
         public McpToolOutcome answer() {
             return McpToolResult.text("answered");
         }
@@ -386,11 +364,6 @@ class ToolInvocationTest {
         @McpOutputSchema(Empty.class)
         public McpToolOutcome plainButDeclared() {
             return McpToolResult.text("no structure");
-        }
-
-        @McpOutputSchema(Empty.class)
-        public McpToolOutcome deferDeclared() {
-            return new McpToolOutcome.Deferred("op-8");
         }
 
         public String echo(String message) {

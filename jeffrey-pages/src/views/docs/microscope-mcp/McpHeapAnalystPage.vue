@@ -63,7 +63,7 @@ Notes: dominator tree built for this; leak suspects computed.`;
       </DocsCallout>
 
       <h2 id="its-tools">Its Tools</h2>
-      <p><code>heap_*</code>, <code>profiles_*</code> and <code>operations_status</code>. It builds a missing dominator tree or report with <code>heap_prepare</code>, and <code>heap_oql</code> with <code>includeRetainedSize</code> stays open; both only fill a cache. Its handbook, in its own definition, is cut from <code>analyze-heap</code> and <code>heap-sql</code>.</p>
+      <p><code>heap_*</code> and <code>profiles_*</code>. It builds a missing dominator tree or report with <code>heap_prepare</code>, and <code>heap_oql</code> with <code>includeRetainedSize</code> stays open; both only fill a cache. Its handbook, in its own definition, is cut from <code>analyze-heap</code> and <code>heap-sql</code>.</p>
 
       <h2 id="what-it-returns">What It Returns</h2>
       <p>For each finding the class name, the retained bytes and the GC-root path &mdash; findings only, about forty lines at most:</p>

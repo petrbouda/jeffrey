@@ -21,12 +21,12 @@ import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapReport;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HeapObjectIds;
 import cafe.jeffrey.microscope.core.mcp.tools.heap.HistogramOrder;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCoreRepositories;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.BiggestObjectEntry;
 import cafe.jeffrey.microscope.core.profile.heapdump.model.BiggestObjectsReport;
@@ -190,9 +190,7 @@ class HeapDumpMcpToolsTest {
                 CatalogueSpecs.profileScoped(HeapDiffMcpTools.class, AdvertisedFamilies.HEAP),
                 CatalogueSpecs.profileScoped(ProfileMcpTools.class, AdvertisedFamilies.PROFILES),
                 CatalogueSpecs.served(new ProfilesMcpTools(mock(MicroscopeCoreRepositories.class), EVERY_FAMILY),
-                        AdvertisedFamilies.PROFILES),
-                CatalogueSpecs.served(new OperationsMcpTools(new McpOperationRegistry(Clock.systemUTC()), kind -> true),
-                        AdvertisedFamilies.OPERATIONS));
+                        AdvertisedFamilies.PROFILES));
     }
 
     private static Set<String> nextTools(JsonNode structured) {

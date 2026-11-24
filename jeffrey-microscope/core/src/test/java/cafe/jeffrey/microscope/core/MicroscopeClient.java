@@ -19,8 +19,8 @@ package cafe.jeffrey.microscope.core;
 
 import cafe.jeffrey.microscope.core.mcp.tools.UiLinkRoutes;
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpTestRequests;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
+import cafe.jeffrey.microscope.mcp.server.testing.McpTestRequests;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -54,6 +54,10 @@ final class MicroscopeClient {
     private static final String ACCEPT = "Accept";
     private static final String JSON = "application/json";
     private static final String MCP_ACCEPT = "application/json, text/event-stream";
+    private static final String EVENT_STREAM = "text/event-stream";
+    private static final String SSE_DATA_FIELD = "data:";
+    private static final String JSONRPC_RESULT = "result";
+    private static final String JSONRPC_ERROR = "error";
     private static final int HTTP_OK = 200;
     private static final Duration TIMEOUT = Duration.ofSeconds(60);
 
@@ -165,9 +169,56 @@ final class MicroscopeClient {
         request.httpHeaders().forEach(http::header);
         HttpResponse<String> response = send(http);
         assertEquals(HTTP_OK, response.statusCode(), () -> "POST " + MCP_PATH + ": " + response.body());
-        JsonNode body = Json.readTree(response.body());
-        assertFalse(body.has("error"), () -> "JSON-RPC error: " + body);
-        return body.path("result");
+        JsonNode body = message(response);
+        assertFalse(body.has(JSONRPC_ERROR), () -> "JSON-RPC error: " + body);
+        return body.path(JSONRPC_RESULT);
+    }
+
+    /**
+     * The JSON-RPC response in a modern server's reply. A {@code tools/call} answers over Streamable
+     * HTTP as a {@code text/event-stream}: {@code notifications/progress} frames, then the result frame
+     * last. This reads the {@code data:} payloads and returns the one carrying the JSON-RPC response -
+     * the frame with a {@code result} or {@code error} - so a streamed long tool reads the same as a
+     * plain one. A reply that is plain JSON (no event stream) is parsed as it is.
+     */
+    private static JsonNode message(HttpResponse<String> response) {
+        String contentType = response.headers().firstValue(CONTENT_TYPE).orElse("");
+        String body = response.body();
+        if (!contentType.contains(EVENT_STREAM)) {
+            return Json.readTree(body);
+        }
+        JsonNode responseMessage = null;
+        StringBuilder data = new StringBuilder();
+        for (String rawLine : body.split("\n", -1)) {
+            String line = rawLine.endsWith("\r") ? rawLine.substring(0, rawLine.length() - 1) : rawLine;
+            if (line.startsWith(SSE_DATA_FIELD)) {
+                if (data.length() > 0) {
+                    data.append('\n');
+                }
+                data.append(line.substring(SSE_DATA_FIELD.length()).stripLeading());
+            } else if (line.isEmpty() && data.length() > 0) {
+                JsonNode frame = responseFrame(data.toString());
+                if (frame != null) {
+                    responseMessage = frame;
+                }
+                data.setLength(0);
+            }
+        }
+        if (data.length() > 0) {
+            JsonNode frame = responseFrame(data.toString());
+            if (frame != null) {
+                responseMessage = frame;
+            }
+        }
+        JsonNode resolved = responseMessage;
+        assertTrue(resolved != null, () -> "No JSON-RPC response frame in the SSE body: " + body);
+        return resolved;
+    }
+
+    /** One SSE {@code data:} payload, kept only when it is the JSON-RPC response rather than a notification. */
+    private static JsonNode responseFrame(String data) {
+        JsonNode frame = Json.readTree(data);
+        return frame.has(JSONRPC_RESULT) || frame.has(JSONRPC_ERROR) ? frame : null;
     }
 
     private URI uri(String path) {

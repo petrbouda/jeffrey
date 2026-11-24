@@ -17,13 +17,13 @@
 package cafe.jeffrey.microscope.core.mcp;
 
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.mcp.protocol.McpResource;
-import cafe.jeffrey.microscope.mcp.protocol.McpResourceLink;
-import cafe.jeffrey.microscope.mcp.protocol.McpResourceLinker;
-import cafe.jeffrey.microscope.mcp.protocol.McpResourceNotFoundException;
-import cafe.jeffrey.microscope.mcp.protocol.McpResourceProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolProvider;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.McpResource;
+import cafe.jeffrey.microscope.mcp.server.McpResourceLink;
+import cafe.jeffrey.microscope.mcp.server.McpResourceLinker;
+import cafe.jeffrey.microscope.mcp.server.McpResourceNotFoundException;
+import cafe.jeffrey.microscope.mcp.server.McpResourceProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolProvider;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
 import cafe.jeffrey.microscope.mcp.server.McpToolNames;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.node.ObjectNode;

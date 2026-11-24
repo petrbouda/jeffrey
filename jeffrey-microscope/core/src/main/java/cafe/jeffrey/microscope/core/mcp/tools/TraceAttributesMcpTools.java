@@ -30,10 +30,10 @@ import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.Value
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.Values;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceAttributeAnswers.ValuesStatus;
 import cafe.jeffrey.microscope.core.mcp.tools.traces.TraceLinks;
-import cafe.jeffrey.microscope.mcp.protocol.McpCursor;
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.server.McpCursor;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeKeyRow;
 import cafe.jeffrey.microscope.core.profile.manager.model.trace.TraceAttributeSearchResult;

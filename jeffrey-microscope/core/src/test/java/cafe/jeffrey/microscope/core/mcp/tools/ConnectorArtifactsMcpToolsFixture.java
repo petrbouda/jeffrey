@@ -22,38 +22,24 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
 
 /**
- * Builds {@link ConnectorArtifactsMcpTools} for a test: the standard answers, and the budgets the
- * {@code jeffrey.microscope.mcp.connector.download-*} properties give production, unless the test says otherwise.
+ * Builds {@link ConnectorArtifactsMcpTools} for a test. Fetches run synchronously on the call.
  */
 public record ConnectorArtifactsMcpToolsFixture(
         ProjectManagerResolver resolver,
         RecordingsManager recordings,
         Path artifactsDir,
         Path profilesDir,
-        McpOperationRegistry operations,
-        OperationAnswers answers,
-        Clock clock,
-        Duration responseBudget,
         AdvertisedFamilies advertised) {
 
     public static ConnectorArtifactsMcpToolsFixture of(
             ProjectManagerResolver resolver, RecordingsManager recordings, Path artifactsDir, Path profilesDir,
-            McpOperationRegistry operations, Clock clock, AdvertisedFamilies advertised) {
-        return new ConnectorArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, operations,
-                ToolFixtures.answers(), clock, BoundedJobs.WAIT_BUDGET, advertised);
-    }
-
-    public ConnectorArtifactsMcpToolsFixture withBudget(Duration response) {
-        return new ConnectorArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, operations, answers,
-                clock, response, advertised);
+            AdvertisedFamilies advertised) {
+        return new ConnectorArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, advertised);
     }
 
     public ConnectorArtifactsMcpTools build() {
-        return new ConnectorArtifactsMcpTools(resolver, recordings, artifactsDir, profilesDir, operations, answers, clock,
-                responseBudget, advertised);
+        return new ConnectorArtifactsMcpTools(resolver, recordings, artifactsDir, profilesDir, advertised);
     }
 }

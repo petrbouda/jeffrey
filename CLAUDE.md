@@ -28,8 +28,7 @@ jeffrey-microscope/                    MicroscopeApplication (core), Vue SPA (pa
                                        frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
                                        orchestration, …) and the JFR model it reads (core.profile.jfr: the JFR model
                                        types; core.profile.{event,exceptions,analysis,treetable,graph}),
-                                       the init pipelines (core.pipeline) and the long-running
-                                       operations polled over MCP (core.operation), Jeffrey's own jeffrey.Notification
+                                       the init pipelines (core.pipeline), Jeffrey's own jeffrey.Notification
                                        events (core.notification), the recording parsers (core.profile.parser: JFR via the JDK and
                                        raw chunks, pprof, OTLP), heap dumps (core.profile.heapdump, OQL in .oql), the
                                        per-profile DuckDB (core.profile.persistence: repository API + impl), the core
@@ -64,9 +63,10 @@ jeffrey-microscope/                    MicroscopeApplication (core), Vue SPA (pa
                                        in model.repository; the imported recordings' file kinds (ManagedFile,
                                        FileCategory, FileExtensions) in model.recording; file matchers in
                                        model.repository.matcher)
-  mcp-protocol/                        pure MCP 2026-07-28 protocol: validator, dispatcher, extensions, schema tooling;
-                                       no Jeffrey, no Spring (ModuleBoundaryTest)
-  mcp-server/                          Jeffrey's MCP adapter: Spring MVC, @Tool reflection, profile scoping, hints, findings
+  mcp-server/                          one MCP module: the MCP 2026-07-28 protocol types + SPI (tool/result/outcome
+                                       records, closed schema tooling, cursor, extensions) and Jeffrey's @Tool adapter
+                                       over them (ReflectiveToolset/ProfileScopedToolset/ToolMethodIndex, the
+                                       ToolInvocation span, hints, findings); the modern Spring AI server + bridge live in core
 volume-scheduler/                      one module: VolumeSchedulerApplication (cafe.jeffrey.volumescheduler: config/ (typed
                                        jeffrey.volume-scheduler.* properties), volume/, scheduler/, retention/, compression/,
                                        storage/, web/ (the REST API: /api/v1 storage and jobs)) — no database, no UI:
@@ -138,7 +138,7 @@ Verification agents: `java-compiler`, `frontend-builder`, `test-runner`, `design
 - **A recording's files are never joined**; a download is an unbroken run of chunks, pulled one file per call; compression happens in the volume scheduler's compression job, never on a read path.
 - **Artifacts (logs, crash files, dumps) are handed to the agent as a path**, not parsed server-side and not catalogued.
 - **The IntelliJ plugin never renders profile data** beyond the recording panel's four figures + findings; everything else links to Microscope.
-- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 116 tools and the eleven writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
+- Counts and sets repeated in prose are pinned by tests (`McpToolsetAssemblerTest`: 114 tools and the ten writers; `ProfileRouteManifestTest`); update the prose, never loosen the test.
 
 ## Testing
 

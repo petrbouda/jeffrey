@@ -17,16 +17,13 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.mcp.protocol.McpOutputSchema;
-import cafe.jeffrey.microscope.mcp.protocol.McpSchemaGenerator;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskState;
-import cafe.jeffrey.microscope.mcp.protocol.McpTaskStatus;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolOutcome;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolResult;
-import cafe.jeffrey.microscope.mcp.protocol.McpToolSpec;
-import cafe.jeffrey.microscope.mcp.protocol.ToolExecutionException;
-import cafe.jeffrey.microscope.mcp.protocol.testing.McpSchemaConformance;
-import cafe.jeffrey.microscope.core.operation.OperationState;
+import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
+import cafe.jeffrey.microscope.mcp.server.McpSchemaGenerator;
+import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
+import cafe.jeffrey.microscope.mcp.server.McpToolResult;
+import cafe.jeffrey.microscope.mcp.server.McpToolSpec;
+import cafe.jeffrey.microscope.mcp.server.ToolExecutionException;
+import cafe.jeffrey.microscope.mcp.server.testing.McpSchemaConformance;
 import cafe.jeffrey.microscope.mcp.server.McpNextToolConformance;
 import cafe.jeffrey.microscope.mcp.server.ReflectiveToolset;
 import cafe.jeffrey.microscope.core.utils.Json;
@@ -58,16 +55,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 import static cafe.jeffrey.microscope.core.mcp.AdvertisedFamiliesFixture.EVERY_FAMILY;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.SHORT_TASK_WAIT;
-import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.TASKS;
 import static cafe.jeffrey.microscope.core.mcp.tools.McpCallContexts.complete;
-import static cafe.jeffrey.microscope.mcp.protocol.McpCallContext.RESOURCE_READ;
+import static cafe.jeffrey.microscope.mcp.server.McpCallContext.RESOURCE_READ;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTimeout;
@@ -88,7 +81,6 @@ class HeapOqlMcpToolsTest {
     private static final String PROFILE_ID = "p-1";
     private static final String QUERY = "SELECT * FROM INSTANCEOF java.util.HashMap";
     private static final String HASH_MAP = "java.util.HashMap";
-    private static final String OPERATION_PREFIX = "Operation: ";
 
     private static final int DEFAULT_LIMIT = 50;
     private static final int MAX_LIMIT = 100;
@@ -119,23 +111,8 @@ class HeapOqlMcpToolsTest {
         RequestContextHolder.resetRequestAttributes();
     }
 
-    private final McpOperationRegistry operations = new McpOperationRegistry(CLOCK);
-
-    private final AtomicInteger leases = new AtomicInteger();
-
-    private Duration waitBudget = Duration.ofSeconds(5);
-
-    private OperationAnswers answers = ToolFixtures.answers();
-
     private HeapOqlMcpTools tools() {
-        BoundedOperation<OQLQueryResult> retained = new BoundedOperation<>(
-                OperationKind.HEAP_OQL,
-                ToolFixtures.jobs(waitBudget, BoundedJobs.COMPLETED_RETENTION, CLOCK),
-                operations, answers);
-        return new HeapOqlMcpTools(profileManager, retained, () -> {
-            leases.incrementAndGet();
-            return leases::decrementAndGet;
-        }, EVERY_FAMILY);
+        return new HeapOqlMcpTools(profileManager, EVERY_FAMILY);
     }
 
     private void answers(OQLQueryResult result) {
@@ -434,56 +411,19 @@ class HeapOqlMcpToolsTest {
     @Nested
     class RetainedSize {
 
-        /** The rows are the answer's own; the operation beside them does not repeat them. */
+        /** With includeRetainedSize the rows come back on the same call. */
         @Test
-        void answersWithinTheBudgetCarryingTheOperationWithoutRepeatingTheRows() {
+        void answersTheRowsSynchronously() {
             answers(twoInstances());
 
             JsonNode out = conforming(tools().oql(QUERY, null, null, true, RESOURCE_READ));
 
             assertEquals("4711", out.get("rows").get(0).get("objectId").asString());
-            String operationId = out.get("operationId").asString();
-            assertEquals(operationId, out.get("operation").get("operationId").asString());
-            assertTrue(out.get("operation").get("result").isNull(), out.toString());
-            assertTrue(Json.toString(operations.status(operationId)).contains("\"4711\""),
-                    "operations_status still carries the rows");
-            await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
         }
 
+        /** A failed query is raised as a tool error carrying the parser's message. */
         @Test
-        void handsBackARunningStatusWithTheOperationWhenTheQueryOutlastsTheBudget() throws Exception {
-            waitBudget = Duration.ofMillis(50);
-            CountDownLatch release = new CountDownLatch(1);
-            when(heapDumpManager.executeQuery(any())).thenAnswer(invocation -> {
-                assertTrue(release.await(5, TimeUnit.SECONDS));
-                return twoInstances();
-            });
-
-            JsonNode started = conforming(tools().oql(QUERY, null, null, true, RESOURCE_READ));
-            String operationId = started.path("operationId").asString();
-
-            assertEquals("RUNNING", started.path("status").asString(), started.toString());
-            assertFalse(started.path("followUp").path("guidance").toString()
-                    .contains(started.path("reason").asString()), "the reason is not repeated as guidance");
-            assertEquals("HEAP_OQL", started.path("operation").path("kind").asString());
-            assertEquals(0, started.get("rows").size());
-            assertEquals(operationId, call(started, "operations_status").get("operationId").asString());
-            assertEquals(1, leases.get(), "the worker holds the profile open while the query runs");
-
-            release.countDown();
-            await().atMost(5, TimeUnit.SECONDS)
-                    .until(() -> operations.status(operationId).status() == OperationState.COMPLETED);
-            String polled = Json.toString(operations.status(operationId));
-            assertTrue(polled.contains("\"4711\""), polled);
-            await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
-        }
-
-        /**
-         * A failed run's operation names the call that starts it again, with its arguments, rather
-         * than prose about retrying.
-         */
-        @Test
-        void aFailedRunNamesTheRetryCall() {
+        void aFailedRunIsAnError() {
             answers(OQLQueryResult.error("Unexpected token at position 14", 2));
 
             ToolExecutionException error = assertThrows(
@@ -491,24 +431,15 @@ class HeapOqlMcpToolsTest {
                     () -> complete(tools().oql("SELECT * FRM x", 7, null, true, RESOURCE_READ)));
 
             assertTrue(error.getMessage().contains("position 14"), error.getMessage());
-            JsonNode operation = Json.readTree(error.getMessage().substring(
-                    error.getMessage().indexOf(OPERATION_PREFIX) + OPERATION_PREFIX.length()));
-            JsonNode retry = operation.get("followUp").get("nextTools").get(0);
-            assertEquals("heap_oql", retry.get("tool").asString());
-            assertEquals("SELECT * FRM x", retry.get("arguments").get("query").asString());
-            assertTrue(retry.get("arguments").get("includeRetainedSize").asBoolean());
-            assertEquals(PROFILE_ID, retry.get("arguments").get("profileId").asString());
-            assertEquals(1, McpNextToolConformance.assertFollowable(operation, HeapDumpMcpToolsTest.reachable()));
         }
 
         @Test
-        void aPlainQueryNeverBecomesAnOperation() {
+        void aPlainQueryAnswersTheRowsDirectly() {
             answers(twoInstances());
 
             JsonNode out = conforming(tools().oql(QUERY, null, null, null, RESOURCE_READ));
 
-            assertTrue(out.get("operationId").isNull(), out.toString());
-            assertTrue(out.get("operation").isNull(), out.toString());
+            assertEquals("4711", out.get("rows").get(0).get("objectId").asString());
         }
 
         @Test
@@ -520,50 +451,6 @@ class HeapOqlMcpToolsTest {
 
             assertFalse(spec.annotations().readOnly());
             assertTrue(spec.annotations().idempotent());
-        }
-    }
-
-    /**
-     * A client that declared the tasks extension gets a query that builds the dominator tree handed
-     * back as a task after the task budget rather than the standard 45 s, and the task answers with
-     * the rows.
-     */
-    @Nested
-    class TaskCapableClient {
-
-        @Test
-        void handsBackTheRunningQueryAsATaskWellBeforeTheStandardWait() throws Exception {
-            waitBudget = BoundedJobs.WAIT_BUDGET;
-            answers = new OperationAnswers(SHORT_TASK_WAIT);
-            CountDownLatch release = new CountDownLatch(1);
-            when(heapDumpManager.executeQuery(any())).thenAnswer(invocation -> {
-                assertTrue(release.await(60, TimeUnit.SECONDS));
-                return twoInstances();
-            });
-            HeapOqlMcpTools tools = tools();
-
-            McpToolOutcome outcome;
-            try {
-                outcome = assertTimeout(Duration.ofSeconds(20),
-                        () -> tools.oql(QUERY, null, null, true, TASKS));
-            } catch (AssertionError e) {
-                release.countDown();
-                throw e;
-            }
-
-            String taskId = assertInstanceOf(McpToolOutcome.Deferred.class, outcome).taskId();
-            assertEquals(OperationKind.HEAP_OQL, operations.status(taskId).kind());
-            assertEquals(McpTaskStatus.WORKING, operations.task(taskId, kind -> true).status());
-
-            release.countDown();
-            await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> assertEquals(
-                    McpTaskStatus.COMPLETED, operations.task(taskId, kind -> true).status()));
-            McpToolResult answer = assertInstanceOf(McpTaskState.Completed.class,
-                    operations.task(taskId, kind -> true).state()).result();
-            JsonNode structured = conforming(answer);
-            assertEquals("4711", structured.get("rows").get(0).get("objectId").asString());
-            assertEquals(taskId, structured.path("operationId").asString());
-            await().atMost(5, TimeUnit.SECONDS).until(() -> leases.get() == 0);
         }
     }
 
