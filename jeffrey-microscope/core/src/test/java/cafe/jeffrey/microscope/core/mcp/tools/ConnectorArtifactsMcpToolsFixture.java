@@ -22,39 +22,24 @@ import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
 import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
 
 /**
- * Builds {@link ConnectorArtifactsMcpTools} for a test: the budget the
- * {@code jeffrey.microscope.mcp.connector.download-*} properties give production, unless the test says
- * otherwise. Fetches run synchronously on the call.
+ * Builds {@link ConnectorArtifactsMcpTools} for a test. Fetches run synchronously on the call.
  */
 public record ConnectorArtifactsMcpToolsFixture(
         ProjectManagerResolver resolver,
         RecordingsManager recordings,
         Path artifactsDir,
         Path profilesDir,
-        Clock clock,
-        Duration responseBudget,
         AdvertisedFamilies advertised) {
-
-    public static final Duration RESPONSE_BUDGET = Duration.ofSeconds(45);
 
     public static ConnectorArtifactsMcpToolsFixture of(
             ProjectManagerResolver resolver, RecordingsManager recordings, Path artifactsDir, Path profilesDir,
-            Clock clock, AdvertisedFamilies advertised) {
-        return new ConnectorArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, clock,
-                RESPONSE_BUDGET, advertised);
-    }
-
-    public ConnectorArtifactsMcpToolsFixture withBudget(Duration response) {
-        return new ConnectorArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, clock,
-                response, advertised);
+            AdvertisedFamilies advertised) {
+        return new ConnectorArtifactsMcpToolsFixture(resolver, recordings, artifactsDir, profilesDir, advertised);
     }
 
     public ConnectorArtifactsMcpTools build() {
-        return new ConnectorArtifactsMcpTools(resolver, recordings, artifactsDir, profilesDir, clock,
-                responseBudget, advertised);
+        return new ConnectorArtifactsMcpTools(resolver, recordings, artifactsDir, profilesDir, advertised);
     }
 }

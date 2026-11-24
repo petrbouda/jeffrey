@@ -195,7 +195,7 @@ class McpToolsetAssemblerTest {
                 properties,
                 AdvertisedFamilies.of(properties),
                 ConnectorArtifactsMcpToolsFixture.of(projectManagerResolver, recordingsManager, Path.of("artifacts"),
-                        Path.of("profiles"), CLOCK, EVERY_FAMILY).build(),
+                        Path.of("profiles"), EVERY_FAMILY).build(),
                 CLOCK);
     }
 

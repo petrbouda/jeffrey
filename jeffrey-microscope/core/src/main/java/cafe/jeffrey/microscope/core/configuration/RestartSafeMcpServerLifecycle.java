@@ -64,6 +64,11 @@ final class RestartSafeMcpServerLifecycle implements SmartLifecycle {
     }
 
     @Override
+    public void stop(Runnable callback) {
+        delegate.stop(callback);
+    }
+
+    @Override
     public boolean isRunning() {
         return delegate.isRunning();
     }

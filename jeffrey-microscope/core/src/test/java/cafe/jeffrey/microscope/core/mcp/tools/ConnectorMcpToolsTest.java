@@ -970,13 +970,6 @@ class ConnectorMcpToolsTest {
             when(resolver.resolve(ref.workspaceId(), ref.projectId())).thenReturn(project);
         }
 
-        private ConnectorMcpTools toolsWithBudget(Duration responseBudget) {
-            return ConnectorMcpToolsFixture.of(connectorManager, resolver, recordingsManager, CLOCK)
-                    .withBudgets(Duration.ofSeconds(1), responseBudget)
-                    .build();
-        }
-
-
         @Test
         void downloadsTheSessionTheRefNamesAndReturnsTheRecordingId() {
             RecordingsDownloadManager downloads = mock(RecordingsDownloadManager.class);
@@ -1365,32 +1358,6 @@ class ConnectorMcpToolsTest {
 
                 assertTrue(assertInstanceOf(McpToolResult.class, outcome).text().contains("rec-existing"));
                 verify(resolver).resolve(WORKSPACE_ID, PROJECT_ID);
-            }
-
-            /**
-             * There is no in-flight registry any more, so a second eliciting call does not know about a
-             * transfer already running: it reads the session itself and asks the window question rather
-             * than joining. The running transfer is the one call that reached the download manager.
-             */
-            @Test
-            void asksEvenWhileAnotherAttemptIsInFlight() throws Exception {
-                CountDownLatch started = new CountDownLatch(1);
-                CountDownLatch release = new CountDownLatch(1);
-                RecordingsDownloadManager downloads = blockingDownload("rec-whole", started, release);
-                resolvesTo(projectWith(threeHours(), downloads));
-                noLocalRecordings();
-                ConnectorMcpTools impatient = toolsWithBudget(Duration.ofMillis(100));
-                try {
-                    complete(impatient.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ));
-                    assertTrue(started.await(5, TimeUnit.SECONDS));
-
-                    McpToolOutcome outcome = impatient.download(REF.encode(), null, null, null, null, null, null, ELICITING);
-
-                    assertInstanceOf(McpToolOutcome.InputRequired.class, outcome);
-                } finally {
-                    release.countDown();
-                }
-                verify(downloads, times(1)).downloadSession(SESSION_ID);
             }
 
             @Test
@@ -1877,12 +1844,11 @@ class ConnectorMcpToolsTest {
             resolvesTo(otherRef, projectWith(jfrSession(SESSION_ID, NOW), second));
             noLocalRecordings();
 
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofMillis(200));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(otherRef.encode(), null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(otherRef.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
                 boolean bothStarted;
                 try {
@@ -1931,12 +1897,11 @@ class ConnectorMcpToolsTest {
             resolvesTo(project);
             noLocalRecordings();
 
-            ConnectorMcpTools shortBudgetTools = toolsWithBudget(Duration.ofSeconds(1));
             try (ExecutorService callers = Executors.newFixedThreadPool(2)) {
                 Future<String> firstCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
                 Future<String> secondCall = callers.submit(
-                        () -> complete(shortBudgetTools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
+                        () -> complete(tools.download(REF.encode(), null, null, null, null, null, null, RESOURCE_READ)));
 
                 assertTrue(preflights.await(1, TimeUnit.SECONDS));
                 assertTrue(transferStarted.await(1, TimeUnit.SECONDS));

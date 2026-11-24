@@ -17,8 +17,6 @@
 
 package cafe.jeffrey.microscope.core.pipeline;
 
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.common.exception.ErrorCode;
 import cafe.jeffrey.microscope.common.exception.ErrorType;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;
@@ -75,17 +73,16 @@ class PipelineRunRegistryTest {
     @Test
     void rejectedSubmissionTerminatesJoinersAndLeavesResourcesWithTheCaller() {
         AtomicReference<PipelineRunRegistry<String>> registryRef = new AtomicReference<>();
-        AtomicReference<OperationHandle<PipelineProgress>> rejected = new AtomicReference<>();
         AtomicInteger submissions = new AtomicInteger();
         AtomicInteger bodies = new AtomicInteger();
         AtomicInteger completions = new AtomicInteger();
+        AtomicReference<Boolean> joinedStarted = new AtomicReference<>();
         var failure = new RejectedExecutionException("scheduler stopped");
         var registry = new PipelineRunRegistry<String>(DEFINITION, PipelineRunOptions.unbounded(), CLOCK, task -> {
             if (submissions.incrementAndGet() == 1) {
                 // Another caller can join the attempt between its registration and scheduling.
                 var joined = registryRef.get().startOrJoin(PipelineRunRequest.of("profile-1", _ -> bodies.incrementAndGet()), false);
-                assertFalse(joined.started());
-                rejected.set(joined.operation());
+                joinedStarted.set(joined.started());
                 throw failure;
             }
             task.run();
@@ -95,18 +92,17 @@ class PipelineRunRegistryTest {
                 _ -> completions.incrementAndGet());
 
         assertSame(failure, assertThrows(RejectedExecutionException.class, () -> registry.start(request)));
+        assertFalse(joinedStarted.get(), "a joiner of the doomed attempt must not be told it started a run");
+        // The key is released rather than left holding a stranded run.
         assertFalse(registry.isRunning("profile-1"));
-        assertEquals(OperationState.FAILED, rejected.get().snapshot().state());
-        assertEquals(CLOCK.instant(), rejected.get().finishedAt());
-        assertFalse(rejected.get().cancel());
-        assertTrue(registry.operation("profile-1").isEmpty());
+        assertEquals(PipelineState.IDLE, registry.progress("profile-1").state());
         assertEquals(0, bodies.get());
         assertEquals(0, completions.get(), "a rejected start leaves cleanup to the caller");
 
         assertTrue(registry.startOrJoin(request, false).started(), "rejected submissions must not strand the key");
         assertEquals(1, bodies.get());
         assertEquals(1, completions.get());
-        assertEquals(OperationState.COMPLETED, registry.operation("profile-1").orElseThrow().snapshot().state());
+        assertEquals(PipelineState.COMPLETED, registry.progress("profile-1").state());
     }
 
     @Nested
@@ -180,11 +176,10 @@ class PipelineRunRegistryTest {
             PipelineRunRegistry.StartResult first = registry.startOrJoin(request, false);
             assertTrue(first.started());
             await().atMost(5, SECONDS).untilAsserted(() -> assertFalse(registry.isRunning("profile-1")));
-            assertEquals(OperationState.COMPLETED, first.operation().snapshot().state());
+            assertEquals(PipelineState.COMPLETED, registry.progress("profile-1").state());
 
             PipelineRunRegistry.StartResult inspected = registry.startOrJoin(request, false);
             assertFalse(inspected.started(), "an inspection must not restart a completed run");
-            assertSame(first.operation(), inspected.operation());
             assertEquals(1, bodies.get());
 
             PipelineRunRegistry.StartResult retried = registry.startOrJoin(request, true);
@@ -228,95 +223,6 @@ class PipelineRunRegistryTest {
             releaseFirst.countDown();
             assertTrue(secondEntered.await(5, TimeUnit.SECONDS),
                     "the second run must proceed once the slot frees");
-        }
-    }
-
-    @Nested
-    @DisplayName("Cancellation")
-    class Cancellation {
-
-        @Test
-        @DisplayName("marks a cancelled run failed and interrupts the work, which unblocks immediately")
-        void cancelMarksTheRunFailed() throws InterruptedException {
-            PipelineRunRegistry<String> registry = unbounded();
-            CountDownLatch entered = new CountDownLatch(1);
-            CountDownLatch release = new CountDownLatch(1);
-            AtomicReference<PipelineRunResult> stored = new AtomicReference<>();
-
-            registry.start(new PipelineRunRequest<>("profile-1", "",
-                    blockingRun("profile-1", entered, release).work(), stored::set));
-            assertTrue(entered.await(5, TimeUnit.SECONDS));
-
-            assertTrue(registry.cancel("profile-1"));
-
-            // Cancellation becomes terminal only when the worker and its cleanup have ended.
-            await().atMost(5, SECONDS).until(() -> !registry.isRunning("profile-1"));
-            assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
-            // The interrupt reaches the blocked work — no need to release the latch — and the
-            // terminal result delivered to the caller is the cancellation, not a late completion.
-            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
-            assertEquals(PipelineState.FAILED, stored.get().state());
-            assertEquals(PipelineState.FAILED, registry.progress("profile-1").state());
-        }
-
-        @Test
-        @DisplayName("preserves successful completion when the work ignores a cancellation request")
-        void successfulCompletionAfterACancellationRequestIsPreserved() throws InterruptedException {
-            PipelineRunRegistry<String> registry = unbounded();
-            CountDownLatch entered = new CountDownLatch(1);
-            CountDownLatch cancelled = new CountDownLatch(1);
-            AtomicReference<PipelineRunResult> stored = new AtomicReference<>();
-
-            // Work that swallows the interrupt and finishes as if nothing happened — the worst case
-            // for cancellation, because the registry then tries to complete the run.
-            registry.start(new PipelineRunRequest<>("profile-1", "", run -> run.runStage("first", () -> {
-                entered.countDown();
-                try {
-                    cancelled.await();
-                } catch (InterruptedException e) {
-                    // Deliberately ignored: simulates non-interruptible work running to completion.
-                }
-            }), stored::set));
-            assertTrue(entered.await(5, TimeUnit.SECONDS));
-
-            assertTrue(registry.cancel("profile-1"));
-            cancelled.countDown();
-
-            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(stored.get()));
-            assertEquals(PipelineState.COMPLETED, stored.get().state(),
-                    "a request cannot erase a successful result produced by non-cooperative work");
-            assertEquals(PipelineState.COMPLETED, registry.progress("profile-1").state());
-        }
-
-        @Test
-        @DisplayName("a run cancelled while queued for a slot never executes its body")
-        void cancelledQueuedRunNeverExecutes() throws InterruptedException {
-            PipelineRunRegistry<String> registry = new PipelineRunRegistry<>(
-                    DEFINITION, PipelineRunOptions.bounded(1, Duration.ofMinutes(15)), CLOCK);
-            CountDownLatch firstEntered = new CountDownLatch(1);
-            CountDownLatch releaseFirst = new CountDownLatch(1);
-            AtomicInteger secondBodyRuns = new AtomicInteger();
-            AtomicReference<PipelineRunResult> secondResult = new AtomicReference<>();
-
-            assertTrue(registry.start(blockingRun("profile-1", firstEntered, releaseFirst)));
-            assertTrue(firstEntered.await(5, TimeUnit.SECONDS));
-
-            assertTrue(registry.start(new PipelineRunRequest<>("profile-2", "",
-                    run -> run.runStage("first", secondBodyRuns::incrementAndGet),
-                    secondResult::set)));
-
-            assertTrue(registry.cancel("profile-2"));
-            releaseFirst.countDown();
-
-            await().atMost(5, SECONDS).untilAsserted(() -> assertNotNull(secondResult.get()));
-            assertEquals(PipelineState.FAILED, secondResult.get().state());
-            assertEquals(0, secondBodyRuns.get(), "a cancelled queued run must not start its work");
-        }
-
-        @Test
-        @DisplayName("has nothing to cancel when no run is in flight")
-        void cancelIsANoOpWithoutARun() {
-            assertFalse(unbounded().cancel("profile-1"));
         }
     }
 

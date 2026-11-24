@@ -26,8 +26,8 @@ import java.util.Optional;
  * anything the tool asked on an earlier try, and the caller's own trace the call is a step of.
  * <p>
  * A tool declares one parameter of this type to receive it; the parameter is not part of the tool's
- * schema and cannot be sent as an argument. It reports capabilities only — how long to wait before
- * deferring, and whether to ask, is the tool's decision.
+ * schema and cannot be sent as an argument. It reports capabilities only — whether to ask a question
+ * is the tool's decision.
  *
  * @param client         what the client declared
  * @param inputResponses the answers to earlier input requests, by their key
@@ -42,7 +42,7 @@ public record McpCallContext(
 
     /**
      * A tool run to answer {@code resources/read} or another server-side caller: there is no result to
-     * put a question or a task into, no answers to hand over, no caller's trace to continue, and nothing
+     * put a question into, no answers to hand over, no caller's trace to continue, and nothing
      * listening for progress.
      */
     public static final McpCallContext RESOURCE_READ =

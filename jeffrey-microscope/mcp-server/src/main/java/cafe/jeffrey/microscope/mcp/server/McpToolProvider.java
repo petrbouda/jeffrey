@@ -36,7 +36,7 @@ public interface McpToolProvider {
 
     /**
      * Invokes a tool by its MCP name for a caller that described the client in {@code context}.
-     * The tool may answer with a result, a question, or a task, as far as the context allows.
+     * The tool may answer with a result, or a question, as far as the context allows.
      *
      * @throws UnknownToolException  if the tool name is unknown
      * @throws ToolDispatchException if an argument does not fit the schema
@@ -47,7 +47,7 @@ public interface McpToolProvider {
      * Invokes a tool for a caller that can only take a finished result — a resource read, a
      * completion — and retains the explicit structured result, if the tool supplies one.
      *
-     * @throws IllegalStateException if the tool asks a question or defers anyway
+     * @throws IllegalStateException if the tool asks a question anyway
      */
     default McpToolResult callResult(String toolName, JsonNode arguments) {
         return call(toolName, arguments, McpCallContext.RESOURCE_READ).requireComplete();

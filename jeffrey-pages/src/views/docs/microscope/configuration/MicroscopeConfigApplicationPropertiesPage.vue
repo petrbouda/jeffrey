@@ -276,18 +276,6 @@ onMounted(() => {
             </td>
           </tr>
           <tr>
-            <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>download-response-timeout</code></td>
-            <td><code>PT45S</code></td>
-            <td>
-              How long <code>connector_download</code> &mdash; and <code>connector_fetchFile</code>, which shares
-              this setting &mdash; waits before it answers that the transfer is still running, session
-              lookup included. It bounds the <em>answer</em>, not the work: a transfer that outlasts it
-              carries on, and calling the tool again with the same arguments reports the finished copy. Sized under the shortest client timeout worth designing for, so raising it
-              mostly buys a client that has already given up. A positive ISO-8601 duration. Read at
-              startup.
-            </td>
-          </tr>
-          <tr>
             <td><code>jeffrey.<wbr>microscope.<wbr>mcp.<wbr>connector.<wbr>ask-window-over-duration</code></td>
             <td><code>PT1H</code></td>
             <td>

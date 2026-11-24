@@ -17,7 +17,6 @@
 
 package cafe.jeffrey.microscope.core.mcp.tools;
 
-import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.common.filesystem.FileSystemUtils;
 import cafe.jeffrey.microscope.connector.api.RepositoryFiles;
 import cafe.jeffrey.microscope.core.manager.connector.ConnectorInfo;
@@ -64,15 +63,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 
 /**
  * The files of a connector session one at a time: what a session holds beside its recording, and how to
@@ -96,7 +92,6 @@ public class ConnectorArtifactsMcpTools {
 
     private static final Logger LOG = LoggerFactory.getLogger(ConnectorArtifactsMcpTools.class);
 
-    private static final String RESPONSE_DEADLINE_ELAPSED = "Connector fetch response deadline elapsed";
     private static final String PROFILE_ARTIFACTS_DIR = "artifacts";
 
     private static final int DEFAULT_FILES_LIMIT = 100;
@@ -117,7 +112,6 @@ public class ConnectorArtifactsMcpTools {
             "The DOWNLOAD rows come with connector_download, which brings the session - or a window of it - as one "
                     + "recording.";
 
-    private static final String JOIN_WHY = "returns the path once the transfer lands, without fetching the file twice";
     private static final String ANALYSE_HEAP_DUMP_WHY = "builds the heap profile the heap_ tools take from this dump";
     /** The recordings family is always served beside connector; the heap family need not be. */
     private static final String HEAP_NOT_SERVED_GUIDANCE =
@@ -127,31 +121,23 @@ public class ConnectorArtifactsMcpTools {
             "Open, grep or parse the file at path with your own tools; it is on the machine Jeffrey runs on.";
     private static final String ZERO_POINT_GUIDANCE =
             "Its timestamps line up with profile %s, whose recording starts at profilingStartedAtEpochMs.";
-    private static final String RETRY_WHY = "fetches the file again after a failed or cancelled transfer";
 
     private final ConnectorSessionLocator locator;
     private final RecordingsManager recordings;
     private final Path artifactsDir;
     private final Path profilesDir;
-    private final Duration responseBudget;
     private final AdvertisedFamilies advertised;
 
-    /**
-     * @param responseBudget how long a fetch call waits on its preflight and its transfer together
-     */
     public ConnectorArtifactsMcpTools(
             ProjectManagerResolver resolver,
             RecordingsManager recordings,
             Path artifactsDir,
             Path profilesDir,
-            Clock clock,
-            Duration responseBudget,
             AdvertisedFamilies advertised) {
         this.locator = new ConnectorSessionLocator(resolver);
         this.recordings = recordings;
         this.artifactsDir = artifactsDir.toAbsolutePath();
         this.profilesDir = profilesDir.toAbsolutePath();
-        this.responseBudget = responseBudget;
         this.advertised = advertised;
     }
 
@@ -160,19 +146,6 @@ public class ConnectorArtifactsMcpTools {
      */
     record ConnectorFileRef(ConnectorSessionRef session, String fileId) {
 
-        private McpNextTool.Call call() {
-            return ConnectorCalls.onSession(ConnectorCalls.CONNECTOR_FETCH_FILE, session.encode()).with(ConnectorCalls.FILE_ID, fileId);
-        }
-
-        /** This fetch again: it joins the transfer in flight or answers from disk once it has landed. */
-        McpNextTool sameCall(String why) {
-            return call().why(why);
-        }
-
-        /** This fetch again after it failed or was cancelled, which starts a new transfer. */
-        McpNextTool retryCall() {
-            return call().why(RETRY_WHY);
-        }
     }
 
     /**
@@ -427,12 +400,6 @@ public class ConnectorArtifactsMcpTools {
     }
 
     /**
-     * Registers the transfer with the call that retries it - this tool again, which starts a failed
-     * or cancelled fetch afresh - and the answer a task following it completes with.
-     *
-     * @return the operation id
-     */
-    /**
      * The one answer every state of a fetch gives: the file, what to do with it next and the page for
      * the user.
      */
@@ -445,10 +412,6 @@ public class ConnectorArtifactsMcpTools {
 
     private McpFollowUp followUp(ConnectorFileRef key, FetchFacts facts) {
         NextSteps.Builder next = NextSteps.builder(advertised);
-        if (facts.status() == FetchStatus.RUNNING) {
-            return next.next(key.sameCall(JOIN_WHY))
-                    .followUp();
-        }
         boolean heapDump = HEAP_DUMPS.contains(facts.type());
         boolean heapServed = advertised.has(AdvertisedFamilies.HEAP);
         return next

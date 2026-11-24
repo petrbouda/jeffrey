@@ -27,7 +27,6 @@ import cafe.jeffrey.microscope.mcp.server.McpNullable;
 import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.server.McpToolResult;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.core.pipeline.PipelineProgress;
 import cafe.jeffrey.microscope.core.pipeline.StageStatus;
 import cafe.jeffrey.microscope.core.profile.manager.ProfileManager;
@@ -103,15 +102,6 @@ public class HeapComputeMcpTools {
     private static final String DOMINATOR_FIRST_GUIDANCE =
             "Retained sizes come from the dominator stage. Until it completes they are missing rather "
                     + "than zero, so a ranking by retained size before then is empty for a reason.";
-    private static final String ALREADY_RUNNING_GUIDANCE =
-            "A run was already in flight for this profile, so this call joined it rather than starting "
-                    + "a second one. The progress below is that run's.";
-    private static final String ALREADY_COMPLETED_GUIDANCE =
-            "The preparation already completed, so nothing was restarted: the stages below are that "
-                    + "run's history.";
-    private static final String REBUILD_GUIDANCE =
-            "heap_prepare with retry=true rebuilds it from scratch, which is worth its minutes only when the "
-                    + "cached reports are suspect.";
     private static final String RETRY_FAILED_GUIDANCE =
             "The prior attempt failed or was cancelled; the retry call starts a new one.";
     private static final String PREPARED_GUIDANCE =
@@ -228,33 +218,6 @@ public class HeapComputeMcpTools {
                 .with(REPORT, computing.size() == 1 ? computing.getFirst() : null)
                 .with(RETRY, true)
                 .why(WHY_RETRY);
-    }
-
-    /**
-     * A joined call reads differently depending on what it joined: a run still going, a run that
-     * already finished (which an omitted {@code retry} deliberately does not restart), or one that
-     * failed and is waiting for an explicit retry.
-     */
-    private McpFollowUp prepareSteps(String profileId, boolean started, OperationState joined,
-            List<HeapReport> computing, McpNextTool retryCall) {
-        if (!started && joined == OperationState.COMPLETED) {
-            return readerSteps(profileId, computing)
-                    .guidance(ALREADY_COMPLETED_GUIDANCE)
-                    .guidance(REBUILD_GUIDANCE)
-                    .followUp();
-        }
-        if (!started && joined.terminal()) {
-            return NextSteps.builder(advertised)
-                    .next(retryCall)
-                    .next(onProfile(STATUS_TOOL, profileId).why(WHY_STATUS))
-                    .guidance(RETRY_FAILED_GUIDANCE)
-                    .followUp();
-        }
-        return NextSteps.builder(advertised)
-                .next(onProfile(STATUS_TOOL, profileId).why(WHY_STATUS))
-                .guidanceWhen(!started, ALREADY_RUNNING_GUIDANCE)
-                .guidance(DOMINATOR_FIRST_GUIDANCE)
-                .followUp();
     }
 
     /**

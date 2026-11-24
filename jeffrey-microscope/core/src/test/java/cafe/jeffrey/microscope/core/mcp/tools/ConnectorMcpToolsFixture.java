@@ -38,43 +38,36 @@ public record ConnectorMcpToolsFixture(
         RecordingsManager recordingsManager,
         Clock clock,
         Duration scanBudget,
-        Duration downloadResponseBudget,
         DownloadWindowQuestion windowQuestion,
         AdvertisedFamilies advertised) {
 
     public static final Duration SCAN_BUDGET = Duration.ofSeconds(20);
-    public static final Duration DOWNLOAD_RESPONSE_BUDGET = Duration.ofSeconds(45);
 
     /** The defaults of the two {@code ask-window-over-*} properties: an hour or a gibibyte. */
     public static final DownloadWindowQuestion WINDOW_QUESTION =
             new DownloadWindowQuestion(Duration.ofHours(1), 1024L * 1024 * 1024);
 
-    /** The production budgets and window thresholds, and every family served. */
+    /** The production scan budget and window thresholds, and every family served. */
     public static ConnectorMcpToolsFixture of(
             ConnectorManager connectorManager, ProjectManagerResolver resolver, RecordingsManager recordingsManager,
             Clock clock) {
         return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, SCAN_BUDGET,
-                DOWNLOAD_RESPONSE_BUDGET, WINDOW_QUESTION, AdvertisedFamiliesFixture.EVERY_FAMILY);
-    }
-
-    public ConnectorMcpToolsFixture withBudgets(Duration scan, Duration downloadResponse) {
-        return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scan, downloadResponse,
-                windowQuestion, advertised);
+                WINDOW_QUESTION, AdvertisedFamiliesFixture.EVERY_FAMILY);
     }
 
     /** Only the families an installation serves, so a next call to a withheld one is left out. */
     public ConnectorMcpToolsFixture withAdvertised(AdvertisedFamilies replacement) {
         return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, windowQuestion, replacement);
+                windowQuestion, replacement);
     }
 
     public ConnectorMcpToolsFixture withWindowQuestion(DownloadWindowQuestion replacement) {
         return new ConnectorMcpToolsFixture(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, replacement, advertised);
+                replacement, advertised);
     }
 
     public ConnectorMcpTools build() {
         return new ConnectorMcpTools(connectorManager, resolver, recordingsManager, clock, scanBudget,
-                downloadResponseBudget, windowQuestion, advertised);
+                windowQuestion, advertised);
     }
 }

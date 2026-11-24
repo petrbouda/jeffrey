@@ -4450,8 +4450,7 @@
           },
           "status": {
             "enum": [
-              "FETCHED",
-              "RUNNING"
+              "FETCHED"
             ],
             "type": "string"
           },

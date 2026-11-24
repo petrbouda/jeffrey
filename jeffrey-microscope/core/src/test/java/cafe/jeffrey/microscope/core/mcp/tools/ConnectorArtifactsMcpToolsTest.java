@@ -64,10 +64,7 @@ import tools.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Clock;
-import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -99,7 +96,6 @@ class ConnectorArtifactsMcpToolsTest {
 
     private static final Instant NOW = Instant.parse("2026-09-14T12:00:00Z");
     private static final Instant PROFILE_START = Instant.parse("2026-09-14T11:00:00Z");
-    private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
 
     private static final String ADDRESS = "azure-files:https://jeffreyprod.file.core.windows.net/recordings";
     private static final String WORKSPACE_ID = "ws-1";
@@ -121,8 +117,8 @@ class ConnectorArtifactsMcpToolsTest {
         // The request every link is built from, inherited by the threads a test starts.
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(new MockHttpServletRequest()), true);
         tools = ConnectorArtifactsMcpToolsFixture.of(resolver, recordingsManager, home.resolve("artifacts"),
-                        home.resolve("profiles"), CLOCK, EVERY_FAMILY)
-                .withBudget(Duration.ofSeconds(5)).build();
+                        home.resolve("profiles"), EVERY_FAMILY)
+                .build();
     }
 
     @AfterEach
@@ -519,10 +515,10 @@ class ConnectorArtifactsMcpToolsTest {
         @Test
         void aHeapDumpSaysTheHeapToolsAreNotServedWhenTheHeapFamilyIsWithheld() throws IOException {
             tools = ConnectorArtifactsMcpToolsFixture.of(resolver, recordingsManager, home.resolve("artifacts"),
-                            home.resolve("profiles"), CLOCK,
+                            home.resolve("profiles"),
                             AdvertisedFamilies.of(McpTestProperties.of(
                                     true, true, true, Set.of("profiles", "recordings", "connector"))))
-                    .withBudget(Duration.ofSeconds(5)).build();
+                    .build();
             connectorHolds(session(finished("f-heap", "heap-dump.hprof.gz", ManagedFile.HEAP_DUMP_GZ)));
             when(repository.streamFile(SESSION_ID, "f-heap")).thenReturn(streamed("heap-dump.hprof.gz"));
 

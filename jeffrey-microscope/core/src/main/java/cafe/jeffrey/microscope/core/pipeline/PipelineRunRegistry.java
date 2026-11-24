@@ -22,9 +22,6 @@ import cafe.jeffrey.jfr.events.trace.SpanStatus;
 import cafe.jeffrey.jfr.events.trace.TraceSpanEvent;
 import cafe.jeffrey.jfr.events.trace.Tracer;
 import cafe.jeffrey.microscope.core.utils.Json;
-import cafe.jeffrey.microscope.core.operation.OperationHandle;
-import cafe.jeffrey.microscope.core.operation.OperationSnapshot;
-import cafe.jeffrey.microscope.core.operation.OperationState;
 import cafe.jeffrey.microscope.core.utils.Schedulers;
 import cafe.jeffrey.microscope.common.exception.JeffreyException;
 import cafe.jeffrey.microscope.core.notification.NotificationType;
@@ -40,7 +37,6 @@ import java.util.Map;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -63,19 +59,11 @@ import java.util.concurrent.TimeUnit;
  */
 public final class PipelineRunRegistry<K> {
 
-    /**
-     * The phase every run reports in its operation snapshot. Read back by name by the MCP layer, which
-     * pins this constant to its own phase of the same name.
-     */
-    public static final String OPERATION_PHASE = "pipeline";
-
     private static final Logger LOG = LoggerFactory.getLogger(PipelineRunRegistry.class);
 
     private static final Duration EVICTION_INTERVAL = Duration.ofMinutes(1);
 
-    private static final String CANCELLED_MESSAGE = "Cancelled";
-
-    private static final String CANCELLED_WHILE_QUEUED_MESSAGE = "Cancelled while waiting for a slot";
+    private static final String INTERRUPTED_WHILE_QUEUED_MESSAGE = "Interrupted while waiting for a slot";
 
     private final PipelineDefinition definition;
     private final PipelineRunOptions options;
@@ -147,7 +135,7 @@ public final class PipelineRunRegistry<K> {
         if (current != candidate) {
             LOG.debug("Pipeline run already in flight: pipeline_id={} key={}",
                     definition.pipelineId(), request.key());
-            return new StartResult(false, current);
+            return new StartResult(false);
         }
 
         LOG.info("Queued pipeline run: pipeline_id={} key={} scope_id={} available_slots={}",
@@ -166,7 +154,6 @@ public final class PipelineRunRegistry<K> {
             // and release the key. The throwing caller still owns its resources: invoking
             // onFinished here would release them a second time in callers' failure paths.
             synchronized (candidate) {
-                candidate.stopWorker();
                 candidate.run.fail(errorCodeOf(e), e.getMessage());
                 candidate.finishedAt = clock.instant();
                 candidate.finished = true;
@@ -177,10 +164,10 @@ public final class PipelineRunRegistry<K> {
             runsByKey.remove(request.key(), candidate);
             throw e;
         }
-        return new StartResult(true, candidate);
+        return new StartResult(true);
     }
 
-    public record StartResult(boolean started, OperationHandle<PipelineProgress> operation) {
+    public record StartResult(boolean started) {
     }
 
     /** Live progress of the current (or last finished) run; idle when none exists. */
@@ -212,11 +199,6 @@ public final class PipelineRunRegistry<K> {
 
         Throwable failure;
         try {
-            if (!candidate.beginWorker()) {
-                candidate.run.fail("CANCELLED", CANCELLED_MESSAGE);
-                throw new CancellationException(CANCELLED_MESSAGE);
-            }
-            candidate.markStarted();
             failure = driveWork(request, candidate.run);
         } finally {
             finish(request, candidate);
@@ -247,16 +229,6 @@ public final class PipelineRunRegistry<K> {
         return tracked != null && !tracked.finished;
     }
 
-    /** Requests cancellation without releasing the key while work or cleanup still owns it. */
-    public boolean cancel(K key) {
-        TrackedRun tracked = runsByKey.get(key);
-        return tracked != null && tracked.cancel();
-    }
-
-    public Optional<OperationHandle<PipelineProgress>> operation(K key) {
-        return Optional.ofNullable(runsByKey.get(key));
-    }
-
     /**
      * Waits for the run holding this key, if there is one, and reports how it ended.
      * <p>
@@ -284,23 +256,16 @@ public final class PipelineRunRegistry<K> {
     private void execute(PipelineRunRequest<K> request, TrackedRun tracked) {
         boolean acquired = false;
         try {
-            if (!tracked.beginWorker()) {
-                tracked.run.fail("CANCELLED", CANCELLED_MESSAGE);
-                return;
-            }
             slots.acquire();
             acquired = true;
-            tracked.markStarted();
-            tracked.run.checkCancellation();
             driveWork(request, tracked.run);
-        } catch (InterruptedException | CancellationException e) {
-            // Only a run still waiting on the semaphore was cancelled while queued. Past that point
-            // the slot is held and the work has begun, and saying otherwise sent a reader looking for
-            // a queue that was never what stopped it.
-            tracked.run.fail("CANCELLED", acquired ? CANCELLED_MESSAGE : CANCELLED_WHILE_QUEUED_MESSAGE);
+        } catch (InterruptedException e) {
+            // The only interruptible wait is for a concurrency slot: a run interrupted here -- by
+            // executor or JVM shutdown -- never began, so it is recorded as such rather than as a
+            // run that failed mid-work.
+            tracked.run.fail("INTERRUPTED", INTERRUPTED_WHILE_QUEUED_MESSAGE);
         } finally {
-            // Cancellation no longer interrupts once work has ended. Cleanup still owns the key.
-            tracked.stopWorker();
+            // Result persistence and lease release must not inherit an interrupt intended for the work.
             Thread.interrupted();
             if (acquired) {
                 slots.release();
@@ -310,7 +275,6 @@ public final class PipelineRunRegistry<K> {
     }
 
     private void finish(PipelineRunRequest<K> request, TrackedRun tracked) {
-        tracked.stopWorker();
         // Result persistence and lease release must not inherit an interrupt intended for the work.
         Thread.interrupted();
         try {
@@ -445,18 +409,12 @@ public final class PipelineRunRegistry<K> {
     }
 
     /**
-     * Pairs a run with the thread executing it, so cancellation can interrupt the actual work.
-     * A {@code CompletableFuture} would not do here: its {@code cancel(true)} never interrupts the
-     * running task — {@code mayInterruptIfRunning} is documented to have no effect.
+     * One tracked run: the {@link PipelineRun} itself plus the bookkeeping the registry needs to tell a
+     * finished run from a live one and to let a joiner wait on its completion.
      */
-    private static final class TrackedRun implements OperationHandle<PipelineProgress> {
+    private static final class TrackedRun {
 
         private final PipelineRun run;
-        private final String operationId = UUID.randomUUID().toString();
-        private Thread worker;
-        private boolean cancellationRequested;
-        private boolean acceptingCancellation = true;
-        private boolean started;
         private volatile boolean finished;
         private volatile Instant finishedAt;
         /** Completed once {@link #finished} is set, so a joiner can wait rather than poll. */
@@ -464,71 +422,6 @@ public final class PipelineRunRegistry<K> {
 
         private TrackedRun(PipelineRun run) {
             this.run = run;
-        }
-
-        private synchronized boolean beginWorker() {
-            if (cancellationRequested) {
-                return false;
-            }
-            worker = Thread.currentThread();
-            return true;
-        }
-
-        private synchronized void markStarted() {
-            started = true;
-        }
-
-        private synchronized void stopWorker() {
-            acceptingCancellation = false;
-            worker = null;
-        }
-
-        @Override
-        public synchronized boolean cancel() {
-            if (!acceptingCancellation || cancellationRequested || finished || !run.isRunning()) {
-                return false;
-            }
-            cancellationRequested = true;
-            run.requestCancellation();
-            if (worker != null) {
-                worker.interrupt();
-            }
-            return true;
-        }
-
-        @Override
-        public String operationId() {
-            return operationId;
-        }
-
-        @Override
-        public Instant startedAt() {
-            return run.startedAt();
-        }
-
-        @Override
-        public Instant finishedAt() {
-            return finishedAt;
-        }
-
-        @Override
-        public synchronized OperationSnapshot<PipelineProgress> snapshot() {
-            PipelineProgress progress = run.progress();
-            OperationState state;
-            if (!finished) {
-                state = cancellationRequested ? OperationState.CANCEL_REQUESTED
-                        : started ? OperationState.RUNNING : OperationState.QUEUED;
-            } else if (progress.state() == PipelineState.COMPLETED) {
-                state = OperationState.COMPLETED;
-            } else {
-                state = "CANCELLED".equals(progress.errorCode())
-                        ? OperationState.CANCELLED : OperationState.FAILED;
-            }
-            RuntimeException failure = state == OperationState.FAILED
-                    ? new IllegalStateException(progress.errorMessage()) : null;
-            return new OperationSnapshot<>(operationId, state, run.startedAt(), finishedAt,
-                    cancellationRequested, OPERATION_PHASE, progress,
-                    state == OperationState.COMPLETED ? progress : null, failure);
         }
     }
 }

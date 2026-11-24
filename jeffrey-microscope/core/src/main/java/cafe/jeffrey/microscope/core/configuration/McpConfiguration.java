@@ -23,22 +23,35 @@ import cafe.jeffrey.microscope.core.manager.ide.IdeBridge;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingCommitResolver;
 import cafe.jeffrey.microscope.core.manager.recordings.RecordingsManager;
 import cafe.jeffrey.microscope.core.mcp.AdvertisedFamilies;
+import cafe.jeffrey.microscope.core.mcp.CompletionsFeature;
 import cafe.jeffrey.microscope.core.mcp.ExternalMcpProperties;
 import cafe.jeffrey.microscope.core.mcp.JeffreyPromptRepository;
 import cafe.jeffrey.microscope.core.mcp.JeffreyResourceRepository;
 import cafe.jeffrey.microscope.core.mcp.JeffreyToolRepository;
+import cafe.jeffrey.microscope.core.mcp.McpCompletions;
 import cafe.jeffrey.microscope.core.mcp.McpDiagnostics;
 import cafe.jeffrey.microscope.core.mcp.McpGuardFilter;
-import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
-import cafe.jeffrey.microscope.core.mcp.CompletionsFeature;
 import cafe.jeffrey.microscope.core.mcp.McpInstructions;
-import cafe.jeffrey.microscope.core.mcp.McpCompletions;
+import cafe.jeffrey.microscope.core.mcp.McpProfileContextCache;
 import cafe.jeffrey.microscope.core.mcp.McpPromptRegistry;
 import cafe.jeffrey.microscope.core.mcp.McpRequestGuard;
 import cafe.jeffrey.microscope.core.mcp.McpResources;
 import cafe.jeffrey.microscope.core.mcp.McpSkillCatalogue;
 import cafe.jeffrey.microscope.core.mcp.McpToolsetAssembler;
 import cafe.jeffrey.microscope.core.mcp.SkillsFeature;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
+import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindowQuestion;
+import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
+import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
+import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
+import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
+import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileDatabases;
+import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
+import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
 import io.modelcontextprotocol.modern.server.McpServer;
 import io.modelcontextprotocol.modern.server.feature.McpSyncPromptRepository;
 import io.modelcontextprotocol.modern.server.feature.McpSyncResourceRepository;
@@ -47,26 +60,13 @@ import io.modelcontextprotocol.server.transport.ServerHttpHeaderValidator;
 import org.springframework.ai.mcp.customizer.McpServerCustomizer;
 import org.springframework.ai.mcp.server.webmvc.transport.WebMvcModernServerTransport;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.SmartLifecycle;
-import org.springframework.core.Ordered;
-import cafe.jeffrey.microscope.core.mcp.tools.ConnectorArtifactsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.ConnectorMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.ProfilesMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.RecordingsMcpTools;
-import cafe.jeffrey.microscope.core.mcp.tools.connector.DownloadWindowQuestion;
-import cafe.jeffrey.microscope.core.web.ProfileManagerResolver;
-import cafe.jeffrey.microscope.core.web.ProjectManagerResolver;
-import cafe.jeffrey.microscope.core.persistence.api.MicroscopeCorePersistenceProvider;
-import cafe.jeffrey.microscope.core.pipeline.PipelineRunRegistry;
-import cafe.jeffrey.microscope.core.profile.manager.heapdump.HeapDumpInitService;
-import cafe.jeffrey.microscope.core.profile.panel.JfrFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.core.profile.panel.StackSampleFlamegraphPanelProvider;
-import cafe.jeffrey.microscope.core.profile.persistence.api.ProfileDatabases;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.util.unit.DataSize;
 
 import java.time.Clock;
@@ -219,13 +219,11 @@ public class McpConfiguration {
             RecordingsManager recordingsManager,
             Clock applicationClock,
             @Value("${jeffrey.microscope.mcp.connector.scan-timeout:PT20S}") Duration scanTimeout,
-            @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_DURATION_PROPERTY + ":PT1H}") Duration askWindowOverDuration,
             @Value("${" + ConnectorMcpTools.ASK_WINDOW_OVER_SIZE_PROPERTY + ":1GB}") DataSize askWindowOverSize,
             AdvertisedFamilies advertisedFamilies) {
         return new ConnectorMcpTools(
-                connectorManager, projectManagerResolver, recordingsManager, applicationClock,
-                scanTimeout, responseTimeout,
+                connectorManager, projectManagerResolver, recordingsManager, applicationClock, scanTimeout,
                 new DownloadWindowQuestion(askWindowOverDuration, askWindowOverSize.toBytes()), advertisedFamilies);
     }
 
@@ -249,12 +247,10 @@ public class McpConfiguration {
             ProjectManagerResolver projectManagerResolver,
             RecordingsManager recordingsManager,
             MicroscopeJeffreyDirs jeffreyDirs,
-            Clock applicationClock,
-            @Value("${" + ConnectorMcpTools.DOWNLOAD_RESPONSE_TIMEOUT_PROPERTY + ":PT45S}") Duration responseTimeout,
             AdvertisedFamilies advertisedFamilies) {
         return new ConnectorArtifactsMcpTools(
                 projectManagerResolver, recordingsManager, jeffreyDirs.artifacts(), jeffreyDirs.profiles(),
-                applicationClock, responseTimeout, advertisedFamilies);
+                advertisedFamilies);
     }
 
     @Bean

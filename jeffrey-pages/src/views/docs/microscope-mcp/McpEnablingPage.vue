@@ -47,9 +47,8 @@ const propertyToggle = `jeffrey.microscope.mcp.enabled=false`;
 
 const connectorToggle = `jeffrey.microscope.mcp.connector.enabled=false`;
 
-const connectorTimeouts = `# Positive ISO-8601 durations; defaults shown
-jeffrey.microscope.mcp.connector.scan-timeout=PT20S
-jeffrey.microscope.mcp.connector.download-response-timeout=PT45S`;
+const connectorScanTimeout = `# Positive ISO-8601 duration; default shown
+jeffrey.microscope.mcp.connector.scan-timeout=PT20S`;
 
 const windowQuestion = `# A whole-session connector_download of a session longer than this, or holding more than
 # that, first asks a client that declared form elicitation which part to bring; defaults shown.
@@ -152,8 +151,8 @@ const disabledProbe = `curl -s -o /dev/null -w '%{http_code}\\n' \\
 
       <p>Like the endpoint toggle, this one is read once at startup. Whether a family is advertised shows in the client&rsquo;s own tool list &mdash; no <code>connector_</code> tool means it is off. The switch takes <code>connector_files</code> and <code>connector_fetchFile</code> with it.</p>
 
-      <p>Connector discovery has a shared deadline across all connector calls. Downloads &mdash; and single-file fetches, which share the setting &mdash; have a response deadline, including session lookup; a transfer that outlasts it carries on in the background, and calling the tool again with the same arguments reports the finished copy:</p>
-      <DocsCodeBlock :code="connectorTimeouts" language="properties" />
+      <p>Connector discovery has a shared deadline across all connector calls: a project that stops answering is abandoned rather than waited out, and the sessions other projects already returned are still reported:</p>
+      <DocsCodeBlock :code="connectorScanTimeout" language="properties" />
 
       <p>A client that declared MCP form elicitation is asked which part of a <em>large</em> session to bring before a whole-session <code>connector_download</code> moves it &mdash; the last N minutes, its startup, its latest or busiest chunk, the minutes before or around a moment, a window of the user&rsquo;s own, or all of it; the <router-link to="/docs/microscope-mcp/tools#window-question">Tool Reference</router-link> has the question and its answers. Two properties say what large means: a session that runs longer than the duration &mdash; measured to the end of its recorded data &mdash; or holds more than the size. Anything smaller comes down whole without a question, and so does every session for a client that did not declare form elicitation, and a call that already names a <code>window</code>, bounds or <code>fileIds</code>. The duration is ISO-8601; the size is a data size such as <code>500MB</code> or <code>2GB</code>, where <code>1GB</code> is 1024<sup>3</sup> bytes. <code>PT0S</code> or <code>0B</code> means always ask. Both are read at startup.</p>
       <DocsCodeBlock :code="windowQuestion" language="properties" />

@@ -74,7 +74,7 @@ final class AdvertisedTools {
                 properties,
                 AdvertisedFamilies.of(properties),
                 ConnectorArtifactsMcpToolsFixture.of(resolver, recordingsManager, Path.of("artifacts"),
-                        Path.of("profiles"), CLOCK, EVERY_FAMILY).build(),
+                        Path.of("profiles"), EVERY_FAMILY).build(),
                 CLOCK);
         return assembler.toolset().specs();
     }

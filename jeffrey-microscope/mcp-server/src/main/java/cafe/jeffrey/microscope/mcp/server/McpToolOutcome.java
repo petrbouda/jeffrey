@@ -25,8 +25,7 @@ import java.util.Map;
  * What a tool answers with: a result, or a question it needs answered first.
  * <p>
  * The tool decides which from the {@link McpCallContext} it was handed — it never asks a client that
- * cannot answer. Long work runs on the call and streams progress rather than deferring. The envelope
- * renders each.
+ * cannot answer. Long work runs on the call and streams progress. The envelope renders each.
  */
 public sealed interface McpToolOutcome
         permits McpToolResult, McpToolOutcome.InputRequired {
@@ -35,8 +34,8 @@ public sealed interface McpToolOutcome
      * This outcome as a finished result, for a caller that has nowhere to put anything else — a resource
      * read or a completion.
      *
-     * @throws IllegalStateException when the tool asked a question or deferred; that is a bug in the
-     *                               tool, which was told the caller could do neither
+     * @throws IllegalStateException when the tool asked a question; that is a bug in the
+     *                               tool, which was told the caller could not answer one
      */
     McpToolResult requireComplete();
 
