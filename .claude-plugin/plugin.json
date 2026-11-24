@@ -1,0 +1,45 @@
+{
+  "name": "microscope",
+  "version": "1.0.33",
+  "description": "Analyze JVM recordings with a running Jeffrey Microscope — point it at a JFR file or heap dump to build a profile, then list analysed recordings, query their DuckDB tables, and pull flamegraph, trace and heap-dump exports without leaving the terminal.",
+  "author": {
+    "name": "Petr Bouda",
+    "url": "https://www.jeffrey-analyst.cafe/"
+  },
+  "homepage": "https://www.jeffrey-analyst.cafe/docs/microscope-mcp",
+  "repository": "https://github.com/petrbouda/jeffrey",
+  "license": "Apache-2.0",
+  "keywords": [
+    "jfr",
+    "jvm",
+    "profiling",
+    "flamegraph",
+    "heap-dump",
+    "performance"
+  ],
+  "userConfig": {
+    "endpoint_url": {
+      "type": "string",
+      "title": "Jeffrey MCP endpoint",
+      "description": "URL of the Microscope MCP endpoint. Keep the default for a Jeffrey on its usual port; change it for another port, a container or an SSH tunnel — it is the address Microscope serves on, with /api/mcp appended.",
+      "default": "http://localhost:8585/api/mcp"
+    },
+    "token": {
+      "type": "string",
+      "title": "Jeffrey MCP token",
+      "description": "Bearer token for a Jeffrey that sets jeffrey.microscope.mcp.token. Leave empty for a Jeffrey without one — it ignores the header. Sent as Authorization: Bearer on every request, and by the session-start check.",
+      "sensitive": true,
+      "default": ""
+    }
+  },
+  "mcpServers": {
+    "jeffrey": {
+      "type": "http",
+      "url": "${user_config.endpoint_url}",
+      "headers": {
+        "Authorization": "Bearer ${user_config.token}"
+      }
+    }
+  },
+  "hooks": "./hooks/hooks.json"
+}
