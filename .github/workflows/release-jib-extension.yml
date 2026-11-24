@@ -200,16 +200,14 @@ jobs:
           PRERELEASE_FLAG="--prerelease"
         fi
 
-        NOTES=$(cat <<EOF
-### Maven Central
-
-**Gradle** — \`cafe.jeffrey-analyst:jeffrey-jib-gradle:${VERSION}\`
-**Maven** — \`cafe.jeffrey-analyst:jeffrey-jib-maven:${VERSION}\`
-
-Provisioner: \`${PROVISIONER_TAG}\`
-async-profiler: \`${AP_VERSION}\`
-EOF
-        )
+        NOTES=$(printf '%s\n' \
+          '### Maven Central' \
+          '' \
+          "**Gradle** — \`cafe.jeffrey-analyst:jeffrey-jib-gradle:${VERSION}\`" \
+          "**Maven** — \`cafe.jeffrey-analyst:jeffrey-jib-maven:${VERSION}\`" \
+          '' \
+          "Provisioner: \`${PROVISIONER_TAG}\`" \
+          "async-profiler: \`${AP_VERSION}\`")
 
         gh release create "${TAG}" \
           --title "JIB Extension ${VERSION}" \

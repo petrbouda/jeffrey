@@ -189,12 +189,10 @@ jobs:
           PRERELEASE_FLAG="--prerelease"
         fi
 
-        NOTES=$(cat <<EOF
-Docker image: \`petrbouda/volume-scheduler:${VERSION}\`
-
-[Docker Hub](https://hub.docker.com/r/petrbouda/volume-scheduler/tags)
-EOF
-        )
+        NOTES=$(printf '%s\n' \
+          "Docker image: \`petrbouda/volume-scheduler:${VERSION}\`" \
+          '' \
+          '[Docker Hub](https://hub.docker.com/r/petrbouda/volume-scheduler/tags)')
 
         gh release create "${TAG}" \
           --title "Volume Scheduler ${VERSION}" \
