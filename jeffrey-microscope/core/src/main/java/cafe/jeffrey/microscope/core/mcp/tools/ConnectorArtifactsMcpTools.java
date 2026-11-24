@@ -42,7 +42,6 @@ import cafe.jeffrey.microscope.mcp.server.McpOutputSchema;
 import cafe.jeffrey.microscope.mcp.server.McpToolOutcome;
 import cafe.jeffrey.microscope.mcp.server.McpToolResult;
 import cafe.jeffrey.microscope.mcp.server.McpFollowUp;
-import cafe.jeffrey.microscope.mcp.server.McpNextTool;
 import cafe.jeffrey.microscope.mcp.server.McpToolCost;
 import cafe.jeffrey.microscope.mcp.server.McpToolHints;
 import cafe.jeffrey.microscope.mcp.server.McpToolMeta;

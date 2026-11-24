@@ -28,8 +28,7 @@ jeffrey-microscope/                    MicroscopeApplication (core), Vue SPA (pa
                                        frameir, timeseries, subsecond, thread, gc, memory, custom events, heap-dump
                                        orchestration, …) and the JFR model it reads (core.profile.jfr: the JFR model
                                        types; core.profile.{event,exceptions,analysis,treetable,graph}),
-                                       the init pipelines (core.pipeline) and their long-running
-                                       operation handles (core.operation), Jeffrey's own jeffrey.Notification
+                                       the init pipelines (core.pipeline), Jeffrey's own jeffrey.Notification
                                        events (core.notification), the recording parsers (core.profile.parser: JFR via the JDK and
                                        raw chunks, pprof, OTLP), heap dumps (core.profile.heapdump, OQL in .oql), the
                                        per-profile DuckDB (core.profile.persistence: repository API + impl), the core
